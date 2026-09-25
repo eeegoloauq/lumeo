@@ -39,6 +39,30 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.63" date="2026-09-25">
+      <description>
+        <ul>
+          <li>A download that stalls after the network changes
+            (a VPN switched on or off, another Wi-Fi) starts
+            again by itself; pressing Play on a stalled download
+            does the same.</li>
+          <li>The home screen no longer waits for an addon that
+            never answered.</li>
+          <li>A title you start watching goes on My list.</li>
+          <li>New defaults: watched downloads are kept 30 days
+            within 50 GB, and episode stills are shown.</li>
+          <li>The player opens without flashing the title and
+            100% over a downloaded episode; the next-episode
+            ring runs from the moment its card appears; seeks
+            show mpv's bar.</li>
+          <li>Windows: seek-bar previews and the second Esc
+            work.</li>
+          <li>Settings scroll with the pointer anywhere in the
+            window; the rating button is round; files opened
+            from disk are no longer listed as downloads.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.62" date="2026-09-25">
       <description>
         <ul>

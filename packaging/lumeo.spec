@@ -89,6 +89,21 @@ appstream-util validate-relax --nonet \
 %{_datadir}/icons/hicolor/*/apps/dev.lumeo.lumeo.*
 
 %changelog
+* Fri Sep 25 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.63-1
+- A download that stalls after the network changes (a VPN switched on or
+  off, another Wi-Fi) starts again by itself; pressing Play on a stalled
+  download does the same.
+- The home screen no longer waits for an addon that never answered.
+- A title you start watching goes on My list.
+- New defaults: watched downloads are kept 30 days within 50 GB, and episode
+  stills are shown.
+- The player opens without flashing the title and 100% over a downloaded
+  episode; the next-episode ring runs from the moment its card appears;
+  seeks show mpv's bar.
+- Windows: seek-bar previews and the second Esc work.
+- Settings scroll with the pointer anywhere in the window; the rating button
+  is round; files opened from disk are no longer listed as downloads.
+
 * Fri Sep 25 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.62-1
 - No source addon ships with the app: a fresh install starts with Cinemeta
   and OpenSubtitles, and until a source is added Play says
