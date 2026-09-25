@@ -188,6 +188,17 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	if err := downloads.Resume(ctx); err != nil {
 		return err
 	}
+	// Ends before the downloads close: it restarts their tasks.
+	watching, stopWatching := context.WithCancel(ctx)
+	watched := make(chan struct{})
+	go func() {
+		defer close(watched)
+		downloads.WatchNetwork(watching)
+	}()
+	defer func() {
+		stopWatching()
+		<-watched
+	}()
 	watchProgress := progress.New(db, cat)
 	scores := ratings.New(db, cat)
 	list := watchlist.New(db, cat, db, scores)

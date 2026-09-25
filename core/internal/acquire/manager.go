@@ -162,8 +162,18 @@ func (m *Manager) start(ctx context.Context, req Request, local bool) (Download,
 	defer m.startMu.Unlock()
 	if existing, ok := m.findByLocator(req.Source.Locator); ok {
 		existing = m.snapshot(ctx, existing)
-		if existing.State == StateDone || m.running(existing.ID) {
+		if existing.State == StateDone {
 			return existing, nil
+		}
+		if m.running(existing.ID) {
+			if !stalled(existing, m.now()) {
+				return existing, nil
+			}
+			// Play on a transfer that gets nothing asks for a fresh one: the
+			// swarm it found may be unreachable now (the network changed
+			// under it: a VPN, another Wi-Fi), and only a new torrent
+			// announces and connects again.
+			m.stopTask(existing.ID)
 		}
 		// Known but nothing running, and no whole file: pressing Play is
 		// asking for it again.
@@ -295,16 +305,7 @@ func (m *Manager) SetPaused(ctx context.Context, id string, paused bool) (Downlo
 		return m.snapshot(ctx, m.row(id)), nil
 	}
 
-	m.mu.Lock()
-	task := m.tasks[id]
-	delete(m.tasks, id)
-	delete(m.flows, id)
-	m.mu.Unlock()
-	if task != nil {
-		if err := task.Close(); err != nil {
-			m.log.Warn("pausing download failed", "download", id, "err", err)
-		}
-	}
+	m.stopTask(id)
 	// Only the fields a pause changes: Identify may have named the row since
 	// the snapshot. The lock is held through the write, as in persist.
 	m.mu.Lock()
@@ -762,6 +763,26 @@ func (m *Manager) Identify(ctx context.Context, id, itemID string, season, episo
 	row.ItemID, row.Season, row.Episode, row.UpdatedAt = itemID, season, episode, m.now()
 	m.rows[id] = row
 	return m.store.SaveDownload(ctx, row)
+}
+
+// stopTask ends a download's transfer and leaves its row as it is.
+func (m *Manager) stopTask(id string) {
+	m.mu.Lock()
+	task := m.tasks[id]
+	delete(m.tasks, id)
+	delete(m.flows, id)
+	m.mu.Unlock()
+	if task != nil {
+		if err := task.Close(); err != nil {
+			m.log.Warn("stopping download failed", "download", id, "err", err)
+		}
+	}
+}
+
+// stalled says whether a running download has been getting nothing for
+// longer than a gap between blocks.
+func stalled(d Download, now time.Time) bool {
+	return !d.WaitingSince.IsZero() && now.Sub(d.WaitingSince) >= stallAfter
 }
 
 func (m *Manager) running(id string) bool {

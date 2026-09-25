@@ -69,6 +69,16 @@ on a seek into data not fetched yet. Film torrents mostly use 0.5-2 MiB pieces
 (libtorrent picks 1 MiB up to 11 GB), well under a second at 20 Mbit/s; a slow
 swarm or a 16 MiB piece makes it seconds.
 
+## A network change restarts what it stalled
+
+A VPN going up or down, or another Wi-Fi, takes the peer connections with the
+old route, and the torrent client is not told: it waits on dead peers and does
+not look for new ones, so a download stayed at "Fetching metadata" until the
+app restarted. The core compares the machine's addresses every five seconds;
+ten seconds after a change, each transfer that is then getting nothing is
+started again, once. One still getting bytes is left alone. Play on a
+download that has been getting nothing does the same, network change or not.
+
 ## Nearly every source for an episode is a whole season
 
 A provider asked for one episode answers with season packs and points at the

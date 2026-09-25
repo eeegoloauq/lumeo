@@ -216,6 +216,31 @@ func TestStartIsIdempotentPerLocator(t *testing.T) {
 	}
 }
 
+// A second Play on a transfer that has been getting nothing starts it over:
+// after a network change the old one never recovers by itself.
+func TestStartRestartsAStalledTransfer(t *testing.T) {
+	backend := &fakeBackend{scheme: "torrent"}
+	m, _, _ := testManager(t, backend)
+	clock := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
+	m.now = func() time.Time { return clock }
+
+	first, err := m.Start(context.Background(), torrentRequest())
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	clock = clock.Add(stallAfter)
+	second, err := m.Start(context.Background(), torrentRequest())
+	if err != nil {
+		t.Fatalf("start again: %v", err)
+	}
+	if first.ID != second.ID || second.State != StateActive {
+		t.Errorf("got %q %s, want %q active", second.ID, second.State, first.ID)
+	}
+	if backend.starts != 2 || !backend.task.closed {
+		t.Errorf("backend started %d times, old task closed %v; want 2, true", backend.starts, backend.task.closed)
+	}
+}
+
 func TestStartWithoutBackend(t *testing.T) {
 	m, _, _ := testManager(t, &fakeBackend{scheme: "torrent"})
 	req := torrentRequest()
