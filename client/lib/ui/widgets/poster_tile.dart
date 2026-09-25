@@ -234,7 +234,7 @@ class _PosterTileState extends State<PosterTile> {
 /// half, and the rating is what the eye comes back for, so it gets a corner of
 /// its own.
 ///
-/// Deliberately not a Netflix-style expansion: growing a card to half again
+/// Deliberately not an expansion: growing a card to half again
 /// its size shoves its neighbours aside, and a shelf that rearranges under the
 /// pointer is harder to aim at, not easier to read.
 /// Type over artwork we do not control needs its own contrast.

@@ -3,7 +3,7 @@
 // Source providers (Stremio addons, indexers) hand us a single human-oriented
 // string per result. Everything the UI wants to sort and filter on — resolution,
 // codec, HDR, audio, language, group — only exists inside that string, so the
-// parser is what separates a usable source list from Stremio's wall of text.
+// parser is what separates a usable source list from a wall of text.
 package release
 
 import (

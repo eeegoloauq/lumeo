@@ -150,7 +150,7 @@ the end of it, once, rather than every caller remembering a post-frame callback.
 paths because Flutter subsets the icon font and a stale subset once shipped an
 empty box. Flutter 3.47.2 rebuilds the subset when the icons in the code
 change (an icon added to an incremental release build was in its font,
-checked), so the reason is gone, and the player follows YouTube's bar: one
+checked), so the reason is gone, and the bar is the plain one people expect: one
 button size, white icons, no colour on hover, the accent only on the progress
 bar.
 
@@ -180,7 +180,7 @@ button went fullscreen. It sits on the picture layer now and nothing else,
 and it is a `SerialTapGestureRecognizer` rather than onTap + onDoubleTap, so
 the pause does not wait either: the first click pauses as it lands and the
 second, within the interval, takes the pause back and goes fullscreen — what
-YouTube and Netflix do. mpv's own answer is that the left button does nothing
+every mainstream player does. mpv's own answer is that the left button does nothing
 and the right one pauses, which nobody outside mpv would find.
 
 **A held button holds the chrome.** While a mouse button is down the pointer
@@ -204,9 +204,8 @@ is and is exposed to be replaced for exactly this.
 
 ## Preview frames on the seek bar come from a second mpv
 
-Streaming players pre-generate their previews on a server: YouTube ships a
-storyboard image, Plex a BIF per film, Jellyfin tiles a frame every ten seconds
-into sprites. mpv's answer is `thumbfast`, a script that runs a second mpv,
+Streaming services pre-generate their previews on a server, as a sprite sheet
+or an index of frames per film; there is no server here to do it. mpv's answer is `thumbfast`, a script that runs a second mpv,
 seeks it to the keyframe under the pointer and passes the frame back through a
 file. The player does the same with libmpv's own means: an mpv instance of its
 own on the same stream (`thumbnails.dart`), a keyframe seek, and

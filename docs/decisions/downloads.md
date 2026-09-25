@@ -57,8 +57,7 @@ files sparse on Windows, keeps one handle per file and closes them when the
 torrent goes.
 
 The reader is not responsive: it hands over a piece only once its hash is
-checked, as torrent-stream (Stremio's engine), WebTorrent and libtorrent do;
-TorrServer is responsive by default. A responsive reader passes chunks on as
+checked. A responsive reader passes chunks on as
 they land, so a piece that then fails the check has already reached the
 player. Measured on mpv 0.41 with a 3-minute Matroska file, keyframes every
 2 s: a 1 MiB piece of random bytes or zeros at 40 places, or one bad 16 KiB
@@ -93,9 +92,9 @@ downloads take; over it, watched downloads go, the longest watched first,
 whatever Keep says. A download nobody finished is never freed automatically,
 by either: throwing away the film someone downloaded for the train is worse
 than going over a number. So a file larger than the ceiling stays until it is
-watched, and the ceiling never stops a download from starting. Stremio's
-2 GB cache is the other design — a streaming buffer that evicts anything —
-and it would contradict "keep, resume later". The defaults, Forever and no
+watched, and the ceiling never stops a download from starting. A small
+streaming cache that evicts anything is the other design, and it would
+contradict "keep, resume later". The defaults, Forever and no
 limit, are what the core did before the policy existed, so an update frees
 nothing by itself.
 
@@ -110,8 +109,7 @@ list read next is the new one.
 
 Prefetch is the policy's one addition rather than removal: once the episode
 playing is on disk, the next one starts downloading, so a series goes on
-without a wait even when the swarm is slow. It is on by default, as Netflix's
-Smart Downloads is. Its copy is Play's, picked by the player the way Download
+without a wait even when the swarm is slow. It is on by default. Its copy is Play's, picked by the player the way Download
 season picks one (only the client knows what it decodes); whether it fits is
 the core's, because only the core knows what the downloads take and which of
 them the limit would free. So a prefetch is a start the core may refuse (507):

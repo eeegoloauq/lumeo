@@ -45,8 +45,8 @@ numbers 3, 4, 8 and 10 were all in use at once before this, one per call site,
 and the seam between two of them is visible to somebody who cannot say why.
 
 The ground stays black all the way down. An ambient wash — one colour taken
-out of the artwork and laid under the whole page at a tenth of its strength,
-the way Apple TV and Plex do — was tried and taken out: under the banner it
+out of the artwork and laid under the whole page at a tenth of its strength —
+was tried and taken out: under the banner it
 read as a dirty tint on a page that had been black a moment before, not as the
 film's colour. The banner is finished by its own scrim instead, and a film's
 banner is the whole window, so there is no page under the picture for a line
@@ -153,8 +153,8 @@ shelf into a table.
 
 Hover adds only what the artwork cannot say — year and rating — and never the
 title, because nearly every poster prints its own and saying it twice reads as
-a mistake. The card lifts slightly instead of expanding: a Netflix-style
-expansion shoves its neighbours aside, and a shelf that rearranges under the
+a mistake. The card lifts slightly instead of expanding: an expanding
+card shoves its neighbours aside, and a shelf that rearranges under the
 pointer is harder to aim at, not easier to read. How much of a title is on disk
 is not hover material at all; that is status, and it stays visible.
 
@@ -180,7 +180,7 @@ home screen use. Full-width rows meant scrolling past everything to reach
 episode nine, and a season of sixty made the page unusable; a strip holds the
 whole season within one movement and leaves the rest of the page where it was.
 
-Choosing and playing are two gestures, the way Plex and Apple TV split them.
+Choosing and playing are two gestures.
 A click on a card chooses its episode; a play button on the still, shown under
 the pointer only, starts it (the keyboard has Enter, and one under each of
 them put two on screen at once). The card used to be two controls, the
@@ -243,8 +243,7 @@ and it costs a click and a confusing empty source list to find out.
 
 The same rule decides what is next. A series watched up to the latest aired
 episode has no next episode until the following one is out: it leaves
-"Continue watching" (Netflix, Plex and Jellyfin's Next Up do the same) and
-its page opens on the episode last watched. It used to stay in the row with
+"Continue watching", and its page opens on the episode last watched. It used to stay in the row with
 the unaired episode, which pointed Play at an empty list.
 
 ## Stills are blurred until watched, by default

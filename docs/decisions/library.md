@@ -21,7 +21,7 @@ starting an episode again from the beginning is a rewatch, not an unwatching.
 The client can clear it explicitly. Finishing (ninety per cent, the credits
 skipped, a mark by hand) leaves no position, so a position on a watched entry
 is a rewatch under way: it resumes, shows its own bar and is what Continue
-watching opens, as in Plex and Netflix.
+watching opens.
 
 ## The library: My list and History, not a third tab for what is on disk
 

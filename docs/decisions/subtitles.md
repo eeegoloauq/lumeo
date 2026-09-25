@@ -38,8 +38,8 @@ turned out to be a second out.
 
 One button, two columns: the soundtrack on the left, the subtitles on the
 right. Whoever picks Japanese audio is about to look for English subtitles,
-and every player people already know — Netflix, Apple's, Plex — puts the two
-next to each other for that reason. Speed and picture stay under the other
+and the players people already know put the two next to each other for
+that reason. Speed and picture stay under the other
 button; they are about neither which film it is nor what language it is in.
 
 Which track a film starts with is mpv's decision, told in mpv's own terms:

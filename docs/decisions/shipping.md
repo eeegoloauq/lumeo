@@ -5,8 +5,7 @@
 The deployment target is a person who wants to watch something, so the package
 is one package: the client, the core, a desktop entry and an icon. The client
 speaks HTTP to the core even on the same machine, and a desktop launcher is not
-going to start a server for you, so the app starts it, as Stremio desktop and
-Deluge's classic mode do:
+going to start a server for you, so the app starts it:
 
 - The app is one instance per session (GApplication). A second launch raises
   the window and hands it the file it was asked to open, over D-Bus, then

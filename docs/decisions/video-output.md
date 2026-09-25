@@ -45,9 +45,7 @@ page (`I`) answers it.
 
 ## mpv renders on a thread of its own
 
-Embedding libmpv is how every real player does it (Jellyfin Media Player, Plex
-HTPC and Stremio's shell in Qt, IINA in AppKit), and each renders on its
-toolkit's render thread. That works for Qt because Qt's render thread is not the
+Desktop players that embed libmpv render it on their toolkit's render thread. That works for Qt because Qt's render thread is not the
 one drawing the toolbar. Flutter's is: with mpv's render call on the raster
 thread, waiting for each frame's display time, a fast scrub froze the picture
 and the seek bar's thumb together, on a fully downloaded file.

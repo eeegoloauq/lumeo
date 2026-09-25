@@ -19,7 +19,7 @@ libmpv cannot be embedded inside a webview, which rules out Tauri and Electron:
 they would leave mpv as a separate window floating over the UI, which is broken
 on Wayland and is a bodge regardless. media_kit renders libmpv directly into a
 widget, and the same UI code later reaches Android and Android TV. Qt/QML was
-the runner-up (Jellyfin Media Player does exactly that) but is desktop-only in
+the runner-up but is desktop-only in
 practice and a language nobody here writes.
 
 ## No browser playback, and therefore no transcoding
@@ -27,7 +27,7 @@ practice and a language nobody here writes.
 A browser cannot play what actually shows up in sources: MKV containers, HEVC,
 DTS/TrueHD audio, PGS/VOBSUB subtitles, styled ASS. Supporting a web player
 means server-side remux and transcode for nearly every file — the single largest
-piece of work in this space, and the thing that made Jellyfin what it is. mpv
+piece of work in this space. mpv
 direct-plays all of it for free. A web UI for *managing* the server (library,
 downloads, settings) needs no video and stays on the table.
 
@@ -46,8 +46,8 @@ indexer stays possible later; nothing in the interface assumes addons.
 Consequence: addons return almost no structured data. Quality, codec, HDR,
 audio, language and group exist only inside a free-text release name, plus
 seeders and size rendered as emoji text. So `internal/release` parses release
-names ourselves. That parser is also what separates our source list from
-Stremio's wall of truncated text, and it serves any future indexer unchanged.
+names ourselves. That parser is also what turns the source list into columns
+instead of a wall of truncated text, and it serves any future indexer unchanged.
 
 ## One protocol client covers catalogs, metadata, streams and subtitles
 
