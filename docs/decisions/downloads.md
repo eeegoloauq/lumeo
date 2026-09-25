@@ -71,13 +71,19 @@ swarm or a 16 MiB piece makes it seconds.
 
 ## A network change restarts what it stalled
 
-A VPN going up or down, or another Wi-Fi, takes the peer connections with the
-old route, and the torrent client is not told: it waits on dead peers and does
-not look for new ones, so a download stayed at "Fetching metadata" until the
-app restarted. The core compares the machine's addresses every five seconds;
-ten seconds after a change, each transfer that is then getting nothing is
-started again, once. One still getting bytes is left alone. Play on a
-download that has been getting nothing does the same, network change or not.
+A VPN going up or down, another Wi-Fi, or a suspend takes the peer connections
+with it. The torrent client finds out only by the protocol's keep-alive
+grace: a peer silent for 150 seconds is dropped, and a DHT announce that
+failed meanwhile (no DNS during the switch) waits five minutes before the
+next. So a download sat at "Fetching metadata" for minutes, and a restart of
+the app was what looked like the fix. The core compares the machine's
+addresses every five seconds, and a gap between two looks means it was
+suspended; ten seconds after either, each transfer that is then getting
+nothing is started again, once. A fresh torrent announces and dials at once.
+One still getting bytes is left alone. An outage that leaves the addresses
+as they were is the keep-alive's to notice: guessing that the internet came
+back would restart dead swarms too. Play on a download that has been getting
+nothing restarts it as well.
 
 ## Nearly every source for an episode is a whole season
 

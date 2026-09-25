@@ -20,21 +20,21 @@ func TestNetworkChangeRestartsStalledTransfers(t *testing.T) {
 	w := netWatch{addrs: "wifi"}
 
 	clock = clock.Add(time.Minute)
-	m.checkNetwork(ctx, &w, "wifi")
+	m.checkNetwork(ctx, &w, "wifi", false)
 	if backend.starts != 1 {
 		t.Fatalf("no change, but started %d times", backend.starts)
 	}
-	m.checkNetwork(ctx, &w, "wifi,vpn")
+	m.checkNetwork(ctx, &w, "wifi,vpn", false)
 	if backend.starts != 1 {
 		t.Fatal("restarted before the new network had a moment")
 	}
 	clock = clock.Add(stallAfter)
-	m.checkNetwork(ctx, &w, "wifi,vpn")
+	m.checkNetwork(ctx, &w, "wifi,vpn", false)
 	if backend.starts != 2 {
 		t.Fatalf("stalled transfer started %d times, want 2", backend.starts)
 	}
 	clock = clock.Add(stallAfter)
-	m.checkNetwork(ctx, &w, "wifi,vpn")
+	m.checkNetwork(ctx, &w, "wifi,vpn", false)
 	if backend.starts != 2 {
 		t.Fatalf("restarted twice for one change: %d starts", backend.starts)
 	}
@@ -51,15 +51,36 @@ func TestNetworkChangeLeavesAMovingTransfer(t *testing.T) {
 		t.Fatalf("start: %v", err)
 	}
 	w := netWatch{addrs: "wifi"}
-	m.checkNetwork(ctx, &w, "wifi,vpn")
+	m.checkNetwork(ctx, &w, "wifi,vpn", false)
 	for range 3 {
 		clock = clock.Add(stallAfter / 2)
 		task.mu.Lock()
 		task.progress = Progress{Total: 100, Completed: 10, Peers: 3, Received: task.progress.Received + 10}
 		task.mu.Unlock()
-		m.checkNetwork(ctx, &w, "wifi,vpn")
+		m.checkNetwork(ctx, &w, "wifi,vpn", false)
 	}
 	if backend.starts != 1 {
 		t.Fatalf("a transfer getting bytes was restarted: %d starts", backend.starts)
+	}
+}
+
+// Waking from a suspend counts as a change: the addresses may be the same,
+// the connections are not.
+func TestWakingRestartsStalledTransfers(t *testing.T) {
+	backend := &fakeBackend{scheme: "torrent"}
+	m, _, _ := testManager(t, backend)
+	clock := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
+	m.now = func() time.Time { return clock }
+	ctx := context.Background()
+	if _, err := m.Start(ctx, torrentRequest()); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	w := netWatch{addrs: "wifi"}
+	clock = clock.Add(time.Hour)
+	m.checkNetwork(ctx, &w, "wifi", true)
+	clock = clock.Add(stallAfter)
+	m.checkNetwork(ctx, &w, "wifi", false)
+	if backend.starts != 2 {
+		t.Fatalf("stalled transfer after a wake started %d times, want 2", backend.starts)
 	}
 }

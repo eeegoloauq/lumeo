@@ -15,6 +15,9 @@ const (
 	// recoverWithin is how long after a change a stalled transfer is still
 	// put down to it.
 	recoverWithin = 2 * time.Minute
+	// asleepAfter is the gap between two looks that means the machine was
+	// suspended: its connections are gone even if its addresses are not.
+	asleepAfter = 6 * networkPoll
 )
 
 // netWatch is what WatchNetwork remembers between two looks.
@@ -26,29 +29,36 @@ type netWatch struct {
 	pending map[string]bool
 }
 
-// WatchNetwork restarts the transfers a network change left stalled. Their
-// peer connections went with the old route, but nothing tells the torrent
-// client so: it keeps waiting on them and does not look for new ones until the
-// core restarts. A transfer still getting bytes is left alone.
+// WatchNetwork restarts the transfers a network change or a suspend left
+// stalled. The torrent client drops a silent peer only after the protocol's
+// keep-alive grace (minutes), and a failed DHT announce waits five more; a
+// fresh torrent announces and dials at once. Restarting is the means because
+// anacrolix has no call to re-announce; one there would replace it. A
+// transfer still getting bytes is left alone.
 func (m *Manager) WatchNetwork(ctx context.Context) {
 	w := netWatch{addrs: localAddrs()}
 	tick := time.NewTicker(networkPoll)
 	defer tick.Stop()
+	// Wall clock: the monotonic one stops while the machine is suspended.
+	last := time.Now().Round(0)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
+			now := time.Now().Round(0)
+			woke := now.Sub(last) > asleepAfter
+			last = now
 			if addrs := localAddrs(); addrs != "" {
-				m.checkNetwork(ctx, &w, addrs)
+				m.checkNetwork(ctx, &w, addrs, woke)
 			}
 		}
 	}
 }
 
-func (m *Manager) checkNetwork(ctx context.Context, w *netWatch, addrs string) {
+func (m *Manager) checkNetwork(ctx context.Context, w *netWatch, addrs string, woke bool) {
 	now := m.now()
-	if addrs != w.addrs {
+	if addrs != w.addrs || woke {
 		w.addrs, w.changed = addrs, now
 		w.pending = map[string]bool{}
 		m.mu.Lock()
