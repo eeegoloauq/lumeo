@@ -2,6 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
 
 void main() {
+  test('episode stills show by default', () {
+    expect(const Preferences(subtitleLanguages: []).episodeArtwork, 'show');
+    expect(Preferences.fromJson(const {}).episodeArtwork, 'show');
+  });
+
+  test('downloads retain the locator scheme', () {
+    final local = Download.fromJson(const {
+      'locator': {'scheme': 'file'},
+    });
+    expect(local.locatorScheme, 'file');
+  });
   test('a running series shows an open-ended year range', () {
     const series = MediaItem(
       id: 'a',

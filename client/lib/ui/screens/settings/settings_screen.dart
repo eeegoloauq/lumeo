@@ -213,54 +213,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(48, TopBar.height, 48, 0),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1056),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Nav(
-                current: _current,
-                onGo: (section) {
-                  _target = null;
-                  unawaited(_scrollTo(section));
-                },
-              ),
-              const SizedBox(width: 56),
-              Expanded(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _onScroll,
-                  child: SingleChildScrollView(
-                    key: _viewport,
-                    primary: true,
-                    padding: const EdgeInsets.only(bottom: 96),
-                    child: ListenableBuilder(
-                      listenable: Listenable.merge([
-                        widget.preferences,
-                        widget.settings,
-                      ]),
-                      builder: (context, _) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (final section in SettingsScreen.shown)
-                            KeyedSubtree(
-                              key: _keys[section],
-                              child: KeyedSubtree(
-                                key: ValueKey('settings:${section.name}'),
-                                child: _section(section),
+      padding: const EdgeInsets.only(top: TopBar.height),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          NotificationListener<ScrollNotification>(
+            onNotification: _onScroll,
+            child: SingleChildScrollView(
+              key: _viewport,
+              primary: true,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(48, 0, 48, 96),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1056),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 256),
+                      child: ListenableBuilder(
+                        listenable: Listenable.merge([
+                          widget.preferences,
+                          widget.settings,
+                        ]),
+                        builder: (context, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final section in SettingsScreen.shown)
+                              KeyedSubtree(
+                                key: _keys[section],
+                                child: KeyedSubtree(
+                                  key: ValueKey('settings:${section.name}'),
+                                  child: _section(section),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1056),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: _Nav(
+                    current: _current,
+                    onGo: (section) {
+                      _target = null;
+                      unawaited(_scrollTo(section));
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -177,6 +177,13 @@ void main() {
     await page.done();
   });
 
+  testWidgets('the scrollable reaches the window edge', (tester) async {
+    final page = await open(tester);
+    final scroll = find.byType(SingleChildScrollView);
+    expect(tester.getSize(scroll).width, 1440);
+    await page.done();
+  });
+
   testWidgets('scrolling lights the section being read', (tester) async {
     final page = await open(tester);
     await tester.drag(

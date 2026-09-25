@@ -28,6 +28,7 @@ enum DownloadKind {
   /// Null for what the panel does not list: a download paused because the
   /// core stopped, rather than by anybody, is the core's to pick up again.
   static DownloadKind? of(Download d) {
+    if (d.locatorScheme == 'file') return null;
     if (d.isDone) return ready;
     if (d.isActive) return d.waitingSince == null ? arriving : stalled;
     if (d.isPaused) return d.pausedByUser ? paused : null;
@@ -134,9 +135,8 @@ int? _longest(Iterable<int?> etas) {
 }
 
 /// The panel's sections in their order, empty ones left out. Episodes of one
-/// season in the same state are one row; a film, and a file opened from disk
-/// that belongs to no title, is always a row of its own. Rows keep the order
-/// the downloads came in.
+/// season in the same state are one row; a film is always a row of its own.
+/// Rows keep the order the downloads came in.
 List<DownloadGroup> arrangeDownloads(Iterable<Download> listed) {
   final rows = <String, DownloadRow>{};
   for (final d in listed) {

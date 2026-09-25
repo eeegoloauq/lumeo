@@ -471,12 +471,14 @@ class Download {
     this.pausedByUser = false,
     this.error = '',
     this.release = const Release(),
+    this.locatorScheme = '',
   });
 
   final String id;
   final String itemId;
   final String name;
   final String state;
+  final String locatorScheme;
 
   /// The copy, read from its name by the core the way the source list is.
   final Release release;
@@ -524,6 +526,8 @@ class Download {
     itemId: json['itemId'] as String? ?? '',
     name: json['name'] as String? ?? '',
     state: json['state'] as String? ?? '',
+    locatorScheme:
+        (json['locator'] as Map<String, dynamic>?)?['scheme'] as String? ?? '',
     season: json['season'] as int? ?? 0,
     episode: json['episode'] as int? ?? 0,
     ready: json['ready'] as bool? ?? false,

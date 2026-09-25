@@ -186,6 +186,23 @@ void main() {
   });
 
   group('RatingButton', () {
+    testWidgets('an unrated icon uses the square button size', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: lumeoTheme(),
+          home: Scaffold(
+            body: Center(
+              child: RatingButton(score: 0, onRate: (_) {}, onClear: () {}),
+            ),
+          ),
+        ),
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('rating-button'))),
+        const Size.square(RatingButton.size),
+      );
+    });
+
     Future<List<Object>> open(WidgetTester tester, {int score = 0}) async {
       final calls = <Object>[];
       await tester.pumpWidget(
@@ -216,6 +233,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(calls, [8]);
       expect(find.text('Your rating'), findsNothing, reason: 'it closed');
+    });
+
+    testWidgets('mouse focus does not draw the keyboard focus ring', (
+      tester,
+    ) async {
+      final manager = FocusManager.instance;
+      final previous = manager.highlightStrategy;
+      addTearDown(() => manager.highlightStrategy = previous);
+      await open(tester);
+      manager.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+      final score = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, '5'),
+      );
+      expect(
+        score.style!.side!.resolve({WidgetState.focused}),
+        BorderSide.none,
+      );
+      manager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      expect(score.style!.side!.resolve({WidgetState.focused})?.width, 2);
     });
 
     testWidgets('the arrows walk the row and Enter picks', (tester) async {

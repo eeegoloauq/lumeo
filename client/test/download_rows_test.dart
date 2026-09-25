@@ -17,6 +17,7 @@ Download _d(
   int? eta,
   int peers = 5,
   bool resolved = true,
+  String locatorScheme = '',
 }) => Download(
   id: id,
   itemId: itemId,
@@ -28,6 +29,7 @@ Download _d(
   pausedByUser: pausedByUser,
   error: error,
   resolved: resolved,
+  locatorScheme: locatorScheme,
   progress: Progress(
     total: total,
     completed: completed,
@@ -73,6 +75,17 @@ void main() {
     test('a download the core paused on its own is not listed', () {
       expect(DownloadKind.of(_d('a', state: 'paused')), isNull);
       expect(DownloadKind.of(_d('a', state: 'mystery')), isNull);
+    });
+
+    test('a locally opened file is not a download', () {
+      expect(
+        DownloadKind.of(_d('local', state: 'done', locatorScheme: 'file')),
+        isNull,
+      );
+      expect(
+        arrangeDownloads([_d('local', state: 'done', locatorScheme: 'file')]),
+        isEmpty,
+      );
     });
   });
 

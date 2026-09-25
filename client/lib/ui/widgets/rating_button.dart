@@ -80,7 +80,9 @@ class _RatingButtonState extends State<RatingButton> {
           foregroundColor: Palette.text,
           overlayColor: Palette.hover,
           minimumSize: const Size.square(RatingButton.size),
-          fixedSize: const Size.fromHeight(RatingButton.size),
+          fixedSize: !rated && widget.label == null
+              ? const Size.square(RatingButton.size)
+              : const Size.fromHeight(RatingButton.size),
           padding: EdgeInsets.symmetric(
             horizontal: rated || widget.label != null ? 12 : 0,
           ),
@@ -295,7 +297,10 @@ class _Score extends StatelessWidget {
         // The keyboard's ring is the accent, as it is everywhere: it has to
         // be findable on a row where half the numbers are lit.
         side: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.focused)
+          (states) =>
+              states.contains(WidgetState.focused) &&
+                  FocusManager.instance.highlightMode ==
+                      FocusHighlightMode.traditional
               ? BorderSide(
                   color: Theme.of(context).colorScheme.primary,
                   width: 2,
