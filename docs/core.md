@@ -23,7 +23,7 @@ Each addon's role is read from its manifest. Edit the list on the client's Sourc
 | `LUMEO_SUBTITLE_LANGS` | `en` | Default subtitle language order; a preference set in the client wins |
 | `LUMEO_TORRENT_PORT` | any free port | BitTorrent listen port |
 | `LUMEO_SEED` | `true` | Default of seeding once a download completes; the preference set in the client wins |
-| `LUMEO_EPISODE_ARTWORK` | `blur` | Default for unwatched episode stills: `show`, `blur` or `hide` |
+| `LUMEO_EPISODE_ARTWORK` | `show` | Default for unwatched episode stills: `show`, `blur` or `hide` |
 
 ## API
 

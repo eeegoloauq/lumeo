@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
+	"github.com/eeegoloauq/lumeo/core/internal/watchlist"
 )
 
 func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +23,13 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &body) {
 		return
 	}
-	entry, err := s.progress.Put(r.Context(), r.PathValue("id"), progress.Update{
+	id := r.PathValue("id")
+	before, _, err := s.progress.Get(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	entry, err := s.progress.Put(r.Context(), id, progress.Update{
 		Season: body.Season, Episode: body.Episode, Position: body.Position, Duration: body.Duration, Watched: body.Watched,
 	})
 	if errors.Is(err, progress.ErrInvalid) {
@@ -35,6 +42,13 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	if s.library != nil && entry.Watched && entry.Position == 0 {
 		s.library.Kick()
+	}
+	// What someone starts watching belongs in their list. Only the first time:
+	// a title taken out of the list stays out while it is being finished.
+	if len(before) == 0 && s.watchlist != nil {
+		if _, err := s.watchlist.Add(r.Context(), id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
+			s.log.Warn("adding to the list failed", "item", id, "err", err)
+		}
 	}
 	writeJSON(w, http.StatusOK, entry)
 }

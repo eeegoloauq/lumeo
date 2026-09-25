@@ -763,7 +763,7 @@ class _ViewingRow extends StatelessWidget {
               Episode(season: v.entry.season, number: v.entry.episode),
           width: _thumbWidth,
           frame: frames.of(v.item.id, v.entry.season, v.entry.episode),
-          preference: preferences.current?.episodeArtwork ?? 'blur',
+          preference: preferences.current?.episodeArtwork ?? 'show',
           watched: v.entry.watched,
         ),
       );

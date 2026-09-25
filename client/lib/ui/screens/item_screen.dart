@@ -350,7 +350,7 @@ class _ItemScreenState extends State<ItemScreen> {
                         episodes[i].number,
                       ),
                       artworkPreference:
-                          widget.preferences.current?.episodeArtwork ?? 'blur',
+                          widget.preferences.current?.episodeArtwork ?? 'show',
                       download: widget.downloads.all
                           .where(
                             (d) =>

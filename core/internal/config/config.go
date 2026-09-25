@@ -75,7 +75,7 @@ func FromEnv() Config {
 	c.SubtitleLanguages = parseList(envOr("LUMEO_SUBTITLE_LANGS", "en"))
 	c.EpisodeArtwork = os.Getenv("LUMEO_EPISODE_ARTWORK")
 	if c.EpisodeArtwork != "show" && c.EpisodeArtwork != "blur" && c.EpisodeArtwork != "hide" {
-		c.EpisodeArtwork = "blur"
+		c.EpisodeArtwork = "show"
 	}
 	c.TorrentPort, _ = strconv.Atoi(os.Getenv("LUMEO_TORRENT_PORT"))
 	// Seeding is on unless asked otherwise: leeching from a swarm and giving

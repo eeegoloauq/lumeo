@@ -58,11 +58,11 @@ func TestSubtitleLanguageDefault(t *testing.T) {
 
 func TestEpisodeArtworkDefaultAndValidation(t *testing.T) {
 	for _, test := range []struct{ value, want string }{
-		{"", "blur"},
+		{"", "show"},
 		{"blur", "blur"},
 		{"show", "show"},
 		{"hide", "hide"},
-		{"unknown", "blur"},
+		{"unknown", "show"},
 	} {
 		t.Run(test.value, func(t *testing.T) {
 			t.Setenv("LUMEO_EPISODE_ARTWORK", test.value)

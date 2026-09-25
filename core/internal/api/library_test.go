@@ -182,3 +182,20 @@ func TestNewEpisodesRoute(t *testing.T) {
 		t.Fatalf("new episodes = %+v", got)
 	}
 }
+
+// Starting a title puts it in the list, once: taken out, it stays out.
+func TestFirstProgressAddsToList(t *testing.T) {
+	h, id := libraryServer(t)
+	inList := func() bool {
+		return decode[listState](t, h, http.MethodGet, "/api/v1/list/"+id, "", http.StatusOK).InList
+	}
+	decode[progress.Entry](t, h, http.MethodPut, "/api/v1/progress/"+id, `{"season":1,"episode":1,"position":10,"duration":100}`, http.StatusOK)
+	if !inList() {
+		t.Fatal("started title is not in the list")
+	}
+	requestJSON(t, h, http.MethodDelete, "/api/v1/list/"+id, "")
+	decode[progress.Entry](t, h, http.MethodPut, "/api/v1/progress/"+id, `{"season":1,"episode":1,"position":20,"duration":100}`, http.StatusOK)
+	if inList() {
+		t.Fatal("title taken out of the list came back")
+	}
+}

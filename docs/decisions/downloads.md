@@ -104,9 +104,9 @@ by either: throwing away the film someone downloaded for the train is worse
 than going over a number. So a file larger than the ceiling stays until it is
 watched, and the ceiling never stops a download from starting. A small
 streaming cache that evicts anything is the other design, and it would
-contradict "keep, resume later". The defaults, Forever and no
-limit, are what the core did before the policy existed, so an update frees
-nothing by itself.
+contradict "keep, resume later". The defaults are thirty days
+and 50 GB: a player that fills the disk with films watched once is the worse
+surprise.
 
 Watched is the progress entry's latch with no position: a rewatch under way
 is not finished. The days count from when it was finished. A download

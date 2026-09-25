@@ -89,7 +89,7 @@ LumeoApi fakeCore({
   const preferenceDefaults = <String, dynamic>{
     'subtitleLanguages': ['en'],
     'subtitleBackground': 'none',
-    'episodeArtwork': 'blur',
+    'episodeArtwork': 'show',
     'accent': 'white',
     'keep': 'forever',
     'diskLimit': 0,

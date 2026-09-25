@@ -36,7 +36,10 @@ not here.
 My list is a grid, like the search results: one list to look through, as long
 as it is, in the order chosen (recently added, title without its article,
 year, the viewer's score). The order is kept by this machine, not the core: it
-is a way of looking at the list on one screen, as a remembered tab is. Adding
+is a way of looking at the list on one screen, as a remembered tab is. The first
+progress on a title adds it: what someone started is what
+they come back for, and the button is then mostly the way out. Only the first:
+a title taken out stays out while it is being finished. Adding
 a title again keeps the date it was first added, or "recently added" would
 reshuffle on every click. Under each poster is what the poster cannot say:
 how far the viewer is ("3 of 10 seen", "watched") and their score; the kind

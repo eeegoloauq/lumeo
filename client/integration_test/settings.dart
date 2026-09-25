@@ -329,12 +329,12 @@ void settingsTests() {
     );
     await tester.pumpAndSettle();
     await openSettingsAt(tester, null);
-    await tester.tap(find.text('Show'));
+    await tester.tap(find.text('Blur'));
     await tester.pumpAndSettle();
 
     expect(find.text('What it said'), findsOneWidget);
     expect(find.text('preferences refused'), findsOneWidget);
-    expect(strip<String>(tester, 'Show').selected, {'blur'});
+    expect(strip<String>(tester, 'Show').selected, {'show'});
   });
 
   testWidgets('Reset puts the preferences back, after asking', (tester) async {
