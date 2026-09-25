@@ -263,12 +263,9 @@ func (s *Service) remember(ctx context.Context, e *entry, m *stremio.Manifest) e
 }
 
 // retryMissing asks again, not more than once a minute and not for longer
-// than a few seconds, for the manifests that have never arrived. It waits
-// for the answer rather than fetching in the background because the first
-// request after a fresh start is the home screen asking for its catalogue,
-// and an empty answer there is an empty screen until it is reopened. A
-// laptop that starts the core before it has found the Wi-Fi is the other
-// case: the addons should not stay useless until it is restarted.
+// than a few seconds, for the manifests that have never arrived. A laptop
+// that starts the core before it has found the Wi-Fi should not keep useless
+// addons until it is restarted.
 func (s *Service) retryMissing() {
 	s.mu.Lock()
 	var missing []fetch
@@ -480,8 +477,20 @@ func (s *Service) Subtitles() []subtitles.Provider {
 
 // providing hands out the protocol clients, not the entries: an entry is
 // only read under the lock, and a client is safe to use after it.
+//
+// The retry is waited for only when nothing provides the resource yet: then
+// the answer would be empty (the home screen after a fresh start). Otherwise
+// one dead addon would hold every request up once a minute.
 func (s *Service) providing(resources ...string) []*stremio.Addon {
+	if out := s.provided(resources); len(out) > 0 {
+		go s.retryMissing()
+		return out
+	}
 	s.retryMissing()
+	return s.provided(resources)
+}
+
+func (s *Service) provided(resources []string) []*stremio.Addon {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var out []*stremio.Addon
