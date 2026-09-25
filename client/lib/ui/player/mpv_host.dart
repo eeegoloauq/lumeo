@@ -4,15 +4,11 @@ import 'dart:ffi';
 import 'package:media_kit/ffi/ffi.dart';
 import 'package:media_kit/generated/libmpv/bindings.dart';
 import 'package:media_kit/media_kit.dart';
+// media_kit exposes its resolved libmpv path here to its own native clients.
+// ignore: implementation_imports
+import 'package:media_kit/src/player/native/core/native_library.dart';
 
-/// Same names, in the same order, as media_kit's own loader.
-MPV openLibmpv() {
-  try {
-    return MPV(DynamicLibrary.open('libmpv.so'));
-  } on ArgumentError {
-    return MPV(DynamicLibrary.open('libmpv.so.2'));
-  }
-}
+MPV openLibmpv() => MPV(DynamicLibrary.open(NativeLibrary.path));
 
 /// A second libmpv client on the player's core. media_kit keeps
 /// client-message and shutdown events to itself; this one hears them, and

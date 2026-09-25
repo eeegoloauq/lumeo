@@ -17,9 +17,8 @@ class SkipMoment {
 
   final SkipAction action;
 
-  /// Whether the file marked this interval. A next-episode offer made only
-  /// because the end is near is not a countdown: the last frame still holds
-  /// for its own.
+  /// Whether the file marked this interval. An unmarked end holds its last
+  /// frame for the countdown after this interval.
   final bool credits;
 
   final Duration start;
@@ -29,6 +28,16 @@ class SkipMoment {
   final double fill;
 
   Duration get target => end;
+
+  /// The ring includes the held last-frame countdown when there is one.
+  double fillUntilAdvance(Duration position, Duration countdown) {
+    final span = end - start + countdown;
+    if (span <= Duration.zero) return 0;
+    return ((position - start).inMilliseconds / span.inMilliseconds).clamp(
+      0.0,
+      1.0,
+    );
+  }
 }
 
 /// [notice] is how long before the end the next episode is offered when the

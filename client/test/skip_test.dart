@@ -242,6 +242,18 @@ void main() {
           reason: 'an offer, not the countdown: the last frame still counts',
         );
         expect(near(const Duration(seconds: 1385), hasNext: false), isNull);
+        expect(
+          moment!.fillUntilAdvance(
+            const Duration(seconds: 1385),
+            const Duration(seconds: 5),
+          ),
+          closeTo(15 / 35, 0.001),
+        );
+        expect(
+          near(duration)!
+              .fillUntilAdvance(duration, const Duration(seconds: 5)),
+          closeTo(30 / 35, 0.001),
+        );
       });
 
       test('marked credits still decide, whatever the notice', () {
@@ -254,6 +266,13 @@ void main() {
         );
         expect(moment?.start, const Duration(seconds: 1300));
         expect(moment?.credits, isTrue);
+        expect(
+          moment!.fillUntilAdvance(
+            const Duration(seconds: 1350),
+            Duration.zero,
+          ),
+          closeTo(0.5, 0.001),
+        );
       });
 
       test('a file shorter than twice the notice is offered at its end', () {

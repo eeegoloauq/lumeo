@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
 import 'package:lumeo/ui/player/chrome.dart';
+import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/loading.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
@@ -10,6 +11,11 @@ import 'package:lumeo/ui/widgets/window_controls.dart';
 
 void main() {
   _scrubberTests();
+
+  test('mpv keeps its default seek OSD', () {
+    expect(playerProperties, isNot(contains('osd-on-seek')));
+    expect(playerProperties, isNot(contains('osd-bar')));
+  });
 
   test('clock has no leading zero on the first field', () {
     expect(clock(const Duration(minutes: 5, seconds: 3)), '5:03');
@@ -252,6 +258,7 @@ void main() {
       ),
     );
     expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(tester.getSize(find.byType(Loading)), const Size(32, 32));
     await tester.pump(Loading.delay);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });

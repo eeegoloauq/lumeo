@@ -42,8 +42,6 @@ const playerProperties = <String, String>{
   'hr-seek': 'yes',
   'input-default-bindings': 'yes',
   'osd-level': '1',
-  'osd-on-seek': 'no',
-  'osd-bar': 'no',
   'osd-font-size': '28',
   'osd-border-size': '1.5',
   'osd-margin-x': '32',
@@ -1101,6 +1099,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   // Seek-back detection uses the last frame, not container duration.
   Duration _endedPosition = Duration.zero;
+  Duration _endedOfferStart = Duration.zero;
 
   // The next-episode lookup may finish after the one-shot end event.
   bool _fileEnded = false;
@@ -1115,7 +1114,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final at = _endedAt;
     if (at == null || !_autoplayNext) return 0;
     final since = DateTime.now().difference(at).inMilliseconds;
-    return (since / _lastFrameGrace.inMilliseconds).clamp(0.0, 1.0);
+    final played = (_endedPosition - _endedOfferStart).inMilliseconds;
+    return ((played + since) / (played + _lastFrameGrace.inMilliseconds)).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   // Rounded progress can reach one before mpv signals end.
@@ -1129,10 +1132,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
       position: _position,
       duration: _duration,
       hasNext: true,
+      notice: _nextNotice,
     );
-    // Marked credits are the countdown themselves; the notice before an
-    // unmarked end is only an offer, and the last frame still counts down.
-    if (showing?.action == SkipAction.next && _autoplayNext) {
+    _endedOfferStart = showing?.action == SkipAction.next
+        ? showing!.start
+        : _endedPosition;
+    // Marked credits advance at EOF; an unmarked end holds its last frame.
+    if (showing?.action == SkipAction.next &&
+        showing!.credits &&
+        _autoplayNext) {
       unawaited(_advance());
       return;
     }
@@ -1220,7 +1228,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  String get _artwork => widget.preferences.current?.episodeArtwork ?? 'blur';
+  String get _artwork => widget.preferences.current?.episodeArtwork ?? 'show';
 
   File? _frameOf(Episode e) =>
       widget.frames.of(_download?.itemId ?? '', e.season, e.number);
@@ -1249,7 +1257,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
         episode: next,
         fill: _endedFill,
         secondsLeft: _autoplayNext
-            ? (_lastFrameGrace.inSeconds * (1 - _endedFill)).ceil()
+            ? ((_lastFrameGrace.inMilliseconds -
+                          DateTime.now().difference(_endedAt!).inMilliseconds) /
+                      1000)
+                  .ceil()
+                  .clamp(0, 999)
             : null,
         onPressed: () => unawaited(_advance()),
       );
@@ -1272,7 +1284,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         artwork: _artwork,
         frame: _frameOf(next!),
         episode: next,
-        fill: moment!.fill,
+        fill: moment!.fillUntilAdvance(
+          _position,
+          moment.credits ? Duration.zero : _lastFrameGrace,
+        ),
         // Only credits count down to the next episode; the notice before an
         // unmarked end offers it, and the held last frame counts.
         secondsLeft: _autoplayNext && moment.credits
@@ -1891,7 +1906,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                       _ => _title,
                     },
-                    percent: _advancing || (_download?.progress.total ?? 0) <= 0
+                    percent:
+                        _advancing ||
+                            (_download?.isDone ?? false) ||
+                            (_download?.progress.total ?? 0) <= 0
                         ? null
                         : _download!.progress.fraction,
                     error: _error,

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/artwork_image.dart';
 import '../widgets/buttons.dart';
+import '../widgets/loading.dart';
 
 /// Translate mpv failures into actionable playback messages.
 String playbackTrouble(Object error) {
@@ -123,14 +124,14 @@ class PlayerWaiting extends StatefulWidget {
 }
 
 class _PlayerWaitingState extends State<PlayerWaiting> {
-  bool _showSpinner = false;
+  bool _showPresentation = false;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() => _showSpinner = true);
+    _timer = Timer(Loading.delay, () {
+      if (mounted) setState(() => _showPresentation = true);
     });
   }
 
@@ -165,70 +166,73 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
       children: [
         if (widget.overPicture)
           const Positioned.fill(child: ColoredBox(color: Color(0x99000000))),
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!failed && _showSpinner) ...[
-                const SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Colors.white,
-                    backgroundColor: Color(0x33FFFFFF),
+        if (failed || _showPresentation)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!failed) ...[
+                  const SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: Colors.white,
+                      backgroundColor: Color(0x33FFFFFF),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Text(
-                  widget.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (!failed && widget.percent != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${(widget.percent! * 100).round()}%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0x99FFFFFF),
-                  ),
-                ),
-              ],
-              if (failed) ...[
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    color: Color(0xFFAAAAAA),
-                    fontSize: 13,
-                  ),
-                ),
-                if (widget.decoderMissing == true &&
-                    widget.decoderInstallHint != null) ...[
-                  const SizedBox(height: 6),
-                  SelectableText(
-                    widget.decoderInstallHint!,
+                  const SizedBox(height: 24),
+                ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Text(
+                    widget.title,
                     textAlign: TextAlign.center,
-                    style: Typo.data,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (!failed &&
+                    widget.percent != null &&
+                    widget.percent! < 1) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(widget.percent! * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0x99FFFFFF),
+                    ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                QuietButton(label: 'Try again', onPressed: widget.onRetry),
+                if (failed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Color(0xFFAAAAAA),
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (widget.decoderMissing == true &&
+                      widget.decoderInstallHint != null) ...[
+                    const SizedBox(height: 6),
+                    SelectableText(
+                      widget.decoderInstallHint!,
+                      textAlign: TextAlign.center,
+                      style: Typo.data,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  QuietButton(label: 'Try again', onPressed: widget.onRetry),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
         if (widget.showBack)
           Positioned(
             left: 24,

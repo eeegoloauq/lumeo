@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 class Loading extends StatefulWidget {
   const Loading({super.key, this.size = 32});
 
-  @visibleForTesting
   static const delay = Duration(milliseconds: 300);
 
   final double size;

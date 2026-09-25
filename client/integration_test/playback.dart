@@ -481,10 +481,17 @@ void playbackTests() {
               'bb-s1e2',
       what: 'the player moved on to the next episode',
     );
-    expect(
-      find.text('Breaking Bad · S01E02'),
-      findsWidgets,
-      reason: 'the bar says which episode this is now',
+    // The bar is up while the pointer moves.
+    await tester.sendEventToBinding(
+      TestPointer(99, PointerDeviceKind.mouse).hover(const Offset(400, 400)),
+    );
+    await waitFor(
+      tester,
+      () async => find
+          .textContaining('S1 E2', findRichText: true)
+          .evaluate()
+          .isNotEmpty,
+      what: 'the bar says which episode this is now',
     );
     await waitFor(
       tester,
