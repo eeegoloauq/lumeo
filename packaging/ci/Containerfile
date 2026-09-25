@@ -1,0 +1,20 @@
+# The image the Forgejo pre-merge gate runs the core in, built by
+# .forgejo/workflows/ci-image.yml.
+#
+# Why this repository carries its own instead of using the shared
+# local/go-ci: that one is Go 1.26 with GOTOOLCHAIN=local, core/go.mod asks
+# for 1.27, and the gate failed on every run until it stopped using it. Ours
+# is pinned here, in git, so a bump is a commit rather than something someone
+# did to the runner once.
+#
+# The client and the release are not built here at all — they need a Flutter
+# SDK and a Fedora container, which is ten-plus minutes of a machine shared
+# with every other repository. Those run on GitHub against the push mirror.
+FROM golang:1.27-bookworm
+
+# actions/checkout is a JavaScript action: without a node binary in the
+# container every job dies with "node: executable file not found". Just the
+# interpreter — npm and the rest of the node image are not wanted here.
+COPY --from=node:24-bookworm /usr/local/bin/node /usr/local/bin/node
+
+RUN node --version && go version

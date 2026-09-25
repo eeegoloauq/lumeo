@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.lumeo.lumeo</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Lumeo</name>
+  <summary>Find, acquire and watch films and series</summary>
+
+  <description>
+    <p>
+      Lumeo is a media library, acquisition and playback platform: one Go
+      binary with SQLite behind a Flutter desktop client. It browses a
+      catalogue that needs no API key, ranks the ways to watch a title by the
+      health of the swarm before its resolution, and starts playing while the
+      file is still arriving — with what the swarm is doing shown in the
+      player bar.
+    </p>
+    <p>
+      Subtitles are matched to the copy being played rather than to the title,
+      and arrive as UTF-8 whatever code page they were written in.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">dev.lumeo.lumeo.desktop</launchable>
+  <url type="homepage">https://github.com/eeegoloauq/lumeo</url>
+  <url type="bugtracker">https://github.com/eeegoloauq/lumeo/issues</url>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+    <category>Player</category>
+  </categories>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.62" date="2026-09-25">
+      <description>
+        <ul>
+          <li>No source addon ships with the app: a fresh install starts
+            with Cinemeta and OpenSubtitles, and until a source is added
+            Play says "No source addons" and leads to
+            Settings, Sources. An install that already has one keeps it.</li>
+          <li>The Sources page no longer has a Configure button; an addon is
+            configured on its own site and its address pasted in.</li>
+          <li>Resetting settings is no longer undone by a change sent just
+            before it.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.61" date="2026-09-25">
+      <description>
+        <ul>
+          <li>Settings are one page with its sections listed beside it, and
+            the list follows as you scroll.</li>
+          <li>Downloads can be paused and resumed, and a pause survives a
+            restart.</li>
+          <li>The downloads panel groups downloads into ready to watch,
+            arriving and waiting, shows how long one has left and why one
+            waits, and names the copy (resolution, HDR).</li>
+          <li>New settings: seeding, upload and download speed limits, the
+            download folder, how many days a watched download is kept,
+            subtitle colour and styling, the arrow-key seek step, when the
+            next episode is offered, and violet and teal accents.</li>
+          <li>Text size, timeline previews and the screenshots folder are
+            kept per computer.</li>
+          <li>Settings can be reset to their defaults; About shows the
+            player version, copies details and opens the logs.</li>
+          <li>Secondary text is set in Plex Sans; monospace is kept for
+            paths, addresses and commands.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.60" date="2026-09-24">
+      <description>
+        <ul>
+          <li>The Windows installer builds again.</li>
+          <li>Other accounts on the computer can no longer use Lumeo's core:
+            every request carries a key only your account can read.</li>
+          <li>The searches you went through are offered again under the empty
+            search field.</li>
+          <li>Playback settings choose how the next episode starts: after 5,
+            10 or 20 seconds, or only when you press it.</li>
+          <li>A download shows in the list the moment it starts, and says
+            whether it is finding peers or fetching metadata.</li>
+          <li>A download that could not start, for example on a drive that was
+            not mounted yet, is tried again the next time Lumeo opens.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.59" date="2026-09-24">
+      <description>
+        <ul>
+          <li>A file opened with Lumeo starts playing at once and gets its
+            title while it plays.</li>
+          <li>A damaged piece of a torrent no longer makes the player jump to
+            a later scene or the end of the episode.</li>
+          <li>Freeing a download works while the app runs on Windows, and on
+            Linux its disk space comes back at once.</li>
+          <li>Downloads on Windows take only the space they have fetched, so
+            starting a film no longer stalls the disk.</li>
+          <li>Reopening the app right after closing it brings the window back,
+            and the first screens wait for the core instead of showing an
+            error.</li>
+          <li>Keep until watched frees a download as soon as its grace period
+            ends.</li>
+          <li>The banners on the home screen and title pages grow to fit their
+            text on a short window.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.58" date="2026-09-24">
+      <description>
+        <ul>
+          <li>A Windows installer is on the release page, for Windows 10 and
+            11.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.57" date="2026-09-24">
+      <description>
+        <ul>
+          <li>The app draws with Impeller, Flutter's current renderer, instead
+            of the older Skia; the player's picture shows under it now.</li>
+          <li>The libraries in the package no longer point at the machine they
+            were built on.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.56" date="2026-09-24">
+      <description>
+        <ul>
+          <li>A Library tab: My list, with a shelf of new episodes of the
+            series you follow, and History of what you watched, where
+            episodes are rated.</li>
+          <li>A title page has + for My list and your 1-10 rating beside the
+            source.</li>
+          <li>An empty source list says why: not out yet, a provider
+            blocking, limiting or down, or no copies found, with Try again
+            where it can help. Play is off when there is nothing to
+            play.</li>
+          <li>The app starts its own core and runs once: a second launch
+            raises the window, and after an update the window never talks to
+            the old core.</li>
+          <li>A package for Arch Linux on the release page.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.55" date="2026-09-24">
+      <description>
+        <ul>
+          <li>Pictures load better on a throttled network (without a VPN,
+            say): a stalled image server is given up on in seconds instead of
+            twenty, and a picture that failed is asked for again instead of
+            staying blank.</li>
+          <li>A poster still loading shows its title card instead of an empty
+            tile.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.54" date="2026-09-24">
+      <description>
+        <ul>
+          <li>Titles and home rows you have opened before show at once even
+            when the metadata service is slow or blocked (without a VPN, say);
+            they are refreshed in the background.</li>
+          <li>Safer: the core serves only video files, refuses requests sent
+            by web pages, keeps addons from reaching your local network, and
+            caps what an addon can make it hold in memory.</li>
+          <li>Downloads start on systems with IPv6 turned off.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.53" date="2026-09-24">
+      <description>
+        <ul>
+          <li>After an update, series and film details are fetched again the
+            first time you open them, so improvements such as stills for later
+            seasons show up at once instead of a day later.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.52" date="2026-09-24">
+      <description>
+        <ul>
+          <li>Episode details are refreshed daily again: a series you kept
+            seeing in search or on the home page kept the episode list from
+            the day it was first opened, without new episodes and without
+            the stills for later seasons.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.51" date="2026-09-24">
+      <description>
+        <ul>
+          <li>An episode on disk with no still of its own shows a frame from
+            its file, taken once a third of the way in. Episodes with neither
+            show their number on a plain tile.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.50" date="2026-09-24">
+      <description>
+        <ul>
+          <li>The player's download panel shows this episode and the next:
+            waiting, arriving, on disk, or no room with Download anyway.
+            The button stays once the episode is on disk.</li>
+          <li>The downloads panel groups a season into one row that opens
+            into its episodes, plays what is ready with a click, and keeps
+            finished downloads for a day, a week or until Clear.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.49" date="2026-09-24">
+      <description>
+        <ul>
+          <li>Once an episode is on disk, the next one starts downloading, so
+            a series goes on without a wait. It stays within the disk limit
+            and the free disk; a switch in Storage turns it off.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.48" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Storage has a disk limit and a keep policy: until watched,
+            30 days after watching, or forever. Over the limit, watched
+            downloads go first; unwatched ones are never deleted.</li>
+          <li>Discarding one episode of a season pack no longer deletes the
+            other episodes' files.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.47" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Under Play, one small button says whether it plays the copy on
+            disk or streams, and opens the list of copies.</li>
+          <li>A download button beside the season tabs fetches every released
+            episode of the season; on a film page it fetches the film. Its
+            ring fills as the files arrive.</li>
+          <li>The list of copies has a one-line header.</li>
+          <li>Title pages that fit the window no longer scroll.</li>
+          <li>The subtitle language list in Settings no longer runs to the
+            bottom of the window.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.46" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Episodes and films on disk open even when the source addon
+            refuses to answer.</li>
+          <li>A watched episode or film started again and left half way
+            resumes there, shows its bar and comes back to Continue
+            watching.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.45" date="2026-09-23">
+      <description>
+        <ul>
+          <li>The copies of a film or episode open in a drawer on the right,
+            on disk first, then by resolution, with each copy's languages.</li>
+          <li>A poster has one bar, how much was watched; what is on disk is
+            a mark in its corner.</li>
+          <li>Escape closes a dialog instead of leaving the page under it.</li>
+          <li>Hardware decoding uses mpv's auto-safe.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.44" date="2026-09-23">
+      <description>
+        <ul>
+          <li>The seek bar shows the frame under the pointer, with the chapter
+            and the time.</li>
+          <li>The time over the seek bar sits centred over the pointer.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.43" date="2026-09-23">
+      <description>
+        <ul>
+          <li>The mouse wheel over the episode list in the player no longer
+            changes the volume.</li>
+          <li>Series numbered as one long season upstream, Re:Zero among
+            them, show episode stills after the first season.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.42" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Play on an episode that is not the selected one plays it.</li>
+          <li>The ring around the selected episode is drawn whole.</li>
+          <li>Settings sit on the left edge again.</li>
+          <li>The app says when the core it found running is from another
+            release.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.41" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Settings show one section at a time: Appearance, Playback,
+            Subtitles, Sources, Storage and About, without the paragraphs.</li>
+          <li>The accent is white, or amber, red or blue under
+            Appearance.</li>
+          <li>Loading shows a spinner instead of the amber line.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.40" date="2026-09-23">
+      <description>
+        <ul>
+          <li>"Open with Lumeo" on a video file plays it, under the title and
+            episode named from the file and folder names; the next episode
+            plays from the same folder.</li>
+          <li>The window comes back at the size it was closed at.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.39" date="2026-09-23">
+      <description>
+        <ul>
+          <li>Keys work in the player while the film is still arriving.</li>
+          <li>The title page opens with the keyboard on the current episode,
+            and the arrows run on into the next or previous season.</li>
+          <li>Watched episodes carry a full white bar instead of a check; the
+            on-disk mark is a plain download arrow and the ring round the
+            chosen card is thinner.</li>
+          <li>The player's episode list shows the same pictures as the title
+            page.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.38" date="2026-09-23">
+      <description>
+        <ul>
+          <li>The episode strip works from the keyboard: Tab enters it on the
+            chosen episode, the arrows choose, Enter plays, and the chosen
+            card is ringed in white with its neighbours in sight. A click
+            chooses, the play button on the still plays.</li>
+          <li>Episodes on disk carry a download mark.</li>
+          <li>In the player, Esc leaves fullscreen first and the film only
+            after; q leaves at once.</li>
+          <li>Subtitle style has a Background: none, shadow or box.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.37" date="2026-09-23">
+      <description>
+        <ul>
+          <li>The next episode starts every time a film runs out, and its
+            card comes back after seeking back from the end and watching it
+            again.</li>
+          <li>The window reopens at the size it was closed at, maximised if
+            it was.</li>
+          <li>Copies carrying your audio or subtitle languages rank above
+            sharper ones without them.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.36" date="2026-09-23">
+      <description>
+        <p>
+          Screenshots (s) are saved again with hardware decoding on: mpv now
+          takes them on the GPU, as a JPEG instead of a 6 MB PNG.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.35" date="2026-09-23">
+      <description>
+        <p>
+          A request caught on a connection that silently died, after a VPN
+          switch or when Cloudflare goes quiet, is sent again on a new one,
+          so sources and posters load instead of failing until a retry.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.34" date="2026-09-23">
+      <description>
+        <p>
+          Artwork scrolled past before it finished loading is still cached,
+          so every still of a long episode list is there offline.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.33" date="2026-09-23">
+      <description>
+        <p>
+          Arrow keys seek exactly by their step. Posters and backdrops are
+          cached on disk by the core and load once; Settings shows the
+          cache and clears it.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.32" date="2026-09-23">
+      <description>
+        <p>
+          A series watched up to its latest episode leaves Continue watching
+          until the next one is out, and Play never points at an episode
+          that has not aired, including in an announced season's tab.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.31" date="2026-09-23">
+      <description>
+        <p>
+          The source list no longer hangs until a restart when a provider
+          stops answering, and a provider that refuses is named instead of
+          reading as "no copies".
+        </p>
+      </description>
+    </release>
+    <release version="0.1.30" date="2026-09-23">
+      <description>
+        <p>
+          Storage no longer counts episodes whose files were deleted outside
+          the app.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.29" date="2026-09-23">
+      <description>
+        <p>
+          Subtitle size no longer resets when the app starts before its core.
+          Playback speed belongs to one film and is not carried to the next.
+          A new icon, which the GNOME app grid now shows.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.28" date="2026-09-23">
+      <description>
+        <p>
+          The player no longer crashes on Ctrl+V with mpv's console open (or
+          whenever the window lost focus with a key held) on mpv 0.41.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.27" date="2026-09-23">
+      <description>
+        <p>
+          Player fixes: the right-hand buttons stay at the right edge on a
+          film with chapters, the volume slider is visible on hover, one click
+          moves from one menu to another, a click on the picture closes a menu
+          without pausing, and the next-episode ring fills smoothly.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.26" date="2026-09-23">
+      <description>
+        <p>
+          The player is redesigned: a YouTube-style bar with white icons, a
+          settings menu with pages (source, speed, picture, chapters,
+          decoding, shortcuts), audio and subtitles side by side with a
+          subtitle style page, an episodes panel, a next-episode card with a
+          countdown, and a loading screen that names the episode.
+        </p>
+        <p>
+          Every key now goes through mpv: Escape, C and F11 are mpv bindings,
+          mpv's console keeps its keys, shortcuts work on a Russian layout,
+          quitting mpv closes the player, and zoom closes in on the cursor.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.25" date="2026-09-23">
+      <description>
+        <p>
+          A film resumed after a pause with the window hidden no longer
+          flashes an old frame among the new ones on NVIDIA: the player now
+          draws in Flutter's own share group instead of handing frames over
+          through an image that could go stale.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.24" date="2026-09-22">
+      <description>
+        <p>
+          A film resumed after a pause with the window hidden no longer shows
+          old frames among the new ones. The skip button takes the opening
+          itself rather than a cold open marked before it, and a series
+          caught up to broadcast stays in Continue watching.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.23" date="2026-09-22">
+      <description>
+        <p>
+          The opening is skipped with a button, and an episode that runs out
+          starts the next one by itself. Both are read from the chapters in
+          the file, so a release that marks none is left alone rather than
+          guessed at, and an episode that has not aired is never offered.
+          Screenshots taken with S are saved to the pictures folder.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.22" date="2026-09-22">
+      <description>
+        <p>
+          Minimise, maximise and close are in the player's top bar. The
+          window's own title bar is drawn by Lumeo, and a film covers it, so
+          a film used to be the one screen with no way to put the window
+          away or shut it — only back out of the picture first.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.21" date="2026-09-22">
+      <description>
+        <p>
+          A page that lists what every key and mouse button does, under the
+          gear in the player. It is not written down here: mpv is asked what
+          bindings it currently holds, and the page prints them with mpv's
+          own description of each one, so a key mpv gains or loses appears
+          or goes by itself.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.20" date="2026-09-21">
+      <description>
+        <p>
+          The picture plays again. 0.1.19 stopped it on the first frame of
+          every film — the sound ran, the seek bar answered a second late —
+          because the new render thread timed frames by a clock mpv reports
+          in different units than it documents. mpv now holds each frame to
+          its display time itself, on that thread.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.19" date="2026-09-21">
+      <description>
+        <p>
+          Scrubbing fast no longer freezes the picture and the seek bar
+          together. mpv now renders on a thread of its own instead of the one
+          that draws the controls, so a seek storm is mpv's to absorb and the
+          bar keeps up with the pointer.
+        </p>
+        <p>
+          The mouse buttons on the picture are mpv's, as the keys already
+          were: a click pauses, a second one within the double-click interval
+          takes the pause back and goes fullscreen, and the right button
+          pauses as it does in mpv.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.18" date="2026-09-21">
+      <description>
+        <p>
+          A click on the picture pauses as it lands. It used to wait 300 ms
+          to see whether a second click was coming; now the first pauses at
+          once and a second within the interval takes the pause back and goes
+          fullscreen, as on YouTube.
+        </p>
+        <p>
+          Dragging the seek bar keeps the controls up even when the pointer
+          wanders off the bar. They used to fade under a thumb that was still
+          being dragged.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.17" date="2026-09-21">
+      <description>
+        <p>
+          The player's buttons answer on the click. The double click that
+          goes fullscreen was listened for over the whole screen, and a
+          double click is only known not to be one 300 ms after the first,
+          so every button, the seek bar and the volume waited that out while
+          the keys did not; two quick clicks on a button also went
+          fullscreen. The double click now belongs to the picture alone.
+        </p>
+        <p>
+          Chapters, where the file has them: a mark on the seek bar where
+          each one starts, the chapter's name over the pointer, and a list
+          to jump by in the playback menu. PgUp and PgDn already stepped
+          through them.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.16" date="2026-09-21">
+      <description>
+        <p>
+          The player answers at once again. A blocking call in the video
+          plugin held the interface for as long as mpv was busy, which was
+          the length of every seek: clicks answered seconds late, the bar's
+          thumb fell behind the pointer while it was dragged, and one press
+          of an arrow became two or three seeks, because the release reached
+          mpv after its auto-repeat had begun. The plugin no longer asks mpv
+          anything from the interface's thread.
+        </p>
+        <p>
+          The loading ring means waiting for data and nothing else: it no
+          longer appears on a pause or during a seek of a downloaded film.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.15" date="2026-09-21">
+      <description>
+        <p>
+          The player's keys are mpv's. Every key goes to mpv with its own
+          bindings and its own auto-repeat: seek by keyframes on the arrows,
+          frame steps on . and , speed on [ ] { } and Backspace, volume on 9
+          0 and the wheel, chapters on PgUp and PgDn, loops on l, zoom and
+          pan on Alt with + - and the arrows, subtitle delay on z and x, and
+          I for mpv's own statistics page. Escape and q leave, c opens the
+          audio-and-subtitles panel.
+        </p>
+        <p>
+          Seeking is instant on a downloaded file: a relative seek lands on
+          a keyframe as it does in mpv, and the bar seeks as it is dragged
+          so the picture follows the thumb. The controls come up when the
+          mouse moves and go half a second after it stops; a key or a pause
+          does not bring them up.
+        </p>
+        <p>
+          Audio and subtitles are one panel: the file's tracks and the
+          database's copies as one list of languages, with the starting
+          tracks chosen by mpv from the languages set in Settings. A file
+          without a track in a preferred language starts with the best copy
+          the database has. Subtitle size and height are settings.
+        </p>
+        <p>
+          The wait before the first frame stands on the title's artwork, and
+          a click on the bar's gaps no longer pauses the film.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.14" date="2026-09-20">
+      <description>
+        <p>
+          Watch progress. The player remembers where a film or episode was
+          left and resumes from there; a series opens on the next episode
+          with Resume and the time left, watched episodes are ticked, and
+          the home screen starts with a Continue watching shelf. Progress is
+          kept by the core, so another client of the same core resumes it.
+        </p>
+        <p>
+          Episode stills are blurred until the episode is watched, so a
+          thumbnail is not a spoiler; Show, Blur or Hide is a setting.
+        </p>
+        <p>
+          The Storage section shows the disk — what Lumeo takes, what
+          everything else does, what is free — and lists each title on disk
+          with its size and a button that frees it, or all of it at once.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.13" date="2026-09-20">
+      <description>
+        <p>
+          Add-ons are managed from the Sources section of the settings page:
+          what each one provides, on or off, drag to reorder, install by
+          address, Configure in the browser. They live in the core's
+          database now; LUMEO_ADDONS only seeds one that has none yet.
+        </p>
+        <p>
+          The ground is plain black on every page. A film's artwork fills
+          the window, and its list of sources scrolls into view when opened.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.12" date="2026-09-20">
+      <description>
+        <p>
+          Settings that survive a restart. The subtitle languages you read,
+          in order, and the playback speed are chosen on the settings page
+          and kept by the core, so they hold on the next machine that talks
+          to it; volume is remembered by the machine it was set on. The
+          Storage section names the folder downloads land in and opens it
+          when the core runs on this machine.
+        </p>
+        <p>
+          The settings page prints the commands that install a missing
+          decoder, with a button to copy them.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.11" date="2026-09-04">
+      <description>
+        <p>
+          The picture is handed from mpv to the window differently, which is
+          what a film left paused for long enough used to come back without:
+          the thread that draws no longer waits on mpv while mpv is waiting on
+          it, and a frame is finished before the window reads it. The player
+          also writes down what the picture is doing — its own numbers and
+          mpv's own words — so a picture that stops leaves a record rather
+          than somebody's memory of it.
+        </p>
+        <p>
+          The click that closes one of the player's menus no longer carries on
+          to the film and pauses it. The menus hang off the button that opens
+          them, close on Escape or a click outside, and can be walked with a
+          keyboard.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.10" date="2026-09-01">
+      <description>
+        <p>
+          Search opens on the line the tabs stand on, rather than against the
+          top of the window, and the answers unroll under the field and fold
+          away with it instead of appearing and vanishing whole. What the list
+          puts first is what the typed word actually names: the exact title,
+          then the titles that begin with it, then the ones that merely carry
+          it — rather than one film and one series in turn.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.9" date="2026-09-01">
+      <description>
+        <p>
+          Search answers while the name is being typed: each title with its
+          artwork, films and series in one list, walked with the arrow keys.
+          The middle of the window's bar is now where it is browsed from —
+          Home and Settings, with search beside them — and a download starting
+          no longer moves any of it: what is arriving is a ring at the right,
+          and a row in the list it opens leads to the title it belongs to.
+          There is also a Settings screen: which core this client talks to and
+          whether it answers, and what this machine can actually decode.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.8" date="2026-09-01">
+      <description>
+        <p>
+          Stopping one episode of a season pack now takes it off the swarm.
+          Until this it kept downloading beside the episode being watched and
+          took peers from it. And a film that will not start says exactly
+          that: the message no longer claims a copy has no picture when
+          nothing has been said about its picture.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.7" date="2026-09-01">
+      <description>
+        <p>
+          A film that has only just started downloading is no longer reported
+          as a copy with no picture: playback waits until the start of the file
+          is actually on disk, both ends of the file are asked for ahead of the
+          rest so it gets there sooner, and the player is given time to match a
+          swarm rather than a web server. While a film is on its way its name
+          is on screen, and a film that stops to wait for the swarm says so
+          instead of looking frozen.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.6" date="2026-08-31">
+      <description>
+        <p>
+          Lumeo now asks mpv what this machine can decode before a copy is
+          chosen: a release nothing here can play is marked in the source
+          table and Play passes over it, and a film whose sound will not
+          decode says so instead of playing in silence. Ctrl+F and F11 answer
+          on a window nobody has clicked, the controls no longer wash over the
+          whole picture, a click on the timeline lands where the pointer said,
+          episodes with no still of their own show the title's artwork, and a
+          finished download plays again after the core has been restarted.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.5" date="2026-08-31">
+      <description>
+        <p>
+          A series page opens on its seasons and episodes instead of below
+          them, and the line that ran across the artwork is gone. The bar is
+          the same on every page, Ctrl+F reaches search, a film takes the
+          screen, and a copy that will not decode says which decoder is
+          missing here.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.4" date="2026-08-31">
+      <description>
+        <p>
+          The timeline can be hit: tap anywhere on it, or drag its handle.
+          Leaving a film started from the banner no longer starts it again,
+          and the artwork behind a title fades instead of being cut off.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.3" date="2026-08-31">
+      <description>
+        <p>
+          A soundtrack nothing can decode no longer hides a film that plays.
+          Seeking goes where it was asked, held arrows repeat, and Escape
+          comes back to the title.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.2" date="2026-08-31">
+      <description>
+        <p>
+          Films play again: the renderer was hiding the picture. Pages can be
+          walked back out of, the download list can be reached, and Play
+          starts something.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.1" date="2026-08-31">
+      <description>
+        <p>
+          The window draws its own title bar, takes an icon and goes
+          fullscreen. Sources need no configuring to play something.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-08-31">
+      <description>
+        <p>First packaged build.</p>
+      </description>
+    </release>
+  </releases>
+</component>

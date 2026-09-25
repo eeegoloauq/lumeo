@@ -1,0 +1,54 @@
+# The half of the checks that needs a Flutter SDK. The core is not here: it is
+# gated in Forgejo, where the pull requests are, and running it again on the
+# mirror would spend a build on every commit to say what is already known.
+#
+# Hence the path filter too. A commit that only touches docs, packaging or the
+# core builds nothing here, which is the common case.
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - client/**
+      - .github/workflows/ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+      - run: flutter pub get
+      # Not third_party/: the fork stays byte-for-byte upstream plus LUMEO.md's patches.
+      - run: dart format --output=none --set-exit-if-changed lib test integration_test
+      - run: flutter analyze
+      - run: flutter test
+      # What the Linux build needs, plus a screen to run on. The UI tests drive
+      # the real application: that means building it, which means the same
+      # toolchain the release uses (see release.yml for why libmpv-dev is in
+      # the list). Weston is the screen — headless Wayland, so that Flutter
+      # renders through EGL and mpv's render thread is the one under test
+      # (tool/ui-test.sh says why Xvfb was not).
+      - name: build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev \
+            weston ffmpeg
+      - run: tool/ui-test.sh

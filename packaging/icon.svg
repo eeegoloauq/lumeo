@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Comments stay inside <svg>: gdk-pixbuf looks for "<svg" in the first
+       bytes of the file only, and a longer preamble made GNOME Shell show an
+       empty tile. The build renders the PNG sizes from this file; icon-small.svg
+       is the same drawing with a heavier outline for 32 px and below. -->
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26262a"/>
+      <stop offset="1" stop-color="#0a0a0b"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#ground)"/>
+  <rect x="4.5" y="4.5" width="119" height="119" rx="27.5" fill="none" stroke="#fff" stroke-opacity="0.08"/>
+  <path d="M48 38.5c0-3.3 3.6-5.3 6.4-3.6l39 23.9c2.7 1.6 2.7 5.5 0 7.1l-39 23.9c-2.8 1.7-6.4-.3-6.4-3.6z" fill="#fff" fill-opacity="0.14" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+</svg>

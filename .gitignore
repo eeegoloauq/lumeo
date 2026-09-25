@@ -1,0 +1,15 @@
+# Go
+core/data/
+/lumeo
+*.test
+
+# Release artefacts: built from the tag by packaging/, never carried in git.
+/dist/
+
+# Flutter / Dart
+client/build/
+client/.dart_tool/
+client/.flutter-plugins*
+client/linux/flutter/ephemeral/
+.packages
+

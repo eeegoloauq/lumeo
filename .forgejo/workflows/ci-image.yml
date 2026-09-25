@@ -1,0 +1,42 @@
+# Rebuilds the container the Forgejo core gate runs in. It is a
+# separate workflow, and not a step inside ci.yml, because the image changes
+# perhaps twice a year and rebuilding it on every pull request would cost more
+# than the checks it carries.
+#
+# The image stays local to the runner (no registry): nothing outside this
+# machine consumes it, and pushing it would put ~1 GB into the registry per
+# rebuild for no reader.
+name: ci-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packaging/ci/Containerfile
+      - .forgejo/workflows/ci-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: docker
+    container:
+      # The same Node LTS image the Containerfile copies node from, so the
+      # runner already holds it.
+      image: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v5
+      # Docker publishes no checksums for the static builds, so the hash is
+      # pinned here: a bump is a new version and a new hash, in one commit.
+      - name: docker cli
+        env:
+          DOCKER_VERSION: 29.8.1
+          DOCKER_SHA256: d8db66739d2e28d4933786d73e918d9be643a67fbd835db1bf740d650a259e70
+        run: |
+          curl -fsSLo /tmp/docker.tgz "https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION.tgz"
+          echo "$DOCKER_SHA256  /tmp/docker.tgz" | sha256sum -c -
+          tar xzf /tmp/docker.tgz --strip-components=1 -C /usr/local/bin docker/docker
+      - name: build
+        run: docker build -f packaging/ci/Containerfile -t local/lumeo-ci:latest packaging/ci

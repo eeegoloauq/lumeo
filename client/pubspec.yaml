@@ -1,0 +1,69 @@
+name: lumeo
+description: "Lumeo desktop client"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # The player. libmpv renders into the widget tree, so the chrome is ours.
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+  # The only thing the client needs to reach the core.
+  http: ^1.6.0
+
+# The Linux half of media_kit_video, with three defects fixed. Everything else
+# in the package is upstream 2.0.1 byte for byte, so `diff -r` against a fresh
+# copy of the published version is the whole of what we own — see
+# third_party/media_kit_video/LUMEO.md. It is an override rather than a
+# dependency so that the version constraint above stays the one we would go
+# back to the moment upstream ships the fixes.
+dependency_overrides:
+  media_kit_video:
+    path: third_party/media_kit_video
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Drives the real application on a real screen, which is the only way most of
+  # the defects in this interface have ever been found: a doubled wordmark, a
+  # panel clipped by the bar it hung from, a shortcut nobody could reach.
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # Time without waiting for it. The player's bar has to hold a position for
+  # as long as a seek takes, and the way that was got wrong was a timer, so
+  # the test that says the timer is gone has to be able to elapse minutes.
+  # Already in the tree under flutter_test; named here so it is a dependency
+  # we chose rather than one we borrowed.
+  fake_async: ^1.3.1
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    # Unbounded exists for one word — the wordmark — so it ships as five
+    # glyphs. Plex Sans does everything that speaks, titles included; Plex
+    # Mono is for paths, addresses and commands. Subset to latin plus
+    # cyrillic: the interface is English, the titles in it are not.
+    - family: Unbounded
+      fonts:
+        - asset: assets/fonts/Unbounded.ttf
+    - family: IBMPlexSans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans-400.ttf
+        - asset: assets/fonts/IBMPlexSans-500.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSans-600.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSans-700.ttf
+          weight: 700
+    - family: IBMPlexMono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf
+        - asset: assets/fonts/IBMPlexMono-Medium.ttf
+          weight: 500

@@ -1,0 +1,55 @@
+# The pre-merge gate, and only that. Pull requests live in Forgejo, so the
+# check has to be here; it runs the core, which is seconds of work on a 2 GB
+# LXC.
+#
+# The client's checks and the release build need a Flutter SDK and a Fedora
+# container, which on this runner is ten-plus minutes of a machine that also
+# builds every other repository. Those run on GitHub, against the push mirror
+# — see .github/workflows and docs/decisions/shipping.md.
+#
+# NB: because this directory exists, Forgejo ignores .github/workflows
+# entirely. That is the intended split, not an accident.
+name: ci
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: docker
+    # Our own image, not the shared local/go-ci: that one carries Go 1.26 with
+    # GOTOOLCHAIN=local and core/go.mod asks for 1.27, so this gate failed on
+    # every run until it was pointed here. Built by ci-image.yml.
+    container:
+      image: local/lumeo-ci:latest
+      volumes:
+        - ci-go-mod:/go/pkg/mod
+        - ci-go-build:/root/.cache/go-build
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v5
+      - run: go vet ./...
+      # The Windows release is built on GitHub at tag time; this is where a
+      # change that does not compile for it is caught before the merge.
+      - run: GOOS=windows go vet ./...
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "not gofmt'd:"; echo "$unformatted"; exit 1
+          fi
+      # -race here on purpose: the download manager, the torrent backend and
+      # the subtitle token store are all shared between requests. It is also
+      # the slowest thing in this file by an order of magnitude — the torrent
+      # tests seed to themselves over loopback and wait on real timeouts.
+      - run: go test -race ./...
+      - run: CGO_ENABLED=0 go build ./cmd/lumeo

@@ -1,0 +1,37 @@
+# The Arch package, built from the tarball of build-dist.sh the way the RPM
+# is (see the note at the top of lumeo.spec). Build it with
+# packaging/build-arch.sh, which sets the version and the checksum.
+pkgname=lumeo
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Find, acquire and watch films and series'
+arch=(x86_64)
+url='https://github.com/eeegoloauq/lumeo'
+license=(MIT)
+# What the bundle links, read off its DT_NEEDED entries. mpv is named for
+# libmpv, which Dart opens with dlopen() (see lumeo.spec); on Arch the library
+# is in the mpv package, and Arch's ffmpeg keeps the patented decoders, so
+# nothing like Fedora's libavcodec-freeworld is needed beside it.
+depends=(
+  at-spi2-core cairo fontconfig gcc-libs gdk-pixbuf2 glib2 glibc gtk3
+  harfbuzz libepoxy mpv pango zlib
+)
+# The files go in as the tarball has them, so the package ships the same
+# bytes as every other release file. The Go core is built stripped, and
+# nothing here carries debug information to split off.
+options=(!strip !debug)
+source=("$pkgname-$pkgver-linux-x86_64.tar.gz")
+
+package() {
+  cd "$pkgname-$pkgver-linux-x86_64"
+  # The bundle stays in one piece: the binary finds its libraries at
+  # $ORIGIN/lib and the core beside itself.
+  install -d "$pkgdir/usr/lib/$pkgname"
+  cp -a bundle/. "$pkgdir/usr/lib/$pkgname/"
+  install -Dm755 lumeo.sh "$pkgdir/usr/bin/$pkgname"
+  install -Dm644 dev.lumeo.lumeo.desktop -t "$pkgdir/usr/share/applications"
+  install -Dm644 dev.lumeo.lumeo.metainfo.xml -t "$pkgdir/usr/share/metainfo"
+  install -d "$pkgdir/usr/share/icons"
+  cp -a icons/hicolor "$pkgdir/usr/share/icons/"
+  install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+}

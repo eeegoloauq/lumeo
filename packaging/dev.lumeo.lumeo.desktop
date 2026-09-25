@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Lumeo
+GenericName=Media library
+Comment=Find, acquire and watch films and series
+Exec=lumeo %F
+Icon=dev.lumeo.lumeo
+Terminal=false
+Categories=AudioVideo;Video;Player;
+Keywords=media;video;film;series;torrent;player;
+MimeType=video/x-matroska;video/mp4;video/x-m4v;video/webm;video/quicktime;video/x-msvideo;video/x-ms-wmv;video/x-flv;video/mpeg;video/mp2t;video/ogg;video/3gpp;
+StartupNotify=true
+StartupWMClass=dev.lumeo.lumeo
