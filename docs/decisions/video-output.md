@@ -92,3 +92,9 @@ halves of that.
 A black picture or a stuck frame on NVIDIA is compared against Skia before
 anything else: `fl_dart_project_set_enable_impeller(project, FALSE)` in
 `client/linux/runner/my_application.cc` brings it back.
+
+Impeller on Linux GL draws shapes without antialiasing: the ring of a
+spinner, the edge of a switch and of a rounded button are stepped, while text
+is smooth. That is Impeller's, not the widgets', and Skia draws the same
+widgets clean. It is lived with rather than traded for Skia, which would put
+the video path back on the renderer it has not been checked on since patch 4.
