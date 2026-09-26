@@ -89,6 +89,13 @@ appstream-util validate-relax --nonet \
 %{_datadir}/icons/hicolor/*/apps/dev.lumeo.lumeo.*
 
 %changelog
+* Sat Sep 26 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.64-1
+- The interface is translated, Russian first. It follows the system language,
+  and Settings, General, Language switches it at once. Titles, descriptions
+  and genres stay as the catalogue sends them, in English.
+- A download that stalled while the computer slept starts again by itself
+  after waking, as after a network change.
+
 * Fri Sep 25 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.63-1
 - A download that stalls after the network changes (a VPN switched on or
   off, another Wi-Fi) starts again by itself; pressing Play on a stalled

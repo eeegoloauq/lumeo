@@ -39,6 +39,19 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.64" date="2026-09-26">
+      <description>
+        <ul>
+          <li>The interface is translated, Russian first. It
+            follows the system language, and Settings, General,
+            Language switches it at once. Titles, descriptions and
+            genres stay as the catalogue sends them, in English.</li>
+          <li>A download that stalled while the computer slept
+            starts again by itself after waking, as after a
+            network change.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.63" date="2026-09-25">
       <description>
         <ul>
