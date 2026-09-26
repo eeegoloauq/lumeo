@@ -5,22 +5,24 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 import '../theme.dart';
 import '../widgets/artwork_image.dart';
 import '../widgets/buttons.dart';
 import '../widgets/loading.dart';
 
 /// Translate mpv failures into actionable playback messages.
-String playbackTrouble(Object error) {
+String playbackTrouble(Object error, AppLocalizations l10n) {
   final text = '$error';
   final codec = decoderErrorCodec(error);
   if (codec != null) {
     // Ask mpv about decoder availability before claiming it is missing.
-    return 'The player could not decode $codec.';
+    return l10n.playerDecoderCouldNotDecode(codec);
   }
   if (text.contains('Failed to open')) {
     // Startup retries are exhausted; the failing layer remains unknown.
-    return 'The player could not start this file.';
+    return l10n.playerCouldNotStartFile;
   }
   return text;
 }
@@ -152,15 +154,15 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
         ? null
         : decoderErrorCodec(widget.playbackError!);
     final message = widget.choiceEmpty
-        ? 'No copy of ${widget.title}'
+        ? context.l10n.playerNoCopyOf(widget.title)
         : widget.choiceError != null
-        ? 'Could not start this copy'
+        ? context.l10n.playerCouldNotStartCopy
         : widget.error != null
-        ? 'The core stopped answering'
+        ? context.l10n.playerCoreStopped
         : widget.playbackError != null
         ? widget.decoderMissing == true && codec != null
-              ? 'Nothing installed here decodes $codec'
-              : 'This copy would not start'
+              ? context.l10n.playerDecoderMissingShort(codec)
+              : context.l10n.playerCopyWouldNotStart
         : '';
     return Stack(
       children: [
@@ -202,7 +204,7 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
                     widget.percent! < 1) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '${(widget.percent! * 100).round()}%',
+                    context.l10n.playerPercent((widget.percent! * 100).round()),
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0x99FFFFFF),
@@ -228,7 +230,10 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  QuietButton(label: 'Try again', onPressed: widget.onRetry),
+                  QuietButton(
+                    label: context.l10n.playerTryAgain,
+                    onPressed: widget.onRetry,
+                  ),
                 ],
               ],
             ),
@@ -239,7 +244,7 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
             top: 16,
             child: IconButton(
               onPressed: widget.onBack,
-              tooltip: 'Back (Esc)',
+              tooltip: context.l10n.playerBackEsc,
               icon: const Icon(Icons.arrow_back, color: Colors.white),
             ),
           ),

@@ -3,8 +3,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'artwork_image.dart';
 import 'download_mark.dart';
@@ -89,9 +91,13 @@ class _EpisodeCardState extends State<EpisodeCard> {
     final upcoming = e.isUpcoming;
     final lit = widget.selected || _focused;
     final meta = [
-      if (upcoming && e.released != null) 'Out ${shortDate(e.released!)}',
-      if (e.isRecent) shortDate(e.released!),
-      if (e.rating > 0) e.rating.toStringAsFixed(1),
+      if (upcoming && e.released != null)
+        context.l10n.itemOutDate(
+          shortDate(e.released!, context.l10n.localeName),
+        ),
+      if (e.isRecent) shortDate(e.released!, context.l10n.localeName),
+      if (e.rating > 0)
+        NumberFormat('0.0', context.l10n.localeName).format(e.rating),
     ].join(' · ');
     return Shortcuts(
       shortcuts: const {
@@ -151,7 +157,7 @@ class _EpisodeCardState extends State<EpisodeCard> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      e.label,
+                      e.label(context.l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Typo.cardTitle.copyWith(
@@ -188,12 +194,8 @@ class _EpisodeCardState extends State<EpisodeCard> {
       null;
 }
 
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-String shortDate(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+String shortDate(DateTime d, String locale) =>
+    DateFormat.MMMd(locale).format(d);
 
 class _Still extends StatelessWidget {
   const _Still({
@@ -259,7 +261,7 @@ class _Still extends StatelessWidget {
                   child: ExcludeFocus(
                     child: IconButton.filled(
                       onPressed: onPlay,
-                      tooltip: 'Play episode ${episode.number}',
+                      tooltip: context.l10n.itemPlayEpisode(episode.number),
                       iconSize: 30,
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xEBFFFFFF),

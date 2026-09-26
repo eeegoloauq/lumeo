@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:lumeo/api/client.dart';
 import 'package:lumeo/api/downloads_store.dart';
 import 'package:lumeo/api/preferences_store.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/platform/decoders.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/player/mpv_facts.dart';
@@ -116,6 +117,8 @@ void main() {
     await preferences.load();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: Scaffold(
           body: SettingsScreen(
@@ -143,12 +146,17 @@ void main() {
 
   Finder heading(SettingsSection section) => find.descendant(
     of: find.byKey(ValueKey('settings:${section.name}')),
-    matching: find.text(section.title),
+    matching: find.text(
+      section.title(lookupAppLocalizations(const Locale('en'))),
+    ),
   );
 
   bool lit(WidgetTester tester, SettingsSection section) => find
       .ancestor(
-        of: find.widgetWithText(TextButton, section.title),
+        of: find.widgetWithText(
+          TextButton,
+          section.title(lookupAppLocalizations(const Locale('en'))),
+        ),
         matching: find.byWidgetPredicate(
           (w) => w is Semantics && w.properties.selected == true,
         ),
@@ -160,10 +168,10 @@ void main() {
     final page = await open(tester);
     expect(
       find.widgetWithText(TextButton, 'General'),
-      findsNothing,
-      reason: 'a section with nothing that works in it is not offered',
+      findsOneWidget,
+      reason: 'General contains the language setting',
     );
-    expect(lit(tester, SettingsSection.appearance), isTrue);
+    expect(lit(tester, SettingsSection.general), isTrue);
 
     await tester.tap(find.widgetWithText(TextButton, 'Downloads'));
     await tester.pumpAndSettle();

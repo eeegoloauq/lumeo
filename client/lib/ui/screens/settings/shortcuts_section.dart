@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../player/bindings.dart';
 import '../../player/mpv_facts.dart';
 import '../../theme.dart';
@@ -56,19 +57,16 @@ class _ShortcutsSectionState extends State<ShortcutsSection> {
   @override
   Widget build(BuildContext context) {
     return SettingsBlock(
-      title: 'Shortcuts',
+      title: context.l10n.settingsShortcuts,
       children: [
         ListenableBuilder(
           listenable: _facts,
           builder: (context, _) {
             if (!_facts.done) return const SettingsLoading();
             if (!_facts.answered) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  'mpv has not said which keys it has.',
-                  style: Typo.data,
-                ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Text(context.l10n.settingsNoShortcuts, style: Typo.data),
               );
             }
             final step = widget.preferences.current?.seekStep ?? 5;
@@ -76,14 +74,20 @@ class _ShortcutsSectionState extends State<ShortcutsSection> {
               ..._facts.bindings,
               ...ownBindingList(seekStep: step),
             ];
-            final lines = shortcuts(bindings, only: _all ? null : _everyday);
+            final lines = shortcuts(
+              bindings,
+              context.l10n,
+              only: _all ? null : _everyday,
+            );
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Columns(lines: lines),
                 const SizedBox(height: 14),
                 RowButton(
-                  label: _all ? 'Fewer keys' : 'All player keys',
+                  label: _all
+                      ? context.l10n.settingsFewerKeys
+                      : context.l10n.settingsAllPlayerKeys,
                   onPressed: () => setState(() => _all = !_all),
                 ),
               ],

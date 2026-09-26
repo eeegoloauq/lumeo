@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/main.dart';
 import 'package:lumeo/platform/decoders.dart';
 import 'package:lumeo/ui/player/bindings.dart';
@@ -13,11 +14,10 @@ import 'package:lumeo/ui/player/mpv_host.dart';
 import 'package:lumeo/ui/screens/app_shell.dart';
 import 'package:lumeo/ui/screens/settings/settings_screen.dart';
 import 'package:lumeo/ui/theme.dart';
-import 'package:lumeo/ui/widgets/top_bar.dart';
 import 'package:lumeo/ui/widgets/setting_row.dart';
+import 'package:lumeo/ui/widgets/top_bar.dart';
 
 import 'fake_core.dart';
-
 import 'helpers.dart';
 
 void settingsTests() {
@@ -32,7 +32,12 @@ void settingsTests() {
     );
     await tester.pumpAndSettle();
     if (section == null) return;
-    await tester.tap(find.widgetWithText(TextButton, section.title));
+    await tester.tap(
+      find.widgetWithText(
+        TextButton,
+        section.title(lookupAppLocalizations(const Locale('en'))),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Read shortcuts from mpv so the page follows its active bindings.
 class MpvBinding {
   const MpvBinding({
@@ -77,11 +79,12 @@ List<MpvBinding> ownBindingList({int seekStep = 5}) => [
     ),
 ];
 
-const _ownLabels = {
-  'script-message lumeo escape': 'Leave fullscreen, else back to the title',
-  'script-message lumeo back': 'Back to the title',
-  'script-message lumeo tracks': 'Audio & subtitles',
-  'cycle fullscreen': 'Fullscreen',
+String? _ownLabel(String cmd, AppLocalizations l10n) => switch (cmd) {
+  'script-message lumeo escape' => l10n.playerShortcutLeaveFullscreen,
+  'script-message lumeo back' => l10n.playerShortcutBack,
+  'script-message lumeo tracks' => l10n.playerShortcutTracks,
+  'cycle fullscreen' => l10n.playerShortcutFullscreen,
+  _ => null,
 };
 
 String layoutKey(int usbHidUsage, bool shift, String char, Set<String> bound) {
@@ -105,7 +108,11 @@ String layoutKey(int usbHidUsage, bool shift, String char, Set<String> bound) {
 ///
 /// With [only], the lines for what those keys (mpv's names) do, in that
 /// order, each with every key that does the same.
-List<Shortcut> shortcuts(List<MpvBinding> bindings, {List<String>? only}) {
+List<Shortcut> shortcuts(
+  List<MpvBinding> bindings,
+  AppLocalizations l10n, {
+  List<String>? only,
+}) {
   final byKey = <String, MpvBinding>{};
   for (final b in bindings) {
     if (b.section != 'default' && b.section != ownSection) continue;
@@ -124,7 +131,7 @@ List<Shortcut> shortcuts(List<MpvBinding> bindings, {List<String>? only}) {
   final comments = <String, String>{};
   for (final b in byKey.values) {
     if (!_actsHere(b.cmd)) continue;
-    final label = keyLabel(b.key);
+    final label = keyLabel(b.key, l10n);
     if (label == null) continue;
     final cmd = normal(b.cmd);
     if (wanted != null && !wanted.contains(cmd)) continue;
@@ -143,10 +150,10 @@ List<Shortcut> shortcuts(List<MpvBinding> bindings, {List<String>? only}) {
       Shortcut(
         keys: keys[cmd]!,
         what:
-            _ownLabels[cmd] ??
+            _ownLabel(cmd, l10n) ??
             switch (comments[cmd]) {
               final comment? => _sentence(comment),
-              null => _plain(cmd),
+              null => _plain(cmd, l10n),
             },
       ),
   ];
@@ -169,26 +176,37 @@ bool _actsHere(String cmd) {
 String _sentence(String comment) =>
     comment[0].toUpperCase() + comment.substring(1);
 
-String _plain(String cmd) {
+String _plain(String cmd, AppLocalizations l10n) {
   // Our own arrows, which carry no comment: said the way mpv says its own.
   final seek = RegExp(r'^seek (-?)(\d+)$').firstMatch(cmd);
   if (seek != null) {
     final seconds = int.parse(seek[2]!);
-    final span = seconds % 60 == 0
-        ? '${seconds ~/ 60} minute${seconds == 60 ? '' : 's'}'
-        : '$seconds second${seconds == 1 ? '' : 's'}';
-    return 'Seek $span ${seek[1]!.isEmpty ? 'forward' : 'backward'}';
+    final forward = seek[1]!.isEmpty;
+    if (seconds % 60 == 0) {
+      final minutes = seconds ~/ 60;
+      return forward
+          ? l10n.playerShortcutSeekMinutesForward(minutes)
+          : l10n.playerShortcutSeekMinutesBackward(minutes);
+    }
+    return forward
+        ? l10n.playerShortcutSeekSecondsForward(seconds)
+        : l10n.playerShortcutSeekSecondsBackward(seconds);
   }
   final add = RegExp(r'^add ([a-z][a-z-]*) ([+-]?\d+(?:\.\d+)?)$')
       .firstMatch(cmd);
   if (add == null) return cmd;
   final step = add[2]!;
-  return '${_sentence(add[1]!.replaceAll('-', ' '))} '
-      '${step.startsWith('-') ? '−${step.substring(1)}' : '+${step.replaceFirst('+', '')}'}';
+  final shownStep = step.startsWith('-')
+      ? '−${step.substring(1)}'
+      : '+${step.replaceFirst('+', '')}';
+  if (add[1] == 'volume') return l10n.playerShortcutVolume(shownStep);
+  return '${_sentence(add[1]!.replaceAll('-', ' '))} $shownStep';
 }
 
 /// Return null for media and power keys, whose purpose is on the keycap.
-String? keyLabel(String key) {
+/// Keys are named as their keycaps are, which is English whatever the
+/// language; mouse buttons and the wheel are words and are translated.
+String? keyLabel(String key, AppLocalizations l10n) {
   final parts = <String>[];
   var rest = key;
   // Split on hyphens so `Ctrl++` keeps its plus key.
@@ -211,7 +229,7 @@ String? keyLabel(String key) {
     parts.add(c.toUpperCase());
     return parts.join('+');
   }
-  final named = _keyNames[rest];
+  final named = _keyNames[rest] ?? _mouseName(rest, l10n);
   if (named == null) return null;
   return [...parts, named].join('+');
 }
@@ -235,18 +253,22 @@ final _keyNames = {
   'SHARP': '#',
   'KP_DEC': 'Numpad .',
   'KP_ENTER': 'Numpad Enter',
-  'MBTN_LEFT': 'Click',
-  'MBTN_LEFT_DBL': 'Double click',
-  'MBTN_RIGHT': 'Right click',
-  'MBTN_MID': 'Middle click',
-  'MBTN_BACK': 'Back button',
-  'MBTN_FORWARD': 'Forward button',
-  'WHEEL_UP': 'Wheel up',
-  'WHEEL_DOWN': 'Wheel down',
-  'WHEEL_LEFT': 'Wheel left',
-  'WHEEL_RIGHT': 'Wheel right',
   for (var i = 1; i <= 12; i++) 'F$i': 'F$i',
   for (var i = 0; i <= 9; i++) 'KP$i': 'Numpad $i',
+};
+
+String? _mouseName(String key, AppLocalizations l10n) => switch (key) {
+  'MBTN_LEFT' => l10n.playerKeyClick,
+  'MBTN_LEFT_DBL' => l10n.playerKeyDoubleClick,
+  'MBTN_RIGHT' => l10n.playerKeyRightClick,
+  'MBTN_MID' => l10n.playerKeyMiddleClick,
+  'MBTN_BACK' => l10n.playerKeyBackButton,
+  'MBTN_FORWARD' => l10n.playerKeyForwardButton,
+  'WHEEL_UP' => l10n.playerKeyWheelUp,
+  'WHEEL_DOWN' => l10n.playerKeyWheelDown,
+  'WHEEL_LEFT' => l10n.playerKeyWheelLeft,
+  'WHEEL_RIGHT' => l10n.playerKeyWheelRight,
+  _ => null,
 };
 
 /// mpv's names for the mouse buttons it binds.

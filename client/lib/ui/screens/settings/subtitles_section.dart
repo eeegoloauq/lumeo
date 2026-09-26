@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../player/menus.dart';
 import '../../player/subtitle_style.dart';
 import '../../widgets/setting_row.dart';
@@ -23,7 +24,7 @@ class SubtitlesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = preferences.current;
     return SettingsBlock(
-      title: 'Subtitles',
+      title: context.l10n.settingsSubtitles,
       children: [
         if (current != null) ...[
           _Preview(preferences: current),
@@ -32,7 +33,7 @@ class SubtitlesSection extends StatelessWidget {
         SettingRows([
           if (current != null) ...[
             SettingRow(
-              label: 'Languages',
+              label: context.l10n.settingsSubtitleLanguages,
               value: LanguageList(
                 preference: 'subtitleLanguages',
                 chosen: current.subtitleLanguages,
@@ -41,24 +42,30 @@ class SubtitlesSection extends StatelessWidget {
               ),
             ),
             SettingRow(
-              label: 'Turn on',
-              hint: 'Foreign audio: when the sound isn’t in these languages.',
+              label: context.l10n.settingsSubtitleMode,
+              hint: context.l10n.settingsForeignAudioHint,
               value: Segments<String>(
-                choices: const [
-                  ('always', 'Always'),
-                  ('foreign', 'Foreign audio'),
-                  ('manual', 'Manual'),
+                choices: [
+                  ('always', context.l10n.settingsAlways),
+                  ('foreign', context.l10n.settingsForeignAudio),
+                  ('manual', context.l10n.settingsManual),
                 ],
                 selected: current.subtitleMode,
                 onSelected: (mode) => patch({'subtitleMode': mode}),
               ),
             ),
             SettingRow(
-              label: 'Size',
+              label: context.l10n.settingsSubtitleSize,
               value: Segments<double>(
                 choices: [
-                  for (final (i, label) in TracksMenu.scaleLabels.indexed)
-                    (TracksMenu.scales[i], label),
+                  for (final i in List.generate(
+                    TracksMenu.scales.length,
+                    (i) => i,
+                  ))
+                    (
+                      TracksMenu.scales[i],
+                      TracksMenu.scaleLabel(i, context.l10n),
+                    ),
                 ],
                 selected: TracksMenu.scales
                     .where((s) => (s - current.subtitleScale).abs() < 0.01)
@@ -67,7 +74,7 @@ class SubtitlesSection extends StatelessWidget {
               ),
             ),
             SettingRow(
-              label: 'Colour',
+              label: context.l10n.settingsSubtitleColour,
               value: ColourDots(
                 colours: subtitleColours,
                 selected: current.subtitleColor,
@@ -75,19 +82,19 @@ class SubtitlesSection extends StatelessWidget {
               ),
             ),
             SettingRow(
-              label: 'Background',
+              label: context.l10n.settingsSubtitleBackground,
               value: Segments<String>(
-                choices: const [
-                  ('none', 'None'),
-                  ('shadow', 'Shadow'),
-                  ('box', 'Box'),
+                choices: [
+                  ('none', context.l10n.settingsNone),
+                  ('shadow', context.l10n.settingsShadow),
+                  ('box', context.l10n.settingsBox),
                 ],
                 selected: current.subtitleBackground,
                 onSelected: (value) => patch({'subtitleBackground': value}),
               ),
             ),
             SettingRow(
-              label: 'Height',
+              label: context.l10n.settingsSubtitleHeight,
               // Stepped as a lift: mpv's sub-pos is 100 at the bottom edge
               // and lower numbers raise the line.
               value: PreferenceStepper(
@@ -96,19 +103,19 @@ class SubtitlesSection extends StatelessWidget {
                 max: 30,
                 step: 5,
                 width: 120,
-                describe: (lift) => lift <= 0 ? 'bottom' : '$lift% up',
-                lessLabel: 'Lower',
-                moreLabel: 'Higher',
+                describe: (lift) => lift <= 0
+                    ? context.l10n.settingsBottom
+                    : context.l10n.settingsPercentUp(lift),
+                lessLabel: context.l10n.settingsLower,
+                moreLabel: context.l10n.settingsHigher,
                 onChosen: (lift) => patch({'subtitlePosition': 100 - lift}),
               ),
             ),
             SettingRow(
-              label: 'Keep the file’s styling',
-              hint:
-                  'Styled subtitles, like anime signs, stay as drawn. Off, '
-                  'the colour and background above apply to them too.',
+              label: context.l10n.settingsKeepFileStyling,
+              hint: context.l10n.settingsKeepFileStylingHint,
               value: SettingSwitch(
-                label: 'Keep the file’s styling',
+                label: context.l10n.settingsKeepFileStyling,
                 value: current.subtitleKeepStyling,
                 onChanged: (on) => patch({'subtitleKeepStyling': on}),
               ),
@@ -139,7 +146,7 @@ class _Preview extends StatelessWidget {
     final size = height / 20 * 2.2 * preferences.subtitleScale;
     final lift = (100 - preferences.subtitlePosition) / 100 * height;
     final text = Text(
-      'Don’t go. One more episode.',
+      context.l10n.settingsSubtitlePreview,
       textAlign: TextAlign.center,
       textScaler: TextScaler.noScaling,
       style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/bindings.dart';
 import 'package:lumeo/ui/player/chapters.dart';
 import 'package:lumeo/ui/player/chrome.dart';
@@ -26,8 +27,14 @@ void main() {
 
   test('a chapter without a name is numbered; a time falls in the last one '
       'started', () {
-    expect(chapterLabel(chapters, 0), 'Cold open');
-    expect(chapterLabel(chapters, 1), 'Chapter 2');
+    expect(
+      chapterLabel(chapters, 0, lookupAppLocalizations(const Locale('en'))),
+      'Cold open',
+    );
+    expect(
+      chapterLabel(chapters, 1, lookupAppLocalizations(const Locale('en'))),
+      'Chapter 2',
+    );
     expect(chapterAt(chapters, const Duration(minutes: 24)), 0);
     expect(chapterAt(chapters, const Duration(minutes: 25)), 1);
     expect(chapterAt(chapters, const Duration(minutes: 95)), 2);
@@ -42,6 +49,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: Scaffold(
           body: Center(
@@ -74,6 +83,8 @@ void main() {
       'and none when there are none', (tester) async {
     final picked = <int>[];
     Widget menu(List<MpvChapter> chapters) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: Center(
           child: SettingsMenu(
@@ -127,6 +138,8 @@ void main() {
     var asked = 0;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: SettingsMenu(

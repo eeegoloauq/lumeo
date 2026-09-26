@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../api/addons_store.dart';
 import '../../../api/models.dart';
+import '../../../l10n/l10n.dart';
 import '../../theme.dart';
 import '../../widgets/setting_row.dart';
 import 'controls.dart';
@@ -16,7 +17,7 @@ class SourcesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsBlock(
-      title: 'Sources',
+      title: context.l10n.settingsSources,
       children: [
         ListenableBuilder(
           listenable: addons,
@@ -77,18 +78,27 @@ class _AddonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provides = addon.provides;
+    final provides = addon.provides(context.l10n);
     final failing = addon.error.isNotEmpty && provides.isEmpty;
     final (line, lineColour) = switch (addon) {
-      _ when failing => ('Not answering — ${addon.error}', Palette.warn),
-      _ when provides.isEmpty => ('Not answered yet', Palette.muted),
+      _ when failing => (
+        context.l10n.settingsSourceError(addon.error),
+        Palette.warn,
+      ),
+      _ when provides.isEmpty => (
+        context.l10n.settingsSourceNotAnsweredYet,
+        Palette.muted,
+      ),
       _ => (provides.join(' · '), Palette.muted),
     };
     final (state, stateColour) = switch (addon) {
-      Addon(enabled: false) => ('Off', Palette.muted),
-      _ when failing => ('Not answering', Palette.down),
-      _ when provides.isEmpty => ('Waiting', Palette.muted),
-      _ => ('Working', Palette.up),
+      Addon(enabled: false) => (context.l10n.settingsSourceOff, Palette.muted),
+      _ when failing => (context.l10n.settingsSourceNotAnswering, Palette.down),
+      _ when provides.isEmpty => (
+        context.l10n.settingsSourceWaiting,
+        Palette.muted,
+      ),
+      _ => (context.l10n.settingsSourceWorking, Palette.up),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,7 +112,7 @@ class _AddonRow extends StatelessWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: Tooltip(
-                  message: 'Drag to reorder',
+                  message: context.l10n.settingsSourcesReorder,
                   child: const MouseRegion(
                     cursor: SystemMouseCursors.grab,
                     child: Icon(
@@ -133,7 +143,8 @@ class _AddonRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     SelectableText(
                       [
-                        if (addon.version.isNotEmpty) 'v${addon.version}',
+                        if (addon.version.isNotEmpty)
+                          context.l10n.settingsAddonVersion(addon.version),
                         addon.url,
                       ].join('  ·  '),
                       style: Typo.code,
@@ -153,13 +164,13 @@ class _AddonRow extends StatelessWidget {
                 ),
               ),
               SettingSwitch(
-                label: 'Use ${addon.name}',
+                label: context.l10n.settingsUseAddon(addon.name),
                 value: addon.enabled,
                 onChanged: (on) => addons.setEnabled(addon.id, on),
               ),
               const SizedBox(width: 8),
               RowButton(
-                label: 'Remove',
+                label: context.l10n.commonRemove,
                 onPressed: () => addons.remove(addon.id),
               ),
             ],
@@ -220,7 +231,7 @@ class _AddAddonState extends State<_AddAddon> {
               enabled: !addons.adding,
               style: Typo.code.copyWith(fontSize: 13, color: Palette.text),
               decoration: InputDecoration(
-                hintText: 'Addon address',
+                hintText: context.l10n.settingsAddonAddress,
                 hintStyle: Typo.data,
                 errorText: error == null ? null : errorMessage(error),
                 errorStyle: Typo.data.copyWith(color: Palette.warn),
@@ -245,7 +256,9 @@ class _AddAddonState extends State<_AddAddon> {
           ),
           const SizedBox(width: 12),
           RowButton(
-            label: addons.adding ? 'Asking…' : 'Add',
+            label: addons.adding
+                ? context.l10n.settingsSourcesAsking
+                : context.l10n.commonAdd,
             onPressed: addons.adding ? null : _add,
           ),
         ],

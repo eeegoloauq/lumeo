@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:lumeo/api/client.dart';
 import 'package:lumeo/main.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import 'fake_core.dart';
 
@@ -220,7 +220,8 @@ Future<void> openLibrary(WidgetTester tester) async {
 Future<LocalSettings> temporarySettings() async {
   final directory = Directory.systemTemp.createTempSync('lumeo-ui-settings-');
   addTearDown(() => directory.deleteSync(recursive: true));
-  return LocalSettings.load(path: '${directory.path}/client.json');
+  return (await LocalSettings.load(path: '${directory.path}/client.json'))
+    ..language = 'en';
 }
 
 /// The generated film, made once for the whole run.

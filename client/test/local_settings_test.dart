@@ -131,4 +131,27 @@ void main() {
       await reloaded.flush();
     },
   );
+
+  test(
+    'the language is one that ships, and reset follows the desktop',
+    () async {
+      final settings = await LocalSettings.load(path: path);
+      expect(
+        settings.language,
+        isEmpty,
+        reason: 'none chosen follows the desktop',
+      );
+      settings.language = 'xx';
+      expect(settings.language, isEmpty, reason: 'no translation, no choice');
+      settings.language = 'ru';
+
+      await settings.flush();
+      final reloaded = await LocalSettings.load(path: path);
+      expect(reloaded.language, 'ru');
+
+      reloaded.resetChoices();
+      expect(reloaded.language, isEmpty);
+      await reloaded.flush();
+    },
+  );
 }

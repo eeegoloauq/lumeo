@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/bindings.dart';
 
 void main() {
@@ -17,17 +19,18 @@ void main() {
   });
 
   test('keys are printed as keycaps', () {
-    expect(keyLabel('f'), 'F');
-    expect(keyLabel('F'), 'Shift+F');
-    expect(keyLabel('SPACE'), 'Space');
-    expect(keyLabel('Shift+RIGHT'), 'Shift+→');
-    expect(keyLabel('Shift+Ctrl+BS'), 'Shift+Ctrl+Backspace');
-    expect(keyLabel('Ctrl++'), 'Ctrl++');
-    expect(keyLabel('Alt+-'), 'Alt+-');
-    expect(keyLabel('MBTN_LEFT_DBL'), 'Double click');
-    expect(keyLabel('KP5'), 'Numpad 5');
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    expect(keyLabel('f', l10n), 'F');
+    expect(keyLabel('F', l10n), 'Shift+F');
+    expect(keyLabel('SPACE', l10n), 'Space');
+    expect(keyLabel('Shift+RIGHT', l10n), 'Shift+→');
+    expect(keyLabel('Shift+Ctrl+BS', l10n), 'Shift+Ctrl+Backspace');
+    expect(keyLabel('Ctrl++', l10n), 'Ctrl++');
+    expect(keyLabel('Alt+-', l10n), 'Alt+-');
+    expect(keyLabel('MBTN_LEFT_DBL', l10n), 'Double click');
+    expect(keyLabel('KP5', l10n), 'Numpad 5');
     expect(
-      keyLabel('PLAYPAUSE'),
+      keyLabel('PLAYPAUSE', l10n),
       isNull,
       reason: 'a media key does what is printed on it',
     );
@@ -100,7 +103,10 @@ void main() {
         ),
         MpvBinding(section: ownSection, key: 'F11', cmd: 'cycle fullscreen'),
       ];
-      final lines = shortcuts(bindings);
+      final lines = shortcuts(
+        bindings,
+        lookupAppLocalizations(const Locale('en')),
+      );
       expect(
         [for (final l in lines) '${l.keys.join(', ')} — ${l.what}'],
         [
@@ -172,6 +178,7 @@ void main() {
     ];
     final lines = shortcuts(
       [...defaults, ...ownBindingList(seekStep: 10)],
+      lookupAppLocalizations(const Locale('en')),
       only: ['SPACE', 'RIGHT', 'LEFT', 'UP'],
     );
     expect(

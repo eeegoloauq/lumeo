@@ -70,6 +70,18 @@ Dart thread: on Linux it is GTK's, and the whole interface stalls during every s
 `client/third_party/media_kit_video` is a patched copy of upstream 2.0.1. Read its `LUMEO.md` before
 changing it, and keep a `diff -r` against upstream equal to the patches listed there.
 
+## Translations
+
+The interface's text lives in `client/lib/l10n/`: `app_en.arb` is the source, every other
+`app_<code>.arb` a translation of it, and `flutter pub get` generates `AppLocalizations` from them.
+A string on screen is `context.l10n.someKey`, never a literal; counts are ICU plurals, and a sentence
+is one message with placeholders, never pieces joined in code, so a translation can reorder it.
+
+A new language is one file: copy `app_en.arb` to `app_<code>.arb`, set `@@locale`, translate the
+values (the `@key` descriptions say where each one appears) and drop the `@` entries. It appears
+under Settings → General by its `languageName`. A key left out falls back to English. Titles,
+descriptions and genres come from the metadata provider and stay as it sends them.
+
 ## Commits
 
 English, one change per commit, `type: what and why` (`fix:`, `feat:`, `refactor:`, `test:`,

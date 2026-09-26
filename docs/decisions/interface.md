@@ -2,11 +2,19 @@
 
 ## The client's look: dark, poster-first, one accent, one signature
 
-The interface is in English, whatever the user's language: the data
-in it — titles, genres, descriptions — arrives from Cinemeta in English, and a
-half-translated screen where our labels are localised and the content is not
-reads worse than one honest language. A translation table of our own for genre
-names was tried and removed: it goes stale the moment the provider adds one.
+The interface is translated; the data in it is not. Our labels come from
+`lib/l10n/*.arb` through Flutter's gen-l10n, while titles, genres, runtimes and
+descriptions stay as Cinemeta sends them, in English. It was English-only at
+first on the argument that a half-translated screen reads worse than one
+language, but that made every viewer read English menus to spare them English
+descriptions they get anyway. A translation table of our own for genre names
+was tried and removed: it goes stale the moment the provider adds one.
+Localised data waits on a provider that has it (TMDB, roadmap).
+
+The language follows the desktop's; one with no translation gets English.
+Settings → General lists every translation shipped by its own name, and a
+choice applies at once, no restart. It is kept in `client.json`, not the core:
+the first frame needs it, before the core could answer.
 
 Dark and poster-led is the genre's convention and it is followed on purpose —
 this is a place where people watch films, and fighting that costs recognition
@@ -273,13 +281,12 @@ seeding and rate limits). A fact about one machine or one screen is
 `client.json`: text size (a screen and the distance to it), timeline
 previews (whether this machine can afford a second decoder), where
 screenshots go (a folder on this machine), and how long a finished download
-stays in the panel. Reset puts back both kinds; downloads, the list and
-history are not settings.
+stays in the panel, and the interface's language. Reset puts back both
+kinds; downloads, the list and history are not settings.
 
-A row that does nothing is not shown. General's designed rows (language,
-closing to a tray, pausing when minimised) need a translation layer, a tray
-and a minimised state GTK on Wayland does not report, so General is not on
-the page until one of them exists (roadmap, Application).
+A row that does nothing is not shown. General has the language; its other
+designed rows (closing to a tray, pausing when minimised) need a tray and a
+minimised state GTK on Wayland does not report (roadmap, Application).
 
 The Shortcuts section is read, not written: mpv's own bindings, asked of an
 mpv started for the page, with ours (`ownBindings`) over them — the arrows at

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 import '../theme.dart';
 
 /// On disk, or on its way there: what makes a title play without the swarm.
@@ -28,13 +30,13 @@ class DownloadMark extends StatelessWidget {
       child: SizedBox.square(
         dimension: WatchStatus.badgeIconSize,
         child: fraction == null
-            ? const Icon(Icons.download, semanticLabel: 'On disk')
+            ? Icon(Icons.download, semanticLabel: context.l10n.downloadsOnDisk)
             : CircularProgressIndicator(
                 value: fraction!.clamp(0, 1),
                 strokeWidth: 2,
                 color: Palette.text,
                 backgroundColor: const Color(0x33F3F5F9),
-                semanticsLabel: 'Downloading',
+                semanticsLabel: context.l10n.downloadsDownloading,
               ),
       ),
     ),

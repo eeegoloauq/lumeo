@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/languages.dart';
 import 'package:lumeo/api/models.dart' as api;
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/menus.dart';
 import 'package:lumeo/ui/player/tracks.dart';
 
@@ -91,6 +92,8 @@ void main() {
 
   final picked = <String>[];
   Widget menu({List<MpvTrack> subs = subtitles}) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: Center(
         child: TracksMenu(
@@ -273,6 +276,8 @@ void main() {
     var rate = 1.0;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: StatefulBuilder(
@@ -305,6 +310,8 @@ void main() {
     var retried = 0;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: TracksMenu(
@@ -371,6 +378,8 @@ void main() {
     Future<void> show(WidgetTester tester, DownloadPanel panel) =>
         tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(body: Center(child: panel)),
           ),
         );
@@ -435,7 +444,7 @@ void main() {
         ),
       );
       expect(find.text('This film'), findsOneWidget);
-      expect(find.text('25 %'), findsOneWidget);
+      expect(find.text('25%'), findsOneWidget);
       expect(find.text('1.0 GB of 4.0 GB · about 13 min left'), findsOneWidget);
       expect(find.text('4.0 MB/s · 12 peers, 7 seeding'), findsOneWidget);
       expect(find.textContaining('Next'), findsNothing);

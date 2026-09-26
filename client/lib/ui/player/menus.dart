@@ -1,9 +1,11 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/languages.dart';
 import '../../api/models.dart' as api;
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import '../widgets/play_block.dart';
 import '../widgets/source_list.dart'
@@ -130,7 +132,7 @@ class MenuNote extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onTap,
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Search again'),
+            label: Text(context.l10n.playerSearchAgain),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: const BorderSide(color: Color(0x4DFFFFFF)),
@@ -313,7 +315,12 @@ class TracksMenu extends StatefulWidget {
   });
   static const width = 520.0;
   static const scales = [0.8, 1.0, 1.25, 1.5];
-  static const scaleLabels = ['Small', 'Normal', 'Large', 'Larger'];
+  static String scaleLabel(int index, AppLocalizations l10n) => [
+    l10n.playerSmall,
+    l10n.playerNormal,
+    l10n.playerLarge,
+    l10n.playerLarger,
+  ][index];
   final List<MpvTrack> audio;
   final List<MpvTrack> subtitles;
   final List<api.Subtitle> found;
@@ -413,7 +420,7 @@ class _TracksMenuState extends State<TracksMenu> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const MenuLabel('Audio'),
+            MenuLabel(context.l10n.playerAudio),
             Flexible(child: MenuList(children: _audioRows())),
           ],
         ),
@@ -424,9 +431,9 @@ class _TracksMenuState extends State<TracksMenu> {
           mainAxisSize: MainAxisSize.min,
           children: [
             MenuLabel(
-              'Subtitles',
+              context.l10n.playerSubtitles,
               trailing: IconButton(
-                tooltip: 'Subtitle style',
+                tooltip: context.l10n.playerSubtitleStyle,
                 onPressed: () => setState(() => _style = true),
                 icon: const Icon(Icons.tune, size: 18, color: Colors.white),
                 constraints: const BoxConstraints.tightFor(
@@ -449,11 +456,11 @@ class _TracksMenuState extends State<TracksMenu> {
     if (widget.looking) return null;
     final String text;
     if (widget.error != null) {
-      text = 'No answer from the core';
+      text = context.l10n.playerNoCoreAnswer;
     } else if (widget.found.isEmpty) {
       text = _embedded.isEmpty
-          ? 'OpenSubtitles has nothing for this file'
-          : 'OpenSubtitles has nothing else for this file';
+          ? context.l10n.playerOpenSubtitlesNone
+          : context.l10n.playerOpenSubtitlesNoMore;
     } else {
       return null;
     }
@@ -466,14 +473,16 @@ class _TracksMenuState extends State<TracksMenu> {
   }
 
   List<Widget> _audioRows() => widget.audio.isEmpty
-      ? const [MenuNote('No sound in this file')]
+      ? [MenuNote(context.l10n.playerNoSound)]
       : [
           for (final track in widget.audio)
             MenuRow(
               label: track.title.isEmpty
                   ? _trackLabel(track)
                   : '${_trackLabel(track)} · ${track.title}',
-              detail: track.channels > 0 ? _channels(track.channels) : '',
+              detail: track.channels > 0
+                  ? _channels(track.channels, context.l10n)
+                  : '',
               height: 36,
               current: track.selected,
               onTap: () => widget.onAudio(track),
@@ -486,7 +495,7 @@ class _TracksMenuState extends State<TracksMenu> {
     final inFile = {for (final t in embedded) _base(t.language)};
     final rows = <Widget>[
       MenuRow(
-        label: 'Off',
+        label: context.l10n.playerOff,
         current: _selectedSubtitle == null,
         height: 36,
         onTap: () => widget.onSubtitle(null),
@@ -517,7 +526,7 @@ class _TracksMenuState extends State<TracksMenu> {
       rows.add(
         MenuRow(
           label: best.label,
-          detail: 'OpenSubtitles',
+          detail: context.l10n.playerSubtitleOpenSubtitles,
           current: _isLoaded(best),
           height: 36,
           trailing: others.isEmpty ? null : _more(entry.key, others.length),
@@ -526,7 +535,7 @@ class _TracksMenuState extends State<TracksMenu> {
       );
       if (_expanded == entry.key) rows.addAll(_alternatives(others));
     }
-    if (widget.looking) rows.add(const MenuNote('Looking…'));
+    if (widget.looking) rows.add(MenuNote(context.l10n.playerLooking));
     return rows;
   }
 
@@ -534,7 +543,7 @@ class _TracksMenuState extends State<TracksMenu> {
     for (final sub in subs)
       MenuRow(
         label: sub.name.isEmpty ? sub.label : sub.name,
-        detail: 'OpenSubtitles',
+        detail: context.l10n.playerSubtitleOpenSubtitles,
         current: _isLoaded(sub),
         height: 36,
         indent: true,
@@ -552,7 +561,10 @@ class _TracksMenuState extends State<TracksMenu> {
         minimumSize: const Size(0, 28),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      child: Text('$count more', style: const TextStyle(fontSize: 12)),
+      child: Text(
+        context.l10n.playerMoreTracks(count),
+        style: const TextStyle(fontSize: 12),
+      ),
     );
   }
 
@@ -562,7 +574,9 @@ class _TracksMenuState extends State<TracksMenu> {
     if (track.language.isNotEmpty && track.language != 'und') {
       return track.language.toUpperCase();
     }
-    return track.title.isNotEmpty ? track.title : 'Track ${track.id}';
+    return track.title.isNotEmpty
+        ? track.title
+        : context.l10n.playerTrack(track.id);
   }
 
   String _subtitleDetail(MpvTrack track) {
@@ -571,26 +585,34 @@ class _TracksMenuState extends State<TracksMenu> {
         title.toLowerCase() != _trackLabel(track).toLowerCase()) {
       return title;
     }
-    return track.forced ? 'Forced' : '';
+    return track.forced ? context.l10n.playerForced : '';
   }
 
-  static String _channels(int count) => switch (count) {
+  static String _channels(int count, AppLocalizations l10n) => switch (count) {
     1 => '1.0',
     2 => '2.0',
     6 => '5.1',
     8 => '7.1',
-    _ => '$count ch',
+    _ => l10n.playerChannels(count),
   };
 
   Widget _stylePage() => MenuPanel(
     width: 340,
     child: MenuList(
       children: [
-        MenuBack('Subtitle style', () => setState(() => _style = false)),
+        MenuBack(
+          context.l10n.playerSubtitleStyle,
+          () => setState(() => _style = false),
+        ),
         _styleLine(
-          'Size',
+          context.l10n.playerSize,
           _choices([
-            for (final (i, label) in ['S', 'M', 'L', 'XL'].indexed)
+            for (final (i, label) in [
+              context.l10n.playerSizeS,
+              context.l10n.playerSizeM,
+              context.l10n.playerSizeL,
+              context.l10n.playerSizeXl,
+            ].indexed)
               (
                 label,
                 (widget.scale - TracksMenu.scales[i]).abs() < 0.01,
@@ -599,32 +621,36 @@ class _TracksMenuState extends State<TracksMenu> {
           ]),
         ),
         _styleLine(
-          'Position',
+          context.l10n.playerPosition,
           _stepper(
             widget.position >= 100
-                ? 'bottom'
-                : '${(100 - widget.position).round()}% up',
+                ? context.l10n.playerBottom
+                : context.l10n.playerPositionUp(
+                    (100 - widget.position).round(),
+                  ),
             () => widget.onPosition((widget.position + 5).clamp(70, 100)),
             () => widget.onPosition((widget.position - 5).clamp(70, 100)),
           ),
         ),
         _styleLine(
-          'Timing',
+          context.l10n.playerTiming,
           _stepper(
             widget.delay == 0
-                ? 'in sync'
-                : '${widget.delay > 0 ? '+' : ''}${widget.delay.toStringAsFixed(1)} s',
+                ? context.l10n.playerInSync
+                : context.l10n.playerTimingOffset(
+                    '${widget.delay > 0 ? '+' : ''}${NumberFormat('0.0', Localizations.localeOf(context).toString()).format(widget.delay)}',
+                  ),
             () => widget.onDelay(widget.delay - 0.1),
             () => widget.onDelay(widget.delay + 0.1),
           ),
         ),
         _styleLine(
-          'Background',
+          context.l10n.playerBackground,
           _choices([
             for (final (value, label) in [
-              ('none', 'None'),
-              ('shadow', 'Shadow'),
-              ('box', 'Box'),
+              ('none', context.l10n.playerNone),
+              ('shadow', context.l10n.playerShadow),
+              ('box', context.l10n.playerBox),
             ])
               (
                 label,
@@ -721,7 +747,8 @@ class SettingsMenu extends StatefulWidget {
   });
   static const width = 280.0;
   static const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-  static const fits = ['Fit', 'Fill', 'Stretch'];
+  static String fitLabel(int index, AppLocalizations l10n) =>
+      [l10n.playerFit, l10n.playerFill, l10n.playerStretch][index];
   final double rate;
   final int fit;
   final List<MpvChapter> chapters;
@@ -746,23 +773,23 @@ class SettingsMenu extends StatefulWidget {
   /// The page it opens on; the main list when empty.
   final String page;
 
-  static String sourceLabel(api.MediaSource source) => [
+  static String sourceLabel(api.MediaSource source, AppLocalizations l10n) => [
     if (source.release.resolution.isNotEmpty) source.release.resolution,
-    sourceTitle(source),
+    sourceTitle(source, l10n),
   ].where((e) => e.isNotEmpty).join(' · ');
 
-  static String sourceNote(api.MediaSource source) => [
-    if (source.local.isNotEmpty) localLabel(source),
-    languageCodes(source).join(' '),
-    if (source.lastUsed) 'last used',
+  static String sourceNote(api.MediaSource source, AppLocalizations l10n) => [
+    if (source.local.isNotEmpty) localLabel(source, l10n),
+    languageCodes(source, l10n).join(' '),
+    if (source.lastUsed) l10n.playerLastUsed,
   ].where((e) => e.isNotEmpty).join(' · ');
 
   bool _playing(api.MediaSource s) =>
       s.rawName == current || s.filename == current;
 
-  static String label(double rate) => rate == 1
-      ? 'Normal'
-      : '${rate.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '')}×';
+  static String label(double rate, AppLocalizations l10n) => rate == 1
+      ? l10n.playerSpeedNormal
+      : l10n.playerRate(NumberFormat('0.##', l10n.localeName).format(rate));
 
   @override
   State<SettingsMenu> createState() => _SettingsMenuState();
@@ -784,7 +811,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              MenuBack(_page, () => setState(() => _page = '')),
+              MenuBack(_pageLabel(_page), () => setState(() => _page = '')),
               Flexible(
                 child: MenuList(key: ValueKey(_page), children: _subpage()),
               ),
@@ -792,27 +819,42 @@ class _SettingsMenuState extends State<SettingsMenu> {
           ),
   );
 
+  String _pageLabel(String page) => switch (page) {
+    'Source' => context.l10n.playerSource,
+    'Speed' => context.l10n.playerSpeed,
+    'Picture' => context.l10n.playerPicture,
+    'Chapters' => context.l10n.playerChapters,
+    'Decoding' => context.l10n.playerDecoding,
+    'Keyboard shortcuts' => context.l10n.playerKeyboardShortcuts,
+    _ => page,
+  };
+
   List<Widget> _main() => [
     if (widget.sources != null)
       _open('Source', switch (widget.sources!.sources
           ?.where(widget._playing)
           .firstOrNull) {
-        final s? => SettingsMenu.sourceLabel(s),
+        final s? => SettingsMenu.sourceLabel(s, context.l10n),
         null => '',
       }),
-    _open('Speed', SettingsMenu.label(widget.rate)),
-    _open('Picture', SettingsMenu.fits[widget.fit]),
+    _open('Speed', SettingsMenu.label(widget.rate, context.l10n)),
+    _open('Picture', SettingsMenu.fitLabel(widget.fit, context.l10n)),
     if (widget.chapters.isNotEmpty)
       _open(
         'Chapters',
         widget.chapter == null || widget.chapter! >= widget.chapters.length
             ? ''
-            : chapterLabel(widget.chapters, widget.chapter!),
+            : chapterLabel(widget.chapters, widget.chapter!, context.l10n),
       ),
-    _open('Decoding', widget.decoding),
+    _open(
+      'Decoding',
+      widget.decoding == 'Hardware'
+          ? context.l10n.playerHardware
+          : context.l10n.playerSoftware,
+    ),
     const Divider(height: 1, color: Color(0x30FFFFFF)),
     MenuRow(
-      label: 'Statistics',
+      label: context.l10n.playerStatistics,
       detail: 'I',
       current: false,
       check: false,
@@ -822,7 +864,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
   ];
 
   Widget _open(String label, String value) => MenuRow(
-    label: label,
+    label: _pageLabel(label),
     detail: value,
     current: false,
     check: false,
@@ -838,16 +880,17 @@ class _SettingsMenuState extends State<SettingsMenu> {
     if (_page == 'Source')
       if (widget.sources?.sources case final sources?)
         if (sources.isEmpty)
-          const MenuNote('No copies for this episode')
+          MenuNote(context.l10n.playerNoCopiesEpisode)
         else
           for (final source in sources)
             MenuRow(
-              label: SettingsMenu.sourceLabel(source),
-              note: SettingsMenu.sourceNote(source),
+              label: SettingsMenu.sourceLabel(source, context.l10n),
+              note: SettingsMenu.sourceNote(source, context.l10n),
               height: 52,
               detail: [
-                if (source.size > 0) formatBytes(source.size),
-                if (source.seeders > 0) '${source.seeders} seeds',
+                if (source.size > 0) formatBytes(source.size, context.l10n),
+                if (source.seeders > 0)
+                  context.l10n.playerSeedCount(source.seeders),
               ].join(' · '),
               current: widget._playing(source),
               onTap: () {
@@ -855,21 +898,24 @@ class _SettingsMenuState extends State<SettingsMenu> {
               },
             )
       else if (widget.sources?.error != null)
-        MenuNote('Sources unavailable', onTap: widget.sources!.load)
+        MenuNote(
+          context.l10n.playerSourcesUnavailable,
+          onTap: widget.sources!.load,
+        )
       else
-        const MenuNote('Looking for sources…'),
+        MenuNote(context.l10n.playerLookingSources),
     if (_page == 'Speed')
       for (final rate in SettingsMenu.rates)
         MenuRow(
-          label: SettingsMenu.label(rate),
+          label: SettingsMenu.label(rate, context.l10n),
           current: widget.rate == rate,
           closes: false,
           onTap: () => widget.onRate(rate),
         ),
     if (_page == 'Picture')
-      for (final (i, fit) in SettingsMenu.fits.indexed)
+      for (var i = 0; i < 3; i++)
         MenuRow(
-          label: fit,
+          label: SettingsMenu.fitLabel(i, context.l10n),
           current: widget.fit == i,
           closes: false,
           onTap: () => widget.onFit(i),
@@ -877,7 +923,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
     if (_page == 'Chapters')
       for (final (i, chapter) in widget.chapters.indexed)
         MenuRow(
-          label: chapterLabel(widget.chapters, i),
+          label: chapterLabel(widget.chapters, i, context.l10n),
           detail: clock(chapter.time),
           current: widget.chapter == i,
           closes: false,
@@ -885,13 +931,13 @@ class _SettingsMenuState extends State<SettingsMenu> {
         ),
     if (_page == 'Decoding') ...[
       MenuRow(
-        label: 'Hardware',
+        label: context.l10n.playerHardware,
         current: widget.decoding == 'Hardware',
         closes: false,
         onTap: () => widget.onDecoding?.call(widget.hardware),
       ),
       MenuRow(
-        label: 'Software',
+        label: context.l10n.playerSoftware,
         current: widget.decoding == 'Software',
         closes: false,
         onTap: () => widget.onDecoding?.call('no'),
@@ -899,9 +945,9 @@ class _SettingsMenuState extends State<SettingsMenu> {
     ],
     if (_page == 'Keyboard shortcuts')
       if (widget.shortcuts == null)
-        const MenuNote('Asking mpv…')
+        MenuNote(context.l10n.playerAskingMpv)
       else if (widget.shortcuts!.isEmpty)
-        const MenuNote('mpv has no bindings to list')
+        MenuNote(context.l10n.playerNoMpvBindings)
       else
         for (final line in widget.shortcuts!)
           Padding(
@@ -975,7 +1021,7 @@ class MenuStepper extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Reset'),
+            child: Text(context.l10n.playerReset),
           ),
       ],
     );
@@ -1020,19 +1066,23 @@ class DownloadPanel extends StatelessWidget {
     final nextName = next == null
         ? ''
         : [
-            'E${next.number}',
+            context.l10n.downloadsEpisode(next.number),
             api.realTitle(next.number, next.title),
           ].where((part) => part.isNotEmpty).join(' ');
     return MenuPanel(
       width: width,
       child: MenuList(
         children: [
-          _Caption(download.episode > 0 ? 'This episode' : 'This film'),
-          ..._state(download, accent, detailed: true),
+          _Caption(
+            download.episode > 0
+                ? context.l10n.playerThisEpisode
+                : context.l10n.playerThisFilm,
+          ),
+          ..._state(download, accent, context.l10n, detailed: true),
           if (onSource != null)
             MenuRow(
               label: source.isEmpty ? download.name : source,
-              detail: 'Source',
+              detail: context.l10n.playerSource,
               current: false,
               check: false,
               closes: false,
@@ -1041,27 +1091,34 @@ class DownloadPanel extends StatelessWidget {
             ),
           if (next != null) ...[
             const Divider(height: 17, color: Color(0x1FFFFFFF)),
-            _Caption('Next · $nextName'),
+            _Caption(context.l10n.playerNextNamed(nextName)),
             if (nextDownload case final d?) ...[
-              ..._state(d, accent),
-              if (d.state == 'failed') _action('Download now', onDownloadNext),
+              ..._state(d, accent, context.l10n),
+              if (d.state == 'failed')
+                _action(context.l10n.playerDownloadNow, onDownloadNext),
             ] else
               ...switch (nextFetch) {
                 NextFetch.waiting => [
-                  const _Line('Waiting'),
-                  _action('Download now', onDownloadNext),
+                  _Line(context.l10n.playerWaiting),
+                  _action(context.l10n.playerDownloadNow, onDownloadNext),
                 ],
-                NextFetch.off => [_action('Download now', onDownloadNext)],
+                NextFetch.off => [
+                  _action(context.l10n.playerDownloadNow, onDownloadNext),
+                ],
                 NextFetch.noRoom => [
-                  const _Line('No room'),
-                  _action('Download anyway', onDownloadNext),
+                  _Line(context.l10n.playerNoRoom),
+                  _action(context.l10n.playerDownloadAnyway, onDownloadNext),
                   if (onStorage != null)
-                    _action('Storage settings', onStorage, Icons.storage),
+                    _action(
+                      context.l10n.playerStorageSettings,
+                      onStorage,
+                      Icons.storage,
+                    ),
                 ],
-                NextFetch.noCopy => [const _Line('No copies')],
+                NextFetch.noCopy => [_Line(context.l10n.playerNoCopiesShort)],
                 NextFetch.failed => [
-                  const _Line('Failed'),
-                  _action('Download now', onDownloadNext),
+                  _Line(context.l10n.playerFailed),
+                  _action(context.l10n.playerDownloadNow, onDownloadNext),
                 ],
               },
           ],
@@ -1085,19 +1142,31 @@ class DownloadPanel extends StatelessWidget {
 
   static List<Widget> _state(
     api.Download d,
-    Color accent, {
+    Color accent,
+    AppLocalizations l10n, {
     bool detailed = false,
   }) {
     final p = d.progress;
     switch (d.state) {
       case 'done':
-        return [_Line('On disk', value: formatBytes(p.total), done: true)];
+        return [
+          _Line(
+            l10n.playerOnDisk,
+            value: formatBytes(p.total, l10n),
+            done: true,
+          ),
+        ];
       case 'active':
         final left = p.rate > 0
-            ? 'about ${formatTimeLeft((p.total - p.completed) ~/ p.rate)}'
+            ? l10n.downloadsAboutDuration(
+                formatTimeLeft((p.total - p.completed) ~/ p.rate, l10n),
+              )
             : '';
         return [
-          _Line('Downloading', value: '${(p.fraction * 100).round()} %'),
+          _Line(
+            l10n.playerDownloading,
+            value: l10n.playerPercent((p.fraction * 100).round()),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
             child: LinearProgressIndicator(
@@ -1111,24 +1180,31 @@ class DownloadPanel extends StatelessWidget {
           _Note(
             [
               if (p.total > 0)
-                '${formatBytes(p.completed)} of ${formatBytes(p.total)}',
+                l10n.playerDownloadProgress(
+                  formatBytes(p.completed, l10n),
+                  formatBytes(p.total, l10n),
+                ),
               left,
             ].where((part) => part.isNotEmpty).join(' · '),
           ),
           if (detailed)
             _Note(switch (d.stage) {
-              api.DownloadStage.arriving =>
-                '${formatBytes(p.rate)}/s · ${p.peers} peers, '
-                    '${p.seeders} seeding',
-              api.DownloadStage.fetchingMetadata =>
-                '${d.stage.label} · ${p.peers} peers',
-              api.DownloadStage.findingPeers => d.stage.label,
+              api.DownloadStage.arriving => l10n.playerPeersSeeding(
+                l10n.downloadsRate(formatBytes(p.rate, l10n)),
+                p.peers,
+                p.seeders,
+              ),
+              api.DownloadStage.fetchingMetadata => l10n.playerPeers(
+                d.stage.label(l10n),
+                p.peers,
+              ),
+              api.DownloadStage.findingPeers => d.stage.label(l10n),
             }),
         ];
       case 'failed':
-        return [const _Line('Failed')];
+        return [_Line(l10n.playerFailed)];
       default:
-        return [const _Line('Paused')];
+        return [_Line(l10n.playerPaused)];
     }
   }
 }

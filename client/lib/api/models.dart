@@ -2,6 +2,10 @@
 /// obvious; anything the client computes is a getter, never a stored field.
 library;
 
+import 'package:intl/intl.dart';
+
+import '../l10n/app_localizations.dart';
+
 /// Choices shared by every client that talks to one core.
 class Preferences {
   const Preferences({
@@ -227,11 +231,11 @@ class Addon {
 
   /// The resources in the words a settings page uses, in the order a reader
   /// meets them: what fills the home screen before what plays on it.
-  List<String> get provides => [
-    if (resources.contains('catalog')) 'Catalog',
-    if (resources.contains('meta')) 'Titles',
-    if (resources.contains('stream')) 'Streams',
-    if (resources.contains('subtitles')) 'Subtitles',
+  List<String> provides(AppLocalizations l10n) => [
+    if (resources.contains('catalog')) l10n.settingsAddonCatalog,
+    if (resources.contains('meta')) l10n.settingsAddonTitles,
+    if (resources.contains('stream')) l10n.settingsAddonStreams,
+    if (resources.contains('subtitles')) l10n.settingsAddonSubtitles,
   ];
 }
 
@@ -382,8 +386,10 @@ class Episode {
       released != null && released!.isAfter(DateTime.now().toUtc());
 
   /// "18 · Title" in a list of one season, "Episode 18 · Title" alone.
-  String get label => _named.isEmpty ? 'Episode $number' : '$number · $_named';
-  String get fullLabel => episodeName(number, title);
+  String label(AppLocalizations l10n) => _named.isEmpty
+      ? l10n.itemEpisodeNumber(number)
+      : l10n.itemEpisodeCardNamed(number, _named);
+  String fullLabel(AppLocalizations l10n) => episodeName(number, title, l10n);
   String get _named => realTitle(number, title);
 
   /// Out in the last couple of weeks. An air date is worth the space when it
@@ -544,13 +550,15 @@ class Download {
 }
 
 enum DownloadStage {
-  findingPeers('Finding peers'),
-  fetchingMetadata('Fetching metadata'),
-  arriving('Downloading');
+  findingPeers,
+  fetchingMetadata,
+  arriving;
 
-  const DownloadStage(this.label);
-
-  final String label;
+  String label(AppLocalizations l10n) => switch (this) {
+    findingPeers => l10n.downloadsFindingPeers,
+    fetchingMetadata => l10n.downloadsFetchingMetadata,
+    arriving => l10n.downloadsDownloading,
+  };
 }
 
 class Progress {
@@ -607,12 +615,12 @@ class ProviderFailure {
   /// list, and a 503 is an outage that goes away on its own. A block is
   /// usually of the network (Cloudflare in front of the addon), so it is not
   /// said to be of Lumeo.
-  String get phrase => switch (status) {
-    0 => '$provider did not answer',
-    401 || 403 => '$provider is blocking requests from here ($status)',
-    429 => '$provider is limiting requests (429)',
-    >= 500 => '$provider is down ($status)',
-    _ => '$provider: $reason',
+  String phrase(AppLocalizations l10n) => switch (status) {
+    0 => l10n.playerProviderNoAnswer(provider),
+    401 || 403 => l10n.playerProviderBlocked(provider, status),
+    429 => l10n.playerProviderLimited(provider),
+    >= 500 => l10n.playerProviderDown(provider, status),
+    _ => l10n.playerProviderError(provider, reason),
   };
 
   factory ProviderFailure.fromJson(Map<String, dynamic> json) =>
@@ -736,9 +744,12 @@ class Release {
 
   /// What the copy is, without the resolution: that has a column of its own,
   /// and saying it twice is what made the old row unreadable.
-  String get kind => [
-    if (isSeasonPack) 'S${season.toString().padLeft(2, '0')}',
-    if (remux) 'Remux' else if (source.isNotEmpty) source,
+  String kind(AppLocalizations l10n) => [
+    if (isSeasonPack)
+      l10n.downloadsSeasonPack(
+        NumberFormat('00', l10n.localeName).format(season),
+      ),
+    if (remux) l10n.downloadsRemux else if (source.isNotEmpty) source,
     if (hdr.isNotEmpty) hdr.first,
   ].join(' · ');
 
@@ -1026,10 +1037,12 @@ class ContinueItem {
 String realTitle(int number, String title) =>
     title == 'Episode $number' ? '' : title;
 
-String episodeName(int number, String title) => [
-  'Episode $number',
-  realTitle(number, title),
-].where((part) => part.isNotEmpty).join(' · ');
+String episodeName(int number, String title, AppLocalizations l10n) {
+  final named = realTitle(number, title);
+  return named.isEmpty
+      ? l10n.itemEpisodeNumber(number)
+      : l10n.itemEpisodeNamed(number, named);
+}
 
 /// Whether a title is on My list, and since when.
 class ListState {

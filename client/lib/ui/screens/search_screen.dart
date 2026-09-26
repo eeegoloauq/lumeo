@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/poster_tile.dart';
@@ -93,12 +94,15 @@ class _SearchScreenState extends State<SearchScreen> {
                     Flexible(
                       child: Text(
                         snapshot.hasError
-                            ? 'The catalogue is not answering'
+                            ? context.l10n.searchCatalogueUnavailable
                             : !snapshot.hasData
-                            ? 'Searching for “${widget.query}”…'
+                            ? context.l10n.searchSearching(widget.query)
                             : items.isEmpty
-                            ? 'Nothing found for “${widget.query}”'
-                            : '${items.length} results for “${widget.query}”',
+                            ? context.l10n.searchNoResults(widget.query)
+                            : context.l10n.searchResultCount(
+                                items.length,
+                                widget.query,
+                              ),
                         style: Typo.shelfLabel,
                       ),
                     ),
@@ -108,7 +112,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     if (snapshot.hasError) ...[
                       const SizedBox(width: 16),
                       QuietButton(
-                        label: 'Try again',
+                        label: context.l10n.commonTryAgain,
                         onPressed: () => setState(() {
                           _results = _search();
                         }),
@@ -123,8 +127,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 48),
                   child: Text(
-                    'The catalogue only knows what its metadata provider '
-                    'knows. Try the original title, or fewer words.',
+                    context.l10n.searchProviderHint,
                     style: Typo.body,
                   ),
                 ),

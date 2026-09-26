@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../../api/client.dart';
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../../platform/decoders.dart';
 import '../../../platform/dirs.dart';
 import '../../../platform/folders.dart';
@@ -60,10 +61,8 @@ class _AboutSectionState extends State<AboutSection> {
   Future<void> _reset() async {
     final sure = await confirm(
       context,
-      message:
-          'Put every setting back as it was? Downloads, your list and '
-          'history stay.',
-      action: 'Reset',
+      message: context.l10n.settingsResetConfirm,
+      action: context.l10n.commonReset,
     );
     if (!sure) return;
     widget.onReset();
@@ -74,7 +73,7 @@ class _AboutSectionState extends State<AboutSection> {
   @override
   Widget build(BuildContext context) {
     return SettingsBlock(
-      title: 'About',
+      title: context.l10n.settingsAbout,
       children: [
         FutureBuilder<CoreAbout>(
           future: widget.about,
@@ -91,29 +90,32 @@ class _AboutSectionState extends State<AboutSection> {
                   else
                     const SettingsLoading(),
                   SettingRow(
-                    label: 'Reset settings',
-                    hint: 'Downloads, your list and history stay.',
-                    value: RowButton(label: 'Reset…', onPressed: _reset),
+                    label: context.l10n.settingsResetSettings,
+                    hint: context.l10n.settingsResetHint,
+                    value: RowButton(
+                      label: context.l10n.settingsResetAction,
+                      onPressed: _reset,
+                    ),
                   ),
                   if (widget.error != null) ErrorRow(widget.error!),
                   SettingRow(
-                    label: 'For a bug report',
+                    label: context.l10n.settingsBugReport,
                     hint: _logHint(about.data),
                     value: _CopyButton(
-                      label: 'Copy details',
+                      label: context.l10n.settingsCopyDetails,
                       text: () => _details(about.data, health),
                     ),
                     trailing: RowButton(
-                      label: 'Open logs',
+                      label: context.l10n.settingsOpenLogs,
                       onPressed: () => openFolder(stateDir()),
                     ),
                   ),
                   if (_coreLogDir(about.data) case final dir?)
                     SettingRow(
-                      label: 'Core log',
+                      label: context.l10n.settingsCoreLog,
                       value: PathText(about.data!.logPath),
                       trailing: RowButton(
-                        label: 'Open',
+                        label: context.l10n.commonOpen,
                         onPressed: () => openFolder(dir),
                       ),
                     ),
@@ -140,10 +142,10 @@ class _AboutSectionState extends State<AboutSection> {
       b.replaceAll('\\', '/').toLowerCase();
 
   String _logHint(CoreAbout? about) {
-    final player = 'The player’s logs are mpv.log and mpv.old.log.';
+    final player = context.l10n.settingsPlayerLogHint;
     final path = about?.logPath ?? '';
     if (path.isNotEmpty) return player;
-    return '$player The core logs to the system journal.';
+    return context.l10n.settingsJournalLogHint;
   }
 
   List<Widget> _rows(
@@ -153,30 +155,31 @@ class _AboutSectionState extends State<AboutSection> {
     final version = about.data?.version ?? '';
     final waiting = !health.hasData && !health.hasError;
     final (colour, word) = switch ((waiting, health.error)) {
-      (true, _) => (Palette.muted, 'asking…'),
-      (_, final Object _) => (Palette.down, 'not answering'),
-      _ => (Palette.up, 'answering'),
+      (true, _) => (Palette.muted, context.l10n.commonAsking),
+      (_, final Object _) => (Palette.down, context.l10n.commonNotAnswering),
+      _ => (Palette.up, context.l10n.commonAnswering),
     };
     final providers = health.data?.providers;
     final player = [
-      if (_facts.version.isNotEmpty) 'mpv ${_facts.version}',
+      if (_facts.version.isNotEmpty)
+        context.l10n.settingsMpvVersion(_facts.version),
       if (_facts.hardware.isNotEmpty) _facts.hardware,
     ].join(' · ');
     return [
       SettingRow(
         label: 'Lumeo',
         value: Text(
-          version.isEmpty ? (about.hasError ? 'unknown' : '…') : version,
+          version.isEmpty
+              ? (about.hasError ? context.l10n.commonUnknown : '…')
+              : version,
           style: SettingsType.value,
         ),
       ),
       SettingRow(
-        label: 'Core',
+        label: context.l10n.settingsCore,
         hint: providers == null
             ? null
-            : providers == 1
-            ? '1 source provider'
-            : '$providers source providers',
+            : context.l10n.settingsProviderCount(providers),
         value: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -189,7 +192,7 @@ class _AboutSectionState extends State<AboutSection> {
         ),
         trailing: health.hasError
             ? RowButton(
-                label: 'Try again',
+                label: context.l10n.commonTryAgain,
                 onPressed: () => setState(() {
                   _health = widget.api.health();
                 }),
@@ -198,7 +201,7 @@ class _AboutSectionState extends State<AboutSection> {
       ),
       if (health.hasError)
         SettingRow(
-          label: 'What it said',
+          label: context.l10n.commonWhatItSaid,
           value: Text(
             errorMessage(health.error!),
             style: Typo.data.copyWith(color: Palette.warn),
@@ -206,19 +209,21 @@ class _AboutSectionState extends State<AboutSection> {
         ),
       if (providers == 0)
         SettingRow(
-          label: 'Source providers',
+          label: context.l10n.settingsSourceProviders,
           value: Text(
-            'None: the core can browse and play nothing.',
+            context.l10n.settingsNoProviders,
             style: Typo.data.copyWith(color: Palette.warn),
           ),
         ),
       SettingRow(
-        label: 'Player',
+        label: context.l10n.settingsPlayer,
         hint: _facts.hardware.isEmpty && _facts.version.isNotEmpty
-            ? 'The hardware decoder is named once a film has played.'
+            ? context.l10n.settingsHardwareDecoderHint
             : null,
         value: Text(
-          player.isEmpty ? (_facts.done ? 'mpv did not answer' : '…') : player,
+          player.isEmpty
+              ? (_facts.done ? context.l10n.settingsMpvNoAnswer : '…')
+              : player,
           style: SettingsType.value,
         ),
       ),
@@ -237,12 +242,9 @@ class _AboutSectionState extends State<AboutSection> {
     final decoders = DeviceDecoders.instance;
     if (!decoders.answered) {
       return [
-        const SettingRow(
-          label: 'Decoders',
-          value: Text(
-            'mpv did not answer, so nothing is claimed here',
-            style: Typo.data,
-          ),
+        SettingRow(
+          label: context.l10n.settingsDecoders,
+          value: Text(context.l10n.settingsNoDecoderInfo, style: Typo.data),
         ),
       ];
     }
@@ -251,26 +253,26 @@ class _AboutSectionState extends State<AboutSection> {
         .toList();
     final commands = decoders.installCommands;
     return [
-      const SettingRow(
-        label: 'Picture',
+      SettingRow(
+        label: context.l10n.settingsPicture,
         value: _Codecs(codecs: _video),
       ),
-      const SettingRow(
-        label: 'Sound',
+      SettingRow(
+        label: context.l10n.settingsSound,
         value: _Codecs(codecs: _audio),
       ),
       for (final one in broken)
         SettingRow(
-          label: 'Warning',
+          label: context.l10n.settingsWarning,
           value: Text(
-            one.fact,
+            one.fact(context.l10n),
             style: Typo.body.copyWith(fontSize: 13, color: Palette.warn),
           ),
         ),
       // Printed for the viewer, never run with elevated access.
       if (broken.isNotEmpty && commands.isNotEmpty)
         SettingRow(
-          label: 'To fix it',
+          label: context.l10n.settingsHowToFix,
           value: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -288,26 +290,50 @@ class _AboutSectionState extends State<AboutSection> {
 
   /// Everything a report needs, in one paste.
   String _details(CoreAbout? about, AsyncSnapshot<CoreHealth> health) {
+    final l10n = context.l10n;
     final decoders = DeviceDecoders.instance;
     final missing = [
       for (final codec in [..._video, ..._audio])
         if (decoders.has(codec) == false) codec,
     ];
     final broken = [
-      for (final codec in _video) decoders.unreliable(codec)?.fact,
+      for (final codec in _video)
+        decoders.unreliable(codec)?.fact(context.l10n),
     ].nonNulls;
+    final status = health.hasError
+        ? l10n.commonNotAnswering
+        : l10n.commonAnswering;
+    final version = _facts.version.isEmpty
+        ? l10n.commonUnknown
+        : _facts.version;
+    final playerLog = '${stateDir()}/mpv.log';
     return [
-      'Lumeo ${about?.version.isNotEmpty == true ? about!.version : 'unknown'}',
-      'Core ${_address(about)}, '
-          '${health.hasError ? 'not answering' : 'answering'}'
-          '${health.data == null ? '' : ', ${health.data!.providers} providers'}',
-      'Player mpv ${_facts.version.isEmpty ? 'unknown' : _facts.version}'
-          '${_facts.hardware.isEmpty ? '' : ', ${_facts.hardware}'}',
-      'System ${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
-      if (missing.isNotEmpty) 'No decoder for ${missing.join(', ')}',
+      l10n.settingsDetailsLumeo(
+        about?.version.isNotEmpty == true ? about!.version : l10n.commonUnknown,
+      ),
+      if (health.data case final data?)
+        l10n.settingsDetailsCoreProviders(
+          _address(about),
+          status,
+          data.providers,
+        )
+      else
+        l10n.settingsDetailsCore(_address(about), status),
+      if (_facts.hardware.isEmpty)
+        l10n.settingsDetailsPlayer(version)
+      else
+        l10n.settingsDetailsPlayerHardware(version, _facts.hardware),
+      l10n.settingsDetailsSystem(
+        Platform.operatingSystem,
+        Platform.operatingSystemVersion,
+      ),
+      if (missing.isNotEmpty)
+        l10n.settingsDetailsMissingDecoder(missing.join(', ')),
       ...broken,
-      'Logs ${stateDir()}/mpv.log'
-          '${(about?.logPath ?? '').isEmpty ? '' : ', ${about!.logPath}'}',
+      if ((about?.logPath ?? '').isEmpty)
+        l10n.settingsDetailsLogs(playerLog)
+      else
+        l10n.settingsDetailsLogsCore(playerLog, about!.logPath),
     ].join('\n');
   }
 }
@@ -376,14 +402,14 @@ class _CopyButtonState extends State<_CopyButton> {
   Widget build(BuildContext context) {
     if (widget.label != null) {
       return RowButton(
-        label: _copied ? 'Copied' : widget.label!,
+        label: _copied ? context.l10n.commonCopied : widget.label!,
         icon: _copied ? Icons.check : null,
         onPressed: _copy,
       );
     }
     return IconButton(
       onPressed: _copy,
-      tooltip: _copied ? 'Copied' : 'Copy',
+      tooltip: _copied ? context.l10n.commonCopied : context.l10n.commonCopy,
       iconSize: 18,
       visualDensity: VisualDensity.compact,
       color: _copied ? Palette.text : Palette.dim,

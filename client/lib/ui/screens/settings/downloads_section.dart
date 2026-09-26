@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../api/client.dart';
 import '../../../api/downloads_store.dart';
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../../platform/folders.dart';
 import '../../../platform/local_settings.dart';
 import '../../player/screenshots.dart';
@@ -97,10 +99,10 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   Future<void> _freeAll(Storage storage) async {
     final sure = await confirm(
       context,
-      message:
-          'Delete ${formatBytes(storage.used)}? Every download goes, '
-          'including the ones in progress.',
-      action: 'Delete',
+      message: context.l10n.settingsDeleteAllConfirm(
+        formatBytes(storage.used, context.l10n),
+      ),
+      action: context.l10n.commonDelete,
     );
     if (!sure || !mounted) return;
     await _act('all', () async {
@@ -121,7 +123,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   Future<void> _changeDownloadDir(String now) async {
     final chosen = await chooseFolder(
       context,
-      title: 'Download new films to',
+      title: context.l10n.settingsDownloadFolderQuestion,
       start: now,
     );
     if (chosen == null || chosen == now || !mounted) return;
@@ -139,7 +141,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   Future<void> _changeScreenshotsDir(String now) async {
     final chosen = await chooseFolder(
       context,
-      title: 'Save screenshots to',
+      title: context.l10n.settingsScreenshotsFolderQuestion,
       start: now,
     );
     if (chosen != null) widget.settings.screenshotsDir = chosen;
@@ -149,7 +151,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   Widget build(BuildContext context) {
     final current = widget.preferences.current;
     return SettingsBlock(
-      title: 'Downloads',
+      title: context.l10n.settingsDownloads,
       children: [
         FutureBuilder<Storage>(
           future: _storage,
@@ -164,12 +166,12 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           if (current != null) ..._policyRows(current),
           // This machine's, like the Clear it works with: in client.json.
           SettingRow(
-            label: 'Finished in the panel',
+            label: context.l10n.settingsFinishedPanel,
             value: Segments<String>(
-              choices: const [
-                ('1d', '1 day'),
-                ('7d', '7 days'),
-                ('cleared', 'Until cleared'),
+              choices: [
+                ('1d', context.l10n.settingsOneDay),
+                ('7d', context.l10n.settingsSevenDays),
+                ('cleared', context.l10n.settingsUntilCleared),
               ],
               selected: widget.settings.keepFinished,
               onSelected: (keep) => widget.settings.keepFinished = keep,
@@ -181,7 +183,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           if (widget.error != null) ErrorRow(widget.error!),
         ]),
         if (current != null) ...[
-          const _SubHeading('Network'),
+          _SubHeading(context.l10n.settingsNetwork),
           SettingRows(_networkRows(current)),
         ],
         FutureBuilder<Storage>(
@@ -193,8 +195,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   }
 
   List<Widget> _policyRows(Preferences current) {
-    const limitTip =
-        'Over the limit, watched downloads go first. Unwatched ones stay.';
+    final limitTip = context.l10n.settingsDiskLimitTooltip;
     final keep = switch (current.keep) {
       'watched' => 'watched',
       'days' when current.keepDays == 30 => 'days30',
@@ -203,23 +204,24 @@ class _DownloadsSectionState extends State<DownloadsSection> {
     };
     return [
       SettingRow(
-        label: 'Disk limit',
-        hint: 'When full, watched downloads go first.',
+        label: context.l10n.settingsDiskLimit,
+        hint: context.l10n.settingsDiskLimitHint,
         value: PresetChoice(
-          presets: const [
-            (50 * _gib, '50 GB'),
-            (100 * _gib, '100 GB'),
-            (0, 'No limit'),
+          presets: [
+            (50 * _gib, context.l10n.settingsGigabytes(50)),
+            (100 * _gib, context.l10n.settingsGigabytes(100)),
+            (0, context.l10n.settingsNoLimit),
           ],
-          tooltips: const {50 * _gib: limitTip, 100 * _gib: limitTip},
+          tooltips: {50 * _gib: limitTip, 100 * _gib: limitTip},
           value: current.diskLimit,
-          describe: (bytes) => '${(bytes / _gib).round()} GB',
+          describe: (bytes) =>
+              context.l10n.settingsGigabytes((bytes / _gib).round()),
           onSelected: (limit) => _setPolicy({'diskLimit': limit}),
           askCustom: (context) async {
             final gb = await askNumber(
               context,
-              title: 'Disk limit',
-              unit: 'GB',
+              title: context.l10n.settingsDiskLimit,
+              unit: context.l10n.settingsGigabyteUnit,
               initial: current.diskLimit == 0
                   ? 250
                   : (current.diskLimit / _gib).round(),
@@ -231,17 +233,19 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         ),
       ),
       SettingRow(
-        label: 'Delete watched',
-        hint: 'Unwatched downloads are never deleted by this.',
+        label: context.l10n.settingsDeleteWatched,
+        hint: context.l10n.settingsDeleteWatchedHint,
         value: Segments<String>(
           choices: [
-            ('watched', 'Right away'),
-            ('days30', 'After 30 days'),
+            ('watched', context.l10n.settingsRightAway),
+            ('days30', context.l10n.settingsAfterThirtyDays),
             (
               'custom',
-              keep == 'custom' ? 'After ${current.keepDays} days' : 'Custom',
+              keep == 'custom'
+                  ? context.l10n.settingsAfterDays(current.keepDays)
+                  : context.l10n.commonCustom,
             ),
-            ('forever', 'Never'),
+            ('forever', context.l10n.settingsNever),
           ],
           selected: keep,
           reselect: keep == 'custom',
@@ -254,8 +258,8 @@ class _DownloadsSectionState extends State<DownloadsSection> {
               case 'custom':
                 final days = await askNumber(
                   context,
-                  title: 'Delete watched downloads after',
-                  unit: 'days',
+                  title: context.l10n.settingsDeleteWatchedAfter,
+                  unit: context.l10n.settingsDayUnit,
                   initial: current.keepDays,
                   min: 1,
                   max: 365,
@@ -268,12 +272,10 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         ),
       ),
       SettingRow(
-        label: 'Download next episode',
-        hint:
-            'Once an episode is on disk, the next one downloads, within the '
-            'disk limit.',
+        label: context.l10n.settingsDownloadNextEpisode,
+        hint: context.l10n.settingsDownloadNextEpisodeHint,
         value: SettingSwitch(
-          label: 'Download next episode',
+          label: context.l10n.settingsDownloadNextEpisode,
           value: current.prefetch,
           onChanged: (on) => _setPolicy({'prefetch': on}),
         ),
@@ -291,8 +293,8 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         final local = widget.api.isLocal;
         return SettingRow(
           key: const ValueKey('settings:videos'),
-          label: 'Videos',
-          hint: 'New downloads go here; the ones already here stay.',
+          label: context.l10n.settingsVideos,
+          hint: context.l10n.settingsVideosHint,
           value: dir.isEmpty
               ? Text(
                   snapshot.hasError ? errorMessage(snapshot.error!) : '…',
@@ -303,14 +305,20 @@ class _DownloadsSectionState extends State<DownloadsSection> {
             spacing: 8,
             children: [
               if (local && dir.isNotEmpty && Directory(dir).existsSync())
-                RowButton(label: 'Open', onPressed: () => openFolder(dir)),
+                RowButton(
+                  label: context.l10n.commonOpen,
+                  onPressed: () => openFolder(dir),
+                ),
               if (local && current != null)
                 RowButton(
-                  label: 'Change',
+                  label: context.l10n.commonChange,
                   onPressed: () => _changeDownloadDir(dir),
                 ),
               if (current != null && current.downloadDir.isNotEmpty)
-                RowButton(label: 'Default', onPressed: _defaultDownloadDir),
+                RowButton(
+                  label: context.l10n.settingsDefault,
+                  onPressed: _defaultDownloadDir,
+                ),
             ],
           ),
         );
@@ -329,7 +337,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         );
         return SettingRow(
           key: const ValueKey('settings:screenshots'),
-          label: 'Screenshots',
+          label: context.l10n.settingsScreenshots,
           value: dir.isEmpty
               ? const Text('…', style: Typo.data)
               : PathText(dir),
@@ -337,14 +345,17 @@ class _DownloadsSectionState extends State<DownloadsSection> {
             spacing: 8,
             children: [
               if (dir.isNotEmpty && Directory(dir).existsSync())
-                RowButton(label: 'Open', onPressed: () => openFolder(dir)),
+                RowButton(
+                  label: context.l10n.commonOpen,
+                  onPressed: () => openFolder(dir),
+                ),
               RowButton(
-                label: 'Change',
+                label: context.l10n.commonChange,
                 onPressed: () => _changeScreenshotsDir(dir),
               ),
               if (chosen.isNotEmpty)
                 RowButton(
-                  label: 'Default',
+                  label: context.l10n.settingsDefault,
                   onPressed: () => widget.settings.screenshotsDir = '',
                 ),
             ],
@@ -355,12 +366,14 @@ class _DownloadsSectionState extends State<DownloadsSection> {
   }
 
   List<Widget> _networkRows(Preferences current) {
-    String rate(int bytes) => '${_mbs(bytes)} MB/s';
+    String rate(int bytes) => context.l10n.settingsMegabytesPerSecond(
+      _mbs(bytes, context.l10n.localeName),
+    );
     Future<int?> ask(BuildContext context, String title, int now) async {
       final mb = await askNumber(
         context,
         title: title,
-        unit: 'MB/s',
+        unit: context.l10n.settingsMegabytesPerSecondUnit,
         initial: now == 0 ? 10 : (now / _mib).round().clamp(1, 1000),
         min: 1,
         max: 1000,
@@ -370,54 +383,58 @@ class _DownloadsSectionState extends State<DownloadsSection> {
 
     return [
       SettingRow(
-        label: 'Seeding',
-        hint:
-            'Giving back what you have. Off stops it once a download has '
-            'what it needs; the upload limit caps it either way.',
+        label: context.l10n.settingsSeeding,
+        hint: context.l10n.settingsSeedingHint,
         value: SettingSwitch(
-          label: 'Seeding',
+          label: context.l10n.settingsSeeding,
           value: current.seed,
           onChanged: (on) => widget.patch({'seed': on}),
         ),
       ),
       SettingRow(
-        label: 'Upload limit',
+        label: context.l10n.settingsUploadLimit,
         value: PresetChoice(
-          presets: const [
-            (0, 'No limit'),
-            (_mib, '1 MB/s'),
-            (5 * _mib, '5 MB/s'),
+          presets: [
+            (0, context.l10n.settingsNoLimit),
+            (_mib, context.l10n.settingsMegabytesPerSecond('1')),
+            (5 * _mib, context.l10n.settingsMegabytesPerSecond('5')),
           ],
           value: current.uploadLimit,
           describe: rate,
           onSelected: (limit) => widget.patch({'uploadLimit': limit}),
-          askCustom: (context) =>
-              ask(context, 'Upload limit', current.uploadLimit),
+          askCustom: (context) => ask(
+            context,
+            context.l10n.settingsUploadLimit,
+            current.uploadLimit,
+          ),
         ),
       ),
       SettingRow(
-        label: 'Download limit',
+        label: context.l10n.settingsDownloadLimit,
         value: PresetChoice(
-          presets: const [
-            (0, 'No limit'),
-            (5 * _mib, '5 MB/s'),
-            (20 * _mib, '20 MB/s'),
+          presets: [
+            (0, context.l10n.settingsNoLimit),
+            (5 * _mib, context.l10n.settingsMegabytesPerSecond('5')),
+            (20 * _mib, context.l10n.settingsMegabytesPerSecond('20')),
           ],
           value: current.downloadLimit,
           describe: rate,
           onSelected: (limit) => widget.patch({'downloadLimit': limit}),
-          askCustom: (context) =>
-              ask(context, 'Download limit', current.downloadLimit),
+          askCustom: (context) => ask(
+            context,
+            context.l10n.settingsDownloadLimit,
+            current.downloadLimit,
+          ),
         ),
       ),
     ];
   }
 
-  static String _mbs(int bytes) {
+  static String _mbs(int bytes, String locale) {
     final mb = bytes / _mib;
     return mb == mb.roundToDouble()
-        ? mb.round().toString()
-        : mb.toStringAsFixed(1);
+        ? NumberFormat.decimalPattern(locale).format(mb.round())
+        : NumberFormat('0.0', locale).format(mb);
   }
 
   Widget _onDisk(AsyncSnapshot<Storage> snapshot) {
@@ -432,15 +449,18 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const _SubHeading('On disk', padded: false),
+              _SubHeading(context.l10n.downloadsOnDisk, padded: false),
               if (storage != null && storage.used > 0) ...[
                 const SizedBox(width: 10),
-                Text(formatBytes(storage.used), style: SettingsType.hint),
+                Text(
+                  formatBytes(storage.used, context.l10n),
+                  style: SettingsType.hint,
+                ),
               ],
               const Spacer(),
               if (storage != null && storage.titles.isNotEmpty)
                 RowButton(
-                  label: 'Delete all',
+                  label: context.l10n.settingsDeleteAll,
                   onPressed: _freeing == null ? () => _freeAll(storage) : null,
                 ),
             ],
@@ -449,9 +469,12 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         SettingRows([
           if (error != null) ErrorRow(error),
           if (storage != null && storage.titles.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Text('Nothing downloaded yet.', style: Typo.data),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Text(
+                context.l10n.settingsNothingDownloaded,
+                style: Typo.data,
+              ),
             ),
           if (storage != null)
             for (final title in storage.titles)
@@ -463,13 +486,13 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           // No confirmation: the artwork downloads again as it is shown.
           if (storage != null && storage.cache > 0)
             SettingRow(
-              label: 'Cached artwork',
+              label: context.l10n.settingsCachedArtwork,
               value: Text(
-                formatBytes(storage.cache),
+                formatBytes(storage.cache, context.l10n),
                 style: SettingsType.value,
               ),
               trailing: RowButton(
-                label: 'Clear',
+                label: context.l10n.commonClear,
                 onPressed: _freeing == null
                     ? () => _act('cache', widget.api.clearCache)
                     : null,
@@ -523,7 +546,12 @@ class _StorageBar extends StatelessWidget {
       if (storage.used <= 0) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.only(top: 4, bottom: 6),
-        child: Text('Lumeo ${formatBytes(storage.used)}', style: Typo.data),
+        child: Text(
+          context.l10n.settingsStorageLumeo(
+            formatBytes(storage.used, context.l10n),
+          ),
+          style: Typo.data,
+        ),
       );
     }
     final used = storage.used.clamp(0, storage.diskTotal).toInt();
@@ -534,9 +562,11 @@ class _StorageBar extends StatelessWidget {
     int share(int bytes) => (bytes / storage.diskTotal * 1000).round();
     final accent = Theme.of(context).colorScheme.primary;
     return Semantics(
-      label:
-          'Lumeo ${formatBytes(used)}, other ${formatBytes(other)}, '
-          'free ${formatBytes(storage.diskFree)}',
+      label: context.l10n.settingsStorageSemantics(
+        formatBytes(used, context.l10n),
+        formatBytes(other, context.l10n),
+        formatBytes(storage.diskFree, context.l10n),
+      ),
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.only(top: 4, bottom: 6),
@@ -577,21 +607,34 @@ class _StorageBar extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: 'Lumeo ${formatBytes(used)}',
+                          text: context.l10n.settingsStorageLumeo(
+                            formatBytes(used, context.l10n),
+                          ),
                           style: const TextStyle(
                             color: Palette.text,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         if (limit > 0)
-                          TextSpan(text: ' of ${formatBytes(limit)}'),
+                          TextSpan(
+                            text: context.l10n.settingsStorageOf(
+                              formatBytes(limit, context.l10n),
+                            ),
+                          ),
                       ],
                     ),
                     style: SettingsType.hint,
                   ),
-                  Text('Other ${formatBytes(other)}', style: SettingsType.hint),
                   Text(
-                    'Free ${formatBytes(storage.diskFree)}',
+                    context.l10n.settingsStorageOther(
+                      formatBytes(other, context.l10n),
+                    ),
+                    style: SettingsType.hint,
+                  ),
+                  Text(
+                    context.l10n.settingsStorageFree(
+                      formatBytes(storage.diskFree, context.l10n),
+                    ),
                     style: SettingsType.hint,
                   ),
                 ],
@@ -619,8 +662,8 @@ class _TitleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final episodes = title.downloads.length;
     final detail = title.kind == 'movie'
-        ? 'Film'
-        : '$episodes ${episodes == 1 ? 'episode' : 'episodes'}';
+        ? context.l10n.commonFilm
+        : context.l10n.settingsEpisodeCount(episodes);
     final active = title.downloads.any(
       (download) => download.state == 'active',
     );
@@ -657,7 +700,9 @@ class _TitleRow extends StatelessWidget {
                   Text(title.title, style: Typo.cardTitle),
                   const SizedBox(height: 2),
                   Text(
-                    active ? '$detail · downloading' : detail,
+                    active
+                        ? context.l10n.settingsDetailDownloading(detail)
+                        : detail,
                     style: SettingsType.hint,
                   ),
                 ],
@@ -667,14 +712,16 @@ class _TitleRow extends StatelessWidget {
             SizedBox(
               width: 80,
               child: Text(
-                formatBytes(title.onDisk),
+                formatBytes(title.onDisk, context.l10n),
                 textAlign: TextAlign.right,
                 style: SettingsType.value,
               ),
             ),
             const SizedBox(width: 14),
             RowButton(
-              label: freeing ? 'Deleting…' : 'Delete',
+              label: freeing
+                  ? context.l10n.settingsDeleting
+                  : context.l10n.commonDelete,
               onPressed: onFree,
             ),
           ],

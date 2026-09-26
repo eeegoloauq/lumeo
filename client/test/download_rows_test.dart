@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/widgets/download_rows.dart';
 
 Download _d(
@@ -50,6 +52,7 @@ WatchEntry _entry(int episode, {bool watched = true, int position = 0}) =>
     );
 
 void main() {
+  final l10n = lookupAppLocalizations(const Locale('en'));
   final now = DateTime.utc(2026, 9, 25, 12);
 
   group('DownloadKind.of', () {
@@ -117,11 +120,11 @@ void main() {
         ['other'],
         ['s1'],
       ]);
-      expect(ready.rows.first.episodes, 'S2 E3–E4');
+      expect(ready.rows.first.episodes(l10n), 'S2 E3–E4');
       expect(ready.rows.first.isSeason, isTrue);
       expect(ready.count, 4, reason: 'episodes, not rows');
       final arriving = groups[1];
-      expect(arriving.rows.single.episodes, 'S2 E5–E6');
+      expect(arriving.rows.single.episodes(l10n), 'S2 E5–E6');
     });
 
     test('a season split across states is a row in each', () {
@@ -144,7 +147,7 @@ void main() {
         _d('loose2', state: 'done', itemId: '', episode: 2),
       ]);
       expect(groups.single.rows.length, 4);
-      expect(groups.single.rows.first.episodes, '');
+      expect(groups.single.rows.first.episodes(l10n), '');
     });
 
     test('a film says which copy it is; a season row its episodes', () {
@@ -168,7 +171,7 @@ void main() {
         _d('e1', state: 'done', season: 2, episode: 3),
       ]).single.rows;
       expect(
-        rows.map((r) => r.tag),
+        rows.map((r) => r.tag(l10n)),
         unorderedEquals(['2160p DV', '', 'S2 E3']),
       );
     });
@@ -188,9 +191,9 @@ void main() {
   });
 
   test('episode runs', () {
-    expect(episodeRuns([4]), 'E4');
-    expect(episodeRuns([4, 3]), 'E3–E4');
-    expect(episodeRuns([1, 2, 3, 6, 8, 9]), 'E1–E3, E6, E8–E9');
+    expect(episodeRuns([4], l10n), 'E4');
+    expect(episodeRuns([4, 3], l10n), 'E3–E4');
+    expect(episodeRuns([1, 2, 3, 6, 8, 9], l10n), 'E1–E3, E6, E8–E9');
   });
 
   group('nextToPlay', () {
@@ -234,6 +237,7 @@ void main() {
             ),
           ),
           now,
+          l10n,
         ),
         'Finding peers · 4 min',
       );
@@ -247,6 +251,7 @@ void main() {
             ),
           ),
           now,
+          l10n,
         ),
         'Finding peers',
         reason: 'under a minute there is nothing to count',
@@ -261,6 +266,7 @@ void main() {
             ),
           ),
           now,
+          l10n,
         ),
         'Fetching metadata · 1 h 15 min',
       );
@@ -268,21 +274,29 @@ void main() {
 
     test('paused, and failed with the core\'s reason', () {
       expect(
-        waitingLine(one(_d('a', state: 'paused', pausedByUser: true)), now),
+        waitingLine(
+          one(_d('a', state: 'paused', pausedByUser: true)),
+          now,
+          l10n,
+        ),
         'Paused',
       );
       expect(
-        waitingLine(one(_d('a', state: 'failed', error: 'disk full')), now),
+        waitingLine(
+          one(_d('a', state: 'failed', error: 'disk full')),
+          now,
+          l10n,
+        ),
         'disk full',
       );
-      expect(waitingLine(one(_d('a', state: 'failed')), now), 'Failed');
+      expect(waitingLine(one(_d('a', state: 'failed')), now, l10n), 'Failed');
     });
   });
 
   test('spokenMinutes rounds up and never says zero', () {
-    expect(spokenMinutes(const Duration(seconds: 5)), '1 min');
-    expect(spokenMinutes(const Duration(seconds: 61)), '2 min');
-    expect(spokenMinutes(const Duration(hours: 2)), '2 h');
-    expect(spokenMinutes(const Duration(minutes: 125)), '2 h 5 min');
+    expect(spokenMinutes(const Duration(seconds: 5), l10n), '1 min');
+    expect(spokenMinutes(const Duration(seconds: 61), l10n), '2 min');
+    expect(spokenMinutes(const Duration(hours: 2), l10n), '2 h');
+    expect(spokenMinutes(const Duration(minutes: 125), l10n), '2 h 5 min');
   });
 }

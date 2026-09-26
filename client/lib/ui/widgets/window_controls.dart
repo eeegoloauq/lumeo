@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 import '../../platform/window.dart';
 import '../theme.dart';
 
@@ -23,17 +25,19 @@ class WindowControls extends StatelessWidget {
         children: [
           _Button(
             glyph: _Glyph.minimize,
-            tooltip: 'Minimise',
+            tooltip: context.l10n.commonMinimise,
             onPressed: window.minimize,
           ),
           _Button(
             glyph: window.maximized ? _Glyph.restore : _Glyph.maximize,
-            tooltip: window.maximized ? 'Restore' : 'Maximise',
+            tooltip: window.maximized
+                ? context.l10n.commonRestore
+                : context.l10n.commonMaximise,
             onPressed: window.toggleMaximize,
           ),
           _Button(
             glyph: _Glyph.close,
-            tooltip: 'Close',
+            tooltip: context.l10n.commonClose,
             onPressed: window.close,
           ),
         ],

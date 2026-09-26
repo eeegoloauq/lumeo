@@ -8,6 +8,7 @@ import 'package:lumeo/api/client.dart';
 import 'package:lumeo/api/downloads_store.dart';
 import 'package:lumeo/api/models.dart';
 import 'package:lumeo/api/preferences_store.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/downloads_indicator.dart';
@@ -115,6 +116,8 @@ void main() {
     final preferences = PreferencesStore(api);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: Scaffold(
           body: Align(

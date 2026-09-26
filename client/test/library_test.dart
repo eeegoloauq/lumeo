@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/screens/library_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/library_text.dart';
 import 'package:lumeo/ui/widgets/rating_button.dart';
 
 void main() {
+  setUpAll(initializeDateFormatting);
+  final l10n = lookupAppLocalizations(const Locale('en'));
   group('dayLabel', () {
     final today = DateTime(2026, 9, 24, 21); // a Thursday evening
 
     test('says today, yesterday and the weekday within the week', () {
-      expect(dayLabel(DateTime(2026, 9, 24, 8), today), 'Today');
-      expect(dayLabel(DateTime(2026, 9, 23, 23, 59), today), 'Yesterday');
-      expect(dayLabel(DateTime(2026, 9, 19), today), 'Sat');
-      expect(dayLabel(DateTime(2026, 9, 18), today), 'Fri');
+      expect(dayLabel(DateTime(2026, 9, 24, 8), today, l10n), 'Today');
+      expect(dayLabel(DateTime(2026, 9, 23, 23, 59), today, l10n), 'Yesterday');
+      expect(dayLabel(DateTime(2026, 9, 19), today, l10n), 'Sat');
+      expect(dayLabel(DateTime(2026, 9, 18), today, l10n), 'Fri');
     });
 
     test(
       'a week ago is a date, with the year only when it is not this one',
       () {
-        expect(dayLabel(DateTime(2026, 9, 17), today), '17 Sep');
-        expect(dayLabel(DateTime(2025, 12, 31), today), '31 Dec 2025');
+        expect(dayLabel(DateTime(2026, 9, 17), today, l10n), 'Sep 17');
+        expect(dayLabel(DateTime(2025, 12, 31), today, l10n), 'Dec 31, 2025');
       },
     );
   });
@@ -54,24 +58,27 @@ void main() {
   group('listedCaption', () {
     test('says how far the viewer is', () {
       expect(
-        listedCaption(listed(series(), watched: 2, released: 10)),
+        listedCaption(listed(series(), watched: 2, released: 10), l10n),
         '2 of 10 seen',
       );
       expect(
-        listedCaption(listed(series(), watched: 10, released: 10, rating: 8)),
+        listedCaption(
+          listed(series(), watched: 10, released: 10, rating: 8),
+          l10n,
+        ),
         'watched',
       );
       expect(
-        listedCaption(listed(film(), watched: 1, released: 1, rating: 9)),
+        listedCaption(listed(film(), watched: 1, released: 1, rating: 9), l10n),
         'watched',
       );
     });
 
     test('the kind only when there is neither progress nor a score', () {
-      expect(listedCaption(listed(film(), released: 1)), 'Film');
-      expect(listedCaption(listed(series())), 'Series');
+      expect(listedCaption(listed(film(), released: 1), l10n), 'Film');
+      expect(listedCaption(listed(series()), l10n), 'Series');
       // The score is drawn after it, as a star.
-      expect(listedCaption(listed(series(), rating: 7)), '');
+      expect(listedCaption(listed(series(), rating: 7), l10n), '');
     });
   });
 
@@ -83,11 +90,11 @@ void main() {
       count: count,
     );
     expect(
-      newEpisodeCaption(found(1, DateTime.utc(2026, 9, 24)), now),
+      newEpisodeCaption(found(1, DateTime.utc(2026, 9, 24)), now, l10n),
       'S4 E18 · Today',
     );
     expect(
-      newEpisodeCaption(found(3, DateTime.utc(2026, 9, 19)), now),
+      newEpisodeCaption(found(3, DateTime.utc(2026, 9, 19)), now, l10n),
       'S4 E18 · Sat · 3 new',
     );
   });
@@ -103,11 +110,11 @@ void main() {
     );
 
     test('says the time left, or that it was finished', () {
-      expect(viewingState(entry(position: 12 * 60)), '12 min left');
-      expect(viewingState(entry(watched: true)), 'watched');
+      expect(viewingState(entry(position: 12 * 60), l10n), '12 min left');
+      expect(viewingState(entry(watched: true), l10n), 'watched');
       // A rewatch under way is where it is now.
       expect(
-        viewingState(entry(position: 20 * 60, watched: true)),
+        viewingState(entry(position: 20 * 60, watched: true), l10n),
         '4 min left',
       );
     });
@@ -120,6 +127,7 @@ void main() {
             entry: entry(),
             episode: const Episode(season: 4, number: 17, title: 'Good Loser'),
           ),
+          l10n,
         ),
         'Series · S4 E17 Good Loser',
       );
@@ -131,10 +139,11 @@ void main() {
             entry: entry(),
             episode: const Episode(season: 4, number: 17, title: 'Episode 17'),
           ),
+          l10n,
         ),
         'Series · S4 E17',
       );
-      expect(viewingTitle(Viewing(item: film(), entry: entry())), 'Film');
+      expect(viewingTitle(Viewing(item: film(), entry: entry()), l10n), 'Film');
     });
   });
 
@@ -189,6 +198,8 @@ void main() {
     testWidgets('an unrated icon uses the square button size', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: lumeoTheme(),
           home: Scaffold(
             body: Center(
@@ -207,6 +218,8 @@ void main() {
       final calls = <Object>[];
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: lumeoTheme(),
           home: Scaffold(
             body: Center(

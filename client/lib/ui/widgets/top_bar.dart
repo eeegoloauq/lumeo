@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/window.dart';
 import '../theme.dart';
 import 'search_box.dart';
@@ -187,7 +188,7 @@ class _Tabs extends StatelessWidget {
           // outlined sets are not in the icon font Flutter ships, and a missing
           // glyph renders as a pair of empty boxes.
           icon: const Icon(Icons.search, size: 19),
-          tooltip: 'Search  ·  Ctrl+F',
+          tooltip: context.l10n.searchShortcutTooltip,
           color: Palette.dim,
           hoverColor: Palette.hover,
           style: IconButton.styleFrom(
@@ -203,17 +204,17 @@ class _Tabs extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         PillTab(
-          label: 'Home',
+          label: context.l10n.homeTitle,
           selected: tab == AppTab.home,
           onTap: () => onTab(AppTab.home),
         ),
         PillTab(
-          label: 'Library',
+          label: context.l10n.libraryTitle,
           selected: tab == AppTab.library,
           onTap: () => onTab(AppTab.library),
         ),
         PillTab(
-          label: 'Settings',
+          label: context.l10n.settingsTitle,
           selected: tab == AppTab.settings,
           onTap: () => onTab(AppTab.settings),
         ),

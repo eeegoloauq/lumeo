@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'horizontal_strip.dart';
 import 'poster_tile.dart';
@@ -44,11 +45,28 @@ class ShelfMetrics {
 
 /// What a shelf is before it has any titles in it.
 class ShelfSpec {
-  const ShelfSpec({required this.label, required this.row, this.genre = ''});
+  const ShelfSpec({required this.row, this.genre = ''});
 
-  final String label;
   final CatalogRow row;
   final String genre;
+
+  /// Named when drawn rather than when loaded, so a change of language
+  /// renames the shelves already on the page.
+  String label(AppLocalizations l10n) {
+    if (genre.isNotEmpty) {
+      return row.kind == 'series'
+          ? l10n.homeGenreSeries(genre)
+          : l10n.homeGenreFilms(genre);
+    }
+    return switch ('${row.kind}/${row.id}') {
+      'movie/top' => l10n.homePopularFilms,
+      'series/top' => l10n.homePopularSeries,
+      'movie/imdbRating' => l10n.homeHighestRated,
+      'movie/year' => l10n.homeOutRecently,
+      'series/imdbRating' => l10n.homeHighestRatedSeries,
+      _ => row.id,
+    };
+  }
 }
 
 /// One horizontal shelf, which loads itself and keeps going.
@@ -100,9 +118,12 @@ class ContinueShelf extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(48, 0, 48, ShelfMetrics.labelGap),
-          child: Text('Continue watching', style: Typo.shelfLabel),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(48, 0, 48, ShelfMetrics.labelGap),
+          child: Text(
+            context.l10n.homeContinueWatching,
+            style: Typo.shelfLabel,
+          ),
         ),
         HorizontalStrip(
           height: ShelfMetrics.rowHeight,
@@ -204,7 +225,7 @@ class _ShelfState extends State<Shelf> with AutomaticKeepAliveClientMixin {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(48, 0, 48, ShelfMetrics.labelGap),
-          child: Text(widget.spec.label, style: Typo.shelfLabel),
+          child: Text(widget.spec.label(context.l10n), style: Typo.shelfLabel),
         ),
         if (_items.isEmpty)
           const SizedBox(

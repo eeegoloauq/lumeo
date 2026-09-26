@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/local_file.dart';
 import '../../platform/local_settings.dart';
 import '../../platform/window.dart';
@@ -123,9 +125,9 @@ class _AppShellState extends State<AppShell> {
     } on Object catch (error) {
       if (!mounted) return;
       final reason = error is LumeoApiException ? error.message : '$error';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not open $name: $reason')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.commonCouldNotOpen(name, reason))),
+      );
     }
   }
 
@@ -548,9 +550,9 @@ class _AppShellState extends State<AppShell> {
     final item = widget.downloads.itemOf(d);
     var title = item?.title ?? d.name;
     if (d.episode > 0) {
-      final s = d.season.toString().padLeft(2, '0');
-      final e = d.episode.toString().padLeft(2, '0');
-      title = '$title · S${s}E$e';
+      final s = NumberFormat('00', context.l10n.localeName).format(d.season);
+      final e = NumberFormat('00', context.l10n.localeName).format(d.episode);
+      title = context.l10n.itemPlaybackTitle(title, s, e);
     }
     _play(d.id, title, item?.background ?? '');
   }

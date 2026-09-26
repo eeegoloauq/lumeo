@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# gen-l10n's output, written from lib/l10n/*.arb by every pub get and build.
+/lib/l10n/app_localizations*.dart

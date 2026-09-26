@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../l10n/app_localizations.dart';
+
 import 'dirs.dart';
 
 /// Facts that belong only to this machine, such as volume and, later, the
@@ -20,6 +22,7 @@ class LocalSettings extends ChangeNotifier {
   String _keepFinished = keepFinishedChoices.first;
   String _listSort = listSortChoices.first;
   String _textScale = textScaleChoices[1];
+  String _language = '';
   bool _timelinePreviews = true;
   String _screenshotsDir = '';
   DateTime? _clearedAt;
@@ -47,6 +50,9 @@ class LocalSettings extends ChangeNotifier {
         }
         if (textScaleChoices.contains(decoded['textScale'])) {
           settings._textScale = decoded['textScale'] as String;
+        }
+        if (_isTranslated(decoded['language'])) {
+          settings._language = decoded['language'] as String;
         }
         if (decoded['timelinePreviews'] is bool) {
           settings._timelinePreviews = decoded['timelinePreviews'] as bool;
@@ -126,6 +132,22 @@ class LocalSettings extends ChangeNotifier {
     _ => 1.0,
   };
 
+  /// The interface's language as a language code, or empty to follow the
+  /// desktop's. Kept here rather than in the core because the first frame
+  /// needs it, before any answer from the core could arrive.
+  String get language => _language;
+
+  set language(String value) {
+    if (value == _language || !_isTranslated(value)) return;
+    _language = value;
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  /// A translation that is no longer shipped reads as none chosen.
+  static bool _isTranslated(Object? code) => AppLocalizations.supportedLocales
+      .any((locale) => locale.languageCode == code);
+
   /// Whether the seek bar shows frames. Off, the second mpv that makes them
   /// never starts: on a slow machine or a metered swarm that is the point.
   bool get timelinePreviews => _timelinePreviews;
@@ -152,6 +174,7 @@ class LocalSettings extends ChangeNotifier {
   void resetChoices() {
     _keepFinished = keepFinishedChoices.first;
     _textScale = textScaleChoices[1];
+    _language = '';
     _timelinePreviews = true;
     _screenshotsDir = '';
     notifyListeners();
@@ -196,6 +219,7 @@ class LocalSettings extends ChangeNotifier {
       'keepFinished': _keepFinished,
       'listSort': _listSort,
       'textScale': _textScale,
+      if (_language.isNotEmpty) 'language': _language,
       'timelinePreviews': _timelinePreviews,
       'screenshotsDir': _screenshotsDir,
       if (_clearedAt != null)

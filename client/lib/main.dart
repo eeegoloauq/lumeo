@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'api/client.dart';
 import 'api/downloads_store.dart';
 import 'api/preferences_store.dart';
+import 'l10n/app_localizations.dart';
 import 'platform/decoders.dart';
 import 'platform/local_file.dart';
 import 'platform/local_settings.dart';
@@ -83,7 +84,7 @@ class _LumeoAppState extends State<LumeoApp> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _preferences,
+      listenable: Listenable.merge([_preferences, _settings]),
       // The shell is built once and handed in, so a preference change
       // rebuilds the theme and not the screens under it.
       child: AppShell(
@@ -98,6 +99,11 @@ class _LumeoAppState extends State<LumeoApp> {
         title: 'Lumeo',
         debugShowCheckedModeBanner: false,
         theme: lumeoTheme(_preferences.current?.accent ?? 'white'),
+        // None chosen follows the desktop, and a desktop language with no
+        // translation gets the first supported one, English.
+        locale: _settings.language.isEmpty ? null : Locale(_settings.language),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         // Down and Up walk the screen rather than the caret, and this is the one
         // place in the application that can say so.
         //

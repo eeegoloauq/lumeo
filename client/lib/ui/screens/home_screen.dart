@@ -1,10 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import '../widgets/artwork_scrim.dart';
 import '../widgets/buttons.dart';
@@ -14,13 +16,17 @@ import '../widgets/shelf.dart';
 
 /// The shelves worth a home screen, named by us: a provider calls its rows
 /// "Popular" and "New", which says nothing once five of them are stacked.
-const _shelves = <String, String>{
-  'movie/top': 'Popular films',
-  'series/top': 'Popular series',
-  'movie/imdbRating': 'Highest rated',
-  'movie/year': 'Out recently',
-  'series/imdbRating': 'Highest rated series',
-};
+
+/// The shelves worth a home screen, in order, named by us in
+/// [ShelfSpec.label]: a provider calls its rows "Popular" and "New", which
+/// says nothing once five of them are stacked.
+const _shelves = [
+  'movie/top',
+  'series/top',
+  'movie/imdbRating',
+  'movie/year',
+  'series/imdbRating',
+];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -63,15 +69,15 @@ class _HomeScreenState extends State<HomeScreen> {
         '${row.kind}/${row.id}': row,
     };
     final shelves = <ShelfSpec>[];
-    for (final entry in _shelves.entries) {
-      final row = rows[entry.key];
-      if (row != null) shelves.add(ShelfSpec(label: entry.value, row: row));
+    for (final key in _shelves) {
+      final row = rows[key];
+      if (row != null) shelves.add(ShelfSpec(row: row));
     }
     // Depth comes from genres. The provider lists which ones its catalogue
     // accepts, so the page is as long as the catalogue actually is instead of
     // as long as we guessed.
-    shelves.addAll(_genreShelves(rows['movie/top'], 'films', 14));
-    shelves.addAll(_genreShelves(rows['series/top'], 'series', 8));
+    shelves.addAll(_genreShelves(rows['movie/top'], 14));
+    shelves.addAll(_genreShelves(rows['series/top'], 8));
 
     final lead = shelves.firstOrNull;
     if (lead == null) {
@@ -99,11 +105,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return _HomeData(hero, shelves, rest, await continueItems);
   }
 
-  List<ShelfSpec> _genreShelves(CatalogRow? row, String noun, int limit) {
+  List<ShelfSpec> _genreShelves(CatalogRow? row, int limit) {
     if (row == null) return const [];
     return [
       for (final genre in row.genres.take(limit))
-        ShelfSpec(label: '$genre $noun', row: row, genre: genre),
+        ShelfSpec(row: row, genre: genre),
     ];
   }
 
@@ -334,9 +340,15 @@ class _Hero extends StatelessWidget {
             const SizedBox(height: 22),
             Row(
               children: [
-                PlayButton(label: 'Play', onPressed: () => onPlay(item)),
+                PlayButton(
+                  label: context.l10n.commonPlay,
+                  onPressed: () => onPlay(item),
+                ),
                 const SizedBox(width: 10),
-                QuietButton(label: 'More info', onPressed: () => onOpen(item)),
+                QuietButton(
+                  label: context.l10n.homeMoreInfo,
+                  onPressed: () => onOpen(item),
+                ),
               ],
             ),
           ],
@@ -376,7 +388,10 @@ class _MetaLine extends StatelessWidget {
       children: [
         if (item.imdbRating > 0) ...[
           Text(
-            item.imdbRating.toStringAsFixed(1),
+            NumberFormat(
+              '0.0',
+              context.l10n.localeName,
+            ).format(item.imdbRating),
             style: Typo.heroMeta.copyWith(
               color: Palette.text,
               fontWeight: FontWeight.w700,
@@ -414,16 +429,11 @@ class _NothingToShow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'No catalogues',
+              context.l10n.homeNoCatalogues,
               style: Typo.heroTitle.copyWith(fontSize: 26, shadows: null),
             ),
             const SizedBox(height: 12),
-            Text(
-              'The core is running but no addon on its Sources list offers '
-              'a catalogue to browse. Cinemeta does, needs no key, and is '
-              'on the list of a fresh install.',
-              style: Typo.body,
-            ),
+            Text(context.l10n.homeNoCatalogueHint, style: Typo.body),
           ],
         ),
       ),
@@ -449,19 +459,15 @@ class _Failure extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'The catalogue is not answering',
+              context.l10n.homeCatalogueUnavailable,
               style: Typo.heroTitle.copyWith(fontSize: 26, shadows: null),
             ),
             const SizedBox(height: 12),
-            Text(
-              'The Lumeo core did not answer the catalogue request. Check that '
-              'it is running, then try again.',
-              style: Typo.body,
-            ),
+            Text(context.l10n.homeCatalogueUnavailableHint, style: Typo.body),
             const SizedBox(height: 8),
             Text('$error', style: Typo.data),
             const SizedBox(height: 22),
-            QuietButton(label: 'Try again', onPressed: onRetry),
+            QuietButton(label: context.l10n.commonTryAgain, onPressed: onRetry),
           ],
         ),
       ),

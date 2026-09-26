@@ -1,5 +1,3 @@
-export 'settings_section.dart';
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,6 +8,7 @@ import '../../../api/client.dart';
 import '../../../api/downloads_store.dart';
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../../platform/folders.dart';
 import '../../../platform/local_settings.dart';
 import '../../theme.dart';
@@ -18,11 +17,14 @@ import 'about_section.dart';
 import 'appearance_section.dart';
 import 'controls.dart';
 import 'downloads_section.dart';
-import 'settings_section.dart';
+import 'general_section.dart';
 import 'playback_section.dart';
+import 'settings_section.dart';
 import 'shortcuts_section.dart';
 import 'sources_section.dart';
 import 'subtitles_section.dart';
+
+export 'settings_section.dart';
 
 /// Every setting on one page that scrolls, with a list of its sections
 /// beside it: pressing one scrolls there, and the one being read is lit.
@@ -58,10 +60,12 @@ class SettingsScreen extends StatefulWidget {
   /// A seam for the tests: the real answer runs a program.
   final Future<String> Function() pictures;
 
-  /// The sections that have rows. General has none yet: its mockup rows
-  /// (language, closing to a tray, pausing when minimised) need things the
-  /// application does not have, and a row that does nothing is not shown.
+  /// The sections that have rows. General has only the language yet: its
+  /// other mockup rows (closing to a tray, pausing when minimised) need
+  /// things the application does not have, and a row that does nothing is
+  /// not shown.
   static const shown = [
+    SettingsSection.general,
     SettingsSection.appearance,
     SettingsSection.playback,
     SettingsSection.subtitles,
@@ -121,12 +125,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _aim(SettingsSection? section) {
     if (section == null) return;
-    // General has no rows; the page's top is where it would be.
-    final shown = SettingsScreen.shown.contains(section)
-        ? section
-        : SettingsScreen.shown.first;
-    _target = shown;
-    _current = shown;
+    _target = section;
+    _current = section;
     WidgetsBinding.instance.addPostFrameCallback((_) => _follow());
   }
 
@@ -283,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final preferences = widget.preferences;
     Future<void> patch(Map<String, Object?> p) => _patch(section, p);
     return switch (section) {
-      SettingsSection.general => const SizedBox.shrink(),
+      SettingsSection.general => GeneralSection(settings: widget.settings),
       SettingsSection.appearance => AppearanceSection(
         preferences: preferences,
         settings: widget.settings,
@@ -347,7 +347,7 @@ class _Nav extends StatelessWidget {
               child: Semantics(
                 header: true,
                 child: Text(
-                  'Settings',
+                  context.l10n.settingsTitle,
                   style: Typo.heroTitle.copyWith(
                     fontSize: 30,
                     letterSpacing: -0.4,
@@ -385,7 +385,7 @@ class _Nav extends StatelessWidget {
                             : FontWeight.w400,
                       ),
                     ),
-                    child: Text(section.title),
+                    child: Text(section.title(context.l10n)),
                   ),
                 ),
               ),

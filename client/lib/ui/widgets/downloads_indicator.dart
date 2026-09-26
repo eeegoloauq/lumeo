@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/local_settings.dart';
 import '../theme.dart';
 import 'download_glyph.dart';
@@ -190,8 +192,11 @@ class _Ring extends StatelessWidget {
       key: const ValueKey('downloads'),
       onPressed: onTap,
       tooltip: running.isEmpty
-          ? 'Downloads'
-          : '${running.length} downloading · ${(sum.fraction * 100).round()}%',
+          ? context.l10n.settingsDownloads
+          : context.l10n.downloadsRunningTooltip(
+              running.length,
+              (sum.fraction * 100).round(),
+            ),
       style: IconButton.styleFrom(
         backgroundColor: open ? Palette.raised : Colors.transparent,
         hoverColor: Palette.raised,
@@ -307,9 +312,9 @@ class _PanelState extends State<_Panel> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Downloads',
+                    context.l10n.settingsDownloads,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -317,7 +322,13 @@ class _PanelState extends State<_Panel> {
                     ),
                   ),
                 ),
-                if (rate > 0) Text('↓ ${formatBytes(rate)}/s', style: _small),
+                if (rate > 0)
+                  Text(
+                    context.l10n.downloadsRateArrow(
+                      formatBytes(rate, context.l10n),
+                    ),
+                    style: _small,
+                  ),
               ],
             ),
           ),
@@ -385,9 +396,11 @@ class _PanelState extends State<_Panel> {
         download: e,
         waiting: row.kind.section == DownloadSection.waiting,
         line: switch (row.kind) {
-          DownloadKind.ready => formatBytes(e.progress.total),
-          DownloadKind.arriving => '${(e.progress.fraction * 100).round()} %',
-          _ => waitingLine(one, now),
+          DownloadKind.ready => formatBytes(e.progress.total, context.l10n),
+          DownloadKind.arriving => context.l10n.downloadsPercent(
+            (e.progress.fraction * 100).round(),
+          ),
+          _ => waitingLine(one, now, context.l10n),
         },
         onTap: () => widget.onPick(e),
         // Play is the row itself here; the rest act on this episode alone.
@@ -400,19 +413,20 @@ class _PanelState extends State<_Panel> {
     switch (row.kind) {
       case DownloadKind.ready:
         return [
-          if (row.isSeason) 'E${next.episode} next',
-          formatBytes(row.size),
+          if (row.isSeason) context.l10n.downloadsEpisodeNext(next.episode),
+          formatBytes(row.size, context.l10n),
         ].join(' · ');
       case DownloadKind.arriving:
         final parts = [
-          if (row.rate > 0) '${formatBytes(row.rate)}/s',
-          if (row.eta case final eta?) formatTimeLeft(eta),
+          if (row.rate > 0)
+            context.l10n.downloadsRate(formatBytes(row.rate, context.l10n)),
+          if (row.eta case final eta?) formatTimeLeft(eta, context.l10n),
         ];
         return parts.isEmpty
-            ? '${(row.fraction * 100).round()} %'
+            ? context.l10n.downloadsPercent((row.fraction * 100).round())
             : parts.join(' · ');
       case DownloadKind.stalled || DownloadKind.paused || DownloadKind.failed:
-        return waitingLine(row, now);
+        return waitingLine(row, now, context.l10n);
     }
   }
 
@@ -425,11 +439,13 @@ class _PanelState extends State<_Panel> {
     final all = row.downloads;
     // A season's rows say which episodes a button reaches.
     final which = row.isSeason
-        ? ' ${episodeRuns([for (final d in all) d.episode])}'
+        ? ' ${episodeRuns([for (final d in all) d.episode], context.l10n)}'
         : '';
     final stop = _Action(
       icon: Icons.close,
-      tooltip: 'Stop and discard$which',
+      tooltip: row.isSeason
+          ? context.l10n.downloadsStopDiscard(which.trim())
+          : context.l10n.downloadsStopDiscardOne,
       compact: compact,
       onPressed: () => all.forEach(widget.onStop),
     );
@@ -437,15 +453,17 @@ class _PanelState extends State<_Panel> {
       DownloadKind.ready => [
         _PlayButton(
           tooltip: next.episode > 0
-              ? 'Play S${next.season} E${next.episode}'
-              : 'Play',
+              ? context.l10n.playerPlayEpisode(next.season, next.episode)
+              : context.l10n.commonPlay,
           onPressed: () => widget.onPlay(next),
         ),
       ],
       DownloadKind.arriving => [
         _Action(
           icon: Icons.pause,
-          tooltip: 'Pause$which',
+          tooltip: row.isSeason
+              ? context.l10n.downloadsPause(which.trim())
+              : context.l10n.downloadsPauseOne,
           compact: compact,
           onPressed: () {
             for (final d in all) {
@@ -460,9 +478,13 @@ class _PanelState extends State<_Panel> {
           icon: row.kind == DownloadKind.paused
               ? Icons.play_arrow
               : Icons.refresh,
-          tooltip:
-              '${row.kind == DownloadKind.paused ? 'Resume' : 'Retry'}'
-              '$which',
+          tooltip: row.kind == DownloadKind.paused
+              ? row.isSeason
+                    ? context.l10n.downloadsResume(which.trim())
+                    : context.l10n.downloadsResumeOne
+              : row.isSeason
+              ? context.l10n.downloadsRetry(which.trim())
+              : context.l10n.downloadsRetryOne,
           compact: compact,
           onPressed: () {
             for (final d in all) {
@@ -487,12 +509,17 @@ class _PanelState extends State<_Panel> {
             Expanded(
               child: Text(switch (storage) {
                 null => '',
-                _ when limit > 0 =>
-                  '${formatBytes(storage.used)} of ${formatBytes(limit)}',
-                _ when storage.diskFree > 0 =>
-                  '${formatBytes(storage.used)} · '
-                      '${formatBytes(storage.diskFree)} free',
-                _ => '${formatBytes(storage.used)} on disk',
+                _ when limit > 0 => context.l10n.downloadsUsedOf(
+                  formatBytes(storage.used, context.l10n),
+                  formatBytes(limit, context.l10n),
+                ),
+                _ when storage.diskFree > 0 => context.l10n.downloadsUsedFree(
+                  formatBytes(storage.used, context.l10n),
+                  formatBytes(storage.diskFree, context.l10n),
+                ),
+                _ => context.l10n.downloadsUsedOnDisk(
+                  formatBytes(storage.used, context.l10n),
+                ),
               }, style: _small),
             ),
             TextButton(
@@ -502,7 +529,7 @@ class _PanelState extends State<_Panel> {
                 textStyle: const TextStyle(fontSize: 12),
                 visualDensity: VisualDensity.compact,
               ),
-              child: const Text('Storage ›'),
+              child: Text(context.l10n.downloadsStorageLink),
             ),
           ],
         ),
@@ -545,10 +572,11 @@ class _SectionHeader extends StatelessWidget {
         height: 24,
         child: Row(
           children: [
-            Text(group.section.title.toUpperCase(), style: label),
+            Text(group.section.title(context.l10n).toUpperCase(), style: label),
             const SizedBox(width: 8),
             Text(
-              '${group.count}',
+              NumberFormat.decimalPattern(context.l10n.localeName)
+                  .format(group.count),
               style: label.copyWith(
                 color: Palette.muted.withValues(alpha: 0.7),
               ),
@@ -556,7 +584,9 @@ class _SectionHeader extends StatelessWidget {
             const Spacer(),
             if (eta != null)
               Text(
-                'about ${spokenMinutes(Duration(seconds: eta))}',
+                context.l10n.downloadsAboutDuration(
+                  spokenMinutes(Duration(seconds: eta), context.l10n),
+                ),
                 style: _small,
               ),
             if (onClear != null)
@@ -567,7 +597,7 @@ class _SectionHeader extends StatelessWidget {
                   textStyle: const TextStyle(fontSize: 12),
                   visualDensity: VisualDensity.compact,
                 ),
-                child: const Text('Clear'),
+                child: Text(context.l10n.commonClear),
               ),
           ],
         ),
@@ -641,9 +671,9 @@ class _Row extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (row.tag.isNotEmpty) ...[
+                      if (row.tag(context.l10n).isNotEmpty) ...[
                         const SizedBox(width: 8),
-                        Text(row.tag, style: _small),
+                        Text(row.tag(context.l10n), style: _small),
                       ],
                       if (expanded case final open?)
                         Icon(
@@ -661,7 +691,7 @@ class _Row extends StatelessWidget {
                       borderRadius: BorderRadius.circular(2),
                       color: Palette.text,
                       backgroundColor: const Color(0x24FFFFFF),
-                      semanticsLabel: 'Downloaded',
+                      semanticsLabel: context.l10n.downloadsDownloaded,
                     ),
                   ],
                   const SizedBox(height: 4),
@@ -716,7 +746,7 @@ class _EpisodeRow extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                'E${download.episode}',
+                context.l10n.downloadsEpisode(download.episode),
                 style: TextStyle(
                   fontFamily: Typo.sans,
                   fontSize: 13,

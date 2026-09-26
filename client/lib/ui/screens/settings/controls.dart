@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../../api/client.dart';
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../theme.dart';
 import '../../widgets/loading.dart';
 import '../../widgets/setting_row.dart';
@@ -66,7 +68,7 @@ class ErrorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SettingRow(
-    label: 'What it said',
+    label: context.l10n.commonWhatItSaid,
     value: Text(
       errorMessage(error),
       style: Typo.data.copyWith(color: Palette.warn),
@@ -169,7 +171,10 @@ class PresetChoice extends StatelessWidget {
     final preset = presets.any((p) => p.$1 == value);
     return Segments<int>(
       reselect: !preset,
-      choices: [...presets, (_custom, preset ? 'Custom' : describe(value))],
+      choices: [
+        ...presets,
+        (_custom, preset ? context.l10n.commonCustom : describe(value)),
+      ],
       selected: preset ? value : _custom,
       tooltips: tooltips,
       onSelected: (chosen) async {
@@ -372,12 +377,21 @@ class ColourDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Wrap(
       spacing: 6,
       children: [
         for (final MapEntry(key: name, value: colour) in colours.entries)
           IconButton(
-            tooltip: '${name[0].toUpperCase()}${name.substring(1)}',
+            tooltip: switch (name) {
+              'white' => l10n.settingsAccentWhite,
+              'amber' => l10n.settingsAccentAmber,
+              'red' => l10n.settingsAccentRed,
+              'violet' => l10n.settingsAccentViolet,
+              'blue' => l10n.settingsAccentBlue,
+              'teal' => l10n.settingsAccentTeal,
+              _ => name,
+            },
             isSelected: name == selected,
             onPressed: () => onSelected(name),
             style: IconButton.styleFrom(
@@ -562,18 +576,26 @@ class _NumberDialogState extends State<_NumberDialog> {
           onSubmitted: (_) => _done(),
           decoration: InputDecoration(
             suffixText: widget.unit,
-            helperText: '${widget.min}–${widget.max} ${widget.unit}',
+            helperText: context.l10n.settingsNumberRange(
+              NumberFormat.decimalPattern(
+                Localizations.localeOf(context).toString(),
+              ).format(widget.min),
+              NumberFormat.decimalPattern(
+                Localizations.localeOf(context).toString(),
+              ).format(widget.max),
+              widget.unit,
+            ),
           ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
         TextButton(
           onPressed: _value == null ? null : _done,
-          child: const Text('Set'),
+          child: Text(context.l10n.commonSet),
         ),
       ],
     );
@@ -593,7 +615,7 @@ Future<bool> confirm(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
@@ -644,7 +666,7 @@ class LanguageList extends StatelessWidget {
             labelStyle: Typo.cardTitle.copyWith(fontSize: 13),
             backgroundColor: Palette.raised,
             deleteIconColor: Palette.muted,
-            deleteButtonTooltipMessage: 'Remove',
+            deleteButtonTooltipMessage: context.l10n.commonRemove,
             side: const BorderSide(color: Palette.line),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Shape.controlRadius),
@@ -685,34 +707,16 @@ class _LanguagePickerState extends State<_LanguagePicker> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        menuButtonTheme: const MenuButtonThemeData(
-          style: ButtonStyle(
-            foregroundColor: WidgetStatePropertyAll(Palette.text),
-            textStyle: WidgetStatePropertyAll(Typo.cardTitle),
-            overlayColor: WidgetStatePropertyAll(Palette.hover),
-          ),
-        ),
-      ),
+    return _MenuTheme(
       child: DropdownMenu<String>(
         key: ValueKey(_generation),
         width: 190,
         enableFilter: true,
         requestFocusOnTap: true,
-        hintText: 'Add a language',
+        hintText: context.l10n.settingsAddLanguage,
         // Left to itself the list of every language runs to the window's foot.
         menuHeight: 320,
-        menuStyle: const MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(Palette.floating),
-          surfaceTintColor: WidgetStatePropertyAll(Palette.floating),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Shape.floatingRadius),
-              side: BorderSide(color: Palette.rim),
-            ),
-          ),
-        ),
+        menuStyle: _menuStyle,
         dropdownMenuEntries: [
           for (final language in widget.languages)
             DropdownMenuEntry(value: language.code, label: language.name),
@@ -726,3 +730,64 @@ class _LanguagePickerState extends State<_LanguagePicker> {
     );
   }
 }
+
+/// The interface's language, each listed by its own name. The list is the
+/// translations shipped, so a new one appears here by being added.
+class InterfaceLanguage extends StatelessWidget {
+  const InterfaceLanguage({super.key, required this.onSelected});
+
+  final void Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MenuTheme(
+      child: DropdownMenu<String>(
+        width: 190,
+        requestFocusOnTap: false,
+        initialSelection: Localizations.localeOf(context).languageCode,
+        menuStyle: _menuStyle,
+        dropdownMenuEntries: [
+          for (final locale in AppLocalizations.supportedLocales)
+            DropdownMenuEntry(
+              value: locale.languageCode,
+              label: lookupAppLocalizations(locale).languageName,
+            ),
+        ],
+        onSelected: (code) {
+          if (code != null) onSelected(code);
+        },
+      ),
+    );
+  }
+}
+
+class _MenuTheme extends StatelessWidget {
+  const _MenuTheme({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Theme(
+    data: Theme.of(context).copyWith(
+      menuButtonTheme: const MenuButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(Palette.text),
+          textStyle: WidgetStatePropertyAll(Typo.cardTitle),
+          overlayColor: WidgetStatePropertyAll(Palette.hover),
+        ),
+      ),
+    ),
+    child: child,
+  );
+}
+
+const _menuStyle = MenuStyle(
+  backgroundColor: WidgetStatePropertyAll(Palette.floating),
+  surfaceTintColor: WidgetStatePropertyAll(Palette.floating),
+  shape: WidgetStatePropertyAll(
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Shape.floatingRadius),
+      side: BorderSide(color: Palette.rim),
+    ),
+  ),
+);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'buttons.dart';
 
@@ -91,7 +93,9 @@ class _RatingButtonState extends State<RatingButton> {
           textStyle: Typo.cardTitle.copyWith(fontSize: 13),
         );
         return Tooltip(
-          message: rated ? 'Your rating · change' : 'Rate',
+          message: rated
+              ? context.l10n.libraryRatingChange
+              : context.l10n.libraryRate,
           child: TextButton(
             key: const ValueKey('rating-button'),
             onPressed: toggle,
@@ -102,11 +106,18 @@ class _RatingButtonState extends State<RatingButton> {
                     children: [
                       const Icon(Icons.star, size: 16),
                       const SizedBox(width: 4),
-                      Text('${widget.score}'),
+                      Text(
+                        NumberFormat.decimalPattern(context.l10n.localeName)
+                            .format(widget.score),
+                      ),
                     ],
                   )
                 : widget.label == null
-                ? const Icon(Icons.star_border, size: 20, semanticLabel: 'Rate')
+                ? Icon(
+                    Icons.star_border,
+                    size: 20,
+                    semanticLabel: context.l10n.libraryRate,
+                  )
                 : Text(widget.label!),
           ),
         );
@@ -184,10 +195,10 @@ class _ScaleState extends State<_Scale> {
         children: [
           Row(
             children: [
-              Text('Your rating', style: Typo.cardTitle),
+              Text(context.l10n.libraryYourRating, style: Typo.cardTitle),
               const SizedBox(width: 12),
               Text(
-                filled > 0 ? '$filled of 10' : '',
+                filled > 0 ? context.l10n.libraryRatingOfTen(filled) : '',
                 style: Typo.dataStrong.copyWith(color: Palette.muted),
               ),
             ],
@@ -249,7 +260,7 @@ class _ScaleState extends State<_Scale> {
                 ),
                 textStyle: Typo.cardTitle.copyWith(fontSize: 13),
               ),
-              child: const Text('Remove rating'),
+              child: Text(context.l10n.libraryRemoveRating),
             ),
           ],
         ],
@@ -322,7 +333,10 @@ class _Score extends StatelessWidget {
         ),
         mouseCursor: WidgetStateMouseCursor.clickable,
       ),
-      child: Text('$value', semanticsLabel: '$value of 10'),
+      child: Text(
+        NumberFormat.decimalPattern(context.l10n.localeName).format(value),
+        semanticsLabel: context.l10n.libraryRatingOfTen(value),
+      ),
     );
   }
 }

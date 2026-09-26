@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 
 /// What this machine can actually play, asked of the thing that will have to
 /// play it.
@@ -41,7 +42,7 @@ class DeviceDecoders {
   /// nobody has answered. Null is not "none": a query that failed must never
   /// turn into "this machine decodes nothing".
   Map<String, Set<String>>? _drivers;
-  String? _installHint;
+  String? _osReleaseContents;
   List<String> _installCommands = const [];
   Future<void>? _asking;
 
@@ -57,7 +58,7 @@ class DeviceDecoders {
       _drivers = drivers;
       final os = await _osRelease();
       if (os == null) return;
-      _installHint = codecInstallHint(os);
+      _osReleaseContents = os;
       _installCommands = codecInstallCommands(os);
     } on Object catch (_) {
       // Nothing is claimed when the question could not be put. Every caller
@@ -95,7 +96,7 @@ class DeviceDecoders {
     return BrokenDecoder(
       codec: name,
       driver: substitute,
-      installHint: _installHint,
+      osReleaseContents: _osReleaseContents,
     );
   }
 
@@ -105,7 +106,9 @@ class DeviceDecoders {
 
   /// How to install what is missing, on the distributions that ship their
   /// missing decoders separately.
-  String? get installHint => _installHint;
+  String? installHint(AppLocalizations l10n) => _osReleaseContents == null
+      ? null
+      : codecInstallHint(_osReleaseContents!, l10n);
 
   /// The same thing a shell can be given, where there is one worth printing.
   List<String> get installCommands => _installCommands;
@@ -118,11 +121,19 @@ class DeviceDecoders {
   DecodeGap? gapIn(Release release) {
     final video = mpvVideoCodec(release.videoCodec);
     if (video != null && has(video) == false) {
-      return DecodeGap(codec: video, sound: false, installHint: _installHint);
+      return DecodeGap(
+        codec: video,
+        sound: false,
+        osReleaseContents: _osReleaseContents,
+      );
     }
     final audio = mpvAudioCodec(release.audioCodec);
     if (audio != null && has(audio) == false) {
-      return DecodeGap(codec: audio, sound: true, installHint: _installHint);
+      return DecodeGap(
+        codec: audio,
+        sound: true,
+        osReleaseContents: _osReleaseContents,
+      );
     }
     return null;
   }
@@ -137,45 +148,56 @@ class BrokenDecoder {
   const BrokenDecoder({
     required this.codec,
     required this.driver,
-    this.installHint,
+    this.osReleaseContents,
   });
 
   final String codec;
 
   /// mpv's name for the decoder actually doing the work.
   final String driver;
-  final String? installHint;
+  final String? osReleaseContents;
 
   /// What is wrong, without what to do about it — which is what a page that
   /// prints the commands underneath needs.
-  String get fact =>
-      '$codec is decoded here by $driver, which loses sync on a backward seek.';
+  String fact(AppLocalizations l10n) => l10n.playerDecoderBroken(codec, driver);
 
-  String get sentence => [fact, ?installHint].join(' ');
+  String sentence(AppLocalizations l10n) => [
+    fact(l10n),
+    if (osReleaseContents != null) ?codecInstallHint(osReleaseContents!, l10n),
+  ].join(' ');
 }
 
 /// Something in a copy that this machine cannot decode.
 class DecodeGap {
-  const DecodeGap({required this.codec, required this.sound, this.installHint});
+  const DecodeGap({
+    required this.codec,
+    required this.sound,
+    this.osReleaseContents,
+  });
 
   /// mpv's name for it, which is also the name mpv prints when it fails.
   final String codec;
 
   /// Which half of the film goes missing.
   final bool sound;
-  final String? installHint;
+  final String? osReleaseContents;
 
   /// Short enough for a table row, and about this machine rather than about
   /// the copy: the copy is fine, it is this machine that cannot open it.
-  String get mark => sound ? 'no $codec sound' : 'no $codec here';
+  String mark(AppLocalizations l10n) => sound
+      ? l10n.playerDecoderNoSoundMark(codec)
+      : l10n.playerDecoderMissingMark(codec);
 
   /// What is missing, without what to do about it.
-  String get fact => sound
-      ? 'Nothing installed here decodes $codec, so this copy has no sound.'
-      : 'Nothing installed here decodes $codec.';
+  String fact(AppLocalizations l10n) => sound
+      ? l10n.playerDecoderNoSound(codec)
+      : l10n.playerDecoderMissing(codec);
 
   /// The whole of it, for the row that is being looked at and for the player.
-  String get sentence => [fact, ?installHint].join(' ');
+  String sentence(AppLocalizations l10n) => [
+    fact(l10n),
+    if (osReleaseContents != null) ?codecInstallHint(osReleaseContents!, l10n),
+  ].join(' ');
 }
 
 /// The codec names our release parser prints, in mpv's spelling.
@@ -283,13 +305,13 @@ bool? decoderListHas(String json, String codec) =>
 /// An actionable way to add a missing decoder on distributions where they are
 /// packaged separately. Which decoder it is does not change the answer: these
 /// repositories ship the whole set as one package.
-String? codecInstallHint(String osReleaseContents) {
+String? codecInstallHint(String osReleaseContents, AppLocalizations l10n) {
   final ids = _distributions(osReleaseContents);
   if (ids.contains('fedora')) {
-    return 'They ship in RPM Fusion; Settings has the two commands.';
+    return l10n.settingsCodecFedoraHint;
   }
   if (ids.contains('opensuse') || ids.contains('suse')) {
-    return 'Install libavcodec from Packman.';
+    return l10n.settingsCodecSuseHint;
   }
   return null;
 }

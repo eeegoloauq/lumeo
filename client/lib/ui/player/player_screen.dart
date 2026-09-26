@@ -11,6 +11,7 @@ import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/decoders.dart';
 import '../../platform/folders.dart';
 import '../../platform/local_settings.dart';
@@ -1276,7 +1277,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return switch (moment?.action) {
       null => null,
       SkipAction.intro => SkipPill(
-        label: 'Skip opening',
+        label: context.l10n.playerSkipOpening,
         fill: moment!.fill,
         onPressed: () => _seekTo(moment.target),
       ),
@@ -1602,7 +1603,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (present == null) return;
     setState(() {
       _decoderMissing = !present;
-      _decoderInstallHint = DeviceDecoders.instance.installHint;
+      _decoderInstallHint = DeviceDecoders.instance.installHint(context.l10n);
     });
     if (!present && (sound || _hasPicture)) {
       _showNotice(_trouble(error, sound: sound));
@@ -1611,13 +1612,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   String _trouble(Object error, {required bool sound}) {
     final codec = decoderErrorCodec(error);
-    if (codec == null) return playbackTrouble(error);
+    if (codec == null) return playbackTrouble(error, context.l10n);
     final missing = _decoderMissing == true;
-    final what = sound ? 'This copy has no sound' : 'The picture stopped';
     return [
       missing
-          ? '$what: nothing installed here decodes $codec.'
-          : '$what: $codec could not be decoded.',
+          ? (sound
+                ? context.l10n.playerNoSoundDecoder(codec)
+                : context.l10n.playerPictureDecoder(codec))
+          : (sound
+                ? context.l10n.playerNoSoundDecodeFailed(codec)
+                : context.l10n.playerPictureDecodeFailed(codec)),
       if (missing) ?_decoderInstallHint,
     ].join(' ');
   }
@@ -1635,7 +1639,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final format = await (await _hostReady)?.get('video-format');
       if (format == null) return;
       final broken = DeviceDecoders.instance.unreliable(format);
-      if (broken != null && mounted) _showNotice(broken.sentence);
+      if (broken != null && mounted) _showNotice(broken.sentence(context.l10n));
     } on Object catch (_) {}
   }
 
@@ -1645,7 +1649,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       await (await _hostReady)?.get('input-bindings') ?? '',
     );
     if (!mounted) return;
-    setState(() => _shortcuts = shortcuts(read));
+    setState(() => _shortcuts = shortcuts(read, context.l10n));
   }
 
   /// A failed audio decoder remains identifiable in mpv's track list;
@@ -1730,7 +1734,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
             .firstOrNull;
         return DownloadPanel(
           download: download,
-          source: playing == null ? '' : SettingsMenu.sourceLabel(playing),
+          source: playing == null
+              ? ''
+              : SettingsMenu.sourceLabel(playing, context.l10n),
           onSource: download.itemId.isEmpty
               ? null
               : () {
@@ -1807,8 +1813,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final model = ChromeModel(
       title: _title.replaceFirst(RegExp(r' · S\d+E\d+$'), ''),
       episodeTitle: _download != null && _download!.episode > 0
-          ? 'S${_download!.season} E${_download!.episode}'
-                '${_episodeTitle.isEmpty ? '' : ' · $_episodeTitle'}'
+          ? (_episodeTitle.isEmpty
+                ? context.l10n.playerEpisodeId(
+                    _download!.season,
+                    _download!.episode,
+                  )
+                : context.l10n.playerEpisodeTitle(
+                    _download!.season,
+                    _download!.episode,
+                    _episodeTitle,
+                  ))
           : '',
       download: _download,
       position: _position,
@@ -1899,10 +1913,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 if (!_hasPicture || _advancing)
                   PlayerWaiting(
                     title: switch ((_switchingTo, _download)) {
-                      (final Episode e?, _) => e.fullLabel,
+                      (final Episode e?, _) => e.fullLabel(context.l10n),
                       (_, final Download d?) when d.episode > 0 => episodeName(
                         d.episode,
                         _episodeTitle,
+                        context.l10n,
                       ),
                       _ => _title,
                     },

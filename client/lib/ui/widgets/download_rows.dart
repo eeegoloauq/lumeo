@@ -1,4 +1,5 @@
 import '../../api/models.dart';
+import '../../l10n/app_localizations.dart';
 
 /// What the downloads panel says about one download, which decides the
 /// section it is listed under and the one thing its row lets you do.
@@ -38,13 +39,15 @@ enum DownloadKind {
 }
 
 enum DownloadSection {
-  ready('Ready to watch'),
-  arriving('Arriving'),
-  waiting('Waiting');
+  ready,
+  arriving,
+  waiting;
 
-  const DownloadSection(this.title);
-
-  final String title;
+  String title(AppLocalizations l10n) => switch (this) {
+    ready => l10n.downloadsReadyToWatch,
+    arriving => l10n.downloadsArriving,
+    waiting => l10n.downloadsWaiting,
+  };
 }
 
 /// One row of the panel: a film, an episode, or the episodes of one season
@@ -65,15 +68,19 @@ class DownloadRow {
   bool get isSeason => downloads.length > 1;
 
   /// "S2 E3–E4", "S4 E18", or nothing for a film.
-  String get episodes {
+  String episodes(AppLocalizations l10n) {
     if (first.episode <= 0) return '';
-    return 'S${first.season} ${episodeRuns([for (final d in downloads) d.episode])}';
+    return l10n.downloadsSeasonRun(
+      first.season,
+      episodeRuns([for (final d in downloads) d.episode], l10n),
+    );
   }
 
   /// What sits beside the title: the episodes, or for a film which copy it
   /// is ("2160p DV"), the one thing that tells two copies of it apart.
-  String get tag {
-    if (episodes.isNotEmpty) return episodes;
+  String tag(AppLocalizations l10n) {
+    final listed = episodes(l10n);
+    if (listed.isNotEmpty) return listed;
     final release = first.release;
     return [
       if (release.resolution.isNotEmpty) release.resolution,
@@ -162,7 +169,7 @@ List<DownloadGroup> arrangeDownloads(Iterable<Download> listed) {
 }
 
 /// Episode numbers as runs: 3, 4, 6 is "E3–E4, E6".
-String episodeRuns(List<int> episodes) {
+String episodeRuns(List<int> episodes, AppLocalizations l10n) {
   final sorted = episodes.toSet().toList()..sort();
   final runs = <String>[];
   var i = 0;
@@ -171,7 +178,11 @@ String episodeRuns(List<int> episodes) {
     while (j + 1 < sorted.length && sorted[j + 1] == sorted[j] + 1) {
       j++;
     }
-    runs.add(i == j ? 'E${sorted[i]}' : 'E${sorted[i]}–E${sorted[j]}');
+    runs.add(
+      i == j
+          ? l10n.downloadsEpisode(sorted[i])
+          : l10n.downloadsEpisodeRange(sorted[i], sorted[j]),
+    );
     i = j + 1;
   }
   return runs.join(', ');
@@ -193,28 +204,30 @@ Download nextToPlay(DownloadRow row, WatchProgress? progress) {
 
 /// A span of time as the panel says it: "12 min", "1 h 5 min", "2 h".
 /// Rounded up, so something a few seconds away is never "0 min".
-String spokenMinutes(Duration d) {
+String spokenMinutes(Duration d, AppLocalizations l10n) {
   final minutes = d.inSeconds <= 60 ? 1 : (d.inSeconds / 60).ceil();
-  if (minutes < 60) return '$minutes min';
+  if (minutes < 60) return l10n.downloadsMinutes(minutes);
   final rest = minutes % 60;
-  return rest == 0 ? '${minutes ~/ 60} h' : '${minutes ~/ 60} h $rest min';
+  return rest == 0
+      ? l10n.downloadsHours(minutes ~/ 60)
+      : l10n.downloadsHoursMinutes(minutes ~/ 60, rest);
 }
 
 /// The line under a row that is waiting: what it waits on and for how long,
 /// "Paused", or the reason it failed.
-String waitingLine(DownloadRow row, DateTime now) {
+String waitingLine(DownloadRow row, DateTime now, AppLocalizations l10n) {
   switch (row.kind) {
     case DownloadKind.paused:
-      return 'Paused';
+      return l10n.downloadsPaused;
     case DownloadKind.failed:
-      return row.error.isEmpty ? 'Failed' : row.error;
+      return row.error.isEmpty ? l10n.downloadsFailed : row.error;
     case DownloadKind.stalled:
       final d = row.first;
       final what = d.progress.peers == 0
-          ? 'Finding peers'
+          ? l10n.downloadsFindingPeers
           : !d.resolved
-          ? 'Fetching metadata'
-          : 'Peers not sending';
+          ? l10n.downloadsFetchingMetadata
+          : l10n.downloadsPeersNotSending;
       final since = row.waitingSince;
       // Under a minute, a number would only say that the clock is running.
       if (since == null || now.difference(since) < const Duration(minutes: 1)) {
@@ -222,7 +235,7 @@ String waitingLine(DownloadRow row, DateTime now) {
       }
       // Whole minutes waited, not rounded up: "1 min" after 61 seconds.
       final waited = Duration(minutes: now.difference(since).inMinutes);
-      return '$what · ${spokenMinutes(waited)}';
+      return l10n.downloadsWaitingSince(what, spokenMinutes(waited, l10n));
     case DownloadKind.ready || DownloadKind.arriving:
       return '';
   }

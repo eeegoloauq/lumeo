@@ -1,0 +1,2624 @@
+{
+  "@@locale": "en",
+  "languageName": "English",
+  "@languageName": {
+    "description": "This language's name in itself, as the language setting lists it."
+  },
+  "settingsGeneral": "General",
+  "settingsLanguage": "Language",
+  "commonMinimise": "Minimise",
+  "@commonMinimise": {
+    "description": "Minimise in ui/widgets/window_controls.dart"
+  },
+  "commonRestore": "Restore",
+  "@commonRestore": {
+    "description": "Restore in ui/widgets/window_controls.dart"
+  },
+  "commonMaximise": "Maximise",
+  "@commonMaximise": {
+    "description": "Maximise in ui/widgets/window_controls.dart"
+  },
+  "commonClose": "Close",
+  "@commonClose": {
+    "description": "Close in ui/widgets/window_controls.dart"
+  },
+  "commonLoading": "Loading",
+  "@commonLoading": {
+    "description": "Loading in ui/widgets/loading.dart"
+  },
+  "downloadsOnDisk": "On disk",
+  "@downloadsOnDisk": {
+    "description": "On disk in ui/screens/settings/downloads_section.dart"
+  },
+  "downloadsDownloading": "Downloading",
+  "@downloadsDownloading": {
+    "description": "Downloading in ui/widgets/download_mark.dart"
+  },
+  "homeContinueWatching": "Continue watching",
+  "homeTitle": "Home",
+  "@homeTitle": {
+    "description": "Home in ui/widgets/top_bar.dart"
+  },
+  "libraryTitle": "Library",
+  "@libraryTitle": {
+    "description": "Library in ui/screens/library_screen.dart"
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings in ui/screens/settings/settings_screen.dart"
+  },
+  "searchShortcutTooltip": "Search  ·  Ctrl+F",
+  "libraryCouldNotAdd": "Could not add it to My list",
+  "libraryCouldNotRemove": "Could not take it off My list",
+  "libraryRatingNotSaved": "The rating was not saved",
+  "libraryRatingNotRemoved": "The rating was not removed",
+  "libraryRemoveFromList": "On My list · remove",
+  "libraryAddToList": "Add to My list",
+  "@libraryAddToList": {
+    "description": "Add to My list in ui/widgets/library_actions.dart"
+  },
+  "settingsFolderMissing": "There is no folder there.",
+  "settingsFolderUp": "Up",
+  "@settingsFolderUp": {
+    "description": "Up in ui/screens/settings/folder_dialog.dart"
+  },
+  "settingsFolderEmpty": "No folders in here.",
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Cancel in ui/screens/settings/controls.dart"
+  },
+  "settingsFolderUse": "Use this folder",
+  "settingsSources": "Sources",
+  "@settingsSources": {
+    "description": "Sources in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourceNotAnsweredYet": "Not answered yet",
+  "settingsSourceOff": "Off",
+  "@settingsSourceOff": {
+    "description": "Off in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourceNotAnswering": "Not answering",
+  "@settingsSourceNotAnswering": {
+    "description": "Not answering in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourceWaiting": "Waiting",
+  "@settingsSourceWaiting": {
+    "description": "Waiting in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourceWorking": "Working",
+  "@settingsSourceWorking": {
+    "description": "Working in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourcesReorder": "Drag to reorder",
+  "commonRemove": "Remove",
+  "@commonRemove": {
+    "description": "Remove in ui/screens/settings/controls.dart"
+  },
+  "settingsAddonAddress": "Addon address",
+  "@settingsAddonAddress": {
+    "description": "Addon address in ui/screens/settings/sources_section.dart"
+  },
+  "settingsSourcesAsking": "Asking…",
+  "@settingsSourcesAsking": {
+    "description": "Asking… in ui/screens/settings/sources_section.dart"
+  },
+  "commonAdd": "Add",
+  "@commonAdd": {
+    "description": "Add in ui/screens/settings/sources_section.dart"
+  },
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": {
+    "description": "Appearance in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsAccent": "Accent",
+  "@settingsAccent": {
+    "description": "Accent in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsTextSize": "Text size",
+  "@settingsTextSize": {
+    "description": "Text size in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsSmall": "Small",
+  "@settingsSmall": {
+    "description": "Small in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsDefault": "Default",
+  "@settingsDefault": {
+    "description": "Button that puts a folder back to the default one."
+  },
+  "settingsTextDefault": "Default",
+  "@settingsTextDefault": {
+    "description": "Default text size, between Small and Large."
+  },
+  "settingsLarge": "Large",
+  "@settingsLarge": {
+    "description": "Large in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsEpisodeStills": "Episode stills",
+  "@settingsEpisodeStills": {
+    "description": "Episode stills in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsEpisodeStillsBlurHint": "Blur keeps an episode’s still hidden until it is watched.",
+  "settingsShow": "Show",
+  "@settingsShow": {
+    "description": "Show in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsBlur": "Blur",
+  "@settingsBlur": {
+    "description": "Blur in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsHide": "Hide",
+  "@settingsHide": {
+    "description": "Hide in ui/screens/settings/appearance_section.dart"
+  },
+  "settingsShortcuts": "Shortcuts",
+  "@settingsShortcuts": {
+    "description": "Shortcuts in ui/screens/settings/shortcuts_section.dart"
+  },
+  "settingsNoShortcuts": "mpv has not said which keys it has.",
+  "settingsFewerKeys": "Fewer keys",
+  "@settingsFewerKeys": {
+    "description": "Fewer keys in ui/screens/settings/shortcuts_section.dart"
+  },
+  "settingsAllPlayerKeys": "All player keys",
+  "searchHint": "Search films and series",
+  "commonClear": "Clear",
+  "@commonClear": {
+    "description": "Clear in ui/screens/settings/downloads_section.dart"
+  },
+  "commonSeries": "Series",
+  "@commonSeries": {
+    "description": "Series in ui/widgets/search_box.dart"
+  },
+  "commonFilm": "Film",
+  "@commonFilm": {
+    "description": "Film in ui/screens/settings/downloads_section.dart"
+  },
+  "searchCatalogueUnavailable": "The catalogue is not answering",
+  "searchRecent": "Recent",
+  "@searchRecent": {
+    "description": "Recent in ui/widgets/search_box.dart"
+  },
+  "searchForget": "Forget",
+  "@searchForget": {
+    "description": "Forget in ui/widgets/search_box.dart"
+  },
+  "commonTryAgain": "Try again",
+  "@commonTryAgain": {
+    "description": "Try again in ui/screens/settings/about_section.dart"
+  },
+  "commonPlay": "Play",
+  "@commonPlay": {
+    "description": "Play in ui/screens/home_screen.dart"
+  },
+  "homeMoreInfo": "More info",
+  "@homeMoreInfo": {
+    "description": "More info in ui/screens/home_screen.dart"
+  },
+  "homeNoCatalogues": "No catalogues",
+  "@homeNoCatalogues": {
+    "description": "No catalogues in ui/screens/home_screen.dart"
+  },
+  "commonDownload": "Download",
+  "@commonDownload": {
+    "description": "Download in ui/screens/item_screen.dart"
+  },
+  "itemSpecials": "Specials",
+  "@itemSpecials": {
+    "description": "Specials in ui/screens/item_screen.dart"
+  },
+  "itemLoadFailed": "This title did not load",
+  "libraryMyList": "My list",
+  "@libraryMyList": {
+    "description": "My list in ui/screens/library_screen.dart"
+  },
+  "libraryHistory": "History",
+  "@libraryHistory": {
+    "description": "History in ui/screens/library_screen.dart"
+  },
+  "libraryListLoadFailed": "The list did not load",
+  "libraryListNoAnswer": "The core did not answer for My list.",
+  "libraryListEmpty": "Nothing on your list yet",
+  "libraryHistoryLoadFailed": "The history did not load",
+  "libraryHistoryNoAnswer": "The core did not answer for what was watched.",
+  "libraryHistoryEmpty": "Nothing watched yet",
+  "libraryHistoryRemoveFailed": "It was not removed from the history",
+  "libraryRecentlyAdded": "Recently added",
+  "@libraryRecentlyAdded": {
+    "description": "Recently added in ui/screens/library_screen.dart"
+  },
+  "librarySortTitle": "Title",
+  "@librarySortTitle": {
+    "description": "Title in ui/screens/library_screen.dart"
+  },
+  "librarySortYear": "Release year",
+  "@librarySortYear": {
+    "description": "Release year in ui/screens/library_screen.dart"
+  },
+  "librarySortRating": "Your rating",
+  "@librarySortRating": {
+    "description": "Your rating in ui/screens/library_screen.dart"
+  },
+  "libraryNewEpisodes": "New episodes",
+  "@libraryNewEpisodes": {
+    "description": "New episodes in ui/screens/library_screen.dart"
+  },
+  "libraryRate": "Rate",
+  "@libraryRate": {
+    "description": "Rate in ui/screens/library_screen.dart"
+  },
+  "libraryRemoveFromHistory": "Remove from history",
+  "libraryMoreLoadFailed": "The rest did not load",
+  "settingsPlayback": "Playback",
+  "@settingsPlayback": {
+    "description": "Playback in ui/screens/settings/playback_section.dart"
+  },
+  "settingsAudioLanguages": "Audio languages",
+  "@settingsAudioLanguages": {
+    "description": "Audio languages in ui/screens/settings/playback_section.dart"
+  },
+  "settingsFileLanguage": "The file’s own",
+  "@settingsFileLanguage": {
+    "description": "The file’s own in ui/screens/settings/playback_section.dart"
+  },
+  "settingsShowNextEpisode": "Show next episode",
+  "@settingsShowNextEpisode": {
+    "description": "Show next episode in ui/screens/settings/playback_section.dart"
+  },
+  "settingsShowNextEpisodeHint": "When the file does not mark its credits.",
+  "settingsEarlier": "Earlier",
+  "@settingsEarlier": {
+    "description": "Earlier in ui/screens/settings/playback_section.dart"
+  },
+  "settingsLater": "Later",
+  "@settingsLater": {
+    "description": "Later in ui/screens/settings/playback_section.dart"
+  },
+  "settingsBeforeEnd": "before the end",
+  "@settingsBeforeEnd": {
+    "description": "before the end in ui/screens/settings/playback_section.dart"
+  },
+  "settingsPlayNextEpisode": "Play next episode",
+  "@settingsPlayNextEpisode": {
+    "description": "Play next episode in ui/screens/settings/playback_section.dart"
+  },
+  "settingsOnPress": "On a press",
+  "@settingsOnPress": {
+    "description": "On a press in ui/screens/settings/playback_section.dart"
+  },
+  "settingsAfterFiveSeconds": "After 5 s",
+  "@settingsAfterFiveSeconds": {
+    "description": "After 5 s in ui/screens/settings/playback_section.dart"
+  },
+  "settingsPlayNextEpisodeAfter": "Play the next episode after",
+  "settingsArrowSkip": "Arrow keys skip",
+  "@settingsArrowSkip": {
+    "description": "Arrow keys skip in ui/screens/settings/playback_section.dart"
+  },
+  "settingsFiveSeconds": "5 s",
+  "@settingsFiveSeconds": {
+    "description": "5 s in ui/screens/settings/playback_section.dart"
+  },
+  "settingsTenSeconds": "10 s",
+  "@settingsTenSeconds": {
+    "description": "10 s in ui/screens/settings/playback_section.dart"
+  },
+  "settingsArrowSkipQuestion": "The arrow keys skip",
+  "@settingsArrowSkipQuestion": {
+    "description": "The arrow keys skip in ui/screens/settings/playback_section.dart"
+  },
+  "settingsShiftSkip": "with Shift, 1 s",
+  "@settingsShiftSkip": {
+    "description": "with Shift, 1 s in ui/screens/settings/playback_section.dart"
+  },
+  "settingsTimelinePreviews": "Timeline previews",
+  "@settingsTimelinePreviews": {
+    "description": "Timeline previews in ui/screens/settings/playback_section.dart"
+  },
+  "settingsSubtitles": "Subtitles",
+  "@settingsSubtitles": {
+    "description": "Subtitles in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleLanguages": "Languages",
+  "@settingsSubtitleLanguages": {
+    "description": "Languages in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleMode": "Turn on",
+  "@settingsSubtitleMode": {
+    "description": "Turn on in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsForeignAudioHint": "Foreign audio: when the sound isn’t in these languages.",
+  "settingsAlways": "Always",
+  "@settingsAlways": {
+    "description": "Always in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsForeignAudio": "Foreign audio",
+  "@settingsForeignAudio": {
+    "description": "Foreign audio in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsManual": "Manual",
+  "@settingsManual": {
+    "description": "Manual in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleSize": "Size",
+  "@settingsSubtitleSize": {
+    "description": "Size in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleColour": "Colour",
+  "@settingsSubtitleColour": {
+    "description": "Colour in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleBackground": "Background",
+  "@settingsSubtitleBackground": {
+    "description": "Background in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsNone": "None",
+  "@settingsNone": {
+    "description": "None in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsShadow": "Shadow",
+  "@settingsShadow": {
+    "description": "Shadow in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsBox": "Box",
+  "@settingsBox": {
+    "description": "Box in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsSubtitleHeight": "Height",
+  "@settingsSubtitleHeight": {
+    "description": "Height in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsLower": "Lower",
+  "@settingsLower": {
+    "description": "Lower in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsHigher": "Higher",
+  "@settingsHigher": {
+    "description": "Higher in ui/screens/settings/subtitles_section.dart"
+  },
+  "settingsKeepFileStyling": "Keep the file’s styling",
+  "settingsSubtitlePreview": "Don’t go. One more episode.",
+  "commonWhatItSaid": "What it said",
+  "@commonWhatItSaid": {
+    "description": "What it said in ui/screens/settings/about_section.dart"
+  },
+  "commonCustom": "Custom",
+  "@commonCustom": {
+    "description": "Custom in ui/screens/settings/downloads_section.dart"
+  },
+  "commonSet": "Set",
+  "@commonSet": {
+    "description": "Set in ui/screens/settings/controls.dart"
+  },
+  "settingsAddLanguage": "Add a language",
+  "@settingsAddLanguage": {
+    "description": "Add a language in ui/screens/settings/controls.dart"
+  },
+  "commonDelete": "Delete",
+  "@commonDelete": {
+    "description": "Delete in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDownloadFolderQuestion": "Download new films to",
+  "settingsScreenshotsFolderQuestion": "Save screenshots to",
+  "@settingsScreenshotsFolderQuestion": {
+    "description": "Save screenshots to in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDownloads": "Downloads",
+  "@settingsDownloads": {
+    "description": "Downloads in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsFinishedPanel": "Finished in the panel",
+  "settingsOneDay": "1 day",
+  "@settingsOneDay": {
+    "description": "1 day in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsSevenDays": "7 days",
+  "@settingsSevenDays": {
+    "description": "7 days in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsUntilCleared": "Until cleared",
+  "@settingsUntilCleared": {
+    "description": "Until cleared in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsNetwork": "Network",
+  "@settingsNetwork": {
+    "description": "Network in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDiskLimit": "Disk limit",
+  "@settingsDiskLimit": {
+    "description": "Disk limit in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsNoLimit": "No limit",
+  "@settingsNoLimit": {
+    "description": "No limit in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDeleteWatched": "Delete watched",
+  "@settingsDeleteWatched": {
+    "description": "Delete watched in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsRightAway": "Right away",
+  "@settingsRightAway": {
+    "description": "Right away in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsAfterThirtyDays": "After 30 days",
+  "@settingsAfterThirtyDays": {
+    "description": "After 30 days in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsNever": "Never",
+  "@settingsNever": {
+    "description": "Never in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDeleteWatchedAfter": "Delete watched downloads after",
+  "settingsDownloadNextEpisode": "Download next episode",
+  "settingsVideos": "Videos",
+  "@settingsVideos": {
+    "description": "Videos in ui/screens/settings/downloads_section.dart"
+  },
+  "commonOpen": "Open",
+  "@commonOpen": {
+    "description": "Open in ui/screens/settings/about_section.dart"
+  },
+  "commonChange": "Change",
+  "@commonChange": {
+    "description": "Change in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsScreenshots": "Screenshots",
+  "@settingsScreenshots": {
+    "description": "Screenshots in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsSeeding": "Seeding",
+  "@settingsSeeding": {
+    "description": "Seeding in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsUploadLimit": "Upload limit",
+  "@settingsUploadLimit": {
+    "description": "Upload limit in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDownloadLimit": "Download limit",
+  "@settingsDownloadLimit": {
+    "description": "Download limit in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDeleteAll": "Delete all",
+  "@settingsDeleteAll": {
+    "description": "Delete all in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsNothingDownloaded": "Nothing downloaded yet.",
+  "settingsCachedArtwork": "Cached artwork",
+  "@settingsCachedArtwork": {
+    "description": "Cached artwork in ui/screens/settings/downloads_section.dart"
+  },
+  "settingsDeleting": "Deleting…",
+  "@settingsDeleting": {
+    "description": "Deleting… in ui/screens/settings/downloads_section.dart"
+  },
+  "commonReset": "Reset",
+  "@commonReset": {
+    "description": "Reset in ui/screens/settings/about_section.dart"
+  },
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "About in ui/screens/settings/about_section.dart"
+  },
+  "settingsResetSettings": "Reset settings",
+  "@settingsResetSettings": {
+    "description": "Reset settings in ui/screens/settings/about_section.dart"
+  },
+  "settingsResetHint": "Downloads, your list and history stay.",
+  "settingsResetAction": "Reset…",
+  "@settingsResetAction": {
+    "description": "Reset… in ui/screens/settings/about_section.dart"
+  },
+  "settingsBugReport": "For a bug report",
+  "@settingsBugReport": {
+    "description": "For a bug report in ui/screens/settings/about_section.dart"
+  },
+  "settingsCopyDetails": "Copy details",
+  "@settingsCopyDetails": {
+    "description": "Copy details in ui/screens/settings/about_section.dart"
+  },
+  "settingsOpenLogs": "Open logs",
+  "@settingsOpenLogs": {
+    "description": "Open logs in ui/screens/settings/about_section.dart"
+  },
+  "settingsCoreLog": "Core log",
+  "@settingsCoreLog": {
+    "description": "Core log in ui/screens/settings/about_section.dart"
+  },
+  "settingsCore": "Core",
+  "@settingsCore": {
+    "description": "Core in ui/screens/settings/about_section.dart"
+  },
+  "settingsSourceProviders": "Source providers",
+  "@settingsSourceProviders": {
+    "description": "Source providers in ui/screens/settings/about_section.dart"
+  },
+  "settingsPlayer": "Player",
+  "@settingsPlayer": {
+    "description": "Player in ui/screens/settings/about_section.dart"
+  },
+  "settingsDecoders": "Decoders",
+  "@settingsDecoders": {
+    "description": "Decoders in ui/screens/settings/about_section.dart"
+  },
+  "settingsPicture": "Picture",
+  "@settingsPicture": {
+    "description": "Picture in ui/screens/settings/about_section.dart"
+  },
+  "settingsSound": "Sound",
+  "@settingsSound": {
+    "description": "Sound in ui/screens/settings/about_section.dart"
+  },
+  "settingsWarning": "Warning",
+  "@settingsWarning": {
+    "description": "Warning in ui/screens/settings/about_section.dart"
+  },
+  "settingsHowToFix": "To fix it",
+  "@settingsHowToFix": {
+    "description": "To fix it in ui/screens/settings/about_section.dart"
+  },
+  "commonCopied": "Copied",
+  "@commonCopied": {
+    "description": "Copied in ui/screens/settings/about_section.dart"
+  },
+  "commonCopy": "Copy",
+  "@commonCopy": {
+    "description": "Copy in ui/screens/settings/about_section.dart"
+  },
+  "commonUnknown": "unknown",
+  "@commonUnknown": {
+    "description": "unknown in ui/screens/settings/about_section.dart"
+  },
+  "commonAsking": "asking…",
+  "@commonAsking": {
+    "description": "asking… in ui/screens/settings/about_section.dart"
+  },
+  "commonNotAnswering": "not answering",
+  "@commonNotAnswering": {
+    "description": "not answering in ui/screens/settings/about_section.dart"
+  },
+  "commonAnswering": "answering",
+  "@commonAnswering": {
+    "description": "answering in ui/screens/settings/about_section.dart"
+  },
+  "settingsMpvNoAnswer": "mpv did not answer",
+  "@settingsMpvNoAnswer": {
+    "description": "mpv did not answer in ui/screens/settings/about_section.dart"
+  },
+  "commonSeconds": "{count, plural, one{1 s} other{{count} s}}",
+  "@commonSeconds": {
+    "description": "Seconds shown in playback timing settings.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsAfterSeconds": "{count, plural, one{After 1 s} other{After {count} s}}",
+  "@settingsAfterSeconds": {
+    "description": "Delay option in Play next episode settings.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsNextCountdownHint": "Counted from the last frame. Credits marked in the file are the countdown themselves.",
+  "settingsTimelinePreviewsHint": "Frames over the seek bar, from a second player on the same file.",
+  "commonSecondUnit": "s",
+  "@commonSecondUnit": {
+    "description": "Unit after a number of seconds in settings."
+  },
+  "settingsBottom": "bottom",
+  "@settingsBottom": {
+    "description": "Subtitle height setting at zero lift."
+  },
+  "settingsPercentUp": "{percent}% up",
+  "@settingsPercentUp": {
+    "description": "Subtitle height setting.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsKeepFileStylingHint": "Styled subtitles, like anime signs, stay as drawn. Off, the colour and background above apply to them too.",
+  "settingsSourceError": "Not answering — {error}",
+  "@settingsSourceError": {
+    "description": "Status of an addon when it fails; the error text comes from the core.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUseAddon": "Use {name}",
+  "@settingsUseAddon": {
+    "description": "Accessible label for enabling an addon.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsResetConfirm": "Put every setting back as it was? Downloads, your list and history stay.",
+  "settingsPlayerLogHint": "The player’s logs are mpv.log and mpv.old.log.",
+  "settingsJournalLogHint": "The player’s logs are mpv.log and mpv.old.log. The core logs to the system journal.",
+  "settingsProviderCount": "{count, plural, =0{No source providers} one{1 source provider} other{{count} source providers}}",
+  "@settingsProviderCount": {
+    "description": "Number of source providers reported by the core.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsNoProviders": "None: the core can browse and play nothing.",
+  "settingsHardwareDecoderHint": "The hardware decoder is named once a film has played.",
+  "settingsNoDecoderInfo": "mpv did not answer, so nothing is claimed here",
+  "settingsDetailsLumeo": "Lumeo {version}",
+  "@settingsDetailsLumeo": {
+    "description": "Lumeo version in copied bug report.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsCore": "Core {address}, {status}",
+  "@settingsDetailsCore": {
+    "description": "Core address and status in copied bug report.",
+    "placeholders": {
+      "address": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsCoreProviders": "Core {address}, {status}, {count, plural, =0{no providers} one{1 provider} other{{count} providers}}",
+  "@settingsDetailsCoreProviders": {
+    "description": "Core address, status, and provider count in copied bug report.",
+    "placeholders": {
+      "address": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDetailsPlayer": "Player mpv {version}",
+  "@settingsDetailsPlayer": {
+    "description": "Player version in copied bug report.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsPlayerHardware": "Player mpv {version}, {hardware}",
+  "@settingsDetailsPlayerHardware": {
+    "description": "Player version and decoder in copied bug report.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "hardware": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsSystem": "System {system} {version}",
+  "@settingsDetailsSystem": {
+    "description": "Operating system in copied bug report.",
+    "placeholders": {
+      "system": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsMissingDecoder": "No decoder for {codecs}",
+  "@settingsDetailsMissingDecoder": {
+    "description": "Missing codecs in copied bug report.",
+    "placeholders": {
+      "codecs": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsLogs": "Logs {playerLog}",
+  "@settingsDetailsLogs": {
+    "description": "Log location in copied bug report.",
+    "placeholders": {
+      "playerLog": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDetailsLogsCore": "Logs {playerLog}, {coreLog}",
+  "@settingsDetailsLogsCore": {
+    "description": "Player and core log locations in copied bug report.",
+    "placeholders": {
+      "playerLog": {
+        "type": "String"
+      },
+      "coreLog": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDeleteAllConfirm": "Delete {size}? Every download goes, including the ones in progress.",
+  "@settingsDeleteAllConfirm": {
+    "description": "Confirmation before deleting all downloads.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDiskLimitTooltip": "Over the limit, watched downloads go first. Unwatched ones stay.",
+  "settingsDiskLimitHint": "When full, watched downloads go first.",
+  "settingsGigabytes": "{count, plural, =0{0 GB} one{1 GB} other{{count} GB}}",
+  "@settingsGigabytes": {
+    "description": "Disk limit size in gigabytes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsGigabyteUnit": "GB",
+  "@settingsGigabyteUnit": {
+    "description": "Unit suffix in disk limit number field."
+  },
+  "settingsDeleteWatchedHint": "Unwatched downloads are never deleted by this.",
+  "settingsAfterDays": "{count, plural, one{After 1 day} other{After {count} days}}",
+  "@settingsAfterDays": {
+    "description": "Custom retention period for watched downloads.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDayUnit": "days",
+  "@settingsDayUnit": {
+    "description": "Unit suffix in watched-download retention field."
+  },
+  "settingsDownloadNextEpisodeHint": "Once an episode is on disk, the next one downloads, within the disk limit.",
+  "settingsVideosHint": "New downloads go here; the ones already here stay.",
+  "settingsMegabytesPerSecond": "{rate} MB/s",
+  "@settingsMegabytesPerSecond": {
+    "description": "Network rate limit in megabytes per second.",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsMegabytesPerSecondUnit": "MB/s",
+  "@settingsMegabytesPerSecondUnit": {
+    "description": "Unit suffix in network rate limit field."
+  },
+  "settingsSeedingHint": "Giving back what you have. Off stops it once a download has what it needs; the upload limit caps it either way.",
+  "settingsStorageLumeo": "Lumeo {size}",
+  "@settingsStorageLumeo": {
+    "description": "Lumeo storage usage.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsStorageSemantics": "Lumeo {used}, other {other}, free {free}",
+  "@settingsStorageSemantics": {
+    "description": "Accessible storage bar summary.",
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "other": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsStorageOf": " of {limit}",
+  "@settingsStorageOf": {
+    "description": "Storage usage limit beside Lumeo usage.",
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsStorageOther": "Other {size}",
+  "@settingsStorageOther": {
+    "description": "Storage occupied by other files.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsStorageFree": "Free {size}",
+  "@settingsStorageFree": {
+    "description": "Free disk space.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsEpisodeCount": "{count, plural, =0{No episodes} one{1 episode} other{{count} episodes}}",
+  "@settingsEpisodeCount": {
+    "description": "Number of stored episodes for a title.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDetailDownloading": "{detail} · downloading",
+  "@settingsDetailDownloading": {
+    "description": "Storage row detail while a download is active.",
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAccentWhite": "White",
+  "@settingsAccentWhite": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsAccentAmber": "Amber",
+  "@settingsAccentAmber": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsAccentRed": "Red",
+  "@settingsAccentRed": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsAccentViolet": "Violet",
+  "@settingsAccentViolet": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsAccentBlue": "Blue",
+  "@settingsAccentBlue": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsAccentTeal": "Teal",
+  "@settingsAccentTeal": {
+    "description": "Accent colour tooltip in Appearance settings."
+  },
+  "settingsNumberRange": "{min}–{max} {unit}",
+  "@settingsNumberRange": {
+    "description": "Allowed range under a settings number field.",
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsMpvVersion": "mpv {version}",
+  "@settingsMpvVersion": {
+    "description": "mpv version shown on About page.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAddonVersion": "v{version}",
+  "@settingsAddonVersion": {
+    "description": "Addon version on Sources page.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@homeContinueWatching": {
+    "description": "Shelf heading on Home."
+  },
+  "searchSearching": "Searching for “{query}”…",
+  "@searchSearching": {
+    "description": "Search page heading while results load.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchNoResults": "Nothing found for “{query}”",
+  "@searchNoResults": {
+    "description": "Search page heading for an empty result.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchResultCount": "{count, plural, =0{No results for “{query}”} one{1 result for “{query}”} other{{count} results for “{query}”}}",
+  "@searchResultCount": {
+    "description": "Search page heading after results load.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchProviderHint": "The catalogue only knows what its metadata provider knows. Try the original title, or fewer words.",
+  "downloadsCloseSources": "Close sources",
+  "@downloadsCloseSources": {
+    "description": "Accessibility label for dismissing the sources drawer."
+  },
+  "downloadsCopyCount": "{count, plural, =0{No copies} one{1 copy} other{{count} copies}}",
+  "@downloadsCopyCount": {
+    "description": "Number of available copies in sources drawer.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsOther": "Other",
+  "@downloadsOther": {
+    "description": "Group of sources with unspecified resolution."
+  },
+  "downloadsPartOnDisk": "part on disk",
+  "@downloadsPartOnDisk": {
+    "description": "Source local availability status."
+  },
+  "downloadsSeedCount": "{count, plural, =0{no seeds} one{1 seed} other{{count} seeds}}",
+  "@downloadsSeedCount": {
+    "description": "Peer seed count for a source.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsNoLanguages": "no languages listed",
+  "downloadsLastUsed": "last used",
+  "downloadsTimeLeftMinutes": "{minutes, plural, one{1 min left} other{{minutes} min left}}",
+  "@downloadsTimeLeftMinutes": {
+    "description": "Estimated download time left.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsTimeLeftHours": "{hours, plural, one{1 h} other{{hours} h}} {minutes} min left",
+  "@downloadsTimeLeftHours": {
+    "description": "Estimated download time left, with zero-padded minutes.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsByteUnit": "B",
+  "@downloadsByteUnit": {
+    "description": "Byte size unit in downloads and storage."
+  },
+  "downloadsKilobyteUnit": "KB",
+  "@downloadsKilobyteUnit": {
+    "description": "Byte size unit in downloads and storage."
+  },
+  "downloadsMegabyteUnit": "MB",
+  "@downloadsMegabyteUnit": {
+    "description": "Byte size unit in downloads and storage."
+  },
+  "downloadsGigabyteUnit": "GB",
+  "@downloadsGigabyteUnit": {
+    "description": "Byte size unit in downloads and storage."
+  },
+  "downloadsTerabyteUnit": "TB",
+  "@downloadsTerabyteUnit": {
+    "description": "Byte size unit in downloads and storage."
+  },
+  "downloadsSize": "{size} {unit}",
+  "@downloadsSize": {
+    "description": "Formatted file size in source and storage panels.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsSeasonEpisode": "S{season} E{episode}",
+  "@downloadsSeasonEpisode": {
+    "description": "Season and episode number in sources and downloads.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "itemOutDate": "Out {date}",
+  "@itemOutDate": {
+    "description": "Episode or item release date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "itemPlayEpisode": "Play episode {number}",
+  "@itemPlayEpisode": {
+    "description": "Tooltip on episode card play button.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "homePopularFilms": "Popular films",
+  "@homePopularFilms": {
+    "description": "Home catalogue shelf title."
+  },
+  "homePopularSeries": "Popular series",
+  "@homePopularSeries": {
+    "description": "Home catalogue shelf title."
+  },
+  "homeHighestRated": "Highest rated",
+  "@homeHighestRated": {
+    "description": "Home catalogue shelf title."
+  },
+  "homeOutRecently": "Out recently",
+  "@homeOutRecently": {
+    "description": "Home catalogue shelf title."
+  },
+  "homeHighestRatedSeries": "Highest rated series",
+  "@homeHighestRatedSeries": {
+    "description": "Home catalogue shelf title."
+  },
+  "homeGenreFilms": "{genre} films",
+  "@homeGenreFilms": {
+    "description": "Home shelf by provider genre.",
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGenreSeries": "{genre} series",
+  "@homeGenreSeries": {
+    "description": "Home shelf by provider genre.",
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoCatalogueHint": "The core is running but no addon on its Sources list offers a catalogue to browse. Cinemeta does, needs no key, and is on the list of a fresh install.",
+  "homeCatalogueUnavailable": "The catalogue is not answering",
+  "homeCatalogueUnavailableHint": "The Lumeo core did not answer the catalogue request. Check that it is running, then try again.",
+  "commonCouldNotOpen": "Could not open {name}: {reason}",
+  "@commonCouldNotOpen": {
+    "description": "Error opening a local file; reason is system or core text.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "itemDownloadingPercent": "Downloading {percent}%",
+  "@itemDownloadingPercent": {
+    "description": "Season download button tooltip.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "itemDownloadRest": "Download the rest of {name}",
+  "@itemDownloadRest": {
+    "description": "Action for remaining episodes in a season.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "itemDownloadNamed": "Download {name}",
+  "@itemDownloadNamed": {
+    "description": "Download button with season or episode name.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "itemSeasonStartFailed": "The season did not start: {error}",
+  "@itemSeasonStartFailed": {
+    "description": "Failure to start a season download; error is from the core.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "itemSeason": "Season {number}",
+  "@itemSeason": {
+    "description": "Season selector tab.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "itemLoadFailedHint": "The core did not answer for this title. It may be the metadata provider rather than the core itself.",
+  "libraryToday": "Today",
+  "@libraryToday": {
+    "description": "Relative day in history and new episodes."
+  },
+  "libraryYesterday": "Yesterday",
+  "@libraryYesterday": {
+    "description": "Relative day in history and new episodes."
+  },
+  "libraryWatched": "watched",
+  "@libraryWatched": {
+    "description": "Viewing state in library history."
+  },
+  "libraryStarted": "started",
+  "@libraryStarted": {
+    "description": "Viewing state in library history."
+  },
+  "libraryWatchedOf": "{watched} of {released} seen",
+  "@libraryWatchedOf": {
+    "description": "Progress caption for a series on My list.",
+    "placeholders": {
+      "watched": {
+        "type": "String"
+      },
+      "released": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNewEpisode": "S{season} E{episode}",
+  "@libraryNewEpisode": {
+    "description": "New episode caption.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryNewEpisodeDate": "S{season} E{episode} · {date}",
+  "@libraryNewEpisodeDate": {
+    "description": "New episode caption with release date.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNewEpisodeCount": "S{season} E{episode} · {count, plural, one{1 new} other{{count} new}}",
+  "@libraryNewEpisodeCount": {
+    "description": "New episode caption with count.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryNewEpisodeDateCount": "S{season} E{episode} · {date} · {count, plural, one{1 new} other{{count} new}}",
+  "@libraryNewEpisodeDateCount": {
+    "description": "New episode caption with release date and count.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryViewingTitle": "{title} · S{season} E{episode}",
+  "@libraryViewingTitle": {
+    "description": "History row title for series episode.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryViewingNamedTitle": "{title} · S{season} E{episode} {name}",
+  "@libraryViewingNamedTitle": {
+    "description": "History row title for named series episode.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryViewingState": "{date} · {state}",
+  "@libraryViewingState": {
+    "description": "History row date and viewing state.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "playerLookingForSources": "Looking for sources…",
+  "playerWaitingForSource": "Looking for sources — starting as soon as there is one…",
+  "playerCoreCouldNotAsk": "The core could not ask for copies",
+  "playerCoreNoAnswer": "The core did not answer",
+  "playerNoSourceAddons": "No source addons",
+  "@playerNoSourceAddons": {
+    "description": "Playback source selection status or action."
+  },
+  "playerAddSource": "Add one",
+  "@playerAddSource": {
+    "description": "Playback source selection status or action."
+  },
+  "playerStream": "Stream",
+  "@playerStream": {
+    "description": "Playback source selection status or action."
+  },
+  "playerOutTodayNoCopies": "Out today, no copies yet",
+  "playerOutYesterdayNoCopies": "Out yesterday, no copies yet",
+  "playerNoCopies": "No copies found",
+  "@playerNoCopies": {
+    "description": "Playback source selection status or action."
+  },
+  "playerResume": "Resume",
+  "@playerResume": {
+    "description": "Playback source selection status or action."
+  },
+  "playerPlayEpisode": "Play S{season} E{episode}",
+  "@playerPlayEpisode": {
+    "description": "Play button for an episode.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "playerResumeEpisode": "Resume S{season} E{episode}",
+  "@playerResumeEpisode": {
+    "description": "Resume button for an episode.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "playerClockLeft": "{clock} left",
+  "@playerClockLeft": {
+    "description": "Remaining playback time on the title page.",
+    "placeholders": {
+      "clock": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryListEmptyHint": "Add a film or a series with + beside Play on its page, and it waits here.",
+  "libraryHistoryEmptyHint": "What you watch is listed here, the latest first, with where you stopped. This is also where you rate it.",
+  "librarySort": "Sort: {name}",
+  "@librarySort": {
+    "description": "Current sorting choice on My list button.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsReadyToWatch": "Ready to watch",
+  "@downloadsReadyToWatch": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsArriving": "Arriving",
+  "@downloadsArriving": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsWaiting": "Waiting",
+  "@downloadsWaiting": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsPaused": "Paused",
+  "@downloadsPaused": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsFailed": "Failed",
+  "@downloadsFailed": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsFindingPeers": "Finding peers",
+  "@downloadsFindingPeers": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsFetchingMetadata": "Fetching metadata",
+  "@downloadsFetchingMetadata": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsPeersNotSending": "Peers not sending",
+  "@downloadsPeersNotSending": {
+    "description": "Download panel section or row status."
+  },
+  "downloadsSeasonRun": "S{season} {episodes}",
+  "@downloadsSeasonRun": {
+    "description": "Downloaded season and episode range.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episodes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsEpisode": "E{episode}",
+  "@downloadsEpisode": {
+    "description": "Episode label or download range.",
+    "placeholders": {
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsEpisodeRange": "E{start}–E{end}",
+  "@downloadsEpisodeRange": {
+    "description": "Range of downloaded episodes.",
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsMinutes": "{minutes, plural, one{1 min} other{{minutes} min}}",
+  "@downloadsMinutes": {
+    "description": "Approximate download duration.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsHours": "{hours, plural, one{1 h} other{{hours} h}}",
+  "@downloadsHours": {
+    "description": "Approximate download duration.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsHoursMinutes": "{hours, plural, one{1 h} other{{hours} h}} {minutes, plural, one{1 min} other{{minutes} min}}",
+  "@downloadsHoursMinutes": {
+    "description": "Approximate download duration in hours and minutes.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsWaitingSince": "{status} · {duration}",
+  "@downloadsWaitingSince": {
+    "description": "Reason a download is waiting and time spent waiting.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsRunningTooltip": "{count, plural, one{1 downloading} other{{count} downloading}} · {percent}%",
+  "@downloadsRunningTooltip": {
+    "description": "Download status in top bar tooltip.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsRate": "{size}/s",
+  "@downloadsRate": {
+    "description": "Download speed in panel.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsRateArrow": "↓ {size}/s",
+  "@downloadsRateArrow": {
+    "description": "Total download speed in panel header.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsPercent": "{percent}%",
+  "@downloadsPercent": {
+    "description": "Download progress in panel.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsEpisodeNext": "E{episode} next",
+  "@downloadsEpisodeNext": {
+    "description": "Next episode to play from a downloaded season.",
+    "placeholders": {
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsStopDiscard": "Stop and discard {episodes}",
+  "@downloadsStopDiscard": {
+    "description": "Tooltip for stopping downloads; episodes may be empty.",
+    "placeholders": {
+      "episodes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsPause": "Pause {episodes}",
+  "@downloadsPause": {
+    "description": "Tooltip for pausing downloads; episodes may be empty.",
+    "placeholders": {
+      "episodes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsResume": "Resume {episodes}",
+  "@downloadsResume": {
+    "description": "Tooltip for resuming downloads; episodes may be empty.",
+    "placeholders": {
+      "episodes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsRetry": "Retry {episodes}",
+  "@downloadsRetry": {
+    "description": "Tooltip for retrying downloads; episodes may be empty.",
+    "placeholders": {
+      "episodes": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsStorageLink": "Storage ›",
+  "@downloadsStorageLink": {
+    "description": "Link from downloads panel to storage settings."
+  },
+  "downloadsUsedOf": "{used} of {limit}",
+  "@downloadsUsedOf": {
+    "description": "Downloaded bytes against disk limit.",
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsUsedFree": "{used} · {free} free",
+  "@downloadsUsedFree": {
+    "description": "Downloaded bytes and free disk space.",
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsUsedOnDisk": "{used} on disk",
+  "@downloadsUsedOnDisk": {
+    "description": "Downloaded bytes on disk.",
+    "placeholders": {
+      "used": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsAboutDuration": "about {duration}",
+  "@downloadsAboutDuration": {
+    "description": "Approximate time for downloads to finish.",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsDownloaded": "Downloaded",
+  "@downloadsDownloaded": {
+    "description": "Accessibility label for progress bar."
+  },
+  "searchAllResults": "All results for “{query}”",
+  "@searchAllResults": {
+    "description": "Search panel link to full results.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchYearKind": "{year}  {kind}",
+  "@searchYearKind": {
+    "description": "Year and kind in compact search result.",
+    "placeholders": {
+      "year": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryRatingChange": "Your rating · change",
+  "@libraryRatingChange": {
+    "description": "Tooltip on a title rating button."
+  },
+  "libraryYourRating": "Your rating",
+  "@libraryYourRating": {
+    "description": "Heading of rating popover."
+  },
+  "libraryRatingOfTen": "{score} of 10",
+  "@libraryRatingOfTen": {
+    "description": "Rating popover selected score.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryRemoveRating": "Remove rating",
+  "@libraryRemoveRating": {
+    "description": "Button in rating popover."
+  },
+  "settingsAddonCatalog": "Catalog",
+  "@settingsAddonCatalog": {
+    "description": "Addon resource in Sources settings."
+  },
+  "settingsAddonTitles": "Titles",
+  "@settingsAddonTitles": {
+    "description": "Addon resource in Sources settings."
+  },
+  "settingsAddonStreams": "Streams",
+  "@settingsAddonStreams": {
+    "description": "Addon resource in Sources settings."
+  },
+  "settingsAddonSubtitles": "Subtitles",
+  "@settingsAddonSubtitles": {
+    "description": "Addon resource in Sources settings."
+  },
+  "itemEpisodeNumber": "Episode {number}",
+  "@itemEpisodeNumber": {
+    "description": "Fallback title for an unnamed episode.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "itemEpisodeNamed": "Episode {number} · {title}",
+  "@itemEpisodeNamed": {
+    "description": "Full title for a named episode.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "itemEpisodeCardNamed": "{number} · {title}",
+  "@itemEpisodeCardNamed": {
+    "description": "Episode card title when the provider gives a name.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playerProviderNoAnswer": "{provider} did not answer",
+  "@playerProviderNoAnswer": {
+    "description": "Source provider failure.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "playerProviderBlocked": "{provider} is blocking requests from here ({status})",
+  "@playerProviderBlocked": {
+    "description": "Source provider failure.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "playerProviderLimited": "{provider} is limiting requests (429)",
+  "@playerProviderLimited": {
+    "description": "Source provider failure.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "playerProviderDown": "{provider} is down ({status})",
+  "@playerProviderDown": {
+    "description": "Source provider failure.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "playerProviderError": "{provider}: {reason}",
+  "@playerProviderError": {
+    "description": "Source provider failure with core-provided reason.",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderBroken": "{codec} is decoded here by {driver}, which loses sync on a backward seek.",
+  "@playerDecoderBroken": {
+    "description": "Warning for a broken decoder.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      },
+      "driver": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderNoSoundMark": "no {codec} sound",
+  "@playerDecoderNoSoundMark": {
+    "description": "Short source row warning.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderMissingMark": "no {codec} here",
+  "@playerDecoderMissingMark": {
+    "description": "Short source row warning.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderNoSound": "Nothing installed here decodes {codec}, so this copy has no sound.",
+  "@playerDecoderNoSound": {
+    "description": "Warning for a source with missing audio decoder.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderMissing": "Nothing installed here decodes {codec}.",
+  "@playerDecoderMissing": {
+    "description": "Warning for a source with missing video decoder.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCodecFedoraHint": "They ship in RPM Fusion; Settings has the two commands.",
+  "settingsCodecSuseHint": "Install libavcodec from Packman.",
+  "itemSpecialsDownload": "specials",
+  "@itemSpecialsDownload": {
+    "description": "Season download action name for specials."
+  },
+  "itemSeasonDownload": "season {number}",
+  "@itemSeasonDownload": {
+    "description": "Season download action name.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "itemDownloadOnDisk": "{name} on disk",
+  "@itemDownloadOnDisk": {
+    "description": "Season download button tooltip when complete.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "itemDownloadProgress": "{name} · {have} of {total}",
+  "@itemDownloadProgress": {
+    "description": "Season download button tooltip while running.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "have": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "itemSeasonCount": "{count, plural, one{1 season} other{{count} seasons}}",
+  "@itemSeasonCount": {
+    "description": "Number of seasons in title metadata.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@settingsGeneral": {
+    "description": "Settings section title."
+  },
+  "@settingsLanguage": {
+    "description": "Language setting label."
+  },
+  "@searchShortcutTooltip": {
+    "description": "Tooltip for opening search with Ctrl+F."
+  },
+  "@libraryRemoveFromList": {
+    "description": "Tooltip for removing title from My list."
+  },
+  "@settingsFolderEmpty": {
+    "description": "Empty folder picker message."
+  },
+  "@settingsFolderUse": {
+    "description": "Confirm selected folder in folder picker."
+  },
+  "@settingsSourceNotAnsweredYet": {
+    "description": "Addon status before a response."
+  },
+  "@settingsSourcesReorder": {
+    "description": "Accessible instruction for reordering addons."
+  },
+  "@settingsAllPlayerKeys": {
+    "description": "Button to show every player shortcut."
+  },
+  "@libraryHistoryEmpty": {
+    "description": "Empty history heading."
+  },
+  "@libraryRemoveFromHistory": {
+    "description": "Action on a history row."
+  },
+  "@downloadsNoLanguages": {
+    "description": "Source row with no reported languages."
+  },
+  "@downloadsLastUsed": {
+    "description": "Source row last-used marker."
+  },
+  "downloadsStopDiscardOne": "Stop and discard",
+  "@downloadsStopDiscardOne": {
+    "description": "Button tooltip for stopping one download."
+  },
+  "downloadsPauseOne": "Pause",
+  "@downloadsPauseOne": {
+    "description": "Button tooltip for pausing one download."
+  },
+  "downloadsResumeOne": "Resume",
+  "@downloadsResumeOne": {
+    "description": "Button tooltip for resuming one download."
+  },
+  "downloadsRetryOne": "Retry",
+  "@downloadsRetryOne": {
+    "description": "Button tooltip for retrying one download."
+  },
+  "downloadsMoreLanguages": "{count, plural, =0{+0} one{+1} other{+{count}}}",
+  "@downloadsMoreLanguages": {
+    "description": "Number of additional source languages after the first three codes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsOnDiskLower": "on disk",
+  "@downloadsOnDiskLower": {
+    "description": "Lowercase local availability in a source row."
+  },
+  "downloadsSeasonPack": "S{season}",
+  "@downloadsSeasonPack": {
+    "description": "Season pack marker in a source release tag.",
+    "placeholders": {
+      "season": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsRemux": "Remux",
+  "@downloadsRemux": {
+    "description": "Source release tag for a remux copy."
+  },
+  "itemPlaybackTitle": "{title} · S{season}E{episode}",
+  "@itemPlaybackTitle": {
+    "description": "Title of a series episode shown in the player. Numbers are zero-padded.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "season": {
+        "type": "String"
+      },
+      "episode": {
+        "type": "String"
+      }
+    }
+  },
+  "playerSearchAgain": "Search again",
+  "@playerSearchAgain": {
+    "description": "Retry subtitle search in player menu."
+  },
+  "playerAudio": "Audio",
+  "@playerAudio": {
+    "description": "Audio track section in player menu."
+  },
+  "playerSubtitles": "Subtitles",
+  "@playerSubtitles": {
+    "description": "Subtitle track section in player menu."
+  },
+  "playerSubtitleStyle": "Subtitle style",
+  "@playerSubtitleStyle": {
+    "description": "Player subtitle style menu."
+  },
+  "playerNoCoreAnswer": "No answer from the core",
+  "playerOpenSubtitlesNone": "OpenSubtitles has nothing for this file",
+  "playerOpenSubtitlesNoMore": "OpenSubtitles has nothing else for this file",
+  "playerNoSound": "No sound in this file",
+  "playerOff": "Off",
+  "@playerOff": {
+    "description": "Disable subtitles in player track menu."
+  },
+  "playerLooking": "Looking…",
+  "@playerLooking": {
+    "description": "Subtitle search in progress."
+  },
+  "playerForced": "Forced",
+  "@playerForced": {
+    "description": "Forced subtitle track label."
+  },
+  "playerSize": "Size",
+  "@playerSize": {
+    "description": "Subtitle size control."
+  },
+  "playerPosition": "Position",
+  "@playerPosition": {
+    "description": "Subtitle position control."
+  },
+  "playerBottom": "bottom",
+  "@playerBottom": {
+    "description": "Subtitle position at the bottom."
+  },
+  "playerTiming": "Timing",
+  "@playerTiming": {
+    "description": "Subtitle timing control."
+  },
+  "playerInSync": "in sync",
+  "@playerInSync": {
+    "description": "Subtitle timing is unchanged."
+  },
+  "playerBackground": "Background",
+  "@playerBackground": {
+    "description": "Subtitle background style control."
+  },
+  "playerNone": "None",
+  "@playerNone": {
+    "description": "No subtitle background."
+  },
+  "playerShadow": "Shadow",
+  "@playerShadow": {
+    "description": "Subtitle shadow background."
+  },
+  "playerBox": "Box",
+  "@playerBox": {
+    "description": "Subtitle box background."
+  },
+  "playerNormal": "Normal",
+  "@playerNormal": {
+    "description": "Normal subtitle size."
+  },
+  "playerSpeedNormal": "Normal",
+  "@playerSpeedNormal": {
+    "description": "Normal playback speed (1×)."
+  },
+  "playerSmall": "Small",
+  "@playerSmall": {
+    "description": "Small subtitle size."
+  },
+  "playerLarge": "Large",
+  "@playerLarge": {
+    "description": "Large subtitle size."
+  },
+  "playerLarger": "Larger",
+  "@playerLarger": {
+    "description": "Larger subtitle size."
+  },
+  "playerSource": "Source",
+  "@playerSource": {
+    "description": "Playing copy selector."
+  },
+  "playerSpeed": "Speed",
+  "@playerSpeed": {
+    "description": "Playback speed selector."
+  },
+  "playerPicture": "Picture",
+  "@playerPicture": {
+    "description": "Picture fit selector."
+  },
+  "playerChapters": "Chapters",
+  "@playerChapters": {
+    "description": "Chapter selector."
+  },
+  "playerDecoding": "Decoding",
+  "@playerDecoding": {
+    "description": "Hardware or software video decoding selector."
+  },
+  "playerStatistics": "Statistics",
+  "playerKeyboardShortcuts": "Keyboard shortcuts",
+  "playerFit": "Fit",
+  "@playerFit": {
+    "description": "Fit picture inside player."
+  },
+  "playerFill": "Fill",
+  "@playerFill": {
+    "description": "Fill player with picture."
+  },
+  "playerStretch": "Stretch",
+  "@playerStretch": {
+    "description": "Stretch picture in player."
+  },
+  "playerNoCopiesEpisode": "No copies for this episode",
+  "playerSourcesUnavailable": "Sources unavailable",
+  "playerLookingSources": "Looking for sources…",
+  "playerHardware": "Hardware",
+  "@playerHardware": {
+    "description": "Hardware video decoding."
+  },
+  "playerSoftware": "Software",
+  "@playerSoftware": {
+    "description": "Software video decoding."
+  },
+  "playerAskingMpv": "Asking mpv…",
+  "playerNoMpvBindings": "mpv has no bindings to list",
+  "playerThisEpisode": "This episode",
+  "@playerThisEpisode": {
+    "description": "Current episode in player download panel."
+  },
+  "playerThisFilm": "This film",
+  "@playerThisFilm": {
+    "description": "Current film in player download panel."
+  },
+  "playerDownloadNow": "Download now",
+  "playerWaiting": "Waiting",
+  "@playerWaiting": {
+    "description": "Next episode download has not begun."
+  },
+  "playerNoRoom": "No room",
+  "@playerNoRoom": {
+    "description": "Storage full for next episode download."
+  },
+  "playerDownloadAnyway": "Download anyway",
+  "playerStorageSettings": "Storage settings",
+  "playerNoCopiesShort": "No copies",
+  "@playerNoCopiesShort": {
+    "description": "No available copy for next episode."
+  },
+  "playerFailed": "Failed",
+  "@playerFailed": {
+    "description": "Next episode download failed."
+  },
+  "playerPaused": "Paused",
+  "@playerPaused": {
+    "description": "Player download panel state."
+  },
+  "playerBackEsc": "Back (Esc)",
+  "playerPauseSpace": "Pause (Space)",
+  "playerPlaySpace": "Play (Space)",
+  "playerNextEpisode": "Next episode",
+  "playerDownload": "Download",
+  "@playerDownload": {
+    "description": "Player download button tooltip."
+  },
+  "playerSubtitlesShortcut": "Subtitles (C)",
+  "playerSettings": "Settings",
+  "@playerSettings": {
+    "description": "Player settings button tooltip."
+  },
+  "playerEpisodes": "Episodes",
+  "@playerEpisodes": {
+    "description": "Player episodes button tooltip."
+  },
+  "playerExitFullscreen": "Exit fullscreen (F)",
+  "playerFullscreen": "Fullscreen (F)",
+  "playerUnmute": "Unmute (M)",
+  "playerMute": "Mute (M)",
+  "playerSkipOpening": "Skip opening",
+  "playerCouldNotStartCopy": "Could not start this copy",
+  "playerCoreStopped": "The core stopped answering",
+  "playerCopyWouldNotStart": "This copy would not start",
+  "playerTryAgain": "Try again",
+  "@playerTryAgain": {
+    "description": "Retry starting playback."
+  },
+  "playerWatched": "watched",
+  "@playerWatched": {
+    "description": "Watched episode status in player episode list."
+  },
+  "playerReset": "Reset",
+  "@playerReset": {
+    "description": "Reset subtitle timing in player menu."
+  },
+  "playerMoreTracks": "{count, plural, one{1 more} other{{count} more}}",
+  "@playerMoreTracks": {
+    "description": "Additional subtitle choices.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerTrack": "Track {id}",
+  "@playerTrack": {
+    "description": "Untitled track in player menu.",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "playerChannels": "{count, plural, =0{0 ch} one{1 ch} other{{count} ch}}",
+  "@playerChannels": {
+    "description": "Audio channel count in player menu.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPositionUp": "{percent}% up",
+  "@playerPositionUp": {
+    "description": "Subtitle vertical position above the bottom.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "playerTimingOffset": "{offset} s",
+  "@playerTimingOffset": {
+    "description": "Signed subtitle timing offset in seconds.",
+    "placeholders": {
+      "offset": {
+        "type": "String"
+      }
+    }
+  },
+  "playerRate": "{rate}×",
+  "@playerRate": {
+    "description": "Playback speed multiplier.",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "playerSeedCount": "{count, plural, =0{0 seeds} one{1 seed} other{{count} seeds}}",
+  "@playerSeedCount": {
+    "description": "Source peer seed count in player menu.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerChapter": "Chapter {number}",
+  "@playerChapter": {
+    "description": "Untitled chapter in player.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "playerNextNamed": "Next · {name}",
+  "@playerNextNamed": {
+    "description": "Next episode download section.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDownloadProgress": "{completed} of {total}",
+  "@playerDownloadProgress": {
+    "description": "Downloaded bytes out of total in player panel.",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "playerPeersSeeding": "{rate} · {peers, plural, one{1 peer} other{{peers} peers}}, {seeders, plural, one{1 seeding} other{{seeders} seeding}}",
+  "@playerPeersSeeding": {
+    "description": "Current download rate and peer counts in player panel.",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "peers": {
+        "type": "int"
+      },
+      "seeders": {
+        "type": "int"
+      }
+    }
+  },
+  "playerPeers": "{stage} · {peers, plural, one{1 peer} other{{peers} peers}}",
+  "@playerPeers": {
+    "description": "Download stage and peers in player panel.",
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      },
+      "peers": {
+        "type": "int"
+      }
+    }
+  },
+  "playerNoCopyOf": "No copy of {title}",
+  "@playerNoCopyOf": {
+    "description": "Playback could not find a copy for title.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderCouldNotDecode": "The player could not decode {codec}.",
+  "@playerDecoderCouldNotDecode": {
+    "description": "Playback decoder error.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerDecoderMissingShort": "Nothing installed here decodes {codec}",
+  "@playerDecoderMissingShort": {
+    "description": "Decoder unavailable in player waiting screen.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerSeason": "Season {season}",
+  "@playerSeason": {
+    "description": "Season option in player episodes panel.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      }
+    }
+  },
+  "playerSeasonDropdown": "Season {season} ▾",
+  "@playerSeasonDropdown": {
+    "description": "Selected season menu button in player episodes panel.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      }
+    }
+  },
+  "playerOutDate": "Out {date}",
+  "@playerOutDate": {
+    "description": "Upcoming episode release date in player episodes panel.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "playerNextIn": "{seconds, plural, one{Next episode in 1} other{Next episode in {seconds}}}",
+  "@playerNextIn": {
+    "description": "Autoplay countdown on next episode card.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "playerNoSoundDecoder": "This copy has no sound: nothing installed here decodes {codec}.",
+  "@playerNoSoundDecoder": {
+    "description": "Missing audio decoder notice.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerPictureDecoder": "The picture stopped: nothing installed here decodes {codec}.",
+  "@playerPictureDecoder": {
+    "description": "Missing video decoder notice.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerNoSoundDecodeFailed": "This copy has no sound: {codec} could not be decoded.",
+  "@playerNoSoundDecodeFailed": {
+    "description": "Audio decoder failed notice.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerPictureDecodeFailed": "The picture stopped: {codec} could not be decoded.",
+  "@playerPictureDecodeFailed": {
+    "description": "Video decoder failed notice.",
+    "placeholders": {
+      "codec": {
+        "type": "String"
+      }
+    }
+  },
+  "playerEpisodeTitle": "S{season} E{episode} · {title}",
+  "@playerEpisodeTitle": {
+    "description": "Episode identifier and title in player bar.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playerCouldNotStartFile": "The player could not start this file.",
+  "playerEpisodeId": "S{season} E{episode}",
+  "@playerEpisodeId": {
+    "description": "Episode identifier in player bar.",
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "playerLastUsed": "last used",
+  "@playerLastUsed": {
+    "description": "Previously used source in player menu."
+  },
+  "playerDownloading": "Downloading",
+  "@playerDownloading": {
+    "description": "Active download state in player panel."
+  },
+  "playerOnDisk": "On disk",
+  "@playerOnDisk": {
+    "description": "Completed download state in player panel."
+  },
+  "playerSubtitleOpenSubtitles": "OpenSubtitles",
+  "@playerSubtitleOpenSubtitles": {
+    "description": "Subtitle search provider name."
+  },
+  "playerPercent": "{percent}%",
+  "@playerPercent": {
+    "description": "Download progress or loading percent.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "playerShortcutLeaveFullscreen": "Leave fullscreen, else back to the title",
+  "@playerShortcutLeaveFullscreen": {
+    "description": "Own shortcut action shown in player shortcuts list."
+  },
+  "playerShortcutBack": "Back to the title",
+  "@playerShortcutBack": {
+    "description": "Own shortcut action shown in player shortcuts list."
+  },
+  "playerShortcutTracks": "Audio & subtitles",
+  "@playerShortcutTracks": {
+    "description": "Own shortcut action shown in player shortcuts list."
+  },
+  "playerShortcutFullscreen": "Fullscreen",
+  "@playerShortcutFullscreen": {
+    "description": "Own shortcut action shown in player shortcuts list."
+  },
+  "playerSizeS": "S",
+  "@playerSizeS": {
+    "description": "Small subtitle size button."
+  },
+  "playerSizeM": "M",
+  "@playerSizeM": {
+    "description": "Medium subtitle size button."
+  },
+  "playerSizeL": "L",
+  "@playerSizeL": {
+    "description": "Large subtitle size button."
+  },
+  "playerSizeXl": "XL",
+  "@playerSizeXl": {
+    "description": "Extra large subtitle size button."
+  },
+  "playerShortcutSeekSecondsForward": "Seek {count, plural, one{1 second} other{{count} seconds}} forward",
+  "@playerShortcutSeekSecondsForward": {
+    "description": "Player shortcut action for forward seek in seconds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerShortcutSeekSecondsBackward": "Seek {count, plural, one{1 second} other{{count} seconds}} backward",
+  "@playerShortcutSeekSecondsBackward": {
+    "description": "Player shortcut action for backward seek in seconds.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerShortcutSeekMinutesForward": "Seek {count, plural, one{1 minute} other{{count} minutes}} forward",
+  "@playerShortcutSeekMinutesForward": {
+    "description": "Player shortcut action for forward seek in minutes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerShortcutSeekMinutesBackward": "Seek {count, plural, one{1 minute} other{{count} minutes}} backward",
+  "@playerShortcutSeekMinutesBackward": {
+    "description": "Player shortcut action for backward seek in minutes.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerShortcutVolume": "Volume {step}",
+  "@playerShortcutVolume": {
+    "description": "Player shortcut action for volume adjustment.",
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "@playerNoCoreAnswer": {
+    "description": "Subtitle search failed because the core did not answer."
+  },
+  "@playerNoSound": {
+    "description": "Audio track column empty state in player menu."
+  },
+  "@playerStatistics": {
+    "description": "Button opening mpv statistics in player settings menu."
+  },
+  "@playerKeyboardShortcuts": {
+    "description": "Player settings menu page listing keyboard shortcuts."
+  },
+  "@playerSourcesUnavailable": {
+    "description": "Source selection menu could not load available copies."
+  },
+  "@playerLookingSources": {
+    "description": "Source selection menu is loading copies."
+  },
+  "@playerAskingMpv": {
+    "description": "Player shortcuts page is waiting for mpv bindings."
+  },
+  "@playerDownloadNow": {
+    "description": "Start downloading the next episode from player download panel."
+  },
+  "@playerDownloadAnyway": {
+    "description": "Download next episode despite low storage."
+  },
+  "@playerStorageSettings": {
+    "description": "Open storage settings from player download panel."
+  },
+  "@playerBackEsc": {
+    "description": "Back button tooltip in player; Esc is its keyboard shortcut."
+  },
+  "@playerPauseSpace": {
+    "description": "Pause button tooltip in player; Space is its keyboard shortcut."
+  },
+  "@playerPlaySpace": {
+    "description": "Play button tooltip in player; Space is its keyboard shortcut."
+  },
+  "@playerNextEpisode": {
+    "description": "Button or card for playing the next episode."
+  },
+  "@playerSubtitlesShortcut": {
+    "description": "Subtitle button tooltip in player; C is its keyboard shortcut."
+  },
+  "@playerExitFullscreen": {
+    "description": "Exit fullscreen button tooltip in player; F is its keyboard shortcut."
+  },
+  "@playerFullscreen": {
+    "description": "Enter fullscreen button tooltip in player; F is its keyboard shortcut."
+  },
+  "@playerUnmute": {
+    "description": "Unmute button tooltip in player; M is its keyboard shortcut."
+  },
+  "@playerMute": {
+    "description": "Mute button tooltip in player; M is its keyboard shortcut."
+  },
+  "@playerSkipOpening": {
+    "description": "Skip opening button in player."
+  },
+  "@playerCouldNotStartCopy": {
+    "description": "Playback waiting screen after a chosen copy fails."
+  },
+  "@playerCopyWouldNotStart": {
+    "description": "Playback waiting screen when a copy fails to start."
+  },
+  "playerKeyClick": "Click",
+  "@playerKeyClick": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyDoubleClick": "Double click",
+  "@playerKeyDoubleClick": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyRightClick": "Right click",
+  "@playerKeyRightClick": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyMiddleClick": "Middle click",
+  "@playerKeyMiddleClick": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyBackButton": "Back button",
+  "@playerKeyBackButton": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyForwardButton": "Forward button",
+  "@playerKeyForwardButton": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyWheelUp": "Wheel up",
+  "@playerKeyWheelUp": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyWheelDown": "Wheel down",
+  "@playerKeyWheelDown": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyWheelLeft": "Wheel left",
+  "@playerKeyWheelLeft": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  },
+  "playerKeyWheelRight": "Wheel right",
+  "@playerKeyWheelRight": {
+    "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
+  }
+}

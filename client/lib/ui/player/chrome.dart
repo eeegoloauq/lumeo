@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../widgets/download_glyph.dart';
 import '../widgets/window_controls.dart';
 import 'chapters.dart';
@@ -160,7 +161,7 @@ class PlayerChrome extends StatelessWidget {
                 children: [
                   PlayerButton(
                     icon: Icons.arrow_back,
-                    tooltip: 'Back (Esc)',
+                    tooltip: context.l10n.playerBackEsc,
                     onPressed: actions.close,
                   ),
                   const SizedBox(width: 16),
@@ -231,14 +232,14 @@ class PlayerChrome extends StatelessWidget {
                       PlayerButton(
                         icon: model.playing ? Icons.pause : Icons.play_arrow,
                         tooltip: model.playing
-                            ? 'Pause (Space)'
-                            : 'Play (Space)',
+                            ? context.l10n.playerPauseSpace
+                            : context.l10n.playerPlaySpace,
                         onPressed: actions.togglePlay,
                       ),
                       if (model.hasNext && actions.nextEpisode != null)
                         PlayerButton(
                           icon: Icons.skip_next,
-                          tooltip: 'Next episode',
+                          tooltip: context.l10n.playerNextEpisode,
                           onPressed: actions.nextEpisode!,
                         ),
                       VolumeControl(
@@ -264,7 +265,7 @@ class PlayerChrome extends StatelessWidget {
                             : Padding(
                                 padding: const EdgeInsets.only(left: 8),
                                 child: Text(
-                                  '· ${chapterLabel(model.chapters, chapter)}',
+                                  '· ${chapterLabel(model.chapters, chapter, context.l10n)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -278,7 +279,9 @@ class PlayerChrome extends StatelessWidget {
                         MenuButton(
                           icon: Icons.download,
                           glyph: DownloadGlyph.of(download),
-                          tooltip: download.isDone ? 'On disk' : 'Download',
+                          tooltip: download.isDone
+                              ? context.l10n.playerOnDisk
+                              : context.l10n.playerDownload,
                           which: PlayerMenu.download,
                           width: DownloadPanel.width,
                           model: model,
@@ -289,7 +292,7 @@ class PlayerChrome extends StatelessWidget {
                         icon: model.subtitlesOn
                             ? Icons.closed_caption
                             : Icons.closed_caption_outlined,
-                        tooltip: 'Subtitles (C)',
+                        tooltip: context.l10n.playerSubtitlesShortcut,
                         which: PlayerMenu.tracks,
                         width: TracksMenu.width,
                         model: model,
@@ -298,7 +301,7 @@ class PlayerChrome extends StatelessWidget {
                       ),
                       MenuButton(
                         icon: Icons.settings,
-                        tooltip: 'Settings',
+                        tooltip: context.l10n.playerSettings,
                         which: PlayerMenu.settings,
                         width: 340,
                         model: model,
@@ -309,7 +312,7 @@ class PlayerChrome extends StatelessWidget {
                           actions.episodes != null)
                         PlayerButton(
                           icon: Icons.playlist_play,
-                          tooltip: 'Episodes',
+                          tooltip: context.l10n.playerEpisodes,
                           onPressed: actions.episodes!,
                         ),
                       PlayerButton(
@@ -317,8 +320,8 @@ class PlayerChrome extends StatelessWidget {
                             ? Icons.fullscreen_exit
                             : Icons.fullscreen,
                         tooltip: model.fullscreen
-                            ? 'Exit fullscreen (F)'
-                            : 'Fullscreen (F)',
+                            ? context.l10n.playerExitFullscreen
+                            : context.l10n.playerFullscreen,
                         onPressed: actions.toggleFullscreen,
                       ),
                     ],
@@ -632,7 +635,7 @@ class _ScrubberState extends State<Scrubber> {
                     frame: widget.thumbnails?.frame,
                     chapter: chapter == null
                         ? null
-                        : chapterLabel(widget.chapters, chapter),
+                        : chapterLabel(widget.chapters, chapter, context.l10n),
                     time: clock(at(pointed)),
                   ),
                 ),
@@ -838,7 +841,9 @@ class _VolumeControlState extends State<VolumeControl> {
                 : shown < 60
                 ? Icons.volume_down
                 : Icons.volume_up,
-            tooltip: widget.muted ? 'Unmute (M)' : 'Mute (M)',
+            tooltip: widget.muted
+                ? context.l10n.playerUnmute
+                : context.l10n.playerMute,
             onPressed: widget.onToggleMute,
           ),
           AnimatedContainer(

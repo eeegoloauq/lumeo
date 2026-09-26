@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'buttons.dart';
 import 'rating_button.dart';
@@ -91,7 +92,9 @@ class _LibraryActionsState extends State<LibraryActions> {
       if (!mounted) return;
       setState(() => _inList = _saved);
       _say(
-        want ? 'Could not add it to My list' : 'Could not take it off My list',
+        want
+            ? context.l10n.libraryCouldNotAdd
+            : context.l10n.libraryCouldNotRemove,
       );
     } finally {
       _sending = false;
@@ -106,7 +109,7 @@ class _LibraryActionsState extends State<LibraryActions> {
     } on Object catch (_) {
       if (!mounted) return;
       setState(() => _score = was);
-      _say('The rating was not saved');
+      _say(context.l10n.libraryRatingNotSaved);
     }
   }
 
@@ -118,7 +121,7 @@ class _LibraryActionsState extends State<LibraryActions> {
     } on Object catch (_) {
       if (!mounted) return;
       setState(() => _score = was);
-      _say('The rating was not removed');
+      _say(context.l10n.libraryRatingNotRemoved);
     }
   }
 
@@ -157,7 +160,9 @@ class ListButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       key: const ValueKey('list-button'),
-      tooltip: inList ? 'On My list · remove' : 'Add to My list',
+      tooltip: inList
+          ? context.l10n.libraryRemoveFromList
+          : context.l10n.libraryAddToList,
       onPressed: onPressed,
       isSelected: inList,
       style: IconButton.styleFrom(

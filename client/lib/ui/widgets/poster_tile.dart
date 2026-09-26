@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'artwork_image.dart';
 import 'download_mark.dart';
@@ -203,7 +205,11 @@ class _PosterTileState extends State<PosterTile> {
                                         ),
                                       ),
                                     ),
-                                    TextSpan(text: '${widget.score}'),
+                                    TextSpan(
+                                      text: NumberFormat.decimalPattern(
+                                        context.l10n.localeName,
+                                      ).format(widget.score),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -254,7 +260,7 @@ class _HoverFacts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rating = item.imdbRating > 0
-        ? item.imdbRating.toStringAsFixed(1)
+        ? NumberFormat('0.0', context.l10n.localeName).format(item.imdbRating)
         : '';
     return DecoratedBox(
       // Dark enough at the foot that type sits on a ground rather than on

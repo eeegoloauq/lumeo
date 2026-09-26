@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/decoders.dart';
 import '../theme.dart';
 import 'play_block.dart';
@@ -15,7 +17,7 @@ Future<void> showSources(BuildContext context, SourceChoice choice) =>
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Close sources',
+      barrierLabel: context.l10n.downloadsCloseSources,
       barrierColor: const Color(0x80000000),
       transitionDuration: Motion.panel,
       pageBuilder: (context, _, _) => Align(
@@ -32,21 +34,23 @@ Future<void> showSources(BuildContext context, SourceChoice choice) =>
     );
 
 /// The copy as one line: who made it and what kind of copy it is.
-String sourceTitle(MediaSource s) => [
+String sourceTitle(MediaSource s, AppLocalizations l10n) => [
   s.release.group.isNotEmpty ? s.release.group : s.tracker,
-  s.release.kind,
+  s.release.kind(l10n),
 ].where((e) => e.isNotEmpty).join(' · ');
 
 /// The copy's languages as codes: flags name countries, not languages. Three
 /// is a fact; twenty-six is a wall, so the rest becomes a count.
-List<String> languageCodes(MediaSource s) {
+List<String> languageCodes(MediaSource s, AppLocalizations l10n) {
   final codes = s.languages.map((e) => e.toUpperCase()).toList();
-  return codes.length <= 3 ? codes : [...codes.take(3), '+${codes.length - 3}'];
+  return codes.length <= 3
+      ? codes
+      : [...codes.take(3), l10n.downloadsMoreLanguages(codes.length - 3)];
 }
 
-String localLabel(MediaSource s) => switch (s.local) {
-  'done' => 'on disk',
-  'partial' => 'part on disk',
+String localLabel(MediaSource s, AppLocalizations l10n) => switch (s.local) {
+  'done' => l10n.downloadsOnDiskLower,
+  'partial' => l10n.downloadsPartOnDisk,
   _ => '',
 };
 
@@ -79,16 +83,17 @@ class _SourceDrawer extends StatelessWidget {
                   children: [
                     if (c.season > 0) ...[
                       Text(
-                        'S${c.season} E${c.episode}',
+                        context.l10n.downloadsSeasonEpisode(
+                          c.season,
+                          c.episode,
+                        ),
                         style: Typo.cardTitle.copyWith(fontSize: 18),
                       ),
                       const SizedBox(width: 10),
                     ],
                     Expanded(
                       child: Text(
-                        sources.length == 1
-                            ? '1 copy'
-                            : '${sources.length} copies',
+                        context.l10n.downloadsCopyCount(sources.length),
                         style: c.season > 0
                             ? Typo.data
                             : Typo.cardTitle.copyWith(fontSize: 18),
@@ -102,7 +107,10 @@ class _SourceDrawer extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
-                    for (final (heading, rows) in _groups(sources)) ...[
+                    for (final (heading, rows) in _groups(
+                      sources,
+                      context.l10n,
+                    )) ...[
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
                         child: Text(heading, style: Typo.data),
@@ -129,18 +137,23 @@ class _SourceDrawer extends StatelessWidget {
 
   /// On disk first, then one group per resolution from the sharpest down,
   /// each in the order the core ranked it.
-  static List<(String, List<MediaSource>)> _groups(List<MediaSource> all) {
+  static List<(String, List<MediaSource>)> _groups(
+    List<MediaSource> all,
+    AppLocalizations l10n,
+  ) {
     final local = all.where((s) => s.local.isNotEmpty).toList();
     final byResolution = <String, List<MediaSource>>{};
     for (final s in all.where((s) => s.local.isEmpty)) {
-      final r = s.release.resolution.isEmpty ? 'Other' : s.release.resolution;
+      final r = s.release.resolution.isEmpty
+          ? l10n.downloadsOther
+          : s.release.resolution;
       byResolution.putIfAbsent(r, () => []).add(s);
     }
     int sharpness(String r) => int.tryParse(r.replaceAll('p', '')) ?? 0;
     final order = byResolution.keys.toList()
       ..sort((a, b) => sharpness(b).compareTo(sharpness(a)));
     return [
-      if (local.isNotEmpty) ('On disk', local),
+      if (local.isNotEmpty) (l10n.downloadsOnDisk, local),
       for (final r in order) (r, byResolution[r]!),
     ];
   }
@@ -164,10 +177,10 @@ class _SourceRow extends StatelessWidget {
     // film: the same copy plays on the next machine. It is marked rather than
     // hidden, and Play does not choose it.
     final gap = DeviceDecoders.instance.gapIn(s.release);
-    final codes = languageCodes(s);
-    final title = sourceTitle(s);
+    final codes = languageCodes(s, context.l10n);
+    final title = sourceTitle(s, context.l10n);
     return Tooltip(
-      message: [s.rawName, ?gap?.sentence].join('\n'),
+      message: [s.rawName, ?gap?.sentence(context.l10n)].join('\n'),
       waitDuration: const Duration(milliseconds: 600),
       child: ListTile(
         // The drawer opens on the copy Play would start, so the keyboard is
@@ -198,11 +211,11 @@ class _SourceRow extends StatelessWidget {
             ),
             Text(
               [
-                formatBytes(s.size),
+                formatBytes(s.size, context.l10n),
                 if (s.local.isNotEmpty)
-                  localLabel(s)
+                  localLabel(s, context.l10n)
                 else if (s.seeders > 0)
-                  '${s.seeders} seeds',
+                  context.l10n.downloadsSeedCount(s.seeders),
               ].join(' · '),
               style: Typo.data.copyWith(color: Palette.dim),
             ),
@@ -213,12 +226,13 @@ class _SourceRow extends StatelessWidget {
           child: Row(
             children: [
               for (final code in codes) _Code(code),
-              if (codes.isEmpty) Text('no languages listed', style: Typo.data),
+              if (codes.isEmpty)
+                Text(context.l10n.downloadsNoLanguages, style: Typo.data),
               if (gap != null) ...[
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    gap.mark,
+                    gap.mark(context.l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Typo.data.copyWith(color: Palette.warn),
@@ -226,7 +240,8 @@ class _SourceRow extends StatelessWidget {
                 ),
               ],
               const Spacer(),
-              if (s.lastUsed) Text('last used', style: Typo.data),
+              if (s.lastUsed)
+                Text(context.l10n.downloadsLastUsed, style: Typo.data),
             ],
           ),
         ),
@@ -253,21 +268,31 @@ class _Code extends StatelessWidget {
 }
 
 /// "3 min left", "1 h 05 min left".
-String formatTimeLeft(int seconds) {
+String formatTimeLeft(int seconds, AppLocalizations l10n) {
   final minutes = (seconds / 60).ceil();
-  if (minutes < 60) return '$minutes min left';
-  final rest = (minutes % 60).toString().padLeft(2, '0');
-  return '${minutes ~/ 60} h $rest min left';
+  if (minutes < 60) return l10n.downloadsTimeLeftMinutes(minutes);
+  final rest = NumberFormat('00', l10n.localeName).format(minutes % 60);
+  return l10n.downloadsTimeLeftHours(minutes ~/ 60, rest);
 }
 
-String formatBytes(int value) {
+String formatBytes(int value, AppLocalizations l10n) {
   if (value <= 0) return '—';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  final units = [
+    l10n.downloadsByteUnit,
+    l10n.downloadsKilobyteUnit,
+    l10n.downloadsMegabyteUnit,
+    l10n.downloadsGigabyteUnit,
+    l10n.downloadsTerabyteUnit,
+  ];
   var v = value.toDouble();
   var unit = 0;
   while (v >= 1024 && unit < units.length - 1) {
     v /= 1024;
     unit++;
   }
-  return '${v.toStringAsFixed(v >= 100 || unit == 0 ? 0 : 1)} ${units[unit]}';
+  final size = NumberFormat(
+    v >= 100 || unit == 0 ? '0' : '0.0',
+    l10n.localeName,
+  ).format(v);
+  return l10n.downloadsSize(size, units[unit]);
 }

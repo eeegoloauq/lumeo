@@ -2,19 +2,21 @@ import 'dart:async';
 import 'dart:math' show max;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../l10n/l10n.dart';
 import '../player/episode_frames.dart';
 import '../theme.dart';
+import '../widgets/artwork_scrim.dart';
 import '../widgets/buttons.dart';
 import '../widgets/episode_card.dart';
-import '../widgets/artwork_scrim.dart';
 import '../widgets/hero_logo.dart';
-import '../widgets/library_actions.dart';
 import '../widgets/horizontal_strip.dart';
+import '../widgets/library_actions.dart';
 import '../widgets/loading.dart';
 import '../widgets/play_block.dart';
 
@@ -177,9 +179,15 @@ class _ItemScreenState extends State<ItemScreen> {
   String _playTitle(Episode? episode) {
     final title = _lastTitle;
     if (episode == null) return title;
-    final s = episode.season.toString().padLeft(2, '0');
-    final e = episode.number.toString().padLeft(2, '0');
-    return '$title · S${s}E$e';
+    final s = NumberFormat(
+      '00',
+      context.l10n.localeName,
+    ).format(episode.season);
+    final e = NumberFormat(
+      '00',
+      context.l10n.localeName,
+    ).format(episode.number);
+    return context.l10n.itemPlaybackTitle(title, s, e);
   }
 
   /// The title as it was last drawn. The player needs a name and the item is
@@ -394,7 +402,9 @@ class _ItemScreenState extends State<ItemScreen> {
       return Padding(
         padding: const EdgeInsets.only(right: 8),
         child: DownloadButton(
-          tooltip: running ? 'Downloading $percent %' : 'Download',
+          tooltip: running
+              ? context.l10n.itemDownloadingPercent(percent)
+              : context.l10n.commonDownload,
           fraction: running ? row?.progress.fraction ?? 0 : null,
           onPressed: choice.picked == null ? null : choice.download,
         ),
@@ -424,16 +434,20 @@ class _ItemScreenState extends State<ItemScreen> {
           };
           final have = out.where((e) => rows[e.number]?.isDone ?? false).length;
           final running = _queueing || rows.values.any((d) => d.isActive);
-          final name = season == 0 ? 'specials' : 'season $season';
-          final named = name[0].toUpperCase() + name.substring(1);
+          final name = season == 0
+              ? context.l10n.itemSpecialsDownload
+              : context.l10n.itemSeasonDownload(season);
+          final named = season == 0
+              ? context.l10n.itemSpecials
+              : context.l10n.itemSeason(season);
           return DownloadButton(
             tooltip: have == out.length
-                ? '$named on disk'
+                ? context.l10n.itemDownloadOnDisk(named)
                 : running
-                ? '$named · $have of ${out.length}'
+                ? context.l10n.itemDownloadProgress(named, have, out.length)
                 : have > 0
-                ? 'Download the rest of $name'
-                : 'Download $name',
+                ? context.l10n.itemDownloadRest(name)
+                : context.l10n.itemDownloadNamed(name),
             done: have == out.length,
             fraction: running
                 ? out.map(share).reduce((a, b) => a + b) / out.length
@@ -467,7 +481,9 @@ class _ItemScreenState extends State<ItemScreen> {
       // would fail the same way.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('The season did not start: $error')),
+          SnackBar(
+            content: Text(context.l10n.itemSeasonStartFailed(error.toString())),
+          ),
         );
       }
     } finally {
@@ -625,13 +641,12 @@ class _EpisodeSynopsis extends StatelessWidget {
                   children: [
                     Text.rich(
                       TextSpan(
-                        text: e.fullLabel,
+                        text: e.fullLabel(context.l10n),
                         children: [
                           if (e.released != null)
                             TextSpan(
                               text:
-                                  '   ${shortDate(e.released!)} '
-                                  '${e.released!.year}',
+                                  '   ${DateFormat.yMMMd(context.l10n.localeName).format(e.released!)}',
                               style: Typo.data.copyWith(color: Palette.muted),
                             ),
                         ],
@@ -742,8 +757,7 @@ class _MetaLine extends StatelessWidget {
         .toSet();
     final parts = <String>[
       if (item.years.isNotEmpty) item.years,
-      if (seasons.isNotEmpty)
-        seasons.length == 1 ? '1 season' : '${seasons.length} seasons',
+      if (seasons.isNotEmpty) context.l10n.itemSeasonCount(seasons.length),
       if (item.runtime.isNotEmpty) item.runtime,
       if (item.genres.isNotEmpty) item.genres.take(3).join(' / '),
     ];
@@ -751,7 +765,10 @@ class _MetaLine extends StatelessWidget {
       children: [
         if (item.imdbRating > 0) ...[
           Text(
-            item.imdbRating.toStringAsFixed(1),
+            NumberFormat(
+              '0.0',
+              context.l10n.localeName,
+            ).format(item.imdbRating),
             style: Typo.heroMeta.copyWith(color: Palette.text),
           ),
           const SizedBox(width: 6),
@@ -808,7 +825,9 @@ class _Seasons extends StatelessWidget {
                     children: [
                       for (final s in seasons)
                         _SeasonChip(
-                          label: s == 0 ? 'Specials' : 'Season $s',
+                          label: s == 0
+                              ? context.l10n.itemSpecials
+                              : context.l10n.itemSeason(s),
                           selected: s == current,
                           onTap: () => onPick(s),
                         ),
@@ -890,19 +909,15 @@ class _Failure extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This title did not load',
+              context.l10n.itemLoadFailed,
               style: Typo.heroTitle.copyWith(fontSize: 26, shadows: null),
             ),
             const SizedBox(height: 12),
-            Text(
-              'The core did not answer for this title. It may be the '
-              'metadata provider rather than the core itself.',
-              style: Typo.body,
-            ),
+            Text(context.l10n.itemLoadFailedHint, style: Typo.body),
             const SizedBox(height: 8),
             Text('$error', style: Typo.data),
             const SizedBox(height: 22),
-            QuietButton(label: 'Try again', onPressed: onRetry),
+            QuietButton(label: context.l10n.commonTryAgain, onPressed: onRetry),
           ],
         ),
       ),

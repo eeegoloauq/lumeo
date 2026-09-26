@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Material's spinner, held back for [delay]: most answers from a local core
 /// come sooner, and a spinner that flashes for a frame reads as a glitch.
 class Loading extends StatefulWidget {
@@ -24,8 +26,8 @@ class _LoadingState extends State<Loading> {
       builder: (context, snapshot) => SizedBox.square(
         dimension: widget.size,
         child: snapshot.connectionState == ConnectionState.done
-            ? const CircularProgressIndicator(
-                semanticsLabel: 'Loading',
+            ? CircularProgressIndicator(
+                semanticsLabel: context.l10n.commonLoading,
                 strokeWidth: 3,
                 strokeCap: StrokeCap.round,
               )

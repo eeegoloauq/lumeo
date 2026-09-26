@@ -49,6 +49,12 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
 
 ## Application
 
+- Translations: community ones through a web editor (Weblate) that commits
+  `client/lib/l10n/app_<code>.arb`. It has to write to Forgejo, not to the
+  GitHub push mirror, which a push overwrites. The runtime ("112 min") is the
+  provider's text; the core could send minutes so the client says them in the
+  viewer's language.
+
 - Artwork on a throttled network (decisions/security.md): check on a
   filtered line without a VPN that blank posters fill in within about 30 s.
   Stalls after some kilobytes of a body rather than in the handshake are
@@ -60,11 +66,8 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   in hand. Draw the page from the row and fill episodes and cast in when they
   arrive. A poster that failed (the core's 502) stays blank until the page is
   rebuilt; retry it with a backoff instead.
-- Settings still to add. General has no rows yet and is left off the page
-  until it does: interface language (needs a translation layer, and
-  decisions/interface.md says why the interface is English), what
-  opens at startup, closing to a tray (no tray exists; ties in with "keep
-  running in the background" above), and pausing when minimised — GTK 3 on
+- Settings still to add. General: what opens at startup, closing to a tray
+  (no tray exists; ties in with "keep running in the background" above), and pausing when minimised — GTK 3 on
   Wayland is never told the window was minimised (xdg-shell has no such
   state), so only our own minimise button could see it; on X11 and Windows
   Flutter's `AppLifecycleState.hidden` does. Playback: an external player for

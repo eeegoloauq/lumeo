@@ -6,6 +6,7 @@ import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/local_settings.dart';
 import '../player/episode_frames.dart';
 import '../theme.dart';
@@ -26,12 +27,13 @@ import '../widgets/top_bar.dart' show PillTab;
 /// poster wherever it is shown, and Settings › Storage lists them with their
 /// sizes, which is the question somebody looking for what is on disk has.
 enum LibrarySection {
-  myList('My list'),
-  history('History');
+  myList,
+  history;
 
-  const LibrarySection(this.title);
-
-  final String title;
+  String title(AppLocalizations l10n) => switch (this) {
+    myList => l10n.libraryMyList,
+    history => l10n.libraryHistory,
+  };
 }
 
 /// What the viewer keeps, has watched and thinks of it.
@@ -143,8 +145,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         if (snapshot.hasError) {
           return SliverToBoxAdapter(
             child: _Note(
-              title: 'The list did not load',
-              text: 'The core did not answer for My list.',
+              title: context.l10n.libraryListLoadFailed,
+              text: context.l10n.libraryListNoAnswer,
               error: snapshot.error,
               onRetry: () => setState(() {
                 _list = _loadList();
@@ -173,25 +175,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     onOpen: widget.onOpen,
                   ),
                 ),
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       48,
                       ShelfMetrics.gap,
                       48,
                       ShelfMetrics.labelGap,
                     ),
-                    child: Text('My list', style: Typo.shelfLabel),
+                    child: Text(
+                      context.l10n.libraryMyList,
+                      style: Typo.shelfLabel,
+                    ),
                   ),
                 ),
               ],
               if (data.list.isEmpty)
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: _Note(
-                    title: 'Nothing on your list yet',
-                    text:
-                        'Add a film or a series with + beside Play on its '
-                        'page, and it waits here.',
+                    title: context.l10n.libraryListEmpty,
+                    text: context.l10n.libraryListEmptyHint,
                   ),
                 )
               else
@@ -218,7 +221,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             progress: widget.downloads.progressFor(t.item.id),
             acquired: widget.downloads.isDoneFor(t.item.id),
             captioned: true,
-            caption: listedCaption(t),
+            caption: listedCaption(t, context.l10n),
             score: t.rating,
             onOpen: () => widget.onOpen(t.item),
           ),
@@ -236,8 +239,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           if (h.error != null) {
             return SliverToBoxAdapter(
               child: _Note(
-                title: 'The history did not load',
-                text: 'The core did not answer for what was watched.',
+                title: context.l10n.libraryHistoryLoadFailed,
+                text: context.l10n.libraryHistoryNoAnswer,
                 error: h.error,
                 onRetry: h.retry,
               ),
@@ -249,12 +252,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     padding: EdgeInsets.only(top: 48),
                     child: Center(child: Loading()),
                   )
-                : const _Note(
-                    title: 'Nothing watched yet',
-                    text:
-                        'What you watch is listed here, the latest first, '
-                        'with where you stopped. This is also where you '
-                        'rate it.',
+                : _Note(
+                    title: context.l10n.libraryHistoryEmpty,
+                    text: context.l10n.libraryHistoryEmptyHint,
                   ),
           );
         }
@@ -301,6 +301,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// Scores what a line is about: the episode for a series, the film
   /// otherwise. The line changes at once and goes back if the core refuses.
   Future<void> _rate(Viewing v, int score) async {
+    final l10n = context.l10n;
     final was = v.rating;
     _history.replace(v, v.rated(score));
     try {
@@ -321,7 +322,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     } on Object catch (_) {
       _history.replace(v.rated(score), v.rated(was));
       _say(
-        score == 0 ? 'The rating was not removed' : 'The rating was not saved',
+        score == 0 ? l10n.libraryRatingNotRemoved : l10n.libraryRatingNotSaved,
       );
     }
   }
@@ -329,6 +330,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   /// Takes a line out of the history, which is forgetting where it was left:
   /// the position goes with it, and so does its place in Continue watching.
   Future<void> _remove(Viewing v) async {
+    final l10n = context.l10n;
     final at = _history.remove(v);
     try {
       await widget.api.clearProgress(
@@ -338,7 +340,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       );
     } on Object catch (_) {
       _history.insert(at, v);
-      _say('It was not removed from the history');
+      _say(l10n.libraryHistoryRemoveFailed);
     }
   }
 
@@ -404,11 +406,13 @@ String _sortTitle(String title) {
   return lower;
 }
 
-const _sortNames = {
-  'added': 'Recently added',
-  'title': 'Title',
-  'year': 'Release year',
-  'rating': 'Your rating',
+const _sortNames = ['added', 'title', 'year', 'rating'];
+
+String _sortName(String? key, AppLocalizations l10n) => switch (key) {
+  'title' => l10n.librarySortTitle,
+  'year' => l10n.librarySortYear,
+  'rating' => l10n.librarySortRating,
+  _ => l10n.libraryRecentlyAdded,
 };
 
 class _ListData {
@@ -516,7 +520,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Library',
+            context.l10n.libraryTitle,
             style: Typo.heroTitle.copyWith(
               fontSize: 28,
               fontWeight: FontWeight.w600,
@@ -527,7 +531,7 @@ class _Header extends StatelessWidget {
           for (final s in LibrarySection.values)
             PillTab(
               key: ValueKey('library:${s.name}'),
-              label: s.title,
+              label: s.title(context.l10n),
               selected: s == section,
               onTap: () => onSection(s),
             ),
@@ -563,16 +567,16 @@ class _SortButton extends StatelessWidget {
           ),
         ),
         menuChildren: [
-          for (final entry in _sortNames.entries)
+          for (final key in _sortNames)
             MenuItemButton(
-              onPressed: () => settings.listSort = entry.key,
+              onPressed: () => settings.listSort = key,
               leadingIcon: SizedBox.square(
                 dimension: 18,
-                child: entry.key == settings.listSort
+                child: key == settings.listSort
                     ? const Icon(Icons.check, size: 18)
                     : null,
               ),
-              child: Text(entry.value, style: Typo.cardTitle),
+              child: Text(_sortName(key, context.l10n), style: Typo.cardTitle),
             ),
         ],
         builder: (context, menu, _) => TextButton(
@@ -590,7 +594,11 @@ class _SortButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Sort: ${_sortNames[settings.listSort]}'),
+              Text(
+                context.l10n.librarySort(
+                  _sortName(settings.listSort, context.l10n),
+                ),
+              ),
               const Icon(Icons.arrow_drop_down, size: 20),
             ],
           ),
@@ -619,9 +627,9 @@ class _NewEpisodesShelf extends StatelessWidget {
       key: const ValueKey('new-episodes'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(48, 0, 48, ShelfMetrics.labelGap),
-          child: Text('New episodes', style: Typo.shelfLabel),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(48, 0, 48, ShelfMetrics.labelGap),
+          child: Text(context.l10n.libraryNewEpisodes, style: Typo.shelfLabel),
         ),
         HorizontalStrip(
           height: ShelfMetrics.rowHeight + ShelfMetrics.captionHeight,
@@ -636,7 +644,7 @@ class _NewEpisodesShelf extends StatelessWidget {
                 progress: downloads.progressFor(n.item.id),
                 acquired: downloads.isDoneFor(n.item.id),
                 captioned: true,
-                caption: newEpisodeCaption(n, now),
+                caption: newEpisodeCaption(n, now, context.l10n),
                 // Onto the new episode itself: the page otherwise opens
                 // where watching goes on, which for somebody behind is an
                 // older one.
@@ -682,7 +690,7 @@ class _ViewingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final v = viewing;
-    final when = dayLabel(v.entry.updatedAt.toLocal(), now);
+    final when = dayLabel(v.entry.updatedAt.toLocal(), now, context.l10n);
     return DecoratedBox(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Palette.divider)),
@@ -713,14 +721,17 @@ class _ViewingRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        viewingTitle(v),
+                        viewingTitle(v, context.l10n),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Typo.cardTitle,
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '$when · ${viewingState(v.entry)}',
+                        context.l10n.libraryViewingState(
+                          when,
+                          viewingState(v.entry, context.l10n),
+                        ),
                         maxLines: 1,
                         style: Typo.data,
                       ),
@@ -730,13 +741,13 @@ class _ViewingRow extends StatelessWidget {
                 const SizedBox(width: 12),
                 RatingButton(
                   score: v.rating,
-                  label: 'Rate',
+                  label: context.l10n.libraryRate,
                   onRate: onRate,
                   onClear: onClear,
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  tooltip: 'Remove from history',
+                  tooltip: context.l10n.libraryRemoveFromHistory,
                   onPressed: onRemove,
                   color: Palette.muted,
                   hoverColor: Palette.hover,
@@ -801,9 +812,12 @@ class _HistoryEnd extends StatelessWidget {
         padding: const EdgeInsets.only(top: 16),
         child: Row(
           children: [
-            Text('The rest did not load', style: Typo.data),
+            Text(context.l10n.libraryMoreLoadFailed, style: Typo.data),
             const SizedBox(width: 12),
-            QuietButton(label: 'Try again', onPressed: history.retry),
+            QuietButton(
+              label: context.l10n.commonTryAgain,
+              onPressed: history.retry,
+            ),
           ],
         ),
       );
@@ -852,7 +866,10 @@ class _Note extends StatelessWidget {
               ],
               if (onRetry != null) ...[
                 const SizedBox(height: 18),
-                QuietButton(label: 'Try again', onPressed: onRetry!),
+                QuietButton(
+                  label: context.l10n.commonTryAgain,
+                  onPressed: onRetry!,
+                ),
               ],
             ],
           ),

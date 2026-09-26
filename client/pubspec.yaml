@@ -9,6 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # The interface's translations: gen-l10n turns lib/l10n/*.arb into
+  # AppLocalizations, and intl is the version flutter_localizations pins.
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   # The player. libmpv renders into the widget tree, so the chrome is ours.
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1
@@ -44,12 +49,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   fonts:
     # Unbounded exists for one word — the wordmark — so it ships as five
     # glyphs. Plex Sans does everything that speaks, titles included; Plex
     # Mono is for paths, addresses and commands. Subset to latin plus
-    # cyrillic: the interface is English, the titles in it are not.
+    # cyrillic, the scripts of the interface's translations and of most titles.
     - family: Unbounded
       fonts:
         - asset: assets/fonts/Unbounded.ttf

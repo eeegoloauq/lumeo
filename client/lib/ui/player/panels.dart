@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../widgets/episode_card.dart' show EpisodePicture, shortDate;
 import 'menus.dart';
 
@@ -115,7 +116,7 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
                         season = s;
                         if (_scroll.hasClients) _scroll.jumpTo(0);
                       }),
-                      child: Text('Season $s'),
+                      child: Text(context.l10n.playerSeason(s)),
                     ),
                 ],
                 builder: (context, controller, _) => TextButton(
@@ -123,7 +124,7 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
                       ? controller.close()
                       : controller.open(),
                   child: Text(
-                    'Season $season ▾',
+                    context.l10n.playerSeasonDropdown(season),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -149,20 +150,26 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
                 final upcoming = e.isUpcoming;
                 String detail;
                 if (upcoming) {
-                  detail = 'Out ${shortDate(e.released!)}';
+                  detail = context.l10n.playerOutDate(
+                    shortDate(
+                      e.released!,
+                      Localizations.localeOf(context).toString(),
+                    ),
+                  );
                 } else if (entry != null &&
                     entry.position > Duration.zero &&
                     entry.duration > entry.position) {
-                  detail =
-                      '${(entry.duration - entry.position).inMinutes} min left';
+                  detail = context.l10n.downloadsTimeLeftMinutes(
+                    (entry.duration - entry.position).inMinutes,
+                  );
                 } else {
                   final minutes = entry?.duration.inMinutes ?? 0;
                   detail = [
                     if (minutes > 0)
-                      '$minutes min'
+                      context.l10n.downloadsMinutes(minutes)
                     else if (widget.runtime.isNotEmpty)
                       widget.runtime,
-                    if (entry?.watched ?? false) 'watched',
+                    if (entry?.watched ?? false) context.l10n.playerWatched,
                   ].join(' · ');
                 }
                 return Opacity(
@@ -211,7 +218,7 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    e.label,
+                                    e.label(context.l10n),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -315,8 +322,8 @@ class NextEpisodeCard extends StatelessWidget {
                   children: [
                     Text(
                       secondsLeft == null
-                          ? 'Next episode'
-                          : 'Next episode in $secondsLeft',
+                          ? context.l10n.playerNextEpisode
+                          : context.l10n.playerNextIn(secondsLeft!),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFAAAAAA),
@@ -324,7 +331,7 @@ class NextEpisodeCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      episode.fullLabel,
+                      episode.fullLabel(context.l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

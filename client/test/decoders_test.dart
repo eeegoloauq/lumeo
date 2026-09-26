@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/platform/decoders.dart';
 
 void main() {
+  final l10n = lookupAppLocalizations(const Locale('en'));
   const decoderList = '''
 [
   {"codec":"h264","driver":"h264","description":"H.264 / AVC"},
@@ -69,9 +72,9 @@ void main() {
       expect(broken?.driver, 'libopenh264');
       // The fact is one string and the advice another: the page that has room
       // for the commands prints them under the warning rather than inside it.
-      expect(broken?.fact, contains('backward seek'));
-      expect(broken?.fact, isNot(contains('RPM Fusion')));
-      expect(broken?.sentence, contains('RPM Fusion'));
+      expect(broken?.fact(l10n), contains('backward seek'));
+      expect(broken?.fact(l10n), isNot(contains('RPM Fusion')));
+      expect(broken?.sentence(l10n), contains('RPM Fusion'));
       expect(device.installCommands.last, endsWith('libavcodec-freeworld'));
     });
 
@@ -116,7 +119,7 @@ ID_LIKE="rhel centos"
     // followed it had to be told the missing half by somebody else. A
     // sentence that says where the packages live and where the commands are
     // cannot go wrong in that direction.
-    final hint = codecInstallHint(fedora);
+    final hint = codecInstallHint(fedora, l10n);
     expect(hint, contains('RPM Fusion'));
     expect(hint, isNot(contains('dnf install')));
   });
@@ -141,7 +144,7 @@ NAME="openSUSE Tumbleweed"
 ID="opensuse-tumbleweed"
 ID_LIKE="opensuse suse"
 ''';
-    expect(codecInstallHint(suse), isNotNull);
+    expect(codecInstallHint(suse, l10n), isNotNull);
     expect(codecInstallCommands(suse), isEmpty);
     expect(codecInstallCommands('ID=debian'), isEmpty);
   });
@@ -154,7 +157,7 @@ NAME="openSUSE Tumbleweed"
 ID="opensuse-tumbleweed"
 ID_LIKE="opensuse suse"
 ''';
-    expect(codecInstallHint(release), 'Install libavcodec from Packman.');
+    expect(codecInstallHint(release, l10n), 'Install libavcodec from Packman.');
   });
 
   test('does not invent installation advice for Debian', () {
@@ -165,7 +168,7 @@ PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
 ID=debian
 ID_LIKE=debian
 ''';
-    expect(codecInstallHint(release), isNull);
+    expect(codecInstallHint(release, l10n), isNull);
   });
 
   group('what this machine can play', () {
@@ -190,7 +193,7 @@ ID_LIKE=debian
       final missing = without.gapIn(const Release(videoCodec: 'HEVC'));
       expect(missing?.codec, 'hevc');
       expect(missing?.sound, isFalse);
-      expect(missing?.sentence, contains('RPM Fusion'));
+      expect(missing?.sentence(l10n), contains('RPM Fusion'));
     });
 
     test('names the sound when it is the sound that is missing', () async {

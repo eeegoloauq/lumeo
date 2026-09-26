@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../api/preferences_store.dart';
+import '../../../l10n/l10n.dart';
 import '../../../platform/local_settings.dart';
 import '../../theme.dart';
 import '../../widgets/setting_row.dart';
@@ -24,12 +25,12 @@ class AppearanceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = preferences.current;
     return SettingsBlock(
-      title: 'Appearance',
+      title: context.l10n.settingsAppearance,
       children: [
         SettingRows([
           if (current != null)
             SettingRow(
-              label: 'Accent',
+              label: context.l10n.settingsAccent,
               value: ColourDots(
                 colours: Palette.accents,
                 selected: current.accent,
@@ -38,12 +39,12 @@ class AppearanceSection extends StatelessWidget {
             ),
           // This screen's, so it is kept in client.json.
           SettingRow(
-            label: 'Text size',
+            label: context.l10n.settingsTextSize,
             value: Segments<String>(
-              choices: const [
-                ('small', 'Small'),
-                ('default', 'Default'),
-                ('large', 'Large'),
+              choices: [
+                ('small', context.l10n.settingsSmall),
+                ('default', context.l10n.settingsTextDefault),
+                ('large', context.l10n.settingsLarge),
               ],
               selected: settings.textScale,
               onSelected: (scale) => settings.textScale = scale,
@@ -51,13 +52,13 @@ class AppearanceSection extends StatelessWidget {
           ),
           if (current != null)
             SettingRow(
-              label: 'Episode stills',
-              hint: 'Blur keeps an episode’s still hidden until it is watched.',
+              label: context.l10n.settingsEpisodeStills,
+              hint: context.l10n.settingsEpisodeStillsBlurHint,
               value: Segments<String>(
-                choices: const [
-                  ('show', 'Show'),
-                  ('blur', 'Blur'),
-                  ('hide', 'Hide'),
+                choices: [
+                  ('show', context.l10n.settingsShow),
+                  ('blur', context.l10n.settingsBlur),
+                  ('hide', context.l10n.settingsHide),
                 ],
                 selected: current.episodeArtwork,
                 onSelected: (value) => patch({'episodeArtwork': value}),

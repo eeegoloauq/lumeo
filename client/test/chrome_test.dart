@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/chrome.dart';
 import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/theme.dart';
@@ -32,6 +33,8 @@ void main() {
     final hovers = <bool>[];
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: PlayerChrome(
             model: const ChromeModel(
@@ -97,6 +100,8 @@ void main() {
     final seeks = <Duration>[];
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: Scaffold(
           body: Stack(
@@ -172,7 +177,11 @@ void main() {
     // from the icon font, and a painter that throws would otherwise only be
     // found by looking at the corner of a running window.
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: WindowControls())),
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: WindowControls()),
+      ),
     );
     expect(tester.takeException(), isNull);
     expect(find.byType(CustomPaint), findsWidgets);
@@ -187,6 +196,8 @@ void main() {
     // against the window's edge rather than the picture's margin, and in
     // fullscreen they go for the reason they go from the bar.
     Widget chrome({required bool fullscreen}) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: lumeoTheme(),
       home: Scaffold(
         body: PlayerChrome(
@@ -253,7 +264,9 @@ void main() {
 
   testWidgets('the spinner waits before it shows', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: Center(child: Loading())),
       ),
     );
@@ -274,6 +287,8 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: PosterTile(item: item, onOpen: () {}),
@@ -320,7 +335,9 @@ void main() {
       poster: 'https://example.invalid/poster.jpg',
     );
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: PosterTile(item: item, onOpen: _noop),
@@ -341,6 +358,8 @@ void main() {
     // both were white.
     Future<void> show({required bool acquired}) => tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: PosterTile(
@@ -387,6 +406,8 @@ void _scrubberTests() {
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: lumeoTheme(),
     home: Scaffold(
       body: Center(

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/waiting.dart';
 import 'package:lumeo/ui/widgets/loading.dart';
 
 void main() {
   Widget waiting({Object? error, double? percent}) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: PlayerWaiting(
         title: 'S1 E2 · Episode',

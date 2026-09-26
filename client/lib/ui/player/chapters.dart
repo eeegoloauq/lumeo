@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../l10n/l10n.dart';
+
 class MpvChapter {
   const MpvChapter({required this.time, this.title = ''});
 
@@ -29,9 +31,13 @@ class MpvChapter {
   }
 }
 
-String chapterLabel(List<MpvChapter> chapters, int index) {
+String chapterLabel(
+  List<MpvChapter> chapters,
+  int index,
+  AppLocalizations l10n,
+) {
   final title = chapters[index].title;
-  return title.isNotEmpty ? title : 'Chapter ${index + 1}';
+  return title.isNotEmpty ? title : l10n.playerChapter(index + 1);
 }
 
 int? chapterAt(List<MpvChapter> chapters, Duration at) {

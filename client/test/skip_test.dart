@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/chapters.dart';
 import 'package:lumeo/ui/player/chrome.dart';
 import 'package:lumeo/ui/player/panels.dart';
@@ -306,6 +307,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: const Scaffold(
           body: PlayerChrome(
@@ -353,6 +356,8 @@ void main() {
     var pressed = 0;
     Future<void> pump(double fill, VoidCallback onPressed) => tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: lumeoTheme(),
         home: Scaffold(
           body: Center(
@@ -384,6 +389,8 @@ void main() {
     Future<void> show(WidgetTester tester, int? secondsLeft) =>
         tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: NextEpisodeCard(
                 episode: const Episode(season: 1, number: 2, title: 'Two'),

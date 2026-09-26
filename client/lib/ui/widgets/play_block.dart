@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../platform/decoders.dart';
 import '../theme.dart';
 import 'buttons.dart';
@@ -149,7 +151,8 @@ class SourceChoice extends ChangeNotifier {
     }
   }
 
-  String get label => season <= 0 ? 'Play' : 'Play S$season E$episode';
+  String label(AppLocalizations l10n) =>
+      season <= 0 ? l10n.commonPlay : l10n.playerPlayEpisode(season, episode);
 
   void _ping() {
     if (!_disposed) notifyListeners();
@@ -234,15 +237,18 @@ class PlayHead extends StatelessWidget {
             children: [
               PlayButton(
                 label: !resume
-                    ? choice.label
+                    ? choice.label(context.l10n)
                     : series
-                    ? 'Resume S${entry.season} E${entry.episode}'
-                    : 'Resume',
+                    ? context.l10n.playerResumeEpisode(
+                        entry.season,
+                        entry.episode,
+                      )
+                    : context.l10n.playerResume,
                 onPressed: choice.playable ? choice.start : null,
               ),
               if (resume) ...[
                 const SizedBox(width: 16),
-                Text(_left(entry), style: Typo.heroMeta),
+                Text(_left(entry, context.l10n), style: Typo.heroMeta),
               ],
             ],
           ),
@@ -262,14 +268,17 @@ class PlayHead extends StatelessWidget {
     );
   }
 
-  static String _left(WatchEntry entry) {
+  static String _left(WatchEntry entry, AppLocalizations l10n) {
     final left = entry.duration - entry.position;
-    final seconds = left.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final seconds = NumberFormat(
+      '00',
+      l10n.localeName,
+    ).format(left.inSeconds.remainder(60));
     final clock = left.inHours > 0
         ? '${left.inHours}:'
-              '${left.inMinutes.remainder(60).toString().padLeft(2, '0')}:$seconds'
+              '${NumberFormat('00', l10n.localeName).format(left.inMinutes.remainder(60))}:$seconds'
         : '${left.inMinutes}:$seconds';
-    return '$clock left';
+    return l10n.playerClockLeft(clock);
   }
 }
 
@@ -285,17 +294,17 @@ class _Summary extends StatelessWidget {
     if (choice.loading) {
       return Text(
         choice.pending
-            ? 'Looking for sources — starting as soon as there is one…'
-            : 'Looking for sources…',
+            ? context.l10n.playerWaitingForSource
+            : context.l10n.playerLookingForSources,
         style: Typo.data,
       );
     }
     if (choice.error != null && choice.sources == null) {
       return _Line(
         text: choice.error is LumeoApiException
-            ? 'The core could not ask for copies'
-            : 'The core did not answer',
-        action: 'Try again',
+            ? context.l10n.playerCoreCouldNotAsk
+            : context.l10n.playerCoreNoAnswer,
+        action: context.l10n.commonTryAgain,
         onTap: choice.load,
       );
     }
@@ -303,8 +312,10 @@ class _Summary extends StatelessWidget {
     if (picked == null) {
       if (choice.providers == 0) {
         return _Line(
-          text: 'No source addons',
-          action: choice.onAddSource == null ? null : 'Add one',
+          text: context.l10n.playerNoSourceAddons,
+          action: choice.onAddSource == null
+              ? null
+              : context.l10n.playerAddSource,
           onTap: choice.onAddSource ?? () {},
         );
       }
@@ -312,10 +323,11 @@ class _Summary extends StatelessWidget {
         failed: choice.failed,
         released: choice.released,
         now: DateTime.now(),
+        l10n: context.l10n,
       );
       return _Line(
         text: empty.text,
-        action: empty.retry ? 'Try again' : null,
+        action: empty.retry ? context.l10n.commonTryAgain : null,
         onTap: choice.load,
       );
     }
@@ -323,7 +335,10 @@ class _Summary extends StatelessWidget {
     final r = picked.release;
     final facts = [
       if (r.resolution.isNotEmpty) r.resolution,
-      if (onDisk) sourceTitle(picked) else formatBytes(picked.size),
+      if (onDisk)
+        sourceTitle(picked, context.l10n)
+      else
+        formatBytes(picked.size, context.l10n),
     ].where((e) => e.isNotEmpty).join(' · ');
     return Tooltip(
       message: picked.rawName,
@@ -345,7 +360,9 @@ class _Summary extends StatelessWidget {
             Flexible(
               child: Text.rich(
                 TextSpan(
-                  text: onDisk ? 'On disk' : 'Stream',
+                  text: onDisk
+                      ? context.l10n.downloadsOnDisk
+                      : context.l10n.playerStream,
                   children: [
                     if (facts.isNotEmpty)
                       TextSpan(
@@ -380,16 +397,20 @@ class _Summary extends StatelessWidget {
   required List<ProviderFailure> failed,
   DateTime? released,
   required DateTime now,
+  required AppLocalizations l10n,
 }) {
   final out = released?.toUtc();
   final utc = now.toUtc();
   if (out != null && out.isAfter(utc)) {
-    return (text: 'Out ${shortDate(out)}', retry: false);
+    return (
+      text: l10n.itemOutDate(shortDate(out, l10n.localeName)),
+      retry: false,
+    );
   }
   // A refusal is the reason whatever the date: without it the list might not
   // have been empty.
   if (failed.isNotEmpty) {
-    return (text: failed.map((f) => f.phrase).join(' · '), retry: true);
+    return (text: failed.map((f) => f.phrase(l10n)).join(' · '), retry: true);
   }
   if (out != null) {
     final days = DateTime.utc(
@@ -397,10 +418,10 @@ class _Summary extends StatelessWidget {
       utc.month,
       utc.day,
     ).difference(DateTime.utc(out.year, out.month, out.day)).inDays;
-    if (days == 0) return (text: 'Out today, no copies yet', retry: true);
-    if (days == 1) return (text: 'Out yesterday, no copies yet', retry: true);
+    if (days == 0) return (text: l10n.playerOutTodayNoCopies, retry: true);
+    if (days == 1) return (text: l10n.playerOutYesterdayNoCopies, retry: true);
   }
-  return (text: 'No copies found', retry: true);
+  return (text: l10n.playerNoCopies, retry: true);
 }
 
 class _Line extends StatelessWidget {

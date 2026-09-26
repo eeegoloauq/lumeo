@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'poster_tile.dart';
 
@@ -198,7 +199,7 @@ class _SearchNavState extends State<SearchNav> {
         fontWeight: FontWeight.w400,
       ),
       headerHintStyle: Typo.body.copyWith(fontSize: 15),
-      viewHintText: 'Search films and series',
+      viewHintText: context.l10n.searchHint,
       viewLeading: const Padding(
         padding: EdgeInsets.only(left: 14, right: 4),
         child: Icon(Icons.search, size: 18, color: Palette.muted),
@@ -215,7 +216,7 @@ class _SearchNavState extends State<SearchNav> {
                   onPressed: widget.controller.clear,
                   icon: const Icon(Icons.close, size: 15),
                   color: Palette.muted,
-                  tooltip: 'Clear',
+                  tooltip: context.l10n.commonClear,
                   visualDensity: VisualDensity.compact,
                 ),
         ),
@@ -530,7 +531,7 @@ class _Result extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    _said,
+                    _said(context),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Typo.body.copyWith(
@@ -551,13 +552,17 @@ class _Result extends StatelessWidget {
   /// What the name does not say, in the order it would be said out loud. No
   /// rating: the provider does not send one with a search result, and a column
   /// that is empty in every row but two is worse than no column.
-  String get _said {
+  String _said(BuildContext context) {
     // The year first, as IMDb has it, and for the reason a search list exists
     // at all: the rows repeat one name — three of them here are called Fargo —
     // and what tells them apart is the year, not the word Film or Series. The
     // discriminating fact goes where the eye lands.
-    final kind = item.kind == 'series' ? 'Series' : 'Film';
-    return item.years.isEmpty ? kind : '${item.years}  $kind';
+    final kind = item.kind == 'series'
+        ? context.l10n.commonSeries
+        : context.l10n.commonFilm;
+    return item.years.isEmpty
+        ? kind
+        : context.l10n.searchYearKind(item.years, kind);
   }
 }
 
@@ -588,7 +593,7 @@ class _Unreachable extends StatelessWidget {
         child: Icon(Icons.cloud_off, size: 18, color: Palette.warn),
       ),
       title: Text(
-        'The catalogue is not answering',
+        context.l10n.searchCatalogueUnavailable,
         style: Typo.body.copyWith(fontSize: 14, color: Palette.warn),
       ),
     );
@@ -624,7 +629,9 @@ class _RecentSearches extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 6, 6, 0),
               child: Row(
                 children: [
-                  const Expanded(child: Text('Recent', style: Typo.data)),
+                  Expanded(
+                    child: Text(context.l10n.searchRecent, style: Typo.data),
+                  ),
                   TextButton(
                     onPressed: () => onForget(null),
                     style: TextButton.styleFrom(
@@ -632,7 +639,7 @@ class _RecentSearches extends StatelessWidget {
                       textStyle: const TextStyle(fontSize: 12),
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text('Clear'),
+                    child: Text(context.l10n.commonClear),
                   ),
                 ],
               ),
@@ -659,7 +666,7 @@ class _RecentSearches extends StatelessWidget {
                   onPressed: () => onForget(query),
                   icon: const Icon(Icons.close, size: 15),
                   color: Palette.muted,
-                  tooltip: 'Forget',
+                  tooltip: context.l10n.searchForget,
                   visualDensity: VisualDensity.compact,
                 ),
               ),
@@ -692,7 +699,7 @@ class _AllResults extends StatelessWidget {
         child: Icon(Icons.search, size: 18, color: Palette.muted),
       ),
       title: Text(
-        'All results for “$query”',
+        context.l10n.searchAllResults(query),
         style: Typo.body.copyWith(fontSize: 14),
       ),
     );

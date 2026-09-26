@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../theme.dart';
 
 /// Picks a folder on this machine, by walking it or by typing its path.
@@ -97,7 +98,7 @@ class _FolderDialogState extends State<_FolderDialog> {
     if (Directory(path).existsSync()) {
       _open(path);
     } else {
-      setState(() => _problem = 'There is no folder there.');
+      setState(() => _problem = context.l10n.settingsFolderMissing);
     }
   }
 
@@ -115,7 +116,7 @@ class _FolderDialogState extends State<_FolderDialog> {
             Row(
               children: [
                 IconButton(
-                  tooltip: 'Up',
+                  tooltip: context.l10n.settingsFolderUp,
                   onPressed: _at.isEmpty || parent == _at
                       ? null
                       : () => _open(parent),
@@ -141,8 +142,11 @@ class _FolderDialogState extends State<_FolderDialog> {
             const SizedBox(height: 8),
             Expanded(
               child: _children.isEmpty
-                  ? const Center(
-                      child: Text('No folders in here.', style: Typo.data),
+                  ? Center(
+                      child: Text(
+                        context.l10n.settingsFolderEmpty,
+                        style: Typo.data,
+                      ),
                     )
                   : ListView(
                       children: [
@@ -166,11 +170,11 @@ class _FolderDialogState extends State<_FolderDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
         TextButton(
           onPressed: _at.isEmpty ? null : () => Navigator.pop(context, _at),
-          child: const Text('Use this folder'),
+          child: Text(context.l10n.settingsFolderUse),
         ),
       ],
     );
