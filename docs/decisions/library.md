@@ -66,6 +66,12 @@ the line is. It is also where the viewer scores what they watched — an
 episode for a series, the film otherwise; the title itself is scored on its
 page, beside My list. Its still follows the spoiler rule of the season strip.
 
+A score is a claim to have seen what was scored. A film or an episode scored
+before it was played here is marked watched, so it is in History, and a title
+with no progress at all joins My list, as starting it would. A series scored
+as a whole says nothing about which episodes were seen, so it only joins the
+list; something half watched stays half watched.
+
 Ratings are 1 to 10, IMDb's and Trakt's scale, so a score given here means the
 same thing there; a row of ten numbers rather than five stars, because half a
 star has to be aimed at. Together with the IMDb ids, the list and the watched

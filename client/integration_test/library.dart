@@ -76,6 +76,13 @@ void libraryTests() {
       'PUT /api/v1/ratings/tt0903747 {"season":0,"episode":0,"rating":7}',
     ]);
     expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('list-button')))
+          .isSelected,
+      isTrue,
+      reason: 'a title scored before it was played is on My list',
+    );
+    expect(
       find.descendant(
         of: find.byKey(const ValueKey('rating-button')),
         matching: find.text('7'),

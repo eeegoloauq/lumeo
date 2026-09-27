@@ -25,29 +25,24 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
    `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
    NVIDIA/Wayland, and the picture modes on Windows.
-2. Waiting: an error shown only once the player gives up for good (one
-   appeared mid-load and went away), and progress toward "can start" (the
-   core reports how much of the required front is on disk) with speed and
-   peers.
-3. One copy per episode: a source switch drops the old unfinished copy once
+2. One copy per episode: a source switch drops the old unfinished copy once
    the new one plays, the title page follows the same rule, and the player's
    download panel lists any other copy with Stop and Delete (mockup first).
-4. Seeding shown: an upload arrow on the downloads button while seeding,
+3. Seeding shown: an upload arrow on the downloads button while seeding,
    upload speed and ratio on each row (mockup first).
-5. A score given to a title never played marks it watched and adds it to
-   My list, as playing it would, so it is in History and on the list.
-6. Settings: audio and subtitle languages in one "Audio & subtitles"
+4. Settings: audio and subtitle languages in one "Audio & subtitles"
    section; a mark at 100% on the volume slider; shortcut descriptions
-   translated by mpv command, mpv's English comment for the rest.
-7. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
+   translated by mpv command, mpv's English comment for the rest (mockup
+   first).
+5. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
    the home banner's scroll lag on Windows 10. Tested with the CI build under
    Wine here and on the user's machine.
-8. A UX map of the user's journeys with the defaults of each, reviewed
+6. A UX map of the user's journeys with the defaults of each, reviewed
    against screenshots of the real app; mockups only for what changes.
-9. Opening and ending found by comparing a season's audio, for files whose
+7. Opening and ending found by comparing a season's audio, for files whose
    chapters are unnamed (`[?]`, after the rest).
 
 ## Library and storage

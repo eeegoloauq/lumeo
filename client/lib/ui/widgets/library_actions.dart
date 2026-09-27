@@ -110,6 +110,17 @@ class _LibraryActionsState extends State<LibraryActions> {
       if (!mounted) return;
       setState(() => _score = was);
       _say(context.l10n.libraryRatingNotSaved);
+      return;
+    }
+    // The core puts a title scored before it was ever played on My list.
+    if (_inList != false || _sending) return;
+    try {
+      final inList = (await widget.api.listState(widget.itemId)).inList;
+      if (mounted && !_sending) {
+        setState(() => _inList = _saved = inList);
+      }
+    } on Object catch (_) {
+      // The button keeps what it showed; the next visit reads it again.
     }
   }
 

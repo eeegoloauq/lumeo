@@ -525,6 +525,14 @@ LumeoApi fakeCore({
                   r['episode'] == rating['episode'],
             );
             list.add(rating);
+            // As the core does: a title scored before it was ever played
+            // joins My list.
+            if ((progressState[id] ?? const []).isEmpty) {
+              listState.putIfAbsent(
+                id,
+                () => DateTime.now().toUtc().toIso8601String(),
+              );
+            }
             return _json(rating);
           case 'DELETE':
             libraryCalls?.add('DELETE $path ${request.url.query}'.trim());

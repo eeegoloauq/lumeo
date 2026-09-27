@@ -22,6 +22,14 @@ import (
 // yesterday. It returns the id the store minted for it.
 func libraryServer(t *testing.T) (http.Handler, string) {
 	t.Helper()
+	h, ids := libraryServerWith(t)
+	return h, ids[0]
+}
+
+// libraryServerWith also stores the given items after the series, whose id
+// comes first.
+func libraryServerWith(t *testing.T, more ...catalog.MediaItem) (http.Handler, []string) {
+	t.Helper()
 	db, err := store.Open(filepath.Join(t.TempDir(), "lumeo.db"), "test")
 	if err != nil {
 		t.Fatalf("open store: %v", err)
@@ -29,14 +37,14 @@ func libraryServer(t *testing.T) (http.Handler, string) {
 	t.Cleanup(func() { _ = db.Close() })
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	yesterday := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -1)
-	saved, err := db.UpsertItems(context.Background(), catalog.NamespaceIMDb, []catalog.MediaItem{{
+	saved, err := db.UpsertItems(context.Background(), catalog.NamespaceIMDb, append([]catalog.MediaItem{{
 		Kind: catalog.KindSeries, Title: "Series",
 		ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: "tt1"},
 		Episodes: []catalog.Episode{
 			{Season: 1, Number: 1, Title: "Pilot", Released: yesterday.AddDate(0, 0, -7)},
 			{Season: 1, Number: 2, Title: "Second", Released: yesterday},
 		},
-	}}, true)
+	}}, more...), true)
 	if err != nil {
 		t.Fatalf("store the series: %v", err)
 	}
@@ -44,12 +52,16 @@ func libraryServer(t *testing.T) (http.Handler, string) {
 	t.Cleanup(cat.Close)
 	watched := progress.New(db, cat)
 	scores := ratings.New(db, cat)
+	ids := make([]string, len(saved))
+	for i, item := range saved {
+		ids[i] = item.ID
+	}
 	return New(Deps{
 		Catalog:   cat,
 		Progress:  watched,
 		Ratings:   scores,
 		Watchlist: watchlist.New(db, cat, db, scores),
-	}, log).Handler(), saved[0].ID
+	}, log).Handler(), ids
 }
 
 func decode[T any](t *testing.T, h http.Handler, method, path, body string, status int) T {
@@ -180,6 +192,62 @@ func TestNewEpisodesRoute(t *testing.T) {
 	got := decode[newBody](t, h, http.MethodGet, "/api/v1/new-episodes", "", http.StatusOK)
 	if len(got.Items) != 1 || got.Items[0].Episode.Number != 2 || got.Items[0].Count != 1 {
 		t.Fatalf("new episodes = %+v", got)
+	}
+}
+
+// A score of something never played here stands for having seen it.
+func TestScoreOfUnplayedMarksWatched(t *testing.T) {
+	h, ids := libraryServerWith(t, catalog.MediaItem{
+		Kind: catalog.KindMovie, Title: "Film",
+		ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: "tt2"},
+	})
+	series, film := ids[0], ids[1]
+	inList := func(id string) bool {
+		return decode[listState](t, h, http.MethodGet, "/api/v1/list/"+id, "", http.StatusOK).InList
+	}
+	type progressBody struct {
+		Entries []progress.Entry `json:"entries"`
+	}
+	progressOf := func(id string) []progress.Entry {
+		return decode[progressBody](t, h, http.MethodGet, "/api/v1/progress/"+id, "", http.StatusOK).Entries
+	}
+
+	decode[ratings.Rating](t, h, http.MethodPut, "/api/v1/ratings/"+film, `{"rating":8}`, http.StatusOK)
+	if got := progressOf(film); len(got) != 1 || !got[0].Watched {
+		t.Errorf("scored film progress = %+v, want watched", got)
+	}
+	if !inList(film) {
+		t.Error("scored film is not in the list")
+	}
+
+	decode[ratings.Rating](t, h, http.MethodPut, "/api/v1/ratings/"+series, `{"rating":7}`, http.StatusOK)
+	if got := progressOf(series); len(got) != 0 {
+		t.Errorf("a series scored as a whole marked episodes: %+v", got)
+	}
+	if !inList(series) {
+		t.Error("scored series is not in the list")
+	}
+
+	// Half watched stays half watched: a score does not finish it.
+	decode[progress.Entry](t, h, http.MethodPut, "/api/v1/progress/"+series,
+		`{"season":1,"episode":1,"position":300,"duration":1500}`, http.StatusOK)
+	requestJSON(t, h, http.MethodDelete, "/api/v1/list/"+series, "")
+	decode[ratings.Rating](t, h, http.MethodPut, "/api/v1/ratings/"+series, `{"season":1,"episode":1,"rating":6}`, http.StatusOK)
+	decode[ratings.Rating](t, h, http.MethodPut, "/api/v1/ratings/"+series, `{"season":1,"episode":2,"rating":9}`, http.StatusOK)
+	got := progressOf(series)
+	if len(got) != 2 {
+		t.Fatalf("series progress = %+v", got)
+	}
+	for _, e := range got {
+		if e.Episode == 1 && (e.Watched || e.Position != 300) {
+			t.Errorf("half-watched episode changed: %+v", e)
+		}
+		if e.Episode == 2 && !e.Watched {
+			t.Errorf("scored episode not watched: %+v", e)
+		}
+	}
+	if inList(series) {
+		t.Error("a title taken out of the list came back with a score")
 	}
 }
 

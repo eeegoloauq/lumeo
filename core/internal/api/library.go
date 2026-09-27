@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
 	"github.com/eeegoloauq/lumeo/core/internal/watchlist"
@@ -138,7 +140,47 @@ func (s *Server) handleRate(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, err.Error())
 	default:
+		s.markScored(r.Context(), r.PathValue("id"), body.Season, body.Episode)
 		writeJSON(w, http.StatusOK, rating)
+	}
+}
+
+// markScored treats a score of something never played here as having seen
+// it: the film or episode is marked watched, so it is in History, and a
+// title with no progress at all joins My list, as starting it would. A
+// series scored as a whole says nothing about which episodes were seen, so
+// it only joins the list.
+func (s *Server) markScored(ctx context.Context, id string, season, episode int) {
+	if s.progress == nil {
+		return
+	}
+	entries, _, err := s.progress.Get(ctx, id)
+	if err != nil {
+		s.log.Warn("reading progress for a score failed", "item", id, "err", err)
+		return
+	}
+	if len(entries) == 0 && s.watchlist != nil {
+		if _, err := s.watchlist.Add(ctx, id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
+			s.log.Warn("adding to the list failed", "item", id, "err", err)
+		}
+	}
+	for _, e := range entries {
+		if e.Season == season && e.Episode == episode {
+			return
+		}
+	}
+	if season == 0 && episode == 0 {
+		if s.catalog == nil {
+			return
+		}
+		item, err := s.catalog.Item(ctx, id)
+		if err != nil || item.Kind != catalog.KindMovie {
+			return
+		}
+	}
+	watched := true
+	if _, err := s.progress.Put(ctx, id, progress.Update{Season: season, Episode: episode, Watched: &watched}); err != nil {
+		s.log.Warn("marking a scored title watched failed", "item", id, "err", err)
 	}
 }
 
