@@ -10,9 +10,13 @@ const subtitleColours = <String, Color>{
   'cyan': Color(0xFF7FE0FF),
 };
 
-/// mpv's `sub-margin-y` for plain text, in its 720-line scale: a default line
-/// sits above the player's bottom bar, so the bar never has to push it up.
-const subtitleMargin = 70;
+/// Plain text in mpv's 720-line scale: a line 1/15 of the picture high, 1/20
+/// of it above the bottom edge, with an opaque outline, where a styled track
+/// of a streaming release puts its dialogue too, so the two read alike. The
+/// bar covers the line while it is up rather than pushing it around.
+const subtitleFontSize = 48;
+const subtitleMargin = 36;
+const subtitleBorder = 4;
 
 /// The mpv properties behind the subtitle colour and whether a styled track
 /// keeps its own look.

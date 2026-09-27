@@ -91,15 +91,16 @@ preferences panel. The four (white, a broadcast yellow, cream, cyan) are
 mpv's `sub-color`, which reaches plain text only; "keep the file's styling"
 off is `sub-ass-override=force`, for the viewer who wants our size, colour and
 background on an ASS track too, signs and all. Size and height are also on
-the settings page, since the core keeps them. The defaults are already close to the broadcast
-guidelines — the BBC puts subtitle line height at 7–8% of picture height, which
-is roughly what mpv draws — so the steps either side exist for a screen
-further away than the default assumes, not to fix a bad default.
+the settings page, since the core keeps them. The steps either side exist for a
+screen further away than the default assumes, not to fix a bad default.
 
-A plain-text line sits above the player's bottom bar from the start
-(`sub-margin-y` 70 of mpv's 720 lines, about 100 px in a 1080-line window),
-so subtitles never end up behind the controls and never move when they
-appear. A line that jumps each time the mouse moves is worse than one drawn a
-little higher; styled tracks already keep their own place. Only a window
-lower than about 800 px lets the bar reach the line, and only while the bar
-is up.
+A plain-text line is drawn where and as large as the styled dialogue of a
+streaming release is, converted to mpv's 720-line scale: `sub-font-size` 48
+(1/15 of the picture), `sub-margin-y` 36 (1/20 above the bottom edge), an
+opaque 4 outline, and for the shadow background a tight opaque shadow offset
+by 2. A viewer sees both kinds of track on the same screen, and a plain one
+drawn larger and higher reads as a mistake. The line does not move for the
+bar: the bar covers it while it is up. A line kept above the bar all the time
+sat twice as high as any release draws it, and one that jumps each time the
+mouse moves is worse than one briefly covered; styled tracks keep their own
+place either way.

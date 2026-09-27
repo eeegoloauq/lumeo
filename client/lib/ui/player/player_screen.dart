@@ -51,7 +51,9 @@ const playerProperties = <String, String>{
   'osd-margin-x': '32',
   'osd-margin-y': '28',
   'osd-duration': '1200',
+  'sub-font-size': '$subtitleFontSize',
   'sub-margin-y': '$subtitleMargin',
+  'sub-border-size': '$subtitleBorder',
 };
 
 /// The mpv properties behind a subtitle background: `none`, `shadow` or
@@ -62,21 +64,28 @@ Map<String, String> subtitleBackgroundProperties(
   String background, {
   required bool borderStyle,
 }) {
-  const dark = '#C0000000';
+  // The shadow is a tight, opaque one that thickens the outline downwards; a
+  // wide translucent one reads as a grey smear.
+  const shadow = '#FF000000';
+  const box = '#C0000000';
   const clear = '#00000000';
-  final offset = background == 'shadow' ? '3' : '0';
+  final offset = background == 'shadow' ? '2' : '0';
   if (borderStyle) {
     return {
       'sub-border-style': background == 'box'
           ? 'background-box'
           : 'outline-and-shadow',
-      'sub-back-color': background == 'none' ? clear : dark,
+      'sub-back-color': switch (background) {
+        'box' => box,
+        'shadow' => shadow,
+        _ => clear,
+      },
       'sub-shadow-offset': offset,
     };
   }
   return {
-    'sub-back-color': background == 'box' ? dark : clear,
-    'sub-shadow-color': dark,
+    'sub-back-color': background == 'box' ? box : clear,
+    'sub-shadow-color': shadow,
     'sub-shadow-offset': offset,
   };
 }

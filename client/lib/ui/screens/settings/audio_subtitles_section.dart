@@ -154,9 +154,11 @@ class _Preview extends StatelessWidget {
     final colour =
         subtitleColours[preferences.subtitleColor] ?? subtitleColours['white']!;
     final background = preferences.subtitleBackground;
-    // mpv draws a default line at about 1/20 of the picture's height.
+    // Twice mpv's size: true to scale, a line in a preview this small is too
+    // small to judge.
     const height = 180.0;
-    final size = height / 20 * 2.2 * preferences.subtitleScale;
+    final size =
+        height * subtitleFontSize / 720 * 2 * preferences.subtitleScale;
     final lift = (100 - preferences.subtitlePosition) / 100 * height;
     final text = Text(
       context.l10n.settingsSubtitlePreview,
@@ -169,11 +171,7 @@ class _Preview extends StatelessWidget {
         shadows: [
           const Shadow(color: Color(0xFF000000), blurRadius: 2),
           if (background == 'shadow')
-            const Shadow(
-              color: Color(0xC0000000),
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
+            const Shadow(color: Color(0xFF000000), offset: Offset(1.5, 1.5)),
         ],
       ),
     );
