@@ -5,19 +5,14 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lumeo/api/client.dart';
 
-/// A core that answers instantly, with mutable state kept in memory.
-///
-/// The UI tests are about the interface, not about the network: a screen that
-/// looks right only when Cinemeta is fast is a screen nobody can test. Every
-/// endpoint the client knows is answered here, from fixtures, so a run needs
-/// neither a binary nor a connection — and a failure is always the client's.
+/// Answers client endpoints from mutable fixtures without a core process or
+/// network.
 LumeoApi fakeCore({
   List<Map<String, dynamic>> downloads = const [],
   bool catalogFails = false,
 
-  /// Which kind of search fails: 'movie', 'series', or 'all'. A provider that
-  /// is down for one kind and not the other is the case that used to empty the
-  /// whole panel.
+  /// Search kind to fail: movie, series or all; one kind can fail
+  /// independently.
   String searchFails = '',
   List<String>? started,
 
@@ -44,19 +39,15 @@ LumeoApi fakeCore({
   List<String>? choicePatches,
   String aboutDir = '/nowhere/downloads',
 
-  /// Every request about the addon list, as "METHOD path body", so a test
-  /// about a switch can prove the core was told.
+  /// Records addon requests as "METHOD path body".
   List<String>? addonCalls,
   List<Map<String, dynamic>>? addons,
   String baseUrl = 'http://core.invalid',
 
-  /// Artwork for every title served, when a test has somewhere real to serve
-  /// it from. The fixtures otherwise point their pictures at a port nothing
-  /// listens on, so that no test depends on a network.
+  /// Overrides fixture artwork URLs with a real serving address.
   String background = '',
 
-  /// Where the episode stills are served from, for the same reason; the
-  /// fixtures' own URLs are kept when this is empty.
+  /// Overrides fixture still URLs with a real serving address when set.
   String stills = '',
 
   /// Every path "Open with Lumeo" handed the core.
@@ -137,24 +128,20 @@ LumeoApi fakeCore({
   }
 
   return LumeoApi(
-    // Only mpv ever dials this for real — every call the client makes is
-    // answered here without a socket — so a test that needs the player to meet
-    // a slow server points it at one.
+    // Only mpv dials this for real, so a test that needs the player to meet a
+    // slow server points it at one.
     baseUrl: baseUrl,
     client: MockClient((request) async {
       final path = request.url.path;
       final query = request.url.queryParameters;
-      // What Play does, recorded rather than performed: a test about a button
-      // starting something should not need a swarm to prove it.
+      // Record Play without starting a swarm; UI tests only need the request.
       if (request.method == 'POST' && path == '/api/v1/downloads') {
         started?.add(request.body);
         if (prefetchRefused && request.body.contains('"prefetch":true')) {
           return _json({'error': 'no room'}, status: 507);
         }
-        // The download the core makes is for the episode that was asked for.
-        // A test that hands in one download per episode gets that one back,
-        // with the id the player then plays; everything else is a film, where
-        // there is one download and no numbers on it.
+        // Return the requested episode's download so the player gets its
+        // matching id.
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         // A film's download carries no season, and the body says 0.
         bool same(Map<String, dynamic> d) =>
@@ -164,8 +151,7 @@ LumeoApi fakeCore({
           (d) => same(d) && d['name'] == (body['source'] as Map)['rawName'],
           orElse: () => downloads.firstWhere(same, orElse: fakeDownload),
         );
-        // 201, because that is what the core answers and what the client
-        // insists on: anything else and Play looks like it did nothing.
+        // Play requires the core's 201 response to proceed.
         return _json(made, status: 201);
       }
       if (request.method == 'POST' && path == '/api/v1/local') {
@@ -197,8 +183,6 @@ LumeoApi fakeCore({
           return _json({'error': 'no such download'}, status: 404);
         }
         final paused = (jsonDecode(request.body) as Map)['paused'] as bool;
-        // What the core does: a paused download keeps its bytes, stops
-        // fetching and says who paused it; resumed, it is active again.
         download['state'] = paused ? 'paused' : 'active';
         if (paused) {
           download['pausedByUser'] = true;
@@ -519,10 +503,8 @@ LumeoApi fakeCore({
           return _json({'downloads': downloads});
       }
       if (path.startsWith('/api/v1/items/') && path.endsWith('/after')) {
-        // What the player asks between two episodes. The rules it stands for
-        // — the order, the season boundary, the air date — are the core's and
-        // are tested there; what is answered here is the fixture's own list,
-        // so that a player moving on has something real to move on to.
+        // Return the fixture's next episode; ordering and air-date rules belong
+        // to the core tests.
         final season = int.tryParse(query['season'] ?? '');
         final episode = int.tryParse(query['episode'] ?? '');
         if (season == null || episode == null || season < 0 || episode < 0) {
@@ -580,9 +562,8 @@ LumeoApi fakeCore({
         }
       }
       if (path.startsWith('/api/v1/downloads/')) {
-        // By id, so that a second episode is a second file rather than the
-        // first one again. Whatever is there answers for an id nobody put in
-        // the list, which is what every test with one download relies on.
+        // Separate ids must yield separate files; an unknown id falls back for
+        // single-download tests.
         final id = path.split('/')[4];
         return _json(
           downloads.firstWhere(
@@ -596,9 +577,8 @@ LumeoApi fakeCore({
   );
 }
 
-// The core's own JSON, which core/internal/api/fixtures_test.go checks
-// against the types its handlers write. Relative to client/, the working
-// directory of flutter test and of the player suite.
+// Fixture JSON is checked against core handler types in
+// core/internal/api/fixtures_test.go.
 List<Map<String, dynamic>> _fixtureList(String name) =>
     (jsonDecode(File('test/fixtures/core/$name').readAsStringSync()) as List)
         .cast<Map<String, dynamic>>();
@@ -613,8 +593,7 @@ final fakeAddons = _fixtureList('addons.json');
 final fakeStorageTitles = _fixtureList('storage-titles.json');
 final preferenceDefaults = _fixtureMap('preferences.json');
 final _catalogs = _fixtureList('catalogs.json');
-// Two films and one series, without artwork: a test must not depend on a
-// picture arriving.
+// Fixture artwork cannot arrive, so app tests do not depend on network images.
 final _items = _fixtureList('items.json');
 final _sources = _fixtureList('sources.json');
 final _languages = _fixtureList('languages.json');
@@ -633,11 +612,9 @@ Map<String, dynamic> fakeDownload({
   String itemId = 'tt0063350',
   String state = 'active',
   String name = 'Night of the Living Dead 1968 1080p BluRay x264 AC3',
-  // Whether the core has anything to serve yet. False is a magnet that knows
-  // the name of the file and has not been given a byte of it.
+  // False means the magnet has a name but no bytes yet.
   bool ready = true,
-  // Whether the core knows which file it is. False is a magnet still asking
-  // its peers for the metadata.
+  // False means the magnet has not received metadata yet.
   bool resolved = true,
   // Left out entirely for a film, as the core does.
   int season = 0,
@@ -647,7 +624,6 @@ Map<String, dynamic> fakeDownload({
   DateTime? waitingSince,
   bool pausedByUser = false,
   String error = '',
-  // Seconds left; the fixture's rate and size make it about eleven minutes.
   int? eta = 683,
 }) => {
   ..._download,
@@ -666,7 +642,6 @@ Map<String, dynamic> fakeDownload({
   'progress': {
     'completed': (_download['progress'] as Map)['completed'],
     'total': (_download['progress'] as Map)['total'],
-    // Bytes flow only while it is active and not waiting.
     if (state == 'active' && waitingSince == null) ...{
       'rate': (_download['progress'] as Map)['rate'],
       'eta': ?eta,

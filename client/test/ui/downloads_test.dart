@@ -10,11 +10,9 @@ void main() {
   uiTest('the downloads panel opens and its stop button can be pressed', (
     tester,
   ) async {
-    // It opened inside a bar 68 points tall and was clipped at its edge: the
-    // list was there and nothing in it could be reached, the stop button
-    // included. Pressing it is the assertion — a rectangle with sensible
-    // coordinates proves nothing, because the clipped one had those too.
-    // Stop is on what is waiting; what is arriving is paused instead.
+    // The panel was clipped inside the 68-point bar, leaving its stop button
+    // unreachable. Tapping it catches clipping that a rectangle assertion
+    // misses.
     final stopped = <String>[];
     await tester.pumpWidget(
       testApp(
@@ -44,19 +42,14 @@ void main() {
   });
 
   uiTest('a download starting moves nothing else in the bar', (tester) async {
-    // The whole reason the bar is a Stack. The indicator used to sit in a row
-    // between search and the window buttons, so the moment a download started
-    // everything to its left slid across — a control moving out from under a
-    // pointer already aimed at it, and a screenshot run that typed a title
-    // into whatever had taken the field's place.
+    // Starting a download used to shift search and window controls out from
+    // under the pointer.
     await openHome(tester);
     final quietTabs = tester.getCenter(find.text('Home'));
     final quietSearch = tester.getCenter(find.byTooltip('Search  ·  Ctrl+F'));
 
-    // A key, because pumpWidget of the same widget type reuses the State that
-    // is already there — and this application takes its core once, in a `late
-    // final`. Without it the second window is the first one again, with no
-    // downloads in it, and this test passes by proving nothing.
+    // A new key forces a new State; otherwise the second pump reuses the first
+    // core.
     await tester.pumpWidget(
       testApp(
         key: UniqueKey(),
@@ -74,13 +67,9 @@ void main() {
   });
 
   uiTest('the downloads panel hangs to the left of its button', (tester) async {
-    // The indicator is the last control before the window's own buttons, and a
-    // menu opens to the right of what it hangs from: on the real window the
-    // panel went off the frame and took the release name and the peer count
-    // with it. The menu's own edge-avoidance did not save it, so the offset is
-    // stated in the widget — and measured here rather than against the edge of
-    // the window, because a test that compares the panel to the same bound the
-    // menu clamps to cannot fail.
+    // The panel used to open past the window edge, hiding the release name and
+    // peer count. Measure from the indicator because the menu clamps to the
+    // window edge.
     await openHome(tester, downloads: [fakeDownload()]);
     await tester.tap(find.byKey(const ValueKey('downloads')));
     await tester.pumpAndSettle();
@@ -95,15 +84,13 @@ void main() {
   });
 
   uiTest('a download with nothing to play yet opens its title', (tester) async {
-    // What is arriving is the most likely reason this window is open at all,
-    // and the page where it can be watched was two clicks away through a
+    // The title of what is arriving used to be two clicks away, through a
     // catalogue that does not know it is downloading.
     await openHome(tester, downloads: [fakeDownload(ready: false)]);
     await tester.tap(find.byKey(const ValueKey('downloads')));
     await tester.pumpAndSettle();
-    // By key, not by the title on it: the same title is printed on the poster
-    // in the shelf behind the panel, and a tap that lands there is a tap
-    // outside an open menu — which the menu eats to close itself.
+    // Select by key; the title also appears on a shelf behind the dismissible
+    // panel.
     await tester.tap(find.byKey(const ValueKey('download:d1')));
     await tester.pumpAndSettle();
     expect(find.text('Popular films'), findsNothing, reason: 'on the title');
@@ -136,7 +123,6 @@ void main() {
             updatedAt: now,
           ),
         fakeDownload(state: 'done', updatedAt: now),
-        // Finished before the keep time: not listed.
         fakeDownload(
           id: 'old',
           itemId: 'tt0000001',
@@ -176,7 +162,6 @@ void main() {
     await tester.tap(find.text('Storage ›'));
     await tester.pumpAndSettle();
     expect(find.text('ARRIVING'), findsNothing, reason: 'the panel closed');
-    // On screen, not merely built: settings opened where the disk is managed.
     final limit = find.text('Disk limit');
     expect(limit, findsOneWidget);
     final window = tester.view.physicalSize / tester.view.devicePixelRatio;
@@ -184,8 +169,7 @@ void main() {
     expect(rect.top, greaterThanOrEqualTo(0));
     expect(rect.bottom, lessThanOrEqualTo(window.height));
 
-    // Pressed again over a page already open and scrolled away: it scrolls
-    // there again.
+    // Reopening Storage on the same page must scroll back to Downloads.
     await tester.drag(find.text('Disk limit'), const Offset(0, 800));
     await tester.pumpAndSettle();
     expect(tester.getRect(limit).bottom, greaterThan(window.height));

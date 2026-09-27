@@ -17,8 +17,6 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
 2. **Finish the test cleanup** (decisions/testing.md), in this order:
-   - Comments in tests: one or two lines on why, not the story of the
-     defect (533 comment lines in `test/ui/` and `integration_test/`).
    - Split app tests that check several behaviours at once (settings'
      "Downloads stores the keep policy, the disk limit, prefetch and
      seeding" and the like), so a failure names what broke.

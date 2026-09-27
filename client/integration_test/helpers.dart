@@ -1,5 +1,4 @@
-// What the UI suite on Weston adds to the widget tests' helpers: the test
-// films, the way they are served, and mpv behind the screen.
+// Weston suite helpers for test films and mpv.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -44,12 +43,10 @@ Future<HttpServer> serveFilm([File? film]) async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   addTearDown(() => server.close(force: true));
   server.listen((request) async {
-    // mpv opens a stream by asking for a range, the same as it does of the
-    // core. The film is small enough to answer out of memory.
+    // mpv requests ranges; this film fits in memory.
     final range = request.headers.value('range');
-    // Only the form mpv actually sends. A suffix range would once have
-    // thrown inside this callback, where nothing is listening, and the test
-    // would have failed as a timeout rather than as an answer.
+    // Reject unsupported ranges here so the test fails with an answer instead
+    // of timing out.
     final start = range == null
         ? null
         : RegExp(r'bytes=(\d+)-').firstMatch(range)?.group(1);
@@ -78,20 +75,15 @@ NativePlayer mpvOnScreen(WidgetTester tester) =>
     tester.widget<Video>(find.byType(Video)).controller.player.platform!
         as NativePlayer;
 
-/// The generated film, made once for the whole run.
-///
-/// Twenty megabytes of it, and two tests want it: written per test, it was
-/// written twice and deleted twice for no reason.
+/// Returns the twenty-megabyte film generated once for the whole run.
 File? _film;
 
 File testFilm() => _film ??= writeTestFilm();
 
 File? _tracksFilm;
 
-/// The same thirty seconds with the tracks of a dual-audio release: an English
-/// dub flagged default, a Japanese original, and two English subtitles told
-/// apart only by their titles. Tracks need a real container, so this one is
-/// made by ffmpeg, from its own test sources.
+/// Generates a thirty-second dual-audio film with titled subtitles in ffmpeg.
+/// The track test needs a real container.
 File tracksFilm() => _tracksFilm ??= () {
   final dir = Directory.systemTemp.createTempSync('lumeo-tracks-');
   File('${dir.path}/full.srt')
@@ -156,18 +148,13 @@ File tracksFilm() => _tracksFilm ??= () {
   return film;
 }();
 
-/// Thirty seconds of moving picture, written out where the test can play it.
-///
-/// Uncompressed YUV in the plainest container there is, because the point is
-/// a film that exists rather than a codec: a few kilobytes of Dart produce it,
-/// nothing has to be installed to encode it, and no video file has to be kept
-/// in the repository to be played back once a year.
+/// Generates thirty seconds of moving uncompressed YUV without an encoder or
+/// checked-in media.
 File writeTestFilm() {
   const width = 160;
   const height = 120;
-  // Long enough that a test can pause in the middle of it and still have
-  // film to come back to: pumping a widget tree is slower than the wall
-  // clock, and eight seconds of picture ran out during the pause.
+  // Thirty seconds leaves film after a mid-playback pause; eight seconds ran
+  // out during pumping.
   const frames = 750; // thirty seconds at 25 fps
   const chroma = width * height ~/ 4;
   final file = File(

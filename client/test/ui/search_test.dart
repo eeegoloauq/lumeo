@@ -10,9 +10,7 @@ import 'app.dart';
 
 void main() {
   uiTest('backspace deletes in the search field', (tester) async {
-    // A shortcut bound to Backspace on the shell took it away from the field,
-    // because MaterialApp installs the text editing shortcuts above us and the
-    // closer binding wins.
+    // The shell's Backspace shortcut once took the key from search editing.
     await openHome(tester);
     await pressCtrlF(tester);
     await tester.enterText(find.byType(TextField), 'breaking bad');
@@ -42,13 +40,11 @@ void main() {
       what: 'the word from before under the empty field',
     );
 
-    // Asked again with a click: into the field, and its answers follow.
     await tester.tap(recent);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(panelRow('tt0903747'), findsOneWidget);
 
-    // Forgotten with its cross.
     await tester.enterText(find.byType(TextField), '');
     await tester.pumpAndSettle();
     await tester.tap(
@@ -59,11 +55,8 @@ void main() {
   });
 
   uiTest('ctrl+F opens search and gives it the keyboard', (tester) async {
-    // There is no field on screen until this key is pressed: the middle of the
-    // bar is the tabs, and search is a panel that opens over them. So the key
-    // has to open the panel and land the keyboard in it in one press — it used
-    // to only move the focus, which does nothing at all to a field that is not
-    // built yet.
+    // Ctrl+F must open and focus the search field in one press; the field does
+    // not exist beforehand.
     await openHome(tester, downloads: [fakeDownload()]);
     await pressCtrlF(tester);
     expect(
@@ -71,8 +64,7 @@ void main() {
       isTrue,
       reason: 'the field has the keyboard, without anything being clicked',
     );
-    // Typed at the window rather than at the field: enterText(finder) would
-    // focus the field itself and prove nothing about the key.
+    // Send the key to the window; enterText would focus the field itself.
     tester.testTextInput.enterText('breaking bad');
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
@@ -82,11 +74,8 @@ void main() {
   uiTest('escape leaves the search field instead of going back', (
     tester,
   ) async {
-    // Escape means back everywhere else in this window, and while the field
-    // had the keyboard it meant back there too: the page under it went back
-    // and the field kept both the word in it and its lit border. A key is
-    // delivered by climbing from whatever holds the focus, so the field's own
-    // binding is the closer one and the shell's never sees it.
+    // Escape once navigated the page beneath search while leaving the field
+    // open.
     await openHome(tester);
     await pressCtrlF(tester);
     tester.testTextInput.enterText('breaking bad');
@@ -103,8 +92,7 @@ void main() {
       reason: 'and the page under it stayed where it was',
     );
 
-    // The keyboard has to have landed somewhere, or every shortcut this shell
-    // owns quietly stops answering.
+    // Focus must land in the shell or its shortcuts stop receiving keys.
     await pressCtrlF(tester);
     expect(
       tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
@@ -119,12 +107,8 @@ void main() {
   });
 
   uiTest('ctrl+F still finds the field after a title and back', (tester) async {
-    // Once around the loop a person actually walks: search, open something,
-    // come back. The bar rebuilds its field on the way, and if the focus goes
-    // nowhere in the process, every shortcut the shell owns stops answering —
-    // keys are delivered by climbing from whatever holds the focus, and
-    // nothing did. Measured on the real window, where a screenshot run typed
-    // three titles into a page that could not hear it.
+    // Returning from a result once left focus nowhere, disabling shell
+    // shortcuts.
     await openHome(tester);
     await pressCtrlF(tester);
     tester.testTextInput.enterText('breaking bad');
@@ -145,10 +129,8 @@ void main() {
   uiTest('titles appear under the field without Enter being pressed', (
     tester,
   ) async {
-    // Search used to be a field that did nothing until Enter, and then
-    // replaced the page. Everything anybody looks for here is a name they half
-    // remember, so the answers have to arrive while it is being typed — and
-    // arrive as titles with their artwork, not as a page of words.
+    // Search once waited for Enter and replaced the page instead of showing
+    // results while typing.
     await openHome(tester);
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'night');
@@ -172,9 +154,7 @@ void main() {
   });
 
   uiTest('one kind failing does not empty the panel', (tester) async {
-    // It did. The two kinds were asked through Future.wait, so a provider
-    // timing out on films took the series down with it and a word with six
-    // answers behind it came back as "nothing found".
+    // Future.wait once let a film-provider timeout hide valid series results.
     await tester.pumpWidget(testApp(api: fakeCore(searchFails: 'movie')));
     await tester.pumpAndSettle();
     await pressCtrlF(tester);
@@ -188,8 +168,8 @@ void main() {
   });
 
   uiTest('a core that answers nothing says so, in the panel', (tester) async {
-    // "Nothing found" is about the word; this is about the core, and offering
-    // a page of all results for it would open a page that fails the same way.
+    // A core failure must not be reported as "Nothing found" or link to the
+    // same failing results page.
     await tester.pumpWidget(testApp(api: fakeCore(searchFails: 'all')));
     await tester.pumpAndSettle();
     await pressCtrlF(tester);
@@ -201,12 +181,8 @@ void main() {
   uiTest('arrows walk the panel and Enter opens the row they are on', (
     tester,
   ) async {
-    // A list under a field is a combobox, and a combobox without arrow keys is
-    // half a control. Flutter does not give this away: a text field registers
-    // `DirectionalFocusAction.forTextField`, whose whole job is to swallow the
-    // intent so that arrows in a paragraph move the caret. The binding that
-    // undoes that is in main.dart, above the Navigator, because the panel is a
-    // route and nothing inside the application is an ancestor of its field.
+    // Text fields consume arrow intents; a binding above Navigator lets keys
+    // reach panel results.
     await openHome(tester);
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'night');
@@ -233,11 +209,8 @@ void main() {
   });
 
   uiTest('the results page names every title under its poster', (tester) async {
-    // The shelves do without captions on purpose — a poster is a title card
-    // already. A page of search results is not a shelf: the answers are
-    // unfamiliar by definition, some of that artwork is in another language or
-    // simply missing, and a grid of pictures nobody recognises is a grid
-    // nobody can use.
+    // Result artwork may be missing or unfamiliar, so its captions are needed
+    // to identify titles.
     await openHome(tester);
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'night');

@@ -1,4 +1,4 @@
-// The player itself: the bar, the menus, the keys and what reaches mpv.
+// Player controls, keys and mpv properties.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -24,10 +24,8 @@ import 'helpers.dart';
 
 void playerTests() {
   testWidgets('a film takes the screen, and gives it back', (tester) async {
-    // Opening a film in a maximised window left the desktop's panel across the
-    // top of the picture. Taking the screen is only acceptable because the
-    // window goes back exactly as it was found — which is the half worth a
-    // test, since nobody notices it until it is wrong.
+    // A maximised window used to leave the desktop panel over the film;
+    // playback must restore its prior window state.
     await tester.pumpWidget(
       testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
@@ -71,7 +69,6 @@ void playerTests() {
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.f11);
     await waitFor(tester, () async => lastFullscreen(), what: 'and back');
-    // Esc undoes one thing at a time: fullscreen first, the film after.
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await waitFor(
       tester,
@@ -98,11 +95,7 @@ void playerTests() {
   testWidgets('a player menu hangs off its button and closes without pausing', (
     tester,
   ) async {
-    // The panel used to be placed at a fixed corner of the chrome with nothing
-    // between it and the picture. Two things came of that: the click that
-    // dismissed it carried on to the film and paused it — one gesture closing
-    // a menu and stopping a film nobody asked to stop — and the corner was a
-    // guess, held right because the panel happened to be the width it is.
+    // Dismissing the panel used to click through and pause the film.
     await tester.pumpWidget(
       testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
@@ -128,12 +121,10 @@ void playerTests() {
     );
     expect(panel.left, greaterThanOrEqualTo(0));
 
-    // Whether the film is running by now depends on the machine; whether the
-    // click changed it does not.
+    // Playback may start at different times on different machines; compare
+    // state around the click.
     bool stopped() => find.byTooltip('Play (Space)').evaluate().isNotEmpty;
     final was = stopped();
-    // The middle of the picture: outside the panel, and over the tap that
-    // pauses the film.
     await tester.tapAt(const Offset(120, 200));
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.text('Speed'), findsNothing, reason: 'the menu closed');
@@ -143,8 +134,6 @@ void playerTests() {
       reason: 'and the click that closed it did not reach the film',
     );
 
-    // One click moves from one menu to another, not one to close and one
-    // to open.
     await tester.tap(find.byTooltip('Settings'));
     await pumpFor(tester, const Duration(milliseconds: 500));
     await tester.tap(find.byTooltip('Subtitles (C)'));
@@ -204,8 +193,7 @@ void playerTests() {
     await playerKeysReady(tester);
     final host = await MpvHost.attach(mpvOnScreen(tester));
     addTearDown(host.dispose);
-    // mpv's target, where it draws the OSD, is the view in pixels rather
-    // than the film, whose size comes once it opens and does not replace it.
+    // mpv draws its OSD against the view size in pixels, not the film size.
     final view =
         tester.getSize(find.byType(Video)) * tester.view.devicePixelRatio;
     await waitFor(
@@ -226,7 +214,6 @@ void playerTests() {
     await pumpFor(tester, const Duration(milliseconds: 300));
     await tester.tap(find.text('Picture'));
     await pumpFor(tester, const Duration(milliseconds: 300));
-    // The menu stays open on its page after a pick.
     await tester.tap(find.text('Fill'));
     await waitFor(
       tester,
@@ -282,10 +269,8 @@ void playerTests() {
   });
 
   testWidgets('the shortcut page is read from mpv', (tester) async {
-    // Nothing on the page is written here: what a key does is mpv's own
-    // comment on its own binding, and the page is only as right as the read.
-    // A pause line proves the read — Space, `p` and the right button are
-    // mpv's, and our section adds the click and host actions.
+    // The displayed bindings come from mpv; a pause line proves its own and the
+    // host bindings were read.
     await tester.pumpWidget(
       testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
@@ -321,8 +306,6 @@ void playerTests() {
     expect(find.text('Speed'), findsOneWidget);
   });
 
-  // A back message closes it too, but that is what `q` sends, and leaving a
-  // film from the banner covers it.
   testWidgets('mpv quitting closes the player', (tester) async {
     await tester.pumpWidget(
       testApp(api: fakeCore(downloads: [fakeDownload()])),
@@ -339,20 +322,15 @@ void playerTests() {
   });
 
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
-    // mpv answers an unknown property by ignoring it, and media_kit does not
-    // look at the answer either, so a misspelt option is set silently and is
-    // wrong for the life of the release. Asked back one at a time, a name mpv
-    // does not have comes back empty.
+    // mpv silently ignores unknown option names, so read properties back to
+    // catch misspellings.
     final player = Player();
     addTearDown(player.dispose);
     final mpv = player.platform! as NativePlayer;
     for (final property in {
       ...playerProperties,
-      // Set per film rather than once, and just as silently ignored when
-      // misspelt.
       ...screenshotProperties(title: 'Andor', pictures: '/tmp'),
-      // The branch for this mpv: whether it has sub-border-style is itself
-      // asked of mpv.
+      // sub-border-style is conditional on the installed mpv version.
       ...subtitleBackgroundProperties(
         'shadow',
         borderStyle: (await mpv.getProperty('sub-border-style')).isNotEmpty,
@@ -369,10 +347,8 @@ void playerTests() {
   });
 
   testWidgets('a screenshot is taken by the GPU renderer', (tester) async {
-    // mpv falls back to a software screenshot when the render context lacks
-    // advanced control, and on mpv 0.41 that path cannot read an nvdec frame:
-    // `s` wrote nothing on the test desktop. The dev box decodes in
-    // software, where both paths save a file, so the log says which one ran.
+    // mpv 0.41 cannot read nvdec frames through its software screenshot
+    // fallback. The log identifies which screenshot path ran on this machine.
     final server = await serveFilm();
     await tester.pumpWidget(
       testApp(
@@ -462,12 +438,8 @@ void playerTests() {
 
   testWidgets('the keys are mpv\'s: space pauses, an arrow seeks, and the bar '
       'stays down', (tester) async {
-    // The whole thing, in the screen it belongs to: a real film served over
-    // the same HTTP endpoint the core serves, played by the real libmpv, and
-    // driven by the keyboard the way a viewer drives it. What is checked is
-    // that the keys reach mpv and mpv answers them — the player used to keep
-    // a table of its own and drop the rest — and that a key does not bring
-    // the controls up over the picture.
+    // Keys once stopped at the player's own binding table; this checks they
+    // reach real mpv.
     final server = await serveFilm();
 
     await tester.pumpWidget(
@@ -496,7 +468,6 @@ void playerTests() {
       reason: 'mpv answers keys with its own bindings',
     );
 
-    // The pointer is off the picture and the bar has had time to go.
     await pumpFor(tester, const Duration(seconds: 1));
     AnimatedOpacity chrome() => tester.widget<AnimatedOpacity>(
       find.ancestor(
@@ -506,15 +477,9 @@ void playerTests() {
     );
     expect(chrome().opacity, 0, reason: 'the bar is down while the film runs');
 
-    // And the frames were taken, not only the clock read: `time-pos` is
-    // driven by the audio and climbs with the picture standing still. mpv's
-    // video output counts a drop each time its 200 ms wait for the render
-    // call runs out, which is what a render thread that never came back
-    // looks like from mpv's side — 0.1.19 shipped that way, every film on
-    // its first frame with the sound running, and this test was green. The
-    // same counter takes frames that were merely late, so a loaded llvmpipe
-    // is allowed a few; the stuck thread measured fifty in these three
-    // seconds.
+    // `time-pos` can advance with frozen video; mpv counts render-call waits as
+    // dropped frames. 0.1.19 froze at frame one; allow a few late llvmpipe
+    // frames, not a stuck render thread.
     expect(
       int.parse(await mpv.getProperty('frame-drop-count')),
       lessThan(10),
@@ -547,10 +512,9 @@ void playerTests() {
       reason: 'a seek does not unpause',
     );
 
-    // Held, not pressed: the repeat is mpv's own, between a `keydown` and a
-    // `keyup`, which is what makes holding an arrow scrub. Flutter's repeat
-    // events are dropped on the way, so if this jumps by one step the key
-    // was pressed and never held.
+    // Held, not pressed: the repeat is mpv's, between `keydown` and `keyup`,
+    // and Flutter's repeat events are dropped. One step means the key was never
+    // held.
     final held = await position();
     await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
     await pumpFor(tester, const Duration(milliseconds: 1500));
@@ -561,10 +525,7 @@ void playerTests() {
       what: 'a held arrow repeated: more than one step back',
     );
 
-    // And a tap is one step: a `keyup` that reached mpv late — behind a
-    // blocking call that used to hold Dart for the length of the seek the
-    // `keydown` started — was a key mpv still held and repeated. Every frame
-    // of this film is a keyframe, so one seek of five seconds is five.
+    // A late `keyup` once let mpv repeat a single seek while Dart blocked.
     final tapped = await position();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await waitFor(
@@ -579,10 +540,8 @@ void playerTests() {
       reason: 'one tap is one seek of five seconds, not two or three',
     );
 
-    // A held space bar is one pause, not thirty a second: mpv's own repeat
-    // knows which of its bindings repeat, which is why the repeat is mpv's
-    // and the keyboard's repeat events go nowhere. Two of them here, and an
-    // odd number of toggles in all is what says they went nowhere.
+    // The keyboard's repeat events go nowhere and mpv does not repeat pause, so
+    // a held Space is one toggle.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
     await pumpFor(tester, const Duration(milliseconds: 700));
     await tester.sendKeyRepeatEvent(LogicalKeyboardKey.space);
@@ -596,12 +555,8 @@ void playerTests() {
       reason: 'a held space toggled pause once, and the film runs',
     );
 
-    // The mouse is mpv's too. A click on the picture is `MBTN_LEFT` to mpv,
-    // bound here to the pause because mpv's own left button is `ignore`; a
-    // right click is mpv's default pause; and two clicks are mpv's double
-    // click, which takes the pause back and goes fullscreen — the property,
-    // which the window follows. The middle of the picture, away from the
-    // chrome: a click on the bar is the bar's.
+    // mpv owns picture clicks: left pauses through the host binding, right
+    // pauses by default, and double click toggles fullscreen.
     final picture = tester.getCenter(find.byType(Video));
     await tester.tapAt(picture);
     await waitFor(
@@ -631,8 +586,8 @@ void playerTests() {
       reason: 'and the two clicks paused and unpaused, as on YouTube',
     );
 
-    // Zoom closes in on the cursor only if mpv knows where it is, in the
-    // pixels of its target, which is the view.
+    // mpv zooms around the cursor only when its target has the view-pixel
+    // position.
     final box = tester.getRect(find.byType(Video));
     final width = int.parse(await mpv.getProperty('osd-width'));
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -649,8 +604,7 @@ void playerTests() {
   testWidgets('the wheel is mpv\'s over the picture and not over a panel', (
     tester,
   ) async {
-    // Two episodes fit the panel, so its list cannot scroll and Flutter lets
-    // the wheel fall through to whatever is under it; that used to be mpv's
+    // When this short list cannot scroll, its wheel events used to change mpv
     // volume.
     final server = await serveFilm();
     final api = fakeCore(
@@ -673,7 +627,6 @@ void playerTests() {
     Future<double> volume() async =>
         double.parse(await mpv.getProperty('volume'));
 
-    // The bar has faded over a playing film; a mouse move brings it back.
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
     await tester.sendEventToBinding(pointer.hover(const Offset(120, 200)));
     await pumpFor(tester, const Duration(milliseconds: 300));
@@ -687,8 +640,8 @@ void playerTests() {
     await tester.sendEventToBinding(pointer.scroll(const Offset(0, -100)));
     await tester.pump();
 
-    // Up over the panel, then down over the picture: had the first reached
-    // mpv, the two would cancel out and the volume would stay at 50.
+    // A wheel event over the panel must not reach mpv and cancel the later
+    // picture event.
     await tester.tapAt(const Offset(120, 200));
     await waitFor(
       tester,
@@ -769,8 +722,8 @@ void playerTests() {
     expect((jsonDecode(started.last)['source'] as Map)['rawName'], nextName);
   });
 
-  // On time, mpv's defaults arrive while the stored values are on their way
-  // to it; late, the player waits for the core first.
+  // mpv defaults can arrive before stored preferences; a late response must
+  // still apply the stored values.
   for (final (answers, unreachable) in [('on time', 0), ('late', 2)]) {
     testWidgets(
       'A core that answers $answers gives the player the stored subtitle size',
@@ -785,7 +738,6 @@ void playerTests() {
                 'subtitleScale': 1.4,
                 'subtitlePosition': 90,
               },
-              // Late: the app's read at start and the player's first one fail.
               preferencesUnreachable: unreachable,
               patched: patched,
             ),
@@ -816,8 +768,8 @@ void playerTests() {
   testWidgets('the stored subtitle colour, styling and arrow step reach mpv', (
     tester,
   ) async {
-    // Read back from mpv rather than seen on screen: the colour is drawn into
-    // the picture, and the step is a binding mpv seeks with.
+    // Read these settings back from mpv; their effects are not directly visible
+    // in the test.
     await tester.pumpWidget(
       testApp(
         api: fakeCore(

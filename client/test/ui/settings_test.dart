@@ -83,7 +83,6 @@ void main() {
     await reveal(tester, picker.last);
     await tester.tap(picker.last);
     await tester.pumpAndSettle();
-    // The core's list runs past the menu's foot; typing narrows it.
     await tester.enterText(picker.last, 'Rus');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Russian').last);
@@ -286,7 +285,6 @@ void main() {
     expect(find.text('no addon answered there: 404 Not Found'), findsOneWidget);
     expect(find.text('Public Domain Movies'), findsNothing);
 
-    // Enter handed the keyboard back; a typed address needs it again.
     await tester.tap(field);
     await tester.pump();
     await tester.enterText(field, 'https://pd.invalid/manifest.json');
@@ -339,8 +337,7 @@ void main() {
     expect(find.text('Film'), findsOneWidget);
     expect(find.text('Delete all'), findsOneWidget);
 
-    // Escape closes a dialog, not the page under it: the shell takes the
-    // keyboard back only when nothing is open over it.
+    // Escape must close the dialog without navigating the page below it.
     await reveal(tester, find.text('Delete all'));
     await tester.tap(find.text('Delete all'));
     await tester.pumpAndSettle();
@@ -398,7 +395,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'keep': 'days', 'keepDays': 30});
 
-    // Custom asks for the number of days, and then names it.
     await tester.tap(
       find.descendant(
         of: find.ancestor(
@@ -446,7 +442,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'uploadLimit': 1 << 20});
 
-    // This machine's, so it goes to client.json and not to the core.
     final finished = find.descendant(
       of: downloads,
       matching: find.text('7 days'),
@@ -484,7 +479,6 @@ void main() {
         findsOneWidget,
       );
 
-      // Change walks this machine's folders and sends the one picked.
       Directory('${directory.path}/Films').createSync();
       await reveal(tester, videos);
       await tester.tap(
@@ -524,13 +518,9 @@ void main() {
 
   uiTest('Settings prints the commands for a broken decoder, and copies '
       'them', (tester) async {
-    // The advice used to be one install line inside the warning, and on a
-    // machine that has not enabled RPM Fusion that line answers "no match":
-    // the first person to follow it had to be handed the missing half by
-    // somebody else. It is two commands now, in the order they have to run,
-    // with a button that puts both on the clipboard — rather than a button
-    // that would have to be root inside the application that opens files from
-    // a swarm.
+    // RPM Fusion must be enabled before Fedora can install the missing codecs.
+    // The clipboard button gives both commands because the app cannot run as
+    // root.
     DeviceDecoders.instance = DeviceDecoders(
       ask: () async =>
           '[{"codec":"h264","driver":"libopenh264","description":"OpenH264"}]',

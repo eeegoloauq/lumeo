@@ -17,8 +17,6 @@ import 'fake_core.dart';
 import 'app.dart';
 
 void main() {
-  // Episode 1 watched and 2 left at [position], which the core then plays
-  // next.
   Map<String, dynamic> secondEpisodeStarted(double position) {
     final second = watchEntry(
       episode: 2,
@@ -92,18 +90,14 @@ void main() {
   uiTest('the bar takes a ground once the page scrolls under it', (
     tester,
   ) async {
-    // It never did on this platform. A vertical ScrollView adopts the primary
-    // controller by itself on phones only, so the shell's controller had no
-    // position attached and the offset it watched stayed zero for the life of
-    // the window: the wordmark and the search field sat over whatever text of
-    // the page happened to be passing under them.
+    // Desktop ScrollView did not attach the shell's primary controller, so the
+    // bar overlaid scrolled text.
     await openHome(tester);
     expect(
       tester.widget<TopBar>(find.byType(TopBar)).scrolled,
       isFalse,
       reason: 'at the top it is over artwork, and shows nothing',
     );
-    // The wheel, over a shelf, which is where a pointer actually rests.
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
     pointer.hover(tester.getCenter(find.byType(PosterTile).first));
     await tester.sendEventToBinding(pointer.scroll(const Offset(0, 300)));
@@ -112,8 +106,8 @@ void main() {
   });
 
   uiTest('a title page that fits the window does not scroll', (tester) async {
-    // 56 points under the strip that the banner was not measured to leave,
-    // so both pages moved under the wheel with nothing below to move to.
+    // The banner lacked 56 points below its strip, leaving no room for either
+    // page to scroll.
     double scrollable() => tester
         .state<ScrollableState>(
           find
@@ -209,8 +203,8 @@ void main() {
   });
 
   uiTest('an episode card says watched, on disk and arriving', (tester) async {
-    // A watched episode is a full bar rather than a check, which read as a
-    // heavy box over a real still.
+    // Watched is a full bar, not a check: the check read as a heavy box over a
+    // real still.
     await openSeries(
       tester,
       api: fakeCore(
@@ -298,9 +292,8 @@ void main() {
       reason: 'the card before the reached one stays in sight',
     );
 
-    // Episode 6 has no synopsis and 5 has one. The line above the strip used
-    // to appear only with a synopsis, which rebuilt the strip under it and
-    // scrolled it back to the first episode.
+    // Changing between episodes with and without a synopsis used to reset the
+    // strip to episode one.
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.pumpAndSettle();
     expect(card(5).selected, isTrue);
@@ -413,9 +406,8 @@ void main() {
       findsNothing,
     );
 
-    // A still that never arrives is not a spoiler. The fixtures point every
-    // still at a port nothing listens on, and the blur used to wrap the
-    // placeholder that took its place, episode number and all.
+    // A missing still must not blur its placeholder and reveal the episode
+    // number.
     await openSeries(
       tester,
       progress: progress,
@@ -437,10 +429,8 @@ void main() {
   uiTest('a copy this machine cannot decode is marked, and not played', (
     tester,
   ) async {
-    // The whole point of asking mpv before anything is chosen. The sharpest
-    // copy is hevc with dts sound, and on a machine with neither it is a black
-    // screen with no sound — which is what Play used to start, with the news
-    // arriving after the download had begun.
+    // Play used to choose an hevc/dts copy before checking decoders, producing
+    // black video and no sound.
     DeviceDecoders.instance = DeviceDecoders(
       ask: () async =>
           '[{"codec":"h264","driver":"h264","description":"H.264"},'
@@ -454,7 +444,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(PosterTile).first);
     await tester.pumpAndSettle();
-    // The line under Play opens the drawer of copies.
     await tester.tap(find.byKey(const ValueKey('source-chip')));
     await tester.pumpAndSettle();
     expect(
@@ -517,7 +506,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(PosterTile).first);
     await tester.pumpAndSettle();
-    // The list waits for mpv's decoder answer before it is shown.
     await waitFor(
       tester,
       () async =>
@@ -555,9 +543,8 @@ void main() {
   uiTest('a provider that refuses is said as a block, with Play off', (
     tester,
   ) async {
-    // An empty list used to read "Nothing to play yet — no provider has
-    // this one" whatever the reason, with a Play button that did nothing. A
-    // 403 is not an empty catalogue: it says so, and asking again is offered.
+    // A 403 used to look like an empty catalogue, with a Play button that did
+    // nothing.
     final asked = <String>[];
     await tester.pumpWidget(
       testApp(
@@ -596,8 +583,8 @@ void main() {
   uiTest('with no source addon, Play says so and leads to Sources', (
     tester,
   ) async {
-    // No source ships with the app, so this is where a fresh install starts:
-    // "No copies found" would blame the title for what is a missing addon.
+    // A fresh install has no source addon; "No copies found" would blame the
+    // title.
     await tester.pumpWidget(
       testApp(
         api: fakeCore(
@@ -618,7 +605,6 @@ void main() {
     );
     await tester.tap(find.text('Add one'));
     await tester.pumpAndSettle();
-    // On screen, not merely built: settings opened where an addon is added.
     final window = tester.view.physicalSize / tester.view.devicePixelRatio;
     final top = tester
         .getRect(find.byKey(const ValueKey('settings:sources')))

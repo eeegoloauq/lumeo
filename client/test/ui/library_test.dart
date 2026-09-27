@@ -44,7 +44,6 @@ void main() {
     );
     expect(libraryLit(tester), isTrue);
 
-    // A title opened from the library is still in the library.
     await tester.tap(tile);
     await tester.pumpAndSettle();
     expect(libraryLit(tester), isTrue);
@@ -52,10 +51,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls.last, 'DELETE /api/v1/list/tt0903747');
 
-    // Library pressed on a title opened from it is that library again, not
-    // a second one on the stack: one Escape from it is home.
+    // Reopening Library from its title used to stack another route, requiring
+    // extra Escape presses.
     await openLibrary(tester);
-    // Built again on the way back, so it says what the core now has.
+    // Refresh on return so changes from the title page appear.
     expect(find.byKey(const ValueKey('listed:tt0903747')), findsNothing);
     expect(find.text('Nothing on your list yet'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -151,8 +150,6 @@ void main() {
         ),
       ),
     );
-    // Watch progress puts Continue watching first, where the catalogue's
-    // first shelf is otherwise.
     await waitFor(
       tester,
       () async => find.text('Continue watching').evaluate().isNotEmpty,
@@ -207,7 +204,6 @@ void main() {
     expect(second, findsNothing);
     expect(first, findsOneWidget);
 
-    // A line opens its title on its own episode.
     await tester.tap(
       find.descendant(of: first, matching: find.textContaining('Pilot')),
     );

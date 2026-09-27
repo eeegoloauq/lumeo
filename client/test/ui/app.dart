@@ -1,8 +1,4 @@
-// The whole app over the fake core, as a widget test: what the UI tests share.
-//
-// Everything that does not need mpv runs here, under `flutter test`, in well
-// under a second a test. What needs a real player is in integration_test/,
-// which runs on Weston with libmpv (tool/ui-test.sh).
+// Shared harness for whole-app widget tests over the fake core.
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -37,10 +33,8 @@ LumeoApp testApp({
   open: open,
 );
 
-/// A test of the whole app on a desktop: Linux, the window's default size, a
-/// window channel that records instead of acting, a machine that decodes
-/// everything and has a Pictures folder without being asked, and a stand-in
-/// where the player would open.
+/// Runs an app test with Linux window behaviour, recorded window calls and a
+/// player stand-in.
 void uiTest(String description, WidgetTesterCallback body) => testWidgets(
   description,
   (tester) async {
@@ -65,12 +59,12 @@ void uiTest(String description, WidgetTesterCallback body) => testWidgets(
     });
     await body(tester);
     // Unmounted and run out, so a test that ends on a spinner or a debounce
-    // does not fail on the timer it left: time here is fake and costs nothing.
+    // does not fail on the timer it left.
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 5));
   },
-  // flutter test is Android by default, and scroll views, scrollbars and
-  // keyboard shortcuts all follow the platform.
+  // Flutter tests default to Android; scrolling and shortcuts depend on Linux
+  // platform behaviour.
   variant: TargetPlatformVariant.only(TargetPlatform.linux),
 );
 
@@ -82,8 +76,8 @@ const _decodesEverything =
     '{"codec":"truehd","driver":"truehd"},{"codec":"flac","driver":"flac"},'
     '{"codec":"opus","driver":"opus"},{"codec":"mp3","driver":"mp3float"}]';
 
-/// What the shell shows where a film would play: the screen it was handed,
-/// never built, so a test can ask which download and title it was for.
+/// Stands in for the player and keeps the unopened screen for title and
+/// download assertions.
 class PlayerStandIn extends StatelessWidget {
   const PlayerStandIn(this.screen, {super.key});
 
@@ -115,27 +109,20 @@ void fakeWindow() {
             ? <String, Object?>{'maximized': false, 'fullscreen': false}
             : null;
       });
-  // The window is one object for the whole process, so a test that put it
-  // into fullscreen would hand that on to the next one.
+  // The window object persists across tests; clear its fullscreen state.
   AppWindow.instance.setFullscreen(false);
   windowCalls.clear();
 }
 
-/// Scrolls [finder] to the middle of its viewport and lets the layout catch
-/// up. `tester.ensureVisible` puts the target at the very top, which on the
-/// settings page is under the bar, and it does not pump, so a tap right after
-/// it is aimed at where the widget was.
+/// Scrolls [finder] to viewport centre and pumps layout.
+/// ensureVisible alone leaves settings targets under the bar.
 Future<void> reveal(WidgetTester tester, Finder finder) async {
   await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
   await tester.pumpAndSettle();
 }
 
-/// Pumps until [question] answers yes, or gives up saying what it wanted.
-///
-/// The time is counted in pumps: fake in a widget test, and at least as long
-/// in real time on Weston, where mpv opening a file and a software decoder
-/// run on the wall clock and a fixed wait fails on a busy machine instead of
-/// on a defect.
+/// Pumps until [question] succeeds; pump counts cover fake time and slower
+/// Weston wall time.
 Future<void> waitFor(
   WidgetTester tester,
   Future<bool> Function() question, {
@@ -150,8 +137,7 @@ Future<void> waitFor(
   fail('never: $what');
 }
 
-/// Pumps until [finder] shows up when what brings it is real I/O — a folder
-/// listing, a picture over a socket — which fake time does not wait for.
+/// Waits for [finder] after real I/O, which fake time cannot advance.
 Future<void> waitForIo(WidgetTester tester, Finder finder) async {
   for (var i = 0; i < 100; i++) {
     if (finder.evaluate().isNotEmpty) return;
@@ -163,11 +149,8 @@ Future<void> waitForIo(WidgetTester tester, Finder finder) async {
   fail('never: $finder');
 }
 
-/// Pumps for a while without insisting the screen ever stops moving.
-///
-/// pumpAndSettle cannot be used once the player is up: the spinner that
-/// says a film is still arriving turns forever, and settling on it means waiting
-/// out the ten minute timeout.
+/// Pumps without settling; a player spinner can run until the ten-minute
+/// timeout.
 Future<void> pumpFor(WidgetTester tester, Duration total) async {
   for (
     var spent = Duration.zero;
@@ -178,8 +161,7 @@ Future<void> pumpFor(WidgetTester tester, Duration total) async {
   }
 }
 
-/// Ctrl+F, which is the only way into search that does not depend on where
-/// the bar has put the magnifier.
+/// Opens search with Ctrl+F, independent of the magnifier's position.
 Future<void> pressCtrlF(WidgetTester tester) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
   await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
@@ -187,9 +169,8 @@ Future<void> pressCtrlF(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// A row of the search panel, by the id of the title it stands for. Not
-/// `find.text`: the same title is printed on the poster of a shelf behind
-/// the panel, on every tile whose artwork has not arrived.
+/// Finds a search row by title id; its text may also appear on a shelf behind
+/// the panel.
 Finder panelRow(String id) => find.byKey(ValueKey('result:$id'));
 
 /// Types into the open panel and waits out the debounce and the answer.
@@ -199,8 +180,7 @@ Future<void> typeIntoSearch(WidgetTester tester, String query) async {
   await tester.pumpAndSettle();
 }
 
-// Not pumpAndSettle alone: the spinner is held back for a moment, and a
-// screen with nothing moving yet counts as settled.
+// A delayed spinner can make pumpAndSettle finish before the response arrives.
 Future<void> homeShown(WidgetTester tester) async {
   await waitFor(
     tester,
@@ -244,8 +224,7 @@ Future<void> openSeries(
   Map<String, Map<String, dynamic>> progress = const {},
   Map<String, dynamic>? preferences,
   String stills = '',
-  // For a test that needs a core of its own — one serving a film from a
-  // real port, say. The navigation to the title is the same either way.
+  // A caller may supply a core with a real film-serving port.
   LumeoApi? api,
 }) async {
   await tester.pumpWidget(
@@ -279,20 +258,15 @@ Future<void> openLibrary(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Settings in a file of the test's own, so a test never reads or writes the
-/// desktop user's. Not loaded: there is nothing in a new file to load.
+/// Returns settings in a temporary file, avoiding the desktop client.json.
 LocalSettings temporarySettings() {
   final directory = Directory.systemTemp.createTempSync('lumeo-ui-settings-');
   addTearDown(() => directory.deleteSync(recursive: true));
   return LocalSettings(path: '${directory.path}/client.json')..language = 'en';
 }
 
-/// Fails if anything visible is painted in MaterialApp's fallback text style.
-///
-/// One assertion for a whole class of mistake: any subtree that ends up
-/// outside a Material — an overlay, a route of our own, a raw Text in a
-/// painter — shows up here rather than in a screenshot somebody happens to
-/// look at.
+/// Fails on visible fallback text styles, which expose widgets outside
+/// Material.
 void expectNoFallbackStyle(WidgetTester tester) {
   const yellow = Color(0xFFFFFF00);
   final offenders = <String>[];

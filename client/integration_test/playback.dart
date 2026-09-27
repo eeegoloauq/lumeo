@@ -1,4 +1,4 @@
-// Getting a film to play and on to the next one: waits, failures, files opened with Lumeo, the next episode.
+// Playback, opening files and moving to the next episode.
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,16 +19,8 @@ void playbackTests() {
   testWidgets('the wait for a film stands on the title\'s artwork', (
     tester,
   ) async {
-    // Black under the name of the film, until the first frame, was what the
-    // wait looked like. Every player puts the title's artwork there, dimmed:
-    // it says which film this is while nothing else can, and the first frame
-    // fades in over it rather than flashing on over black. The picture has to
-    // be the size of the screen — the switcher that fades it out lays its
-    // child out loose, and an image left to itself takes its own proportions.
-    //
-    // Served from a socket of this test's own: the fixtures point every other
-    // picture at a port nothing listens on, and Image.network does not go
-    // through the fake core.
+    // The waiting screen needs the title artwork until the first frame arrives.
+    // A test socket is needed because Image.network bypasses the fake core.
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(() => server.close(force: true));
     server.listen((request) {
@@ -79,9 +71,8 @@ void playbackTests() {
   testWidgets('leaving a film started from the banner does not start it again', (
     tester,
   ) async {
-    // It did: Play from the banner opened the title page with "start this"
-    // still set on it, so Escape out of the film landed on a page that started
-    // the film — a loop you had to outrun with the Escape key.
+    // Play from the banner used to leave "start this" set, so leaving the film
+    // started it again.
     await tester.pumpWidget(
       testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
@@ -110,13 +101,8 @@ void playbackTests() {
   testWidgets('a film the core cannot serve yet is never handed to mpv', (
     tester,
   ) async {
-    // The bug this whole group is about: the core said ready when it had only
-    // learned the name of the file, the player opened a stream whose every
-    // read blocked on a swarm that had handed over nothing, mpv ran out of
-    // patience, and an episode at 3% with two peers feeding it got the whole
-    // screen saying the copy had no picture. Nothing reaches the server here
-    // because nothing should: there is nothing to play yet, and the screen
-    // says so with the name and a moving line.
+    // The core can know a file name before receiving any bytes; opening it then
+    // made mpv report no picture.
     final asked = <HttpRequest>[];
     final core = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     core.listen(asked.add);
@@ -131,7 +117,6 @@ void playbackTests() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
-    // The player asks the core every two seconds: three asks, all "not yet".
     await pumpFor(tester, const Duration(seconds: 6));
     expect(find.byType(PlayerScreen), findsOneWidget);
     expect(asked, isEmpty, reason: 'nothing to open, so nothing was opened');
@@ -157,13 +142,8 @@ void playbackTests() {
   testWidgets('a film that will not start is reported in the end', (
     tester,
   ) async {
-    // The other half: the core says the beginning of the file is there and mpv
-    // still cannot start it. Worth another go or two, because a stream can be
-    // dropped in the middle of being opened — and then worth saying, because a
-    // moving line over a film that is never going to play is a promise nobody
-    // is keeping. The core here does not exist at all, so every attempt fails
-    // at once. The patience is shortened: its thirty seconds are a number, the
-    // behaviour is failures retried and then a verdict.
+    // A stream can fail while opening; retry before declaring it unplayable.
+    // Shorten openPatience so the test need not wait thirty seconds.
     final patience = openPatience;
     openPatience = const Duration(seconds: 3);
     addTearDown(() => openPatience = patience);
@@ -193,13 +173,9 @@ void playbackTests() {
 
   testWidgets('an error mpv logs while it finds a decoder does not reopen '
       'the film', (tester) async {
-    // Windows with no working d3d11va or dxva2 logs "Failed to allocate
-    // AVHWDeviceContext." as a decoder error on every open, then decodes in
-    // software and plays. media_kit hands that line on as a player error, and
-    // the player took it for a failed open and opened the film again and
-    // again. The line is from mpv's Windows code, so a script named vd, whose
-    // log lines carry that prefix, logs it here as each file loads and counts
-    // the loads.
+    // Windows logs "Failed to allocate AVHWDeviceContext." before falling back
+    // to software. That decoder error used to reopen the film repeatedly; vd
+    // reproduces its log prefix.
     final server = await serveFilm();
     final download = fakeDownload(ready: false);
     await tester.pumpWidget(
@@ -241,8 +217,7 @@ void playbackTests() {
   });
 
   testWidgets('a file opened with Lumeo plays at once', (tester) async {
-    // "Open with Lumeo" on a file did nothing: nothing read the argument.
-    // The core makes the file a download, and the player plays that.
+    // "Open with Lumeo" used to ignore the file argument.
     final server = await serveFilm();
     final opened = <String>[];
     await tester.pumpWidget(
@@ -267,9 +242,8 @@ void playbackTests() {
   });
 
   testWidgets('a file opened while the app runs plays in it', (tester) async {
-    // A second "Open with Lumeo" opened a second window with a core of its
-    // own. The app is one instance now: the runner hands the running one the
-    // file on dev.lumeo/open.
+    // A second "Open with Lumeo" used to launch another window instead of using
+    // dev.lumeo/open.
     final server = await serveFilm();
     final opened = <String>[];
     await tester.pumpWidget(
@@ -322,7 +296,6 @@ void playbackTests() {
       return started;
     }
 
-    // Asked for episode 2 at all: prefetch is the only thing here that would.
     bool asksForNext(List<String> started) =>
         started.map(jsonDecode).any((body) => body['episode'] == 2);
     bool prefetched(List<String> started) => started
@@ -336,7 +309,6 @@ void playbackTests() {
       what: 'the next episode was prefetched',
     );
 
-    // On disk, the button stays and says so.
     await tester.tap(find.byTooltip('On disk'));
     await pumpFor(tester, const Duration(milliseconds: 500));
     expect(find.text('This episode'), findsOneWidget);
@@ -344,8 +316,6 @@ void playbackTests() {
     await tester.tapAt(Offset.zero);
     await pumpFor(tester, const Duration(milliseconds: 500));
 
-    // Two polls of the playing download: the first finds it on disk, the
-    // second has the next episode too.
     asked = await play(prefetch: false);
     await pumpFor(tester, const Duration(seconds: 5));
     expect(asksForNext(asked), isFalse);
@@ -397,19 +367,9 @@ void playbackTests() {
   });
 
   testWidgets('an episode that runs out starts the next one', (tester) async {
-    // The whole path with nothing faked in the middle: a real film served
-    // over the endpoint the core serves, played by the real libmpv, run to
-    // its end, and the player left to do what it does — ask the core what
-    // comes after this episode, order a copy of it, and open that copy.
-    // Every piece of this has a unit test and none of them says the pieces
-    // meet; in this player that is not a theoretical gap, because 0.1.19
-    // shipped with every film frozen on its first frame under a green suite.
-    //
-    // The test film carries no chapters, so this is the path where nothing
-    // warned anybody: mpv holds the last frame — keep-open — the button
-    // counts five seconds over it, and the next episode starts. The other
-    // path, an ending chapter and no wait, is what skipMoment is unit-tested
-    // on; what is not unit-testable is any of this.
+    // 0.1.19 froze on the first frame despite green unit tests; this runs real
+    // libmpv through episode handoff. With no ending chapter, mpv holds the
+    // last frame for the five-second next-episode countdown.
     final server = await serveFilm();
     final started = <String>[];
     final progressCalls = <String>[];
@@ -439,8 +399,7 @@ void playbackTests() {
       'bb-s1e1',
     );
 
-    // To the end rather than through it: the film is thirty seconds long and
-    // what is being tested starts at the last frame.
+    // The handoff starts at the last frame of this thirty-second film.
     await first.command(['seek', '29', 'absolute']);
     await waitFor(
       tester,
@@ -454,9 +413,8 @@ void playbackTests() {
     );
     expect(find.text("Episode 2 · Cat's in the Bag..."), findsOneWidget);
 
-    // Back from the held frame and on with mpv's own keys, as the user does:
-    // the card has to come back at the end. media_kit's `completed` stayed
-    // silent the second time.
+    // media_kit once stopped reporting `completed` after replaying from the
+    // held frame.
     await first.command(['seek', '27', 'absolute']);
     await first.command(['set', 'pause', 'no']);
     await waitFor(
@@ -470,9 +428,6 @@ void playbackTests() {
       what: 'the card came back at the end',
     );
 
-    // Five seconds of held last frame, and then a copy of the next episode
-    // is ordered — from the core, by number, without anybody pressing
-    // anything.
     await waitFor(
       tester,
       () async => started.any((body) {
@@ -482,8 +437,6 @@ void playbackTests() {
       what: 'the player ordered a copy of the next episode',
     );
 
-    // And it is playing it: a new screen, on the new download, with the new
-    // number in the bar, showing picture of its own.
     await waitFor(
       tester,
       () async =>
@@ -492,7 +445,6 @@ void playbackTests() {
               'bb-s1e2',
       what: 'the player moved on to the next episode',
     );
-    // The bar is up while the pointer moves.
     await tester.sendEventToBinding(
       TestPointer(99, PointerDeviceKind.mouse).hover(const Offset(400, 400)),
     );
@@ -510,10 +462,9 @@ void playbackTests() {
       what: 'the next episode is playing, not merely opened',
     );
 
-    // The episode that was left is finished, and the core was told so. An
-    // anime ending starts at 87% and the core latches watched at 90%, so
-    // without this the episode stays in Continue watching offering to resume
-    // into its own credits.
+    // Anime endings can start at 87%, before the core latches watched at 90%.
+    // Finishing must mark the episode watched instead of offering its credits
+    // in Continue watching.
     expect(
       progressCalls.any((body) {
         final sent = jsonDecode(body) as Map<String, dynamic>;
@@ -583,11 +534,8 @@ void playbackTests() {
   testWidgets('tracks picked by hand carry over to the next episode by title', (
     tester,
   ) async {
-    // Both soundtracks and both subtitles are what a dual-audio release has:
-    // the dub flagged default, and two English subtitles that only their
-    // titles tell apart. `slang=eng` alone takes the default one of those,
-    // so the second episode landing on "English Honorifics" is the title
-    // match and nothing else.
+    // `slang=eng` selects the default subtitle; "English Honorifics" needs a
+    // title match.
     final server = await serveFilm(tracksFilm());
     final patches = <String>[];
     await openSeries(
@@ -633,8 +581,8 @@ void playbackTests() {
     await pumpFor(tester, const Duration(seconds: 1));
     expect(patches, isEmpty, reason: 'what mpv picked by itself is not a pick');
 
-    // Straight to mpv, the way its own `#` and `j` get there: the screen
-    // hears of it only from the properties.
+    // mpv owns these key bindings; the screen learns the result from
+    // properties.
     await first.setProperty('aid', await idOf(first, 'audio', 'Japanese'));
     await first.setProperty(
       'sid',
@@ -654,15 +602,12 @@ void playbackTests() {
       },
     ]);
 
-    // Out and back in on the next episode, rather than by playing to the
-    // end: what carries the pick over is the core, and a new screen on a new
-    // file asks it afresh either way.
+    // The core carries track choices to a new player screen on the next
+    // episode.
     await playerKeysReady(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.byType(PlayerScreen), findsNothing);
-    // The button on the still plays its episode, the way somebody picking
-    // one with the mouse would; it shows while the pointer is on the card.
     final secondCard = find.byWidgetPredicate(
       (w) => w is EpisodeCard && w.episode.number == 2,
     );
@@ -710,17 +655,9 @@ void playbackTests() {
   testWidgets('the player waits on a core that has not answered yet', (
     tester,
   ) async {
-    // media_kit hands mpv a five second network timeout, which is a number for
-    // a web server. A read from the core returns when the piece behind it
-    // arrives, and on the swarm this was found on — two peers — that is longer
-    // than five seconds every time, so the film never opened at all: the
-    // screen said the copy had no picture over a download that was fine.
-    //
-    // The server here takes the connection and never answers, which is the
-    // core in the middle of fetching the first piece. What is checked is that
-    // the file is asked for, and the mpv holding the request has our timeout,
-    // not media_kit's: which one mpv obeys is mpv's business, and waiting out
-    // five seconds of it only proved that slowly.
+    // media_kit sets a five-second network timeout, shorter than a slow torrent
+    // piece. A silent test server lets this check mpv received the longer
+    // timeout without waiting it out.
     final asked = <HttpRequest>[];
     final stalled = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     stalled.listen(asked.add);
@@ -757,8 +694,7 @@ void playbackTests() {
     addTearDown(() {
       if (taken.existsSync()) taken.deleteSync();
     });
-    // Episode 2's still points at a port nothing listens on, as metahub's
-    // missing ones effectively do.
+    // A missing still is represented by an address with no listener.
     await openSeries(
       tester,
       api: fakeCore(
