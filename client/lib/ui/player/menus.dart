@@ -737,6 +737,7 @@ class SettingsMenu extends StatefulWidget {
     this.onChapter,
     required this.onShortcuts,
     required this.onStats,
+    required this.onTracks,
     this.hardware = 'auto-safe',
     this.decoding = 'Hardware',
     this.onDecoding,
@@ -759,6 +760,9 @@ class SettingsMenu extends StatefulWidget {
   final void Function(int)? onChapter;
   final VoidCallback onShortcuts;
   final VoidCallback onStats;
+
+  /// Opens the Audio & subtitles menu in place of this one.
+  final VoidCallback onTracks;
   final String hardware;
   final String decoding;
   final void Function(String)? onDecoding;
@@ -830,6 +834,13 @@ class _SettingsMenuState extends State<SettingsMenu> {
   };
 
   List<Widget> _main() => [
+    MenuRow(
+      label: context.l10n.playerShortcutTracks,
+      detail: 'C',
+      current: false,
+      check: false,
+      onTap: widget.onTracks,
+    ),
     if (widget.sources != null)
       _open('Source', switch (widget.sources!.sources
           ?.where(widget._playing)

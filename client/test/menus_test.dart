@@ -288,6 +288,7 @@ void main() {
                 onFit: (_) {},
                 onShortcuts: () {},
                 onStats: () {},
+                onTracks: () {},
               ),
             ),
           ),
@@ -303,6 +304,32 @@ void main() {
     await tester.tap(find.widgetWithText(MenuBack, 'Speed'));
     await tester.pumpAndSettle();
     expect(find.text('1.5×'), findsOneWidget);
+  });
+
+  testWidgets('the gear leads to Audio & subtitles', (tester) async {
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Center(
+            child: SettingsMenu(
+              rate: 1,
+              fit: 0,
+              onRate: (_) {},
+              onFit: (_) {},
+              onShortcuts: () {},
+              onStats: () {},
+              onTracks: () => opened++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Audio & subtitles'));
+    await tester.pump();
+    expect(opened, 1);
   });
 
   testWidgets('a search that found nothing more says so under both columns, '

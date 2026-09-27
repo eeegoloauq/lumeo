@@ -1813,6 +1813,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           decoding: _decoding,
           onDecoding: (value) => unawaited(_mpvSet('hwdec', value)),
           onShortcuts: () => unawaited(_readShortcuts()),
+          onTracks: () => _openMenu(PlayerMenu.tracks),
           onStats: () {
             _closeMenu();
             unawaited(
