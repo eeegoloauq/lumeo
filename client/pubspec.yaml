@@ -20,6 +20,8 @@ dependencies:
   media_kit_libs_video: ^1.0.7
   # The only thing the client needs to reach the core.
   http: ^1.6.0
+  # AppStream release notes are also shown in the client.
+  xml: 7.0.1
 
 # The Linux half of media_kit_video, with three defects fixed. Everything else
 # in the package is upstream 2.0.1 byte for byte, so `diff -r` against a fresh
@@ -50,6 +52,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/dev.lumeo.lumeo.metainfo.xml
 
   fonts:
     # Unbounded exists for one word — the wordmark — so it ships as five

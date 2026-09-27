@@ -501,5 +501,9 @@
   "playerKeyWheelUp": "Колесо вверх",
   "playerKeyWheelDown": "Колесо вниз",
   "playerKeyWheelLeft": "Колесо влево",
-  "playerKeyWheelRight": "Колесо вправо"
+  "playerKeyWheelRight": "Колесо вправо",
+  "releaseUpdatedTo": "Обновлено до {version}",
+  "releaseGotIt": "Понятно",
+  "releaseAllChanges": "Все изменения",
+  "releaseWhatsNew": "Что нового"
 }

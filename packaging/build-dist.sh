@@ -14,7 +14,7 @@ rm -rf dist
 mkdir -p "$stage"
 
 echo "==> client"
-(cd client && flutter build linux --release)
+(cd client && flutter build linux --release --build-name="$version" --dart-define="LUMEO_VERSION=$version")
 cp -a client/build/linux/x64/release/bundle "$stage/bundle"
 
 # Into the bundle, beside the binary: that is where the app looks for the
@@ -38,7 +38,7 @@ mkdir -p "$stage/icons/hicolor/scalable/apps"
 cp packaging/icon.svg "$stage/icons/hicolor/scalable/apps/dev.lumeo.lumeo.svg"
 
 cp packaging/lumeo.sh packaging/dev.lumeo.lumeo.desktop \
-   packaging/dev.lumeo.lumeo.metainfo.xml "$stage/"
+   client/assets/dev.lumeo.lumeo.metainfo.xml "$stage/"
 cp LICENSE README.md "$stage/"
 
 tar czf "dist/lumeo-$version-linux-x86_64.tar.gz" -C dist "lumeo-$version-linux-x86_64"

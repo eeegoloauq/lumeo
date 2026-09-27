@@ -13,7 +13,7 @@ rm -rf dist
 mkdir -p dist
 
 echo "==> client"
-(cd client && flutter build windows --release --build-name="$version")
+(cd client && flutter build windows --release --build-name="$version" --dart-define="LUMEO_VERSION=$version")
 
 # Into the bundle, beside lumeo.exe: that is where the app looks for the core
 # it starts (client/windows/runner/main.cpp).

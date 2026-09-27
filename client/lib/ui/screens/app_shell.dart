@@ -12,11 +12,13 @@ import '../../api/preferences_store.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/local_file.dart';
 import '../../platform/local_settings.dart';
+import '../../platform/release_notes.dart';
 import '../../platform/window.dart';
 import '../player/episode_frames.dart';
 import '../player/player_screen.dart';
 import '../widgets/downloads_indicator.dart';
 import '../widgets/top_bar.dart';
+import '../widgets/release_notes_card.dart';
 import 'home_screen.dart';
 import 'item_screen.dart';
 import 'library_screen.dart';
@@ -89,12 +91,16 @@ class _AppShellState extends State<AppShell> {
   final _history = <_Page>[const _Page.home()];
   bool _scrolled = false;
   _Playing? _playing;
+  List<String> _notes = const [];
+  String? _notesLanguage;
 
   _Page get _page => _history.last;
 
   @override
   void initState() {
     super.initState();
+    // A first run has nothing to compare with: its notes are not news.
+    widget.settings.lastSeenVersion ??= appVersion;
     // Whenever the keyboard ends up on the floor, the shell picks it up.
     //
     // autofocus below fires exactly once, and only if nothing holds the focus
@@ -108,6 +114,17 @@ class _AppShellState extends State<AppShell> {
     FocusManager.instance.addListener(_keyboardOnTheFloor);
     if (widget.open case final path?) unawaited(_openFile(path));
     _stopOpening = onFileOpened((path) => unawaited(_openFile(path)));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final language = Localizations.localeOf(context).languageCode;
+    if (_notesLanguage == language) return;
+    _notesLanguage = language;
+    ReleaseNotes.load(appVersion, language).then((items) {
+      if (mounted) setState(() => _notes = items);
+    });
   }
 
   /// "Open with Lumeo": the core makes the file a download, and from there it
@@ -541,6 +558,19 @@ class _AppShellState extends State<AppShell> {
                         onOpenItem: (item) => _go(_Page.item(item.id)),
                       ),
                     ),
+                    if (_notes.isNotEmpty &&
+                        widget.settings.lastSeenVersion != appVersion)
+                      Positioned(
+                        right: 24,
+                        bottom: 24,
+                        child: ReleaseNotesCard(
+                          version: appVersion,
+                          items: _notes,
+                          onClose: () => setState(() {
+                            widget.settings.lastSeenVersion = appVersion;
+                          }),
+                        ),
+                      ),
                   ],
                 ),
               ),

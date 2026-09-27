@@ -97,6 +97,6 @@ in git.
 ## Releases
 
 Add the version to the `%changelog` in `packaging/lumeo.spec` and to
-`packaging/dev.lumeo.lumeo.metainfo.xml`, then push `main` and an annotated `vX.Y.Z` tag in one
+`client/assets/dev.lumeo.lumeo.metainfo.xml`, then push `main` and an annotated `vX.Y.Z` tag in one
 push. The tag message is the release notes. `packaging/build-dist.sh` makes the bundle and tarball;
 `build-rpm.sh` and `build-arch.sh` package that tarball.

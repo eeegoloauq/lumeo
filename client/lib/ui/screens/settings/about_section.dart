@@ -12,9 +12,11 @@ import '../../../platform/decoders.dart';
 import '../../../platform/dirs.dart';
 import '../../../platform/folders.dart';
 import '../../../platform/local_settings.dart';
+import '../../../platform/release_notes.dart';
 import '../../player/mpv_facts.dart';
 import '../../theme.dart';
 import '../../widgets/setting_row.dart';
+import '../../widgets/release_notes_card.dart';
 import 'controls.dart';
 
 /// Keep this to codecs a catalogue copy is likely to use.
@@ -51,11 +53,22 @@ class _AboutSectionState extends State<AboutSection> {
   late Future<CoreHealth> _health = widget.api.health();
   late final Future<void> _decoders = DeviceDecoders.instance.load();
   final _facts = MpvFacts.instance;
+  Future<List<String>> _notes = Future.value(const []);
+  String? _notesLanguage;
 
   @override
   void initState() {
     super.initState();
     unawaited(_facts.load());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final language = Localizations.localeOf(context).languageCode;
+    if (_notesLanguage == language) return;
+    _notesLanguage = language;
+    _notes = ReleaseNotes.load(appVersion, language);
   }
 
   Future<void> _reset() async {
@@ -152,7 +165,6 @@ class _AboutSectionState extends State<AboutSection> {
     AsyncSnapshot<CoreAbout> about,
     AsyncSnapshot<CoreHealth> health,
   ) {
-    final version = about.data?.version ?? '';
     final waiting = !health.hasData && !health.hasError;
     final (colour, word) = switch ((waiting, health.error)) {
       (true, _) => (Palette.muted, context.l10n.commonAsking),
@@ -168,11 +180,25 @@ class _AboutSectionState extends State<AboutSection> {
     return [
       SettingRow(
         label: 'Lumeo',
-        value: Text(
-          version.isEmpty
-              ? (about.hasError ? context.l10n.commonUnknown : '…')
-              : version,
-          style: SettingsType.value,
+        value: const Text(appVersion, style: SettingsType.value),
+        trailing: FutureBuilder<List<String>>(
+          future: _notes,
+          builder: (context, notes) => notes.data?.isNotEmpty == true
+              ? RowButton(
+                  label: context.l10n.releaseWhatsNew,
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (dialog) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      child: ReleaseNotesCard(
+                        version: appVersion,
+                        items: notes.data!,
+                        onClose: () => Navigator.pop(dialog),
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
       ),
       SettingRow(
@@ -308,9 +334,7 @@ class _AboutSectionState extends State<AboutSection> {
         : _facts.version;
     final playerLog = '${stateDir()}/mpv.log';
     return [
-      l10n.settingsDetailsLumeo(
-        about?.version.isNotEmpty == true ? about!.version : l10n.commonUnknown,
-      ),
+      l10n.settingsDetailsLumeo(appVersion),
       if (health.data case final data?)
         l10n.settingsDetailsCoreProviders(
           _address(about),

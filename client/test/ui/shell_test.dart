@@ -1,14 +1,61 @@
 // The shell: the bar, the window, the keyboard and Escape.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
+import 'package:lumeo/platform/release_notes.dart';
 
 import 'fake_core.dart';
 
 import 'app.dart';
 
 void main() {
+  uiTest('a first run shows no release notes', (tester) async {
+    final settings = temporarySettings();
+    await tester.pumpWidget(testApp(settings: settings));
+    await tester.pumpAndSettle();
+    expect(settings.lastSeenVersion, appVersion);
+    expect(find.text('Got it'), findsNothing);
+  });
+
+  uiTest('release notes show once after an update', (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      'flutter/assets',
+      (message) async =>
+          utf8.decode(message!.buffer.asUint8List()) !=
+              'assets/dev.lumeo.lumeo.metainfo.xml'
+          ? null
+          : utf8.encoder
+                .convert(
+                  '<component><releases><release version="$appVersion">'
+                  '<description><ul><li>Subtitles stay put.</li></ul></description>'
+                  '</release></releases></component>',
+                )
+                .buffer
+                .asByteData(),
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+        'flutter/assets',
+        null,
+      ),
+    );
+    // rootBundle keeps what an earlier test read of the real file.
+    rootBundle.evict('assets/dev.lumeo.lumeo.metainfo.xml');
+    addTearDown(() => rootBundle.evict('assets/dev.lumeo.lumeo.metainfo.xml'));
+    final settings = temporarySettings()..lastSeenVersion = '0.0.1';
+    await tester.pumpWidget(testApp(settings: settings));
+    await tester.pumpAndSettle();
+    expect(find.text('Subtitles stay put.'), findsOneWidget);
+
+    await tester.tap(find.text('Got it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Subtitles stay put.'), findsNothing);
+    expect(settings.lastSeenVersion, appVersion);
+  });
+
   uiTest('the wordmark is printed once', (tester) async {
     // The banner and floating bar used to print overlapping wordmarks, making
     // one blurred logo.

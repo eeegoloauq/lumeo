@@ -25,6 +25,7 @@ class LocalSettings extends ChangeNotifier {
   String _language = '';
   bool _timelinePreviews = true;
   String _screenshotsDir = '';
+  String? _lastSeenVersion;
   DateTime? _clearedAt;
   Timer? _saveTimer;
   Completer<void>? _scheduled;
@@ -60,6 +61,9 @@ class LocalSettings extends ChangeNotifier {
         if (decoded['screenshotsDir'] is String) {
           settings._screenshotsDir = decoded['screenshotsDir'] as String;
         }
+        if (decoded['lastSeenVersion'] is String) {
+          settings._lastSeenVersion = decoded['lastSeenVersion'] as String;
+        }
         if (decoded['downloadsClearedAt'] is String) {
           settings._clearedAt = DateTime.tryParse(
             decoded['downloadsClearedAt'] as String,
@@ -74,6 +78,15 @@ class LocalSettings extends ChangeNotifier {
   }
 
   double get volume => _volume;
+
+  String? get lastSeenVersion => _lastSeenVersion;
+
+  set lastSeenVersion(String? value) {
+    if (value == _lastSeenVersion) return;
+    // Nothing redraws on it: the shell reads it once and hides its own card.
+    _lastSeenVersion = value;
+    _scheduleSave();
+  }
 
   set volume(double value) {
     final clamped = value.clamp(0, 100).toDouble();
@@ -225,6 +238,7 @@ class LocalSettings extends ChangeNotifier {
       if (_clearedAt != null)
         'downloadsClearedAt': _clearedAt!.toIso8601String(),
     };
+    if (_lastSeenVersion case final seen?) values['lastSeenVersion'] = seen;
     _writes = _writes.then((_) => _write(values)).whenComplete(() {
       if (!scheduled.isCompleted) scheduled.complete();
     });

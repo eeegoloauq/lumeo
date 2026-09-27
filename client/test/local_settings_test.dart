@@ -113,6 +113,7 @@ void main() {
         ..timelinePreviews = false
         ..screenshotsDir = '/home/me/Frames'
         ..keepFinished = '7d'
+        ..lastSeenVersion = '0.1.66'
         ..volume = 40;
 
       await settings.flush();
@@ -121,6 +122,7 @@ void main() {
       expect(reloaded.textScaleFactor, greaterThan(1));
       expect(reloaded.timelinePreviews, isFalse);
       expect(reloaded.screenshotsDir, '/home/me/Frames');
+      expect(reloaded.lastSeenVersion, '0.1.66');
 
       reloaded.resetChoices();
       expect(reloaded.textScale, 'default');
@@ -128,6 +130,7 @@ void main() {
       expect(reloaded.screenshotsDir, isEmpty);
       expect(reloaded.keepFinished, '1d');
       expect(reloaded.volume, 40, reason: 'volume is not a choice on the page');
+      expect(reloaded.lastSeenVersion, '0.1.66');
       await reloaded.flush();
     },
   );

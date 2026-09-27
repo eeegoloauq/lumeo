@@ -2641,5 +2641,13 @@
   "playerKeyWheelRight": "Wheel right",
   "@playerKeyWheelRight": {
     "description": "A mouse action bound to a player command, in the keyboard shortcuts list."
-  }
+  },
+  "releaseUpdatedTo": "Updated to {version}",
+  "@releaseUpdatedTo": {"description": "Release notes in the application.", "placeholders": {"version": {"type": "String"}}},
+  "releaseGotIt": "Got it",
+  "@releaseGotIt": {"description": "Release notes in the application."},
+  "releaseAllChanges": "All changes",
+  "@releaseAllChanges": {"description": "Release notes in the application."},
+  "releaseWhatsNew": "What’s new",
+  "@releaseWhatsNew": {"description": "Release notes in the application."}
 }

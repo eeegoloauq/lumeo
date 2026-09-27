@@ -11,6 +11,8 @@ import 'dirs.dart';
 /// url_launcher: one call per platform, where the plugin is four packages.
 Future<void> openFolder(String path) => _open(path);
 
+Future<void> openUrl(String url) => _open(url);
+
 /// The Windows runner's shell calls (windows/runner/flutter_window.cpp).
 const _shell = MethodChannel('dev.lumeo/shell');
 
