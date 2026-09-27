@@ -29,16 +29,6 @@ class PlaybackSection extends StatelessWidget {
         SettingRows([
           if (current != null) ...[
             SettingRow(
-              label: context.l10n.settingsAudioLanguages,
-              value: LanguageList(
-                preference: 'audioLanguages',
-                chosen: current.audioLanguages,
-                preferences: preferences,
-                onPatch: patch,
-                empty: context.l10n.settingsFileLanguage,
-              ),
-            ),
-            SettingRow(
               label: context.l10n.settingsShowNextEpisode,
               hint: context.l10n.settingsShowNextEpisodeHint,
               value: PreferenceStepper(

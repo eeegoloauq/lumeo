@@ -8,8 +8,8 @@ import '../../player/subtitle_style.dart';
 import '../../widgets/setting_row.dart';
 import 'controls.dart';
 
-class SubtitlesSection extends StatelessWidget {
-  const SubtitlesSection({
+class AudioSubtitlesSection extends StatelessWidget {
+  const AudioSubtitlesSection({
     super.key,
     required this.preferences,
     required this.patch,
@@ -24,14 +24,20 @@ class SubtitlesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = preferences.current;
     return SettingsBlock(
-      title: context.l10n.settingsSubtitles,
+      title: context.l10n.settingsAudioSubtitles,
       children: [
-        if (current != null) ...[
-          _Preview(preferences: current),
-          const SizedBox(height: 8),
-        ],
         SettingRows([
           if (current != null) ...[
+            SettingRow(
+              label: context.l10n.settingsAudioLanguages,
+              value: LanguageList(
+                preference: 'audioLanguages',
+                chosen: current.audioLanguages,
+                preferences: preferences,
+                onPatch: patch,
+                empty: context.l10n.settingsFileLanguage,
+              ),
+            ),
             SettingRow(
               label: context.l10n.settingsSubtitleLanguages,
               value: LanguageList(
@@ -54,6 +60,15 @@ class SubtitlesSection extends StatelessWidget {
                 onSelected: (mode) => patch({'subtitleMode': mode}),
               ),
             ),
+          ],
+          if (current == null && error == null) const SettingsLoading(),
+          if (error != null) ErrorRow(error!),
+        ]),
+        if (current != null) ...[
+          SettingsSubheading(context.l10n.settingsSubtitleStyle),
+          _Preview(preferences: current),
+          const SizedBox(height: 8),
+          SettingRows([
             SettingRow(
               label: context.l10n.settingsSubtitleSize,
               value: Segments<double>(
@@ -120,10 +135,8 @@ class SubtitlesSection extends StatelessWidget {
                 onChanged: (on) => patch({'subtitleKeepStyling': on}),
               ),
             ),
-          ],
-          if (current == null && error == null) const SettingsLoading(),
-          if (error != null) ErrorRow(error!),
-        ]),
+          ]),
+        ],
       ],
     );
   }

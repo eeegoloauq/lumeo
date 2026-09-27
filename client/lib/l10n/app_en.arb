@@ -255,7 +255,7 @@
   },
   "settingsAudioLanguages": "Audio languages",
   "@settingsAudioLanguages": {
-    "description": "Audio languages in ui/screens/settings/playback_section.dart"
+    "description": "Audio languages in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsFileLanguage": "The file’s own",
   "@settingsFileLanguage": {
@@ -315,66 +315,70 @@
   "@settingsTimelinePreviews": {
     "description": "Timeline previews in ui/screens/settings/playback_section.dart"
   },
-  "settingsSubtitles": "Subtitles",
-  "@settingsSubtitles": {
-    "description": "Subtitles in ui/screens/settings/subtitles_section.dart"
+  "settingsAudioSubtitles": "Audio & subtitles",
+  "@settingsAudioSubtitles": {
+    "description": "Section title in ui/screens/settings/audio_subtitles_section.dart"
   },
-  "settingsSubtitleLanguages": "Languages",
+  "settingsSubtitleStyle": "Subtitle style",
+  "@settingsSubtitleStyle": {
+    "description": "Heading over the subtitle look in ui/screens/settings/audio_subtitles_section.dart"
+  },
+  "settingsSubtitleLanguages": "Subtitle languages",
   "@settingsSubtitleLanguages": {
-    "description": "Languages in ui/screens/settings/subtitles_section.dart"
+    "description": "Subtitle languages in ui/screens/settings/audio_subtitles_section.dart"
   },
-  "settingsSubtitleMode": "Turn on",
+  "settingsSubtitleMode": "Turn subtitles on",
   "@settingsSubtitleMode": {
-    "description": "Turn on in ui/screens/settings/subtitles_section.dart"
+    "description": "Turn on in ui/screens/settings/audio_subtitles_section.dart"
   },
-  "settingsForeignAudioHint": "Foreign audio: when the sound isn’t in these languages.",
+  "settingsForeignAudioHint": "Foreign audio: when the sound isn’t in the subtitle languages.",
   "settingsAlways": "Always",
   "@settingsAlways": {
-    "description": "Always in ui/screens/settings/subtitles_section.dart"
+    "description": "Always in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsForeignAudio": "Foreign audio",
   "@settingsForeignAudio": {
-    "description": "Foreign audio in ui/screens/settings/subtitles_section.dart"
+    "description": "Foreign audio in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsManual": "Manual",
   "@settingsManual": {
-    "description": "Manual in ui/screens/settings/subtitles_section.dart"
+    "description": "Manual in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsSubtitleSize": "Size",
   "@settingsSubtitleSize": {
-    "description": "Size in ui/screens/settings/subtitles_section.dart"
+    "description": "Size in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsSubtitleColour": "Colour",
   "@settingsSubtitleColour": {
-    "description": "Colour in ui/screens/settings/subtitles_section.dart"
+    "description": "Colour in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsSubtitleBackground": "Background",
   "@settingsSubtitleBackground": {
-    "description": "Background in ui/screens/settings/subtitles_section.dart"
+    "description": "Background in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsNone": "None",
   "@settingsNone": {
-    "description": "None in ui/screens/settings/subtitles_section.dart"
+    "description": "None in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsShadow": "Shadow",
   "@settingsShadow": {
-    "description": "Shadow in ui/screens/settings/subtitles_section.dart"
+    "description": "Shadow in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsBox": "Box",
   "@settingsBox": {
-    "description": "Box in ui/screens/settings/subtitles_section.dart"
+    "description": "Box in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsSubtitleHeight": "Height",
   "@settingsSubtitleHeight": {
-    "description": "Height in ui/screens/settings/subtitles_section.dart"
+    "description": "Height in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsLower": "Lower",
   "@settingsLower": {
-    "description": "Lower in ui/screens/settings/subtitles_section.dart"
+    "description": "Lower in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsHigher": "Higher",
   "@settingsHigher": {
-    "description": "Higher in ui/screens/settings/subtitles_section.dart"
+    "description": "Higher in ui/screens/settings/audio_subtitles_section.dart"
   },
   "settingsKeepFileStyling": "Keep the file’s styling",
   "settingsSubtitlePreview": "Don’t go. One more episode.",

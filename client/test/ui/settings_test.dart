@@ -71,12 +71,12 @@ void main() {
     final patched = <String>[];
     await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
     await tester.pumpAndSettle();
-    await openSettingsAt(tester, SettingsSection.subtitles);
+    await openSettingsAt(tester, SettingsSection.audioSubtitles);
 
     expect(find.widgetWithText(InputChip, 'English'), findsOneWidget);
     final picker = find.ancestor(
       of: find.descendant(
-        of: settingsSection(SettingsSection.subtitles),
+        of: settingsSection(SettingsSection.audioSubtitles),
         matching: find.text('Add a language'),
       ),
       matching: find.byType(TextField),
@@ -108,7 +108,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await openSettingsAt(tester, SettingsSection.subtitles);
+    await openSettingsAt(tester, SettingsSection.audioSubtitles);
 
     tester
         .widget<InputChip>(find.widgetWithText(InputChip, 'Russian'))

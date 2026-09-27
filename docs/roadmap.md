@@ -25,11 +25,7 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
    `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
    NVIDIA/Wayland, and the picture modes on Windows.
-2. Settings: audio and subtitle languages in one "Audio & subtitles"
-   section; a mark at 100% on the volume slider; shortcut descriptions
-   translated by mpv command, mpv's English comment for the rest (mockup
-   first).
-3. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
+2. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
@@ -38,11 +34,11 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    presents frames and DWM does not show them (mpv and the sound go on);
    resizing the FLUTTERVIEW child window by a pixel and back revives it,
    `RedrawWindow` does not. A fix in the runner would do that resize on
-   `GUID_CONSOLE_DISPLAY_STATE` turning on, a workaround to agree first. Tested with the CI build under
-   Wine here and on the user's machine.
-4. A UX map of the user's journeys with the defaults of each, reviewed
+   `GUID_CONSOLE_DISPLAY_STATE` turning on, a workaround to agree first.
+   Tested with the CI build under Wine here and on the user's machine.
+3. A UX map of the user's journeys with the defaults of each, reviewed
    against screenshots of the real app; mockups only for what changes.
-5. Opening and ending found by comparing a season's audio, for files whose
+4. Opening and ending found by comparing a season's audio, for files whose
    chapters are unnamed (`[?]`, after the rest).
 
 ## Library and storage
@@ -98,8 +94,7 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   state), so only our own minimise button could see it; on X11 and Windows
   Flutter's `AppLifecycleState.hidden` does. Playback: an external player for
   what our mpv cannot open, surround passthrough. Subtitles: outline. About:
-  What's new (nothing in the app carries release notes) and whether a newer
-  release exists. Downloads: the desktop's own folder chooser in place of the
+  whether a newer release exists. Downloads: the desktop's own folder chooser in place of the
   one drawn in the app (a portal call on Linux, `IFileDialog` on Windows).
 - More than one core address, switchable, kept in `client.json`, each with
   its token. Needs `LumeoApi.baseUri` to change at runtime. For a core on the

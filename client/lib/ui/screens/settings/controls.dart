@@ -791,3 +791,33 @@ const _menuStyle = MenuStyle(
     ),
   ),
 );
+
+/// A heading inside a section, over a group of its rows.
+class SettingsSubheading extends StatelessWidget {
+  const SettingsSubheading(this.text, {super.key, this.padded = true});
+
+  final String text;
+  final bool padded;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = Semantics(
+      header: true,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontFamily: Typo.sans,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Palette.text,
+        ),
+      ),
+    );
+    return padded
+        ? Padding(
+            padding: const EdgeInsets.only(top: 28, bottom: 4),
+            child: label,
+          )
+        : label;
+  }
+}

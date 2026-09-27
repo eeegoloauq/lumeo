@@ -14,6 +14,7 @@ import '../../theme.dart';
 import '../../widgets/top_bar.dart';
 import 'about_section.dart';
 import 'appearance_section.dart';
+import 'audio_subtitles_section.dart';
 import 'controls.dart';
 import 'downloads_section.dart';
 import 'general_section.dart';
@@ -21,7 +22,6 @@ import 'playback_section.dart';
 import 'settings_section.dart';
 import 'shortcuts_section.dart';
 import 'sources_section.dart';
-import 'subtitles_section.dart';
 
 export 'settings_section.dart';
 
@@ -66,7 +66,7 @@ class SettingsScreen extends StatefulWidget {
     SettingsSection.general,
     SettingsSection.appearance,
     SettingsSection.playback,
-    SettingsSection.subtitles,
+    SettingsSection.audioSubtitles,
     SettingsSection.downloads,
     SettingsSection.sources,
     SettingsSection.shortcuts,
@@ -294,7 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         patch: patch,
         error: _errorIn(section),
       ),
-      SettingsSection.subtitles => SubtitlesSection(
+      SettingsSection.audioSubtitles => AudioSubtitlesSection(
         preferences: preferences,
         patch: patch,
         error: _errorIn(section),

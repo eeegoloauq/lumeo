@@ -182,7 +182,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           if (widget.error != null) ErrorRow(widget.error!),
         ]),
         if (current != null) ...[
-          _SubHeading(context.l10n.settingsNetwork),
+          SettingsSubheading(context.l10n.settingsNetwork),
           SettingRows(_networkRows(current)),
         ],
         FutureBuilder<Storage>(
@@ -451,7 +451,7 @@ class _DownloadsSectionState extends State<DownloadsSection> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _SubHeading(context.l10n.downloadsOnDisk, padded: false),
+              SettingsSubheading(context.l10n.downloadsOnDisk, padded: false),
               if (storage != null && storage.used > 0) ...[
                 const SizedBox(width: 10),
                 Text(
@@ -503,35 +503,6 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         ]),
       ],
     );
-  }
-}
-
-class _SubHeading extends StatelessWidget {
-  const _SubHeading(this.text, {this.padded = true});
-
-  final String text;
-  final bool padded;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = Semantics(
-      header: true,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: Typo.sans,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Palette.text,
-        ),
-      ),
-    );
-    return padded
-        ? Padding(
-            padding: const EdgeInsets.only(top: 28, bottom: 4),
-            child: label,
-          )
-        : label;
   }
 }
 
