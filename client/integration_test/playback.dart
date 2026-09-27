@@ -379,11 +379,11 @@ void playbackTests() {
 
     // On disk, the button stays and says so.
     await tester.tap(find.byTooltip('On disk'));
-    await tester.pumpAndSettle();
+    await pumpFor(tester, const Duration(milliseconds: 500));
     expect(find.text('This episode'), findsOneWidget);
     expect(find.textContaining('Next · E2'), findsOneWidget);
     await tester.tapAt(Offset.zero);
-    await tester.pumpAndSettle();
+    await pumpFor(tester, const Duration(milliseconds: 500));
 
     // Two polls of the playing download: the first finds it on disk, the
     // second has the next episode too.
