@@ -33,7 +33,12 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
-   the home banner's scroll lag on Windows 10. Tested with the CI build under
+   the home banner's scroll lag on Windows 10. The frozen picture is below
+   us: after the display turns back on, Flutter's raster thread still
+   presents frames and DWM does not show them (mpv and the sound go on);
+   resizing the FLUTTERVIEW child window by a pixel and back revives it,
+   `RedrawWindow` does not. A fix in the runner would do that resize on
+   `GUID_CONSOLE_DISPLAY_STATE` turning on, a workaround to agree first. Tested with the CI build under
    Wine here and on the user's machine.
 4. A UX map of the user's journeys with the defaults of each, reviewed
    against screenshots of the real app; mockups only for what changes.
