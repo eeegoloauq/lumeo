@@ -5,10 +5,10 @@
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# Every push that touches the client runs the whole UI suite, one job per
-# area at once (in one job it takes over ten minutes); while working, a change is checked here with the tests of its own
-# area, and this catches what it broke elsewhere. release.yml calls this too
-# and publishes only when it passes.
+# Every push that touches the client runs the player suite on Weston, one job
+# per area at once; everything else is `flutter test` in the client job
+# (docs/decisions/testing.md). release.yml calls this too and publishes only
+# when it passes.
 name: ci
 
 on:
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         # The groups in integration_test/app_test.dart.
-        area: [shell, search, downloads, settings, library, title, playback, player]
+        area: [playback, player]
     name: ui (${{ matrix.area }})
     runs-on: ubuntu-latest
     defaults:
