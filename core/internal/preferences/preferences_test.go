@@ -248,8 +248,8 @@ func TestPatchRejectsInvalidDocumentsWithoutWriting(t *testing.T) {
 		{name: "legacy keep with other days", body: `{"keep":"30days","keepDays":7}`, message: `keep "30days" is keepDays 30, not 7`},
 		{name: "subtitle colour unknown", body: `{"subtitleColor":"green"}`, message: `subtitleColor must be "white", "yellow", "cream", or "cyan"`},
 		{name: "keep styling not boolean", body: `{"subtitleKeepStyling":1}`, message: "subtitleKeepStyling must be true or false"},
-		{name: "next notice too early", body: `{"nextNotice":4}`, message: "nextNotice must be between 5 and 120"},
-		{name: "next notice too late", body: `{"nextNotice":121}`, message: "nextNotice must be between 5 and 120"},
+		{name: "next notice before the end", body: `{"nextNotice":-1}`, message: "nextNotice must be between 0 and 120"},
+		{name: "next notice too late", body: `{"nextNotice":121}`, message: "nextNotice must be between 0 and 120"},
 		{name: "seek step zero", body: `{"seekStep":0}`, message: "seekStep must be between 1 and 60"},
 		{name: "seek step fraction", body: `{"seekStep":2.5}`, message: "seekStep must be a whole number"},
 		{name: "seed not boolean", body: `{"seed":"off"}`, message: "seed must be true or false"},
@@ -307,7 +307,7 @@ func testDefaults() Preferences {
 	return Preferences{
 		SubtitleMode: "always", SubtitleScale: 1, SubtitlePosition: 100, SubtitleBackground: "none",
 		SubtitleColor: "white", SubtitleKeepStyling: true, Accent: "white", Keep: "forever", KeepDays: 30,
-		Prefetch: true, NextCountdown: 5, NextNotice: 30, SeekStep: 5, Seed: true,
+		Prefetch: true, NextCountdown: 5, NextNotice: 0, SeekStep: 5, Seed: true,
 	}
 }
 

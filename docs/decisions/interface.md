@@ -295,12 +295,12 @@ the page cannot drift from what the keys do. The arrow step is itself a
 binding in our section rather than a Dart seek: the key goes to mpv as every
 other key does, and mpv seeks.
 
-Show next episode (`nextNotice`, 30 s by default) is when the next-episode
-card appears before an end the file does not mark. Until it existed the card
-came only at the last frame. It is an offer, not the countdown: the countdown
-still starts on the held last frame, and credits marked as a chapter still
-decide on their own. A file shorter than twice the notice gets the card at its
-end, or a short one would carry it from its first minute.
+Show next episode (`nextNotice`) is when the next-episode card appears before
+an end the file does not mark. 0, the default, offers it on the last frame.
+It is an offer, not the countdown: the countdown still starts on the held
+last frame, and credits marked as a chapter still decide on their own. A file
+shorter than twice the notice gets the card at its end, or a short one would
+carry it from its first minute.
 
 The folder chooser is drawn by the app: the runners have none, and a native
 one per platform (a portal call on Linux, `IFileDialog` on Windows) is code

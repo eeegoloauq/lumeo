@@ -23,7 +23,7 @@ class Preferences {
     this.nextCountdown = 5,
     this.subtitleColor = 'white',
     this.subtitleKeepStyling = true,
-    this.nextNotice = 30,
+    this.nextNotice = 0,
     this.seekStep = 5,
     this.keepDays = 30,
     this.downloadDir = '',
@@ -86,7 +86,7 @@ class Preferences {
   final bool subtitleKeepStyling;
 
   /// Seconds before the end at which the next-episode card is offered, when
-  /// the file marks no credits.
+  /// the file marks no credits; 0 offers it on the last frame.
   final int nextNotice;
 
   /// Seconds the arrow keys seek. Shift+arrow stays one second.
@@ -123,7 +123,7 @@ class Preferences {
       nextCountdown: (json['nextCountdown'] as num?)?.toInt() ?? 5,
       subtitleColor: json['subtitleColor'] as String? ?? 'white',
       subtitleKeepStyling: json['subtitleKeepStyling'] as bool? ?? true,
-      nextNotice: (json['nextNotice'] as num?)?.toInt() ?? 30,
+      nextNotice: (json['nextNotice'] as num?)?.toInt() ?? 0,
       seekStep: (json['seekStep'] as num?)?.toInt() ?? 5,
       keepDays: legacyDays ? 30 : (json['keepDays'] as num?)?.toInt() ?? 30,
       downloadDir: json['downloadDir'] as String? ?? '',

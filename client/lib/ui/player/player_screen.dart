@@ -1096,7 +1096,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// How long before an end the file does not mark the next episode is
   /// offered.
   Duration get _nextNotice =>
-      Duration(seconds: widget.preferences.current?.nextNotice ?? 30);
+      Duration(seconds: widget.preferences.current?.nextNotice ?? 0);
 
   DateTime? _endedAt;
   Timer? _endedTimer;

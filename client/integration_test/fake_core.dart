@@ -101,7 +101,7 @@ LumeoApi fakeCore({
     'nextCountdown': 5,
     'subtitleColor': 'white',
     'subtitleKeepStyling': true,
-    'nextNotice': 30,
+    'nextNotice': 0,
     'seekStep': 5,
     'keepDays': 30,
     'downloadDir': '',

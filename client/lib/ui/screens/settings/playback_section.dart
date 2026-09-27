@@ -43,7 +43,7 @@ class PlaybackSection extends StatelessWidget {
               hint: context.l10n.settingsShowNextEpisodeHint,
               value: PreferenceStepper(
                 stored: current.nextNotice,
-                min: 5,
+                min: 0,
                 max: 120,
                 step: 5,
                 describe: (seconds) => context.l10n.commonSeconds(seconds),

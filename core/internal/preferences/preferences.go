@@ -66,7 +66,7 @@ type Preferences struct {
 	// themselves: the next episode starts when they end.
 	NextCountdown int `json:"nextCountdown"`
 	// NextNotice is how many seconds before the end of an episode the card
-	// offering the next one appears.
+	// offering the next one appears; 0 offers it on the last frame.
 	NextNotice int `json:"nextNotice"`
 	// SeekStep is the jump of the arrow keys, in seconds.
 	SeekStep int `json:"seekStep"`
@@ -289,7 +289,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 		case "nextCountdown":
 			changes[key], err = integer(key, raw, 0, 60)
 		case "nextNotice":
-			changes[key], err = integer(key, raw, 5, 120)
+			changes[key], err = integer(key, raw, 0, 120)
 		case "seekStep":
 			changes[key], err = integer(key, raw, 1, 60)
 		case "downloadDir":

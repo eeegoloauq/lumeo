@@ -143,7 +143,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		DiskLimit:           50 << 30,
 		Prefetch:            true,
 		NextCountdown:       5,
-		NextNotice:          30,
+		NextNotice:          0,
 		SeekStep:            5,
 		Seed:                cfg.Seed,
 	})
