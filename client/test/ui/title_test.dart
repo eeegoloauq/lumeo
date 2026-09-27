@@ -54,13 +54,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    // On the picture: the caption is what a click in the middle of the tile
-    // lands beside when it is wider than the poster.
     await tester.tap(
-      find.descendant(
-        of: find.descendant(of: shelf, matching: find.byType(PosterTile)),
-        matching: find.byType(AspectRatio),
-      ),
+      find.descendant(of: shelf, matching: find.byType(PosterTile)),
     );
     await tester.pumpAndSettle();
     final card = find.byWidgetPredicate(

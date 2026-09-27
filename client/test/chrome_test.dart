@@ -8,6 +8,7 @@ import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/loading.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
+import 'package:lumeo/ui/widgets/shelf.dart';
 import 'package:lumeo/ui/widgets/window_controls.dart';
 
 void main() {
@@ -390,6 +391,40 @@ void main() {
       0.4,
       reason: 'on its way',
     );
+  });
+
+  testWidgets('a caption wider than the poster does not widen the tile', (
+    tester,
+  ) async {
+    // It did: the width was the picture's alone, so a long name or a line
+    // like "S3 E12 · Sep 13" widened the tile, pushed the next one away, and
+    // a click beside the picture, still inside the tile, opened nothing.
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: PosterTile(
+              item: const MediaItem(
+                id: 'a',
+                kind: 'series',
+                title: 'The Adventures of Sherlock Holmes and Doctor Watson',
+              ),
+              onOpen: () => opened++,
+              captioned: true,
+              caption: 'S3 E12 · Sep 13 · 2 new',
+            ),
+          ),
+        ),
+      ),
+    );
+    final tile = tester.getRect(find.byType(PosterTile));
+    expect(tile.width, ShelfMetrics.posterWidth);
+    await tester.tapAt(tile.center);
+    expect(opened, 1);
   });
 }
 

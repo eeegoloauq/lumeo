@@ -90,13 +90,16 @@ class _PosterTileState extends State<PosterTile> {
           child: Semantics(
             button: true,
             label: item.title,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: widget.width,
-                  child: AspectRatio(
+            // The tile is the poster's width, caption included: a caption
+            // left to its own width widened the tile past the artwork, and
+            // a click beside the picture landed on nothing.
+            child: SizedBox(
+              width: widget.width,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AspectRatio(
                     aspectRatio: ShelfMetrics.posterAspect,
                     child: AnimatedScale(
                       scale: lifted ? ShelfMetrics.hoverScale : 1,
@@ -166,62 +169,62 @@ class _PosterTileState extends State<PosterTile> {
                       ),
                     ),
                   ),
-                ),
-                // Excluded from semantics rather than merged into it: the tile
-                // already announces itself by name, and a screen reader that reads
-                // the caption too says the title twice.
-                if (widget.captioned)
-                  ExcludeSemantics(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        top: ShelfMetrics.captionGap,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Typo.cardTitle.copyWith(fontSize: 13),
-                          ),
-                          if ((widget.caption ?? item.years) case final line
-                              when line.isNotEmpty || widget.score > 0)
-                            Text.rich(
-                              TextSpan(
-                                text: line,
-                                children: [
-                                  if (widget.score > 0) ...[
-                                    TextSpan(text: line.isEmpty ? '' : ' · '),
-                                    const WidgetSpan(
-                                      alignment: PlaceholderAlignment.middle,
-                                      child: Padding(
-                                        padding: EdgeInsets.only(right: 3),
-                                        child: Icon(
-                                          Icons.star,
-                                          size: 12,
-                                          color: Palette.muted,
-                                        ),
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: NumberFormat.decimalPattern(
-                                        context.l10n.localeName,
-                                      ).format(widget.score),
-                                    ),
-                                  ],
-                                ],
-                              ),
+                  // Excluded from semantics rather than merged into it: the tile
+                  // already announces itself by name, and a screen reader that reads
+                  // the caption too says the title twice.
+                  if (widget.captioned)
+                    ExcludeSemantics(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: ShelfMetrics.captionGap,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              item.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Typo.data,
+                              style: Typo.cardTitle.copyWith(fontSize: 13),
                             ),
-                        ],
+                            if ((widget.caption ?? item.years) case final line
+                                when line.isNotEmpty || widget.score > 0)
+                              Text.rich(
+                                TextSpan(
+                                  text: line,
+                                  children: [
+                                    if (widget.score > 0) ...[
+                                      TextSpan(text: line.isEmpty ? '' : ' · '),
+                                      const WidgetSpan(
+                                        alignment: PlaceholderAlignment.middle,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(right: 3),
+                                          child: Icon(
+                                            Icons.star,
+                                            size: 12,
+                                            color: Palette.muted,
+                                          ),
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: NumberFormat.decimalPattern(
+                                          context.l10n.localeName,
+                                        ).format(widget.score),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Typo.data,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
