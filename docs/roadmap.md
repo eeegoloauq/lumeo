@@ -157,6 +157,11 @@ top:
 The shell's own history duplicates a `Navigator`; it stays until it causes a
 defect.
 
+The folder picker (`folder_dialog.dart`) is ours on purpose: it matches the
+app and one folder is a small question. If someone asks for the system's
+chooser (bookmarks, network places), `file_selector` is the flutter.dev
+plugin for it on both systems.
+
 ## Shipping
 
 Copr repo, arm64, a self-hosted Flatpak remote.

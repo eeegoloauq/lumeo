@@ -316,6 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         preferences: preferences,
         settings: widget.settings,
         about: _about,
+        patch: patch,
         onReset: () => setState(() => _changedIn = SettingsSection.about),
         error: _errorIn(section),
         notes: widget.notes,

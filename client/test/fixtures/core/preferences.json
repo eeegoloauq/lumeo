@@ -8,6 +8,7 @@
   "keep": "forever",
   "diskLimit": 0,
   "prefetch": true,
+  "checkUpdates": true,
   "subtitleMode": "always",
   "audioLanguages": [],
   "subtitleScale": 1.0,

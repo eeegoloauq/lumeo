@@ -122,6 +122,7 @@ void main() {
         ..screenshotsDir = '/home/me/Frames'
         ..keepFinished = '7d'
         ..lastSeenVersion = '0.1.66'
+        ..dismissedUpdate = '0.1.70'
         ..volume = 40;
 
       await settings.flush();
@@ -131,6 +132,7 @@ void main() {
       expect(reloaded.timelinePreviews, isFalse);
       expect(reloaded.screenshotsDir, '/home/me/Frames');
       expect(reloaded.lastSeenVersion, '0.1.66');
+      expect(reloaded.dismissedUpdate, '0.1.70');
 
       reloaded.resetChoices();
       expect(reloaded.textScale, 'default');

@@ -10,6 +10,7 @@ import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
 import '../../l10n/l10n.dart';
+import '../../platform/folders.dart';
 import '../../platform/local_file.dart';
 import '../../platform/local_settings.dart';
 import '../../platform/release_notes.dart';
@@ -91,8 +92,14 @@ class _AppShellState extends State<AppShell> {
   final _history = <_Page>[const _Page.home()];
   bool _scrolled = false;
   _Playing? _playing;
+  // This release's notes, and what the viewer has not been told since the
+  // version they last saw: every release they skipped.
   List<String> _notes = const [];
+  List<String> _news = const [];
   String? _notesLanguage;
+  // A newer release, and its notes since this one in the interface language.
+  CoreUpdate? _update;
+  List<String> _updateNotes = const [];
 
   _Page get _page => _history.last;
 
@@ -113,6 +120,7 @@ class _AppShellState extends State<AppShell> {
     // Ctrl+F came to work only after the first click somewhere in the page.
     FocusManager.instance.addListener(_keyboardOnTheFloor);
     if (widget.open case final path?) unawaited(_openFile(path));
+    unawaited(_checkForUpdate());
     _stopOpening = onFileOpened((path) => unawaited(_openFile(path)));
   }
 
@@ -122,9 +130,71 @@ class _AppShellState extends State<AppShell> {
     final language = Localizations.localeOf(context).languageCode;
     if (_notesLanguage == language) return;
     _notesLanguage = language;
-    ReleaseNotes.load(appVersion, language).then((items) {
-      if (mounted) setState(() => _notes = items);
+    if (_update case final update?) _updateNotes = _notesOf(update);
+    final seen = widget.settings.lastSeenVersion ?? appVersion;
+    ReleaseNotes.bundled().then((source) {
+      if (!mounted) return;
+      setState(() {
+        _notes = ReleaseNotes.parse(source, appVersion, language);
+        _news = seen == appVersion
+            ? const []
+            : ReleaseNotes.between(source, seen, appVersion, language);
+      });
     });
+  }
+
+  /// A failed check is no news: the core logs why.
+  Future<void> _checkForUpdate() async {
+    try {
+      final update = await widget.api.update();
+      if (!mounted || update == null) return;
+      if (update.version == widget.settings.dismissedUpdate) return;
+      setState(() {
+        _update = update;
+        _updateNotes = _notesOf(update);
+      });
+    } on Object catch (_) {}
+  }
+
+  List<String> _notesOf(CoreUpdate update) => ReleaseNotes.between(
+    update.notes,
+    appVersion,
+    update.version,
+    _notesLanguage ?? 'en',
+  );
+
+  Widget? _releaseCard() {
+    final l10n = context.l10n;
+    if (_news.isNotEmpty) {
+      void seen() => setState(() {
+        widget.settings.lastSeenVersion = appVersion;
+        _news = const [];
+      });
+      return ReleaseNotesCard(
+        title: l10n.releaseUpdatedTo(appVersion),
+        items: _news,
+        action: l10n.releaseGotIt,
+        onAction: seen,
+        onClose: seen,
+      );
+    }
+    if (_update case final update?) {
+      void dismiss() => setState(() {
+        widget.settings.dismissedUpdate = update.version;
+        _update = null;
+      });
+      return ReleaseNotesCard(
+        title: l10n.releaseAvailable(update.version),
+        items: _updateNotes,
+        action: l10n.releaseDownload,
+        onAction: () {
+          unawaited(openUrl(update.url));
+          dismiss();
+        },
+        onClose: dismiss,
+      );
+    }
+    return null;
   }
 
   /// "Open with Lumeo": the core makes the file a download, and from there it
@@ -559,19 +629,8 @@ class _AppShellState extends State<AppShell> {
                         onOpenItem: (item) => _go(_Page.item(item.id)),
                       ),
                     ),
-                    if (_notes.isNotEmpty &&
-                        widget.settings.lastSeenVersion != appVersion)
-                      Positioned(
-                        right: 24,
-                        bottom: 24,
-                        child: ReleaseNotesCard(
-                          version: appVersion,
-                          items: _notes,
-                          onClose: () => setState(() {
-                            widget.settings.lastSeenVersion = appVersion;
-                          }),
-                        ),
-                      ),
+                    if (_releaseCard() case final card?)
+                      Positioned(right: 24, bottom: 24, child: card),
                   ],
                 ),
               ),

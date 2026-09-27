@@ -94,8 +94,10 @@ so the Dart side does not know which it is on:
   rejected for the reason GTK's was: the artwork runs to the top edge. The
   borders, the shadow and snapping stay the system's; what is lost is the
   Snap Layouts flyout on the maximise button (Win+Z still opens it).
-- `dev.lumeo/shell` answers what `xdg-open` and `xdg-user-dir` answer on
-  Linux: ShellExecute, and the Pictures known folder, which OneDrive moves.
+- `dev.lumeo/shell` answers what `xdg-user-dir` answers on Linux: the
+  Pictures known folder, which OneDrive moves. Links and folders open through
+  url_launcher on both systems: on Wayland only the focused app may hand focus
+  on, and a bare `xdg-open` left the browser behind the window.
 
 libmpv is the exception to "from the distribution": Windows has none, so it
 is media_kit's own build, downloaded by its CMake at build time. That build is
@@ -103,6 +105,23 @@ from 2023-09, older than the libmpv of any Linux release, and the Windows half
 of `media_kit_video` is upstream's: none of the patches in our fork apply to
 it. The MSVC runtime goes into the bundle through CMake's
 `InstallRequiredSystemLibraries`, because a clean Windows 10 does not have it.
+
+## Updates: the app says a release is out, the system installs it
+
+The core asks GitHub for the latest published release when the client starts,
+at most once a day (a failed look again after an hour), and the client shows
+it in the corner card that shows what an update brought: the notes of every
+release since the running one, from the release's own AppStream file, so they
+come in the interface language, and a button to the release page. Closing it
+keeps that version quiet; the next one is offered again. Settings, About turns
+the check off, and then the core never contacts GitHub. The core asks, not
+the client, because every call leaving the machine is the core's.
+
+Nothing installs itself. An rpm or a pacman package is the package manager's
+to replace, and an app rewriting its own root-owned files is the wrong owner;
+the way to updates that arrive by themselves on Linux is a repository the
+system already polls (the roadmap's Copr and Flatpak remote). On Windows it
+would be a signed installer run silently, which waits on signing.
 
 ## Where CI runs: Forgejo gates the core, the mirror builds the client
 

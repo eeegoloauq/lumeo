@@ -18,4 +18,19 @@ void main() {
     expect(ReleaseNotes.parse(source, '1.2.4', 'ru'), ['Next release']);
     expect(ReleaseNotes.parse(source, '1.2.5', 'en'), isEmpty);
   });
+
+  test('skipped releases are told together, the newest first', () {
+    const source = '''<component><releases>
+      <release version="0.2.1"><description><ul><li>Newest</li></ul></description></release>
+      <release version="0.2.0"><description><ul><li>Middle</li></ul></description></release>
+      <release version="0.1.9"><description><ul><li>Seen</li></ul></description></release>
+    </releases></component>''';
+    expect(ReleaseNotes.between(source, '0.1.9', '0.2.1', 'en'), [
+      'Newest',
+      'Middle',
+    ]);
+    expect(ReleaseNotes.between(source, '0.1.9', '0.2.0', 'en'), ['Middle']);
+    // Updated from a copy that kept no version: only this release is news.
+    expect(ReleaseNotes.between(source, '', '0.2.1', 'en'), ['Newest']);
+  });
 }

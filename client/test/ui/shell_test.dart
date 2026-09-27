@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 import 'package:lumeo/platform/release_notes.dart';
+import 'package:lumeo/ui/widgets/release_notes_card.dart';
 
 import 'fake_core.dart';
 
@@ -54,6 +55,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Subtitles stay put.'), findsNothing);
     expect(settings.lastSeenVersion, appVersion);
+  });
+
+  uiTest('a newer release is offered until its notice is closed', (
+    tester,
+  ) async {
+    final settings = temporarySettings();
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(update: fakeUpdate),
+        settings: settings,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Lumeo 0.2.1 is out'), findsOneWidget);
+    // Both skipped releases, the newest first.
+    expect(
+      find.text('Episodes remember their subtitle track.'),
+      findsOneWidget,
+    );
+    expect(find.text('A new home page.'), findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ReleaseNotesCard),
+        matching: find.byTooltip('Close'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Lumeo 0.2.1 is out'), findsNothing);
+    expect(settings.dismissedUpdate, '0.2.1');
+
+    // The next start remembers it.
+    await tester.pumpWidget(
+      testApp(
+        key: UniqueKey(),
+        api: fakeCore(update: fakeUpdate),
+        settings: temporarySettings()..dismissedUpdate = '0.2.1',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Lumeo 0.2.1 is out'), findsNothing);
   });
 
   uiTest('the wordmark is printed once', (tester) async {

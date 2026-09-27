@@ -167,7 +167,7 @@ apply it applies itself, before the change is answered: `keep`, `keepDays` and
 `diskLimit` run a pass of the keep policy; `downloadDir` is checked on the
 spot (absolute, made if missing, a probe file written and removed) and moves
 where new downloads go; `uploadLimit` and `downloadLimit` change the running
-torrent client. Whatever applies a preference subscribes to the
+torrent client; `checkUpdates` gates `GET /api/v1/update`. Whatever applies a preference subscribes to the
 service (`preferences.Service.Subscribe`); nothing reads a global copy. An
 earlier `keep: "30days"` reads back, and is still taken, as `keep: "days"`
 with `keepDays: 30`.
@@ -177,6 +177,11 @@ with `keepDays: 30`.
 effect), and `logPath` when the core's log goes to a file (on Windows the app
 hands it `core.log`; the journal and a terminal have no path, and the key is
 left out).
+
+`GET /api/v1/update` answers with a published release newer than the core,
+`{"version", "url", "notes"}`, where `notes` is that release's AppStream file;
+204 when there is none, when `checkUpdates` is off, or when GitHub could not
+be asked (logged). The answer is kept for a day (decisions/shipping.md).
 
 ## Local files
 

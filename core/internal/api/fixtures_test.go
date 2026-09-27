@@ -15,6 +15,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
+	"github.com/eeegoloauq/lumeo/core/internal/update"
 )
 
 func TestClientFixturesMatchResponses(t *testing.T) {
@@ -31,6 +32,7 @@ func TestClientFixturesMatchResponses(t *testing.T) {
 		{"languages.json", &[]subtitles.NamedLanguage{}},
 		{"download.json", &acquire.Download{}},
 		{"about.json", &About{}},
+		{"update.json", &update.Release{}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			path := filepath.Join("..", "..", "..", "client", "test", "fixtures", "core", tc.file)

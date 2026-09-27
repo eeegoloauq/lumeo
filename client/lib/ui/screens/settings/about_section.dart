@@ -32,6 +32,7 @@ class AboutSection extends StatefulWidget {
     required this.preferences,
     required this.settings,
     required this.about,
+    required this.patch,
     required this.onReset,
     required this.error,
     this.notes = const [],
@@ -41,6 +42,7 @@ class AboutSection extends StatefulWidget {
   final PreferencesStore preferences;
   final LocalSettings settings;
   final Future<CoreAbout> about;
+  final Future<void> Function(Map<String, Object?>) patch;
 
   /// Called before a reset, so its failure is said here.
   final VoidCallback onReset;
@@ -183,14 +185,26 @@ class _AboutSectionState extends State<AboutSection> {
                   builder: (dialog) => Dialog(
                     backgroundColor: Colors.transparent,
                     child: ReleaseNotesCard(
-                      version: appVersion,
+                      title: context.l10n.releaseUpdatedTo(appVersion),
                       items: widget.notes,
+                      action: context.l10n.releaseGotIt,
+                      onAction: () => Navigator.pop(dialog),
                       onClose: () => Navigator.pop(dialog),
                     ),
                   ),
                 ),
               ),
       ),
+      if (widget.preferences.current case final current?)
+        SettingRow(
+          label: context.l10n.settingsCheckUpdates,
+          hint: context.l10n.settingsCheckUpdatesHint,
+          value: SettingSwitch(
+            label: context.l10n.settingsCheckUpdates,
+            value: current.checkUpdates,
+            onChanged: (on) => widget.patch({'checkUpdates': on}),
+          ),
+        ),
       SettingRow(
         label: context.l10n.settingsCore,
         hint: providers == null

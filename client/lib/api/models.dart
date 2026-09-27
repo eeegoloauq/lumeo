@@ -20,6 +20,7 @@ class Preferences {
     this.keep = 'forever',
     this.diskLimit = 0,
     this.prefetch = true,
+    this.checkUpdates = true,
     this.nextCountdown = 5,
     this.subtitleColor = 'white',
     this.subtitleKeepStyling = true,
@@ -70,6 +71,9 @@ class Preferences {
   /// disk. The core starts it only inside the disk limit and the free disk.
   final bool prefetch;
 
+  /// Whether the core asks GitHub for a newer release.
+  final bool checkUpdates;
+
   /// Seconds the last frame of an episode counts down before the next one
   /// starts by itself; 0 waits for a press. Credits marked as a chapter are
   /// the countdown themselves.
@@ -116,6 +120,7 @@ class Preferences {
       keep: legacyDays ? 'days' : keep,
       diskLimit: (json['diskLimit'] as num?)?.toInt() ?? 0,
       prefetch: json['prefetch'] as bool? ?? true,
+      checkUpdates: json['checkUpdates'] as bool? ?? true,
       nextCountdown: (json['nextCountdown'] as num?)?.toInt() ?? 5,
       subtitleColor: json['subtitleColor'] as String? ?? 'white',
       subtitleKeepStyling: json['subtitleKeepStyling'] as bool? ?? true,
@@ -149,6 +154,29 @@ class NamedLanguage {
     code: json['code'] as String? ?? '',
     name: json['name'] as String? ?? '',
     aliases: (json['aliases'] as List<dynamic>? ?? []).cast<String>(),
+  );
+}
+
+/// A published release newer than the running core.
+class CoreUpdate {
+  const CoreUpdate({
+    required this.version,
+    required this.url,
+    required this.notes,
+  });
+
+  final String version;
+
+  /// The release's page, where its packages are.
+  final String url;
+
+  /// The release's AppStream file, read like the bundled one.
+  final String notes;
+
+  factory CoreUpdate.fromJson(Map<String, dynamic> json) => CoreUpdate(
+    version: json['version'] as String,
+    url: json['url'] as String,
+    notes: json['notes'] as String? ?? '',
   );
 }
 

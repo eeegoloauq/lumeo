@@ -36,6 +36,9 @@ LumeoApi fakeCore({
   List<String>? choicePatches,
   String aboutDir = '/nowhere/downloads',
 
+  /// What GET /api/v1/update answers with; null is the core's 204.
+  Map<String, dynamic>? update,
+
   /// Records addon requests as "METHOD path body".
   List<String>? addonCalls,
   List<Map<String, dynamic>>? addons,
@@ -437,6 +440,8 @@ LumeoApi fakeCore({
           return _json(preferenceState);
         case '/api/v1/preferences/languages':
           return _json({'languages': _languages});
+        case '/api/v1/update':
+          return update == null ? http.Response('', 204) : _json(update);
         case '/api/v1/about':
           return _json({
             ..._about,
@@ -589,6 +594,7 @@ Map<String, dynamic> _fixtureMap(String name) =>
 final fakeAddons = _fixtureList('addons.json');
 final fakeStorageTitles = _fixtureList('storage-titles.json');
 final preferenceDefaults = _fixtureMap('preferences.json');
+final fakeUpdate = _fixtureMap('update.json');
 final _catalogs = _fixtureList('catalogs.json');
 // Fixture artwork cannot arrive, so app tests do not depend on network images.
 final _items = _fixtureList('items.json');

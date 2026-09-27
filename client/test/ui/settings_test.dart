@@ -444,6 +444,17 @@ void main() {
     );
   });
 
+  uiTest('About sends the update check switched off', (tester) async {
+    final patched = <String>[];
+    await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, SettingsSection.about);
+    await reveal(tester, switchOf('Check for updates'));
+    await tester.tap(switchOf('Check for updates'));
+    await tester.pumpAndSettle();
+    expect(jsonDecode(patched.last), {'checkUpdates': false});
+  });
+
   uiTest('Downloads sends the upload limit', (tester) async {
     final patched = await openDownloads(tester);
     final upload = find.descendant(

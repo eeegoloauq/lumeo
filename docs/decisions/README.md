@@ -18,7 +18,7 @@ rejected option is usually the tempting one. How the code is laid out is in
 | [interface.md](interface.md) | The look, the season strip, scrolling, settings |
 | [testing.md](testing.md) | The client's test layers, what goes where, what a test does not check |
 | [library.md](library.md) | Watch progress and "next" in the core, My list, history, ratings |
-| [shipping.md](shipping.md) | Packages for Fedora, Arch and Windows, the app owning its core, CI |
+| [shipping.md](shipping.md) | Packages for Fedora, Arch and Windows, the app owning its core, updates, CI |
 
 ## Not doing
 

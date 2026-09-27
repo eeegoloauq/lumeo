@@ -28,6 +28,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
+	"github.com/eeegoloauq/lumeo/core/internal/update"
 	"github.com/eeegoloauq/lumeo/core/internal/watchlist"
 )
 
@@ -46,6 +47,7 @@ type Server struct {
 	addons    *addons.Service
 	searches  *searches.Service
 	about     About
+	updates   *update.Checker
 	token     string
 	log       *slog.Logger
 	artwork   *store.DB
@@ -98,6 +100,7 @@ type Deps struct {
 	Addons      *addons.Service
 	Searches    *searches.Service
 	About       About
+	Updates     *update.Checker
 	// Token is what every request but artwork has to present, as
 	// "Authorization: Bearer <token>". Empty turns the check off, which only
 	// tests do; the core does not start without one.
@@ -125,6 +128,7 @@ func New(deps Deps, log *slog.Logger) *Server {
 		addons:    deps.Addons,
 		searches:  deps.Searches,
 		about:     deps.About,
+		updates:   deps.Updates,
 		token:     deps.Token,
 		log:       log,
 		artwork:   deps.Artwork,
@@ -162,6 +166,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/preferences", s.handleResetPreferences)
 	mux.HandleFunc("GET /api/v1/preferences/languages", s.handlePreferenceLanguages)
 	mux.HandleFunc("GET /api/v1/about", s.handleAbout)
+	mux.HandleFunc("GET /api/v1/update", s.handleUpdate)
 	mux.HandleFunc("GET /api/v1/storage", s.handleStorage)
 	mux.HandleFunc("DELETE /api/v1/cache", s.handleClearCache)
 	mux.HandleFunc("DELETE /api/v1/storage", s.handleClearStorage)

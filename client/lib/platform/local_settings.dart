@@ -26,6 +26,7 @@ class LocalSettings extends ChangeNotifier {
   bool _timelinePreviews = true;
   String _screenshotsDir = '';
   String? _lastSeenVersion;
+  String _dismissedUpdate = '';
   DateTime? _clearedAt;
   Timer? _saveTimer;
   Completer<void>? _scheduled;
@@ -66,6 +67,9 @@ class LocalSettings extends ChangeNotifier {
         settings._lastSeenVersion = decoded['lastSeenVersion'] is String
             ? decoded['lastSeenVersion'] as String
             : '';
+        if (decoded['dismissedUpdate'] is String) {
+          settings._dismissedUpdate = decoded['dismissedUpdate'] as String;
+        }
         if (decoded['downloadsClearedAt'] is String) {
           settings._clearedAt = DateTime.tryParse(
             decoded['downloadsClearedAt'] as String,
@@ -87,6 +91,16 @@ class LocalSettings extends ChangeNotifier {
     if (value == _lastSeenVersion) return;
     // Nothing redraws on it: the shell reads it once and hides its own card.
     _lastSeenVersion = value;
+    _scheduleSave();
+  }
+
+  /// The newer release whose notice was closed: it is not offered again,
+  /// the next one is.
+  String get dismissedUpdate => _dismissedUpdate;
+
+  set dismissedUpdate(String value) {
+    if (value == _dismissedUpdate) return;
+    _dismissedUpdate = value;
     _scheduleSave();
   }
 
@@ -237,6 +251,7 @@ class LocalSettings extends ChangeNotifier {
       if (_language.isNotEmpty) 'language': _language,
       'timelinePreviews': _timelinePreviews,
       'screenshotsDir': _screenshotsDir,
+      if (_dismissedUpdate.isNotEmpty) 'dismissedUpdate': _dismissedUpdate,
       if (_clearedAt != null)
         'downloadsClearedAt': _clearedAt!.toIso8601String(),
     };

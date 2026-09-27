@@ -60,6 +60,9 @@ type Preferences struct {
 	// Prefetch starts the next episode once the one playing is on disk,
 	// when it fits inside DiskLimit and the free disk.
 	Prefetch bool `json:"prefetch"`
+	// CheckUpdates lets the core ask GitHub whether a newer release is out.
+	// Off, it never asks.
+	CheckUpdates bool `json:"checkUpdates"`
 	// NextCountdown is how many seconds the last frame of an episode is held,
 	// counting down, before the next one starts by itself; 0 means it waits
 	// for a press. Credits the file marks as a chapter are the countdown
@@ -159,6 +162,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "keepDays", &effective.KeepDays)
 	overlay(stored, "diskLimit", &effective.DiskLimit)
 	overlay(stored, "prefetch", &effective.Prefetch)
+	overlay(stored, "checkUpdates", &effective.CheckUpdates)
 	overlay(stored, "nextCountdown", &effective.NextCountdown)
 	overlay(stored, "nextNotice", &effective.NextNotice)
 	overlay(stored, "seekStep", &effective.SeekStep)
@@ -265,7 +269,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			changes[key], err = oneOf(key, raw, SubtitleBackgrounds)
 		case "subtitleColor":
 			changes[key], err = oneOf(key, raw, SubtitleColors)
-		case "subtitleKeepStyling", "prefetch":
+		case "subtitleKeepStyling", "prefetch", "checkUpdates":
 			changes[key], err = boolean(key, raw)
 		case "episodeArtwork":
 			changes[key], err = oneOf(key, raw, []string{"show", "blur", "hide"})
@@ -336,7 +340,7 @@ func known(key string) bool {
 	switch key {
 	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
-		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch",
+		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "checkUpdates",
 		"nextCountdown", "nextNotice", "seekStep", "downloadDir",
 		"uploadLimit", "downloadLimit":
 		return true

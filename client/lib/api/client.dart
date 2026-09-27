@@ -122,6 +122,18 @@ class LumeoApi {
   Future<CoreAbout> about() async =>
       CoreAbout.fromJson(await _get('/api/v1/about'));
 
+  /// A newer published release, or null when there is none to tell of.
+  Future<CoreUpdate?> update() async {
+    final response = await _request(
+      'GET',
+      _uri('/api/v1/update'),
+      expect: const {200, 204},
+    );
+    return response.statusCode == 204
+        ? null
+        : CoreUpdate.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
   Future<List<CatalogRow>> catalogs() async {
     final json = await _get('/api/v1/catalogs');
     return (json['catalogs'] as List<dynamic>? ?? [])

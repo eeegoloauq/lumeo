@@ -157,7 +157,7 @@ func TestPatchTrackPreferencesStoreAndReset(t *testing.T) {
 	defaults := testDefaults()
 	service := New(store, defaults)
 	got, err := service.Patch(context.Background(), []byte(
-		`{"audioLanguages":["jpn","JA","en"],"subtitleMode":"foreign","subtitleScale":1.25,"subtitlePosition":85,"subtitleBackground":"box","subtitleColor":"cream","subtitleKeepStyling":false,"accent":"teal","keep":"days","keepDays":14,"diskLimit":107374182400,"prefetch":false,"nextCountdown":0,"nextNotice":45,"seekStep":10,"uploadLimit":1048576,"downloadLimit":0}`))
+		`{"audioLanguages":["jpn","JA","en"],"subtitleMode":"foreign","subtitleScale":1.25,"subtitlePosition":85,"subtitleBackground":"box","subtitleColor":"cream","subtitleKeepStyling":false,"accent":"teal","keep":"days","keepDays":14,"diskLimit":107374182400,"prefetch":false,"checkUpdates":false,"nextCountdown":0,"nextNotice":45,"seekStep":10,"uploadLimit":1048576,"downloadLimit":0}`))
 	if err != nil {
 		t.Fatalf("patch: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestPatchTrackPreferencesStoreAndReset(t *testing.T) {
 		t.Fatalf("preferences = %+v, want %+v", got, want)
 	}
 	got, err = service.Patch(context.Background(), []byte(
-		`{"audioLanguages":null,"subtitleMode":null,"subtitleScale":null,"subtitlePosition":null,"subtitleBackground":null,"subtitleColor":null,"subtitleKeepStyling":null,"accent":null,"keep":null,"keepDays":null,"diskLimit":null,"prefetch":null,"nextCountdown":null,"nextNotice":null,"seekStep":null,"uploadLimit":null,"downloadLimit":null}`))
+		`{"audioLanguages":null,"subtitleMode":null,"subtitleScale":null,"subtitlePosition":null,"subtitleBackground":null,"subtitleColor":null,"subtitleKeepStyling":null,"accent":null,"keep":null,"keepDays":null,"diskLimit":null,"prefetch":null,"checkUpdates":null,"nextCountdown":null,"nextNotice":null,"seekStep":null,"uploadLimit":null,"downloadLimit":null}`))
 	if err != nil {
 		t.Fatalf("reset: %v", err)
 	}
@@ -306,7 +306,7 @@ func testDefaults() Preferences {
 	return Preferences{
 		SubtitleMode: "always", SubtitleScale: 1, SubtitlePosition: 100, SubtitleBackground: "none",
 		SubtitleColor: "white", SubtitleKeepStyling: true, Accent: "white", Keep: "forever", KeepDays: 30,
-		Prefetch: true, NextCountdown: 5, NextNotice: 0, SeekStep: 5,
+		Prefetch: true, CheckUpdates: true, NextCountdown: 5, NextNotice: 0, SeekStep: 5,
 	}
 }
 

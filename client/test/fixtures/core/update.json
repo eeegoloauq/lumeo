@@ -1,0 +1,5 @@
+{
+  "version": "0.2.1",
+  "url": "https://github.com/eeegoloauq/lumeo/releases/tag/v0.2.1",
+  "notes": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<component type=\"desktop-application\">\n  <releases>\n    <release version=\"0.2.1\" date=\"2026-10-02\">\n      <description>\n        <ul>\n          <li>Episodes remember their subtitle track.</li>\n          <li xml:lang=\"ru\">Серии запоминают дорожку субтитров.</li>\n        </ul>\n      </description>\n    </release>\n    <release version=\"0.2.0\" date=\"2026-10-01\">\n      <description>\n        <ul>\n          <li>A new home page.</li>\n          <li xml:lang=\"ru\">Новая главная страница.</li>\n        </ul>\n      </description>\n    </release>\n  </releases>\n</component>\n"
+}

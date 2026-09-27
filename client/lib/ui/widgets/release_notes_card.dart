@@ -4,16 +4,25 @@ import '../../l10n/l10n.dart';
 import '../../platform/folders.dart';
 import '../theme.dart';
 
+/// Release notes in a corner: what an update brought, or what a newer
+/// release would bring. A long list stops at [shown] and counts the rest,
+/// which the releases page has in full.
 class ReleaseNotesCard extends StatelessWidget {
   const ReleaseNotesCard({
     super.key,
-    required this.version,
+    required this.title,
     required this.items,
+    required this.action,
+    required this.onAction,
     required this.onClose,
   });
 
-  final String version;
+  static const shown = 6;
+
+  final String title;
   final List<String> items;
+  final String action;
+  final VoidCallback onAction;
   final VoidCallback onClose;
 
   @override
@@ -39,10 +48,7 @@ class ReleaseNotesCard extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                context.l10n.releaseUpdatedTo(version),
-                style: Typo.cardTitle.copyWith(fontSize: 15),
-              ),
+              child: Text(title, style: Typo.cardTitle.copyWith(fontSize: 15)),
             ),
             IconButton(
               tooltip: context.l10n.commonClose,
@@ -52,7 +58,7 @@ class ReleaseNotesCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        for (final item in items)
+        for (final item in items.take(shown))
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
@@ -78,15 +84,17 @@ class ReleaseNotesCard extends StatelessWidget {
               ],
             ),
           ),
+        if (items.length > shown)
+          Text(
+            context.l10n.releaseMore(items.length - shown),
+            style: Typo.data.copyWith(color: Palette.dim),
+          ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 12,
           runSpacing: 8,
           children: [
-            FilledButton(
-              onPressed: onClose,
-              child: Text(context.l10n.releaseGotIt),
-            ),
+            FilledButton(onPressed: onAction, child: Text(action)),
             TextButton(
               onPressed: () =>
                   openUrl('https://github.com/eeegoloauq/lumeo/releases'),

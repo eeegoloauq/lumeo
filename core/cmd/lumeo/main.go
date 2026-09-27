@@ -30,6 +30,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
 	"github.com/eeegoloauq/lumeo/core/internal/token"
+	"github.com/eeegoloauq/lumeo/core/internal/update"
 	"github.com/eeegoloauq/lumeo/core/internal/watchlist"
 )
 
@@ -142,6 +143,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		KeepDays:            30,
 		DiskLimit:           50 << 30,
 		Prefetch:            true,
+		CheckUpdates:        true,
 		NextCountdown:       5,
 		NextNotice:          0,
 		SeekStep:            5,
@@ -236,6 +238,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Addons:      installed,
 		Searches:    searches.New(db),
 		About:       about,
+		Updates:     update.New(version),
 		Token:       secret,
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
