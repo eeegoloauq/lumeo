@@ -144,15 +144,17 @@ language, or more than one backdrop. Waiting on it:
 
 ## Client debt: mechanics the framework already has
 
-An entry is done when the hand-written version is gone, not wrapped. From the
-top:
+An entry is done when the hand-written version is gone, not wrapped.
 
-1. `MouseRegion + GestureDetector` in place of `InkWell`/`IconButton` in
-   `window_controls.dart`, `chrome.dart`, `source_list.dart`,
-   `episode_card.dart`, `play_block.dart`, `poster_tile.dart`: no keyboard
-   activation, no button states, focus order by accident.
-2. Go through what media_kit publishes (streams, state, configuration) against
+1. Go through what media_kit publishes (streams, state, configuration) against
    what we ask mpv for or keep in fields, and delete the copies.
+
+Checked and kept: the episode card's `Focus`, `Shortcuts` and `MouseRegion`
+are its roving keyboard stop (the arrows walk the season, Enter plays) and
+the play button shown on hover; the window's caption buttons stay out of the
+tab order, as the system's own do, and draw their own hover without a ripple;
+the poster tile's `MouseRegion` lifts it for any mouse, where
+`FocusableActionDetector.onShowHoverHighlight` stays dark after a touch.
 
 The shell's own history duplicates a `Navigator`; it stays until it causes a
 defect.
