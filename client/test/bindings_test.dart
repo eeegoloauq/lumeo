@@ -36,6 +36,46 @@ void main() {
     );
   });
 
+  test('common mpv commands use the interface language', () {
+    final lines = shortcuts(const [
+      MpvBinding(
+        section: 'default',
+        key: 'SPACE',
+        cmd: 'cycle pause',
+        comment: 'toggle pause/playback mode',
+      ),
+      MpvBinding(
+        section: 'default',
+        key: 'm',
+        cmd: 'cycle mute',
+        comment: 'toggle mute',
+      ),
+      MpvBinding(
+        section: 'default',
+        key: 'j',
+        cmd: 'cycle sub',
+        comment: 'switch subtitle track',
+      ),
+      MpvBinding(section: 'default', key: 'l', cmd: 'ab-loop'),
+      MpvBinding(
+        section: 'default',
+        key: 'h',
+        cmd: 'some custom command',
+        comment: 'custom action',
+      ),
+    ], lookupAppLocalizations(const Locale('ru')));
+    expect(
+      [for (final line in lines) line.what],
+      [
+        'Пауза или воспроизведение',
+        'Выключить или включить звук',
+        'Следующая дорожка субтитров',
+        'Установить или убрать повтор отрезка',
+        'Custom action',
+      ],
+    );
+  });
+
   test(
     'one line per command, ours over the default, the dead ones left out',
     () {
@@ -110,7 +150,7 @@ void main() {
       expect(
         [for (final l in lines) '${l.keys.join(', ')} — ${l.what}'],
         [
-          'Click, Right click, Space, P — Toggle pause/playback mode',
+          'Click, Right click, Space, P — Pause or play',
           '→ — Seek 5 seconds forward',
           '9 — Volume −2',
           '0 — Volume +2',
@@ -184,7 +224,7 @@ void main() {
     expect(
       [for (final l in lines) '${l.keys.join(', ')} — ${l.what}'],
       [
-        'Space, P, Click — Toggle pause/playback mode',
+        'Space, P, Click — Pause or play',
         '→ — Seek 10 seconds forward',
         '← — Seek 10 seconds backward',
         '↑ — Seek 1 minute forward',

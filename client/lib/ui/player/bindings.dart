@@ -87,6 +87,36 @@ String? _ownLabel(String cmd, AppLocalizations l10n) => switch (cmd) {
   _ => null,
 };
 
+// mpv's default input.conf commands, by the normalized command, so the
+// description is in the interface language; others keep mpv's comment.
+String? _commandLabel(String cmd, AppLocalizations l10n) => switch (cmd) {
+  'cycle pause' => l10n.playerCommandPause,
+  'no-osd seek 1 exact' => l10n.playerCommandExactForward,
+  'no-osd seek -1 exact' => l10n.playerCommandExactBackward,
+  'cycle mute' => l10n.playerCommandMute,
+  'multiply speed 1/1.1' => l10n.playerCommandSlower,
+  'multiply speed 1.1' => l10n.playerCommandFaster,
+  'multiply speed 0.5' => l10n.playerCommandHalfSpeed,
+  'multiply speed 2.0' => l10n.playerCommandDoubleSpeed,
+  'set speed 1.0' => l10n.playerCommandNormalSpeed,
+  'frame-step' => l10n.playerCommandFrameForward,
+  'frame-back-step' => l10n.playerCommandFrameBackward,
+  'cycle audio' => l10n.playerCommandAudio,
+  'cycle sub' => l10n.playerCommandSubtitle,
+  'cycle sub down' => l10n.playerCommandSubtitleBack,
+  'cycle sub-visibility' => l10n.playerCommandSubtitleVisible,
+  'add sub-delay -0.1' => l10n.playerCommandSubtitleEarlier,
+  'add sub-delay +0.1' => l10n.playerCommandSubtitleLater,
+  'screenshot' => l10n.playerCommandScreenshot,
+  'screenshot video' => l10n.playerCommandScreenshotVideo,
+  'screenshot window' => l10n.playerCommandScreenshotWindow,
+  'add chapter 1' => l10n.playerCommandChapterNext,
+  'add chapter -1' => l10n.playerCommandChapterPrevious,
+  'ab-loop' => l10n.playerCommandAbLoop,
+  'show-progress' => l10n.playerCommandProgress,
+  _ => null,
+};
+
 String layoutKey(int usbHidUsage, bool shift, String char, Set<String> bound) {
   if (char.runes.every((c) => c < 0x80) || bound.contains(char)) {
     return char;
@@ -151,6 +181,7 @@ List<Shortcut> shortcuts(
         keys: keys[cmd]!,
         what:
             _ownLabel(cmd, l10n) ??
+            _commandLabel(cmd, l10n) ??
             switch (comments[cmd]) {
               final comment? => _sentence(comment),
               null => _plain(cmd, l10n),
