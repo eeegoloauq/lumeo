@@ -39,7 +39,7 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
-    <release version="0.1.66" date="2026-09-27">
+    <release version="0.1.67" date="2026-09-27">
       <description>
         <ul>
           <li>A torrent is shared while it downloads or plays. Settings, Downloads, Sharing can keep it shared always.</li>
