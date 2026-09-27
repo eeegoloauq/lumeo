@@ -433,6 +433,7 @@
   "playerUnmute": "Включить звук (M)",
   "playerMute": "Выключить звук (M)",
   "playerSkipOpening": "Пропустить заставку",
+  "playerSkipEnding": "Пропустить титры",
   "playerCouldNotStartCopy": "Не удалось запустить эту копию",
   "playerCoreStopped": "Ядро перестало отвечать",
   "playerCopyWouldNotStart": "Эта копия не запускается",

@@ -1276,9 +1276,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
     return switch (moment?.action) {
       null => null,
-      SkipAction.intro => SkipPill(
-        label: context.l10n.playerSkipOpening,
-        fill: moment!.fill,
+      SkipAction.intro || SkipAction.ending => SkipPill(
+        label: moment!.action == SkipAction.intro
+            ? context.l10n.playerSkipOpening
+            : context.l10n.playerSkipEnding,
+        fill: moment.fill,
         onPressed: () => _seekTo(moment.target),
       ),
       SkipAction.next => NextEpisodeCard(

@@ -2151,6 +2151,7 @@
   "playerUnmute": "Unmute (M)",
   "playerMute": "Mute (M)",
   "playerSkipOpening": "Skip opening",
+  "playerSkipEnding": "Skip ending",
   "playerCouldNotStartCopy": "Could not start this copy",
   "playerCoreStopped": "The core stopped answering",
   "playerCopyWouldNotStart": "This copy would not start",
@@ -2574,6 +2575,9 @@
   },
   "@playerSkipOpening": {
     "description": "Skip opening button in player."
+  },
+  "@playerSkipEnding": {
+    "description": "Skip ending button in player, shown when a scene follows the credits."
   },
   "@playerCouldNotStartCopy": {
     "description": "Playback waiting screen after a chosen copy fails."

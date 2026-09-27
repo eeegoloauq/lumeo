@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'chapters.dart';
 
-enum SkipAction { intro, next }
+enum SkipAction { intro, ending, next }
 
 /// One calculation keeps the visible offer and its interval in sync after seeks.
 class SkipMoment {
@@ -65,9 +65,22 @@ SkipMoment? skipMoment({
     );
     if (moment != null) return moment;
   }
-  if (!hasNext) return null;
   final ending = endingChapter(chapters);
-  if (ending == null) {
+  final after = ending == null ? null : afterEnding(chapters, ending);
+  if (after != null) {
+    // A scene after the credits belongs to the episode: skip to it, as the
+    // opening does, whether or not an episode follows.
+    final moment = _moment(
+      SkipAction.ending,
+      chapters[ending!].time,
+      chapters[after].time,
+      position,
+      includeEnd: false,
+    );
+    if (moment != null) return moment;
+  }
+  if (!hasNext) return null;
+  if (ending == null || after != null) {
     // Past half the file, "before the end" would be the whole episode: a
     // short file is offered its successor once it ends, as before.
     if (notice <= Duration.zero || duration < notice * 2) return null;

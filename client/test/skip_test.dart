@@ -211,6 +211,35 @@ void main() {
       expect(moment?.fill, closeTo(0.9, 0.001));
     });
 
+    test('an ending with a scene after it skips to the scene', () {
+      const chapters = [
+        MpvChapter(time: Duration.zero, title: 'Part A'),
+        MpvChapter(time: Duration(seconds: 1200), title: 'Ending'),
+        MpvChapter(time: Duration(seconds: 1300), title: 'Epilogue'),
+      ];
+      for (final hasNext in [true, false]) {
+        final moment = at(
+          const Duration(seconds: 1250),
+          chapters: chapters,
+          hasNext: hasNext,
+        );
+        expect(moment?.action, SkipAction.ending, reason: '$hasNext');
+        expect(moment?.target, const Duration(seconds: 1300));
+        expect(moment?.fill, closeTo(0.5, 0.001));
+      }
+      // The scene itself ends unmarked: the next episode comes with the notice.
+      expect(at(const Duration(seconds: 1300), chapters: chapters), isNull);
+      final last = skipMoment(
+        chapters: chapters,
+        position: const Duration(seconds: 1385),
+        duration: duration,
+        hasNext: true,
+        notice: const Duration(seconds: 30),
+      );
+      expect(last?.action, SkipAction.next);
+      expect(last?.credits, isFalse);
+    });
+
     test('the opening is offered whether or not there is a next episode', () {
       expect(
         at(const Duration(seconds: 150), hasNext: false)?.action,

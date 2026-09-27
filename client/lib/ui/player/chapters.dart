@@ -68,10 +68,7 @@ int? endingChapter(List<MpvChapter> chapters) {
   final floor = opening == null ? 1 : opening + 1;
   var start = -1;
   for (var i = chapters.length - 1; i >= floor; i--) {
-    final title = chapters[i].title;
-    if (_ending.hasMatch(title) &&
-        !_opening.hasMatch(title) &&
-        !_intro.hasMatch(title)) {
+    if (_isEnding(chapters[i].title)) {
       start = i;
     } else if (start >= 0) {
       break;
@@ -79,6 +76,18 @@ int? endingChapter(List<MpvChapter> chapters) {
   }
   return start < 0 ? null : start;
 }
+
+/// The first chapter after the ending run from [start], or null when the run
+/// lasts to the end of the file.
+int? afterEnding(List<MpvChapter> chapters, int start) {
+  final i = chapters.indexWhere((c) => !_isEnding(c.title), start);
+  return i < 0 ? null : i;
+}
+
+bool _isEnding(String title) =>
+    _ending.hasMatch(title) &&
+    !_opening.hasMatch(title) &&
+    !_intro.hasMatch(title);
 
 int? _firstNamed(List<MpvChapter> chapters, RegExp names) {
   final i = chapters.indexWhere((c) => names.hasMatch(c.title));
