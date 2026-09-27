@@ -21,18 +21,10 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
 
 ## From the user's notes of 2026-09-27, in order
 
-1. mpv's OSD sits inside the video texture, so Picture › Fill (`BoxFit.cover`)
-   crops it. Fill and stretch look like mpv's (`panscan`, `keepaspect`), but
-   the texture seems to be sized to the film (`video-params` → `SetSize` in
-   the media_kit_video fork, see its `LUMEO.md`), and against a target of the
-   film's own aspect those properties would change nothing. Leads to check,
-   not conclusions: whether a texture of the view's size is the proper shape
-   for embedded mpv (subtitles and OSD drawn at screen resolution rather than
-   the film's, which would also explain soft subtitles on a small file);
-   what it costs on resize on the H/W path; whether `_pictureMotion`'s
-   coordinate mapping then goes away; and what the Windows half, which is
-   media_kit's own and not the fork, allows. Weigh the alternatives before
-   the fork changes; check on NVIDIA/Wayland and on Windows.
+1. mpv renders at the view's size and owns fit, fill and stretch (`panscan`,
+   `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
+   `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
+   NVIDIA/Wayland, and the picture modes on Windows.
 2. Waiting: an error shown only once the player gives up for good (one
    appeared mid-load and went away), and progress toward "can start" (the
    core reports how much of the required front is on disk) with speed and

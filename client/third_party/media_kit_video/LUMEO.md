@@ -2,7 +2,8 @@
 
 Upstream `media_kit_video` 2.0.1 from pub.dev, unpacked here with `example/`
 removed and the four things below changed in `linux/`, plus one line of
-patch 4 in `lib/src/video/video_texture.dart`. Nothing else is changed: a
+patch 4 in `lib/src/video/video_texture.dart` and patch 5 in
+`lib/src/video_controller/native_video_controller/real.dart`. Nothing else is changed: a
 `diff -r` against a fresh copy of the published archive is exactly this list,
 which is what makes the next upgrade a re-copy and a re-apply rather than an
 archaeology session.
@@ -55,8 +56,7 @@ Now nothing in `linux/` asks mpv anything. The size is the one the Dart half
 of this same package already sends: `NativeVideoController` observes
 `video-params` through mpv's event loop, where nothing waits, and calls
 `VideoOutputManager.SetSize` with `dw`x`dh` (rotation applied) for every film
-(a `width`/`height` given to the controller is sent once at creation and then
-overwritten by the film's own — that is upstream's behaviour, unchanged). The
+(or the size given to `setSize`, patch 5). The
 getters return that. `video_output_set_size` asks for one more render when
 the size changes — a wake of the render thread on the H/W path (patch 3),
 upstream's render on the S/W one, moved out of its idle callback into
@@ -182,6 +182,16 @@ once) stops mpv as it always did. The one change in `lib/` is that `Video`
 mounts the `Texture` as soon as it has an id, covered by the fill colour
 until the film has a size; upstream mounted it only then, which is after the
 film is opened, and the composite that lets it open would never come.
+
+### 5. A size given to `setSize` stays — `lib/`
+
+`VideoController.setSize` is upstream's way to render at a size of the
+app's choosing, but the `video-params` listener sent the film's own size
+over it on the next change of the film's parameters, which for a size set
+before the film opens is at once. The listener now leaves a set size alone;
+`setSize()` with no size goes back to the film's, as upstream's does. The
+client renders at the view's size so that mpv, not Flutter, fits the picture
+to the screen, and its OSD is never cropped.
 
 ## What is deliberately not changed
 

@@ -194,6 +194,64 @@ void playerTests() {
     expect(patched, isEmpty, reason: 'speed belongs to this film only');
   });
 
+  testWidgets('mpv fits the picture to the view, so fill keeps its OSD', (
+    tester,
+  ) async {
+    final server = await serveFilm();
+    await tester.pumpWidget(
+      LumeoApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final host = await MpvHost.attach(mpvOnScreen(tester));
+    addTearDown(host.dispose);
+    // mpv's target, where it draws the OSD, is the view in pixels rather
+    // than the film, whose size comes once it opens and does not replace it.
+    final view =
+        tester.getSize(find.byType(Video)) * tester.view.devicePixelRatio;
+    await waitFor(
+      tester,
+      () async =>
+          int.tryParse(await host.get('osd-width') ?? '') ==
+              view.width.round() &&
+          int.tryParse(await host.get('osd-height') ?? '') ==
+              view.height.round(),
+      what: 'mpv renders at the view\'s size',
+    );
+
+    await tester.sendEventToBinding(
+      TestPointer(99, PointerDeviceKind.mouse).hover(const Offset(400, 400)),
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpFor(tester, const Duration(milliseconds: 300));
+    await tester.tap(find.text('Picture'));
+    await pumpFor(tester, const Duration(milliseconds: 300));
+    // The menu stays open on its page after a pick.
+    await tester.tap(find.text('Fill'));
+    await waitFor(
+      tester,
+      () async =>
+          double.tryParse(await host.get('panscan') ?? '') == 1 &&
+          await host.get('keepaspect') == 'yes',
+      what: 'fill is mpv\'s panscan',
+    );
+    await tester.tap(find.text('Stretch'));
+    await waitFor(
+      tester,
+      () async =>
+          double.tryParse(await host.get('panscan') ?? '') == 0 &&
+          await host.get('keepaspect') == 'no',
+      what: 'stretch drops mpv\'s aspect',
+    );
+  });
+
   testWidgets('a subtitle background is drawn by mpv and kept', (tester) async {
     final patched = <String>[];
     await tester.pumpWidget(
@@ -584,20 +642,17 @@ void playerTests() {
     );
 
     // Zoom closes in on the cursor only if mpv knows where it is, in the
-    // picture's own pixels: a quarter of the way into the letterboxed
-    // picture is a quarter of the film's width.
+    // pixels of its target, which is the view.
     final box = tester.getRect(find.byType(Video));
-    final width = int.parse(await mpv.getProperty('width'));
-    final height = int.parse(await mpv.getProperty('height'));
-    final shown = box.height * width / height;
+    final width = int.parse(await mpv.getProperty('osd-width'));
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: box.center);
-    await mouse.moveTo(box.center - Offset(shown / 4, 0));
+    await mouse.moveTo(box.center - Offset(box.width / 4, 0));
     await waitFor(tester, () async {
       final x =
           (jsonDecode(await mpv.getProperty('mouse-pos')) as Map)['x'] as int;
       return (x - width / 4).abs() < width / 20;
-    }, what: 'mpv holds the pointer in video pixels');
+    }, what: 'mpv holds the pointer in its target\'s pixels');
     await mouse.removePointer();
   });
 

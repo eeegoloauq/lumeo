@@ -229,7 +229,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   double _audible = 100;
   double _rate = 1;
-  int _fit = 0;
+  bool _panscan = false;
+  bool _keepAspect = true;
   List<MpvChapter> _chapters = const [];
   int? _chapter;
   String _hardware = 'auto-safe';
@@ -260,7 +261,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _lookedUp = false;
   Object? _lookupError;
 
-  static const _fits = [BoxFit.contain, BoxFit.cover, BoxFit.fill];
+  /// Fit, fill, stretch. mpv fits the picture to its target, which is the
+  /// view's size (`_renderAt`), so its OSD is never cropped with the picture.
+  int get _fit => !_keepAspect ? 2 : (_panscan ? 1 : 0);
+
+  void _setFit(int fit) {
+    unawaited(_mpvSet('panscan', fit == 1 ? '1' : '0'));
+    unawaited(_mpvSet('keepaspect', fit == 2 ? 'no' : 'yes'));
+  }
+
+  Size? _target;
+
+  /// Renders at the view's size in pixels; mpv's own scaling, OSD and
+  /// mouse coordinates are all in that space.
+  void _renderAt(Size size) {
+    if (size == _target || size.isEmpty) return;
+    _target = size;
+    unawaited(
+      _video.setSize(width: size.width.round(), height: size.height.round()),
+    );
+  }
 
   // Other controls can change the shared window's fullscreen state.
   bool get _fullscreen => AppWindow.instance.fullscreen;
@@ -575,6 +595,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
         final rate = double.tryParse(value);
         if (rate != null) setState(() => _rate = rate);
       },
+      'panscan': (value) =>
+          setState(() => _panscan = (double.tryParse(value) ?? 0) > 0),
+      'keepaspect': (value) => setState(() => _keepAspect = value != 'no'),
       'sub-delay': (value) =>
           setState(() => _subtitleDelay = double.tryParse(value) ?? 0),
       'sub-visibility': (value) =>
@@ -886,29 +909,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void _pictureMotion(PointerEvent event, Size widgetSize) {
+  void _pictureMotion(PointerEvent event, double pixelRatio) {
     if (!_hasPicture) return;
-    final width = _player.state.width;
-    final height = _player.state.height;
-    if (width == null || height == null || width <= 0 || height <= 0) return;
-    final videoSize = Size(width.toDouble(), height.toDouble());
-    final fitted = applyBoxFit(_fits[_fit], videoSize, widgetSize);
-    final rect = Alignment.center.inscribe(
-      fitted.destination,
-      Offset.zero & widgetSize,
-    );
-    if (!rect.contains(event.localPosition)) return;
-    final x =
-        (event.localPosition.dx - rect.left) *
-            fitted.source.width /
-            rect.width +
-        (videoSize.width - fitted.source.width) / 2;
-    final y =
-        (event.localPosition.dy - rect.top) *
-            fitted.source.height /
-            rect.height +
-        (videoSize.height - fitted.source.height) / 2;
-    unawaited(_command(['mouse', '${x.round()}', '${y.round()}']));
+    final at = event.localPosition * pixelRatio;
+    unawaited(_command(['mouse', '${at.dx.round()}', '${at.dy.round()}']));
   }
 
   Future<void> _resume() async {
@@ -1796,7 +1800,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           chapters: _chapters,
           chapter: _chapter,
           onRate: _setRate,
-          onFit: (i) => setState(() => _fit = i),
+          onFit: _setFit,
           onChapter: (i) => unawaited(_mpvSet('chapter', '$i')),
           shortcuts: _shortcuts,
           hardware: _hardware,
@@ -1884,28 +1888,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 // A listener forwards presses immediately; a gesture recognizer
                 // delays them while resolving Flutter's gesture arena.
                 LayoutBuilder(
-                  builder: (context, constraints) => Listener(
-                    behavior: HitTestBehavior.opaque,
-                    onPointerSignal: _onScroll,
-                    onPointerDown: _onPictureButtons,
-                    onPointerMove: (event) {
-                      _pictureMotion(event, constraints.biggest);
-                      _onPictureButtons(event);
-                    },
-                    onPointerHover: (event) =>
-                        _pictureMotion(event, constraints.biggest),
-                    onPointerUp: _onPictureButtons,
-                    onPointerCancel: _onPictureButtons,
-                    child: Video(
-                      controller: _video,
-                      controls: NoVideoControls,
-                      fit: _fits[_fit],
-                      fill: Colors.black,
-                      // mpv already renders subtitles; Flutter would draw them twice.
-                      subtitleViewConfiguration:
-                          const SubtitleViewConfiguration(visible: false),
-                    ),
-                  ),
+                  builder: (context, constraints) {
+                    final ratio = MediaQuery.devicePixelRatioOf(context);
+                    _renderAt(constraints.biggest * ratio);
+                    return Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerSignal: _onScroll,
+                      onPointerDown: _onPictureButtons,
+                      onPointerMove: (event) {
+                        _pictureMotion(event, ratio);
+                        _onPictureButtons(event);
+                      },
+                      onPointerHover: (event) => _pictureMotion(event, ratio),
+                      onPointerUp: _onPictureButtons,
+                      onPointerCancel: _onPictureButtons,
+                      child: Video(
+                        controller: _video,
+                        controls: NoVideoControls,
+                        fill: Colors.black,
+                        // mpv already renders subtitles; Flutter would draw them twice.
+                        subtitleViewConfiguration:
+                            const SubtitleViewConfiguration(visible: false),
+                      ),
+                    );
+                  },
                 ),
                 // mpv can report playing before any decodable frame arrives.
                 // Dim artwork under the wait so it cannot look like a frozen frame.
