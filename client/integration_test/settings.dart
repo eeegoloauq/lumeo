@@ -163,44 +163,50 @@ void settingsTests() {
     expect(find.widgetWithText(InputChip, 'Russian'), findsNothing);
   });
 
-  testWidgets(
-    'A core that answers late still gives the player the stored subtitle size',
-    (tester) async {
-      final patched = <String>[];
-      await tester.pumpWidget(
-        LumeoApp(
-          api: fakeCore(
-            downloads: [fakeDownload()],
-            preferences: {
-              'subtitleLanguages': ['en'],
-              'subtitleScale': 1.4,
-              'subtitlePosition': 90,
-            },
-            // The app's read at start and the player's first one both fail.
-            preferencesUnreachable: 2,
-            patched: patched,
+  // On time, mpv's defaults arrive while the stored values are on their way
+  // to it; late, the player waits for the core first.
+  for (final (answers, unreachable) in [('on time', 0), ('late', 2)]) {
+    testWidgets(
+      'A core that answers $answers gives the player the stored subtitle size',
+      (tester) async {
+        final patched = <String>[];
+        await tester.pumpWidget(
+          LumeoApp(
+            api: fakeCore(
+              downloads: [fakeDownload()],
+              preferences: {
+                'subtitleLanguages': ['en'],
+                'subtitleScale': 1.4,
+                'subtitlePosition': 90,
+              },
+              // Late: the app's read at start and the player's first one fail.
+              preferencesUnreachable: unreachable,
+              patched: patched,
+            ),
+            settings: await temporarySettings(),
           ),
-          settings: await temporarySettings(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Play'));
-      await pumpFor(tester, const Duration(seconds: 1));
-      await waitFor(
-        tester,
-        () async =>
-            double.parse(await mpvOnScreen(tester).getProperty('sub-scale')) ==
-            1.4,
-        what: 'the stored subtitle size applied',
-      );
-      expect(
-        double.parse(await mpvOnScreen(tester).getProperty('sub-pos')),
-        90,
-      );
-      await pumpFor(tester, const Duration(seconds: 1));
-      expect(patched, isEmpty, reason: 'nothing the player read was stored');
-    },
-  );
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Play'));
+        await pumpFor(tester, const Duration(seconds: 1));
+        await waitFor(
+          tester,
+          () async =>
+              double.parse(
+                await mpvOnScreen(tester).getProperty('sub-scale'),
+              ) ==
+              1.4,
+          what: 'the stored subtitle size applied',
+        );
+        expect(
+          double.parse(await mpvOnScreen(tester).getProperty('sub-pos')),
+          90,
+        );
+        await pumpFor(tester, const Duration(seconds: 1));
+        expect(patched, isEmpty, reason: 'nothing the player read was stored');
+      },
+    );
+  }
 
   testWidgets('the stored subtitle colour, styling and arrow step reach mpv', (
     tester,

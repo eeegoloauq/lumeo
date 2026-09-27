@@ -528,10 +528,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // Avoid echoing fullscreen changes between mpv and the window.
   bool _mpvFullscreen = false;
 
-  // Before the open, mpv still holds its defaults, not the stored values.
-  // After it, only the user changes these, from the menu or with mpv's keys.
+  // After the open only the user changes these, from the menu or mpv's keys.
   void _remember(String key, Object value) {
-    if (!_opened) return;
     final stored = switch (key) {
       'subtitleScale' => widget.preferences.current?.subtitleScale,
       'subtitlePosition' => widget.preferences.current?.subtitlePosition,
@@ -579,16 +577,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
       'sub-visibility': (value) =>
           setState(() => _subtitlesShown = value == 'yes'),
       // Persist size and height so the next film uses the same setting.
+      // Before the open mpv reports its defaults, which arrive while the
+      // stored values are on their way to it and would replace them.
       'sub-scale': (value) {
         final scale = double.tryParse(value);
-        if (scale == null) return;
+        if (scale == null || !_opened) return;
         setState(() => _subtitleScale = scale);
         _remember('subtitleScale', scale);
       },
       // mpv prints this integer setting as a float since 0.36.
       'sub-pos': (value) {
         final position = double.tryParse(value)?.round();
-        if (position == null) return;
+        if (position == null || !_opened) return;
         setState(() => _subtitlePosition = position.toDouble());
         _remember('subtitlePosition', position);
       },
