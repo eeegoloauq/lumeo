@@ -291,7 +291,7 @@ void playerTests() {
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.widgetWithText(MenuBack, 'Keyboard shortcuts'), findsOneWidget);
     expect(find.text('Back to the title'), findsOneWidget);
-    expect(find.text('Toggle pause/playback mode'), findsOneWidget);
+    expect(find.text('Pause or play'), findsOneWidget);
     expect(
       find.text('Click, Right click, P, Space'),
       findsOneWidget,
