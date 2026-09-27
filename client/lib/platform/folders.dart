@@ -2,34 +2,30 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'dirs.dart';
 
 /// Shows a directory in whatever the desktop uses for that.
 ///
-/// xdg-open on Linux and the Windows runner's ShellExecute rather than
-/// url_launcher: one call per platform, where the plugin is four packages.
-Future<void> openFolder(String path) => _open(path);
+/// Through url_launcher rather than xdg-open: on Wayland only the focused
+/// app can hand focus on, and GTK passes that on where a bare process
+/// cannot, so the browser comes to the front instead of opening behind us.
+Future<void> openFolder(String path) => _open(Uri.directory(path));
 
-Future<void> openUrl(String url) => _open(url);
+Future<void> openUrl(String url) => _open(Uri.parse(url));
+
+Future<void> _open(Uri target) async {
+  try {
+    await launchUrl(target);
+  } on Object catch (_) {
+    // A desktop with nothing registered for the target has nothing to open
+    // it with, and the client has nowhere useful to put that failure yet.
+  }
+}
 
 /// The Windows runner's shell calls (windows/runner/flutter_window.cpp).
 const _shell = MethodChannel('dev.lumeo/shell');
-
-Future<void> _open(String target) async {
-  try {
-    if (Platform.isWindows) {
-      await _shell.invokeMethod<void>('open', target);
-    } else {
-      await Process.start('xdg-open', [
-        target,
-      ], mode: ProcessStartMode.detached);
-    }
-  } on Object catch (_) {
-    // A desktop without xdg-open has nothing to open the target with, and
-    // the client has nowhere useful to put that failure yet.
-  }
-}
 
 /// mpv's log for the player being opened, with the previous one kept beside it.
 ///

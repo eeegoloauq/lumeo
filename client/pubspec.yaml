@@ -22,6 +22,7 @@ dependencies:
   http: ^1.6.0
   # AppStream release notes are also shown in the client.
   xml: ^7.0.1
+  url_launcher: ^6.3.2
 
 # The Linux half of media_kit_video, with three defects fixed. Everything else
 # in the package is upstream 2.0.1 byte for byte, so `diff -r` against a fresh

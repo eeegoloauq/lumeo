@@ -222,13 +222,7 @@ void FlutterWindow::OnWindowCall(const Call& call, Result result) {
 }
 
 void FlutterWindow::OnShellCall(const Call& call, Result result) {
-  const auto* argument = std::get_if<std::string>(call.arguments());
-  if (call.method_name() == "open" && argument != nullptr) {
-    // A folder in Explorer, a web address in the default browser.
-    ShellExecuteW(GetHandle(), L"open", Utf16FromUtf8(*argument).c_str(),
-                  nullptr, nullptr, SW_SHOWNORMAL);
-    result->Success();
-  } else if (call.method_name() == "pictures") {
+  if (call.method_name() == "pictures") {
     PWSTR path = nullptr;
     HRESULT found = SHGetKnownFolderPath(FOLDERID_Pictures, KF_FLAG_DEFAULT,
                                          nullptr, &path);
