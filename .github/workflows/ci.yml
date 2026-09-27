@@ -5,9 +5,9 @@
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# release.yml calls this too, and publishes only when it passes: the full UI
-# suite runs here and nowhere else, since on the dev box it takes over ten
-# minutes and a change there is checked with the tests of its own area.
+# A push gets the quick checks. The UI suite (over ten minutes) runs when
+# release.yml calls this with ui, and the release is published only when it
+# passes; while working, a change is checked with the UI tests of its area.
 name: ci
 
 on:
@@ -17,8 +17,15 @@ on:
       - client/**
       - .github/workflows/ci.yml
   workflow_dispatch:
+    inputs:
+      ui:
+        type: boolean
+        default: true
   workflow_call:
     inputs:
+      ui:
+        type: boolean
+        default: false
       cache:
         # release.yml restores no cache; it says why.
         type: boolean
@@ -49,6 +56,21 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test integration_test
       - run: flutter analyze
       - run: flutter test
+
+  ui:
+    if: inputs.ui
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: ${{ inputs.cache != false }}
+      - run: flutter pub get
       # What the Linux build needs, plus a screen to run on. The UI tests drive
       # the real application: that means building it, which means the same
       # toolchain the release uses (see release.yml for why libmpv-dev is in

@@ -24,6 +24,7 @@ jobs:
   checks:
     uses: ./.github/workflows/ci.yml
     with:
+      ui: true
       cache: false
 
   dist:
