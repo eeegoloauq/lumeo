@@ -96,7 +96,9 @@ in git.
 
 ## Releases
 
-Add the version to the `%changelog` in `packaging/lumeo.spec` and to
-`client/assets/dev.lumeo.lumeo.metainfo.xml`, then push `main` and an annotated `vX.Y.Z` tag in one
-push. The tag message is the release notes. `packaging/build-dist.sh` makes the bundle and tarball;
-`build-rpm.sh` and `build-arch.sh` package that tarball.
+The release notes are written once, as a `<release>` in
+`client/assets/dev.lumeo.lumeo.metainfo.xml`: the app shows them after an update (a `<li
+xml:lang="ru">` beside each English one translates it), `packaging/release-notes.py` makes the
+RPM `%changelog` and the GitHub release's items from them. Then push `main` and an annotated
+`vX.Y.Z` tag in one push; the tag message is one line, the release's headline.
+`packaging/build-dist.sh` makes the bundle and tarball; `build-rpm.sh` and `build-arch.sh` package that tarball.

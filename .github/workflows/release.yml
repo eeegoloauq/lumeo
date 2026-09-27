@@ -69,7 +69,7 @@ jobs:
     container: fedora:44
     steps:
       - uses: actions/checkout@v7
-      - run: dnf install -y rpm-build desktop-file-utils libappstream-glib tar
+      - run: dnf install -y rpm-build desktop-file-utils libappstream-glib tar python3
       - uses: actions/download-artifact@v8
         with:
           name: tarball
@@ -146,15 +146,16 @@ jobs:
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.rpm' \
             -o -name '*.pkg.tar.zst' -o -name '*.exe' \) -exec cp {} dist/ \;
           cd dist && sha256sum * > SHA256SUMS
-      # The release notes are the message of the annotated tag; the generated
-      # commit list is appended after them.
-      - name: notes from the tag message
+      # The tag message is the headline; the items are the release's in the
+      # AppStream file, and the generated commit list follows them.
+      - name: notes from the tag message and the AppStream file
         env:
           TAG: ${{ github.ref_name }}
         run: |
           git config --global --add safe.directory "$PWD"
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
-          git tag -l --format='%(contents)' "$TAG" > "$RUNNER_TEMP/notes.md"
+          { git tag -l --format='%(contents)' "$TAG"; echo
+            packaging/release-notes.py markdown "${TAG#v}"; } > "$RUNNER_TEMP/notes.md"
       - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
