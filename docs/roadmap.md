@@ -36,8 +36,8 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    download panel lists any other copy with Stop and Delete (mockup first).
 4. Seeding shown: an upload arrow on the downloads button while seeding,
    upload speed and ratio on each row (mockup first).
-5. A score given to a title never played marks it watched, so it is in
-   History.
+5. A score given to a title never played marks it watched and adds it to
+   My list, as playing it would, so it is in History and on the list.
 6. Settings: audio and subtitle languages in one "Audio & subtitles"
    section; a mark at 100% on the volume slider; shortcut descriptions
    translated by mpv command, mpv's English comment for the rest.
