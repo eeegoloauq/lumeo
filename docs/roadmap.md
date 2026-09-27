@@ -21,12 +21,12 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
 
 ## From the user's notes of 2026-09-27, in order
 
-1. Player bugs with a known cause: mpv's OSD sits inside the video texture,
-   so Picture › Fill (`BoxFit.cover`) crops it — fill and stretch go to mpv
-   (`panscan`, `keepaspect`); "Skip ending" is missing when a chapter follows
-   the ending — it seeks to the next chapter, as the opening's does; the OSD
-   bar becomes text (`osd-bar=no`, `osd-on-seek=msg`); `nextNotice` defaults
-   to 0, the 5 s countdown after the end stays.
+1. mpv's OSD sits inside the video texture, so Picture › Fill (`BoxFit.cover`)
+   crops it. Fill and stretch belong to mpv (`panscan`, `keepaspect`), but
+   those act against the target's aspect, and the texture is sized to the
+   film (`video-params` in the media_kit_video fork), so both would do
+   nothing. The texture has to take the view's size first: a change to the
+   fork, checked on NVIDIA/Wayland and on Windows.
 2. Waiting: an error shown only once the player gives up for good (one
    appeared mid-load and went away), and progress toward "can start" (the
    core reports how much of the required front is on disk) with speed and
