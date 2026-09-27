@@ -123,6 +123,16 @@ start, every ten minutes, and when something they look at changes; a change
 of the policy itself is cleaned before the core answers it, so the Storage
 list read next is the new one.
 
+One exception to "never unfinished": a half copy of an episode the viewer
+then played another copy of. Picking another copy is leaving this one, and
+nothing plays it again, so it goes. Only a copy's stream opening counts as
+playing it, so two copies started at once both stay until one of them plays.
+The copy played last wins, and the one it replaced goes only once it has
+settled like any other, so switching back within ten minutes finds it where
+it was. A finished copy stays: it cost the whole download and plays at once.
+Which copy played last is kept in memory, so after a restart the half copy
+stays until one of them plays again.
+
 Prefetch is the policy's one addition rather than removal: once the episode
 playing is on disk, the next one starts downloading, so a series goes on
 without a wait even when the swarm is slow. It is on by default. Its copy is Play's, picked by the player the way Download

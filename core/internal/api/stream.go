@@ -60,6 +60,9 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer reader.Close()
+	if s.library != nil {
+		s.library.Opened(id)
+	}
 
 	name := filepath.Base(file.Path())
 	// Set the type ourselves: left to sniff, ServeContent reads the first 512

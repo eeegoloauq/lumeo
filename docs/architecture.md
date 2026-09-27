@@ -57,8 +57,9 @@
     internal/token     the API token in the data directory
     internal/release   release-name parser (the structure addons do not give us)
     internal/library   the keep policy: frees watched downloads when Keep or
-                       the disk limit says so, and measures what downloads
-                       take on disk for it and for Storage
+                       the disk limit says so, and a half copy of an episode
+                       once another copy of it has played; measures what
+                       downloads take on disk for it and for Storage
 
 ## Ids
 

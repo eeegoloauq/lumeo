@@ -1,5 +1,6 @@
 // Package library keeps what is on disk to the keep policy: it frees what the
-// viewer finished once the policy says so, and nothing they have not.
+// viewer finished once the policy says so, and nothing they have not, except
+// an unfinished copy of an episode they went on to play another copy of.
 package library
 
 import (
@@ -54,6 +55,18 @@ type Service struct {
 	mu      sync.Mutex
 	streams map[string]int
 	stopped map[string]time.Time
+	// played is when each download last opened a stream, which tells the
+	// copy of an episode the viewer chose last.
+	played map[string]time.Time
+}
+
+type episode struct {
+	item            string
+	season, episode int
+}
+
+func episodeOf(row acquire.Download) episode {
+	return episode{row.ItemID, row.Season, row.Episode}
 }
 
 func New(downloads Downloads, progress Progress, prefs Preferences, log *slog.Logger) *Service {
@@ -66,6 +79,7 @@ func New(downloads Downloads, progress Progress, prefs Preferences, log *slog.Lo
 		kick:      make(chan struct{}, 1),
 		streams:   make(map[string]int),
 		stopped:   make(map[string]time.Time),
+		played:    make(map[string]time.Time),
 	}
 }
 
@@ -116,6 +130,20 @@ func (s *Service) Play(id string) (done func()) {
 	}
 }
 
+// Opened records that a stream of a download has opened, which makes it the
+// copy of its episode the viewer chose. Play is earlier than that: it holds
+// the file before the lookup that may still fail.
+func (s *Service) Opened(id string) {
+	s.mu.Lock()
+	_, known := s.played[id]
+	s.played[id] = s.now()
+	s.mu.Unlock()
+	// Not on every range request: a player reconnects on each seek.
+	if !known {
+		s.Kick()
+	}
+}
+
 // Start runs start with passes held off and counts what it started as just
 // played: a player opens the stream only once the file is ready, and pressing
 // Play on a watched episode to see it again must not free it in between.
@@ -129,11 +157,13 @@ func (s *Service) Start(start func() (acquire.Download, error)) (acquire.Downloa
 	return d, err
 }
 
-// Clean frees, oldest watched first, every finished download the keep
-// policy has expired, then more of them while the downloads take more than
-// the ceiling. A download nobody finished is never freed here, so one larger
-// than the ceiling stays until it is watched.
+// Clean drops the copies another copy of their episode replaced, then frees,
+// oldest watched first, every finished download the keep policy has expired,
+// then more of them while the downloads take more than the ceiling. A
+// download nobody finished is never freed by the policy, so one larger than
+// the ceiling stays until it is watched.
 func (s *Service) Clean(ctx context.Context) error {
+	s.dropReplaced(ctx)
 	prefs, err := s.prefs.Get(ctx)
 	if err != nil {
 		return err
@@ -167,6 +197,51 @@ func (s *Service) Clean(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// dropReplaced frees the unfinished copies of an episode once another copy of
+// it has played since: picking another copy is leaving this one, and half a
+// download nobody plays again only takes disk. A finished copy stays, as does
+// the user's own file. free leaves a copy until it has not played for a while,
+// so switching back soon after finds it where it was.
+func (s *Service) dropReplaced(ctx context.Context) {
+	rows := s.downloads.List(ctx)
+	chosen := make(map[episode]string)
+	s.mu.Lock()
+	known := make(map[string]bool, len(rows))
+	for _, row := range rows {
+		known[row.ID] = true
+	}
+	for id := range s.played {
+		if !known[id] {
+			delete(s.played, id)
+		}
+	}
+	latest := make(map[episode]time.Time)
+	for _, row := range rows {
+		at, ok := s.played[row.ID]
+		if ok && row.ItemID != "" && at.After(latest[episodeOf(row)]) {
+			latest[episodeOf(row)] = at
+			chosen[episodeOf(row)] = row.ID
+		}
+	}
+	s.mu.Unlock()
+
+	now := s.now()
+	for _, row := range rows {
+		id, ok := chosen[episodeOf(row)]
+		if !ok || id == row.ID || row.State == acquire.StateDone || row.Locator.Scheme == "file" {
+			continue
+		}
+		freed, err := s.free(ctx, row, now)
+		if err != nil {
+			s.log.Warn("dropping a replaced copy failed", "download", row.ID, "err", err)
+			continue
+		}
+		if freed {
+			s.log.Info("dropped a replaced copy", "download", row.ID, "name", row.Name, "by", id)
+		}
+	}
 }
 
 // Fits says whether a prefetch of size bytes stays inside the free disk and
@@ -223,10 +298,6 @@ func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]cand
 	if err != nil {
 		return nil, err
 	}
-	type episode struct {
-		item            string
-		season, episode int
-	}
 	finished := make(map[episode]time.Time)
 	for _, entry := range entries {
 		if entry.Watched && entry.Position == 0 {
@@ -238,7 +309,7 @@ func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]cand
 		if row.Locator.Scheme == "file" || row.ItemID == "" {
 			continue
 		}
-		if at, ok := finished[episode{row.ItemID, row.Season, row.Episode}]; ok {
+		if at, ok := finished[episodeOf(row)]; ok {
 			candidates = append(candidates, candidate{row, at})
 		}
 	}

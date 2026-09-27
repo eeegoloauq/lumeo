@@ -25,9 +25,10 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
    `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
    NVIDIA/Wayland, and the picture modes on Windows.
-2. One copy per episode: a source switch drops the old unfinished copy once
-   the new one plays, the title page follows the same rule, and the player's
-   download panel lists any other copy with Stop and Delete (mockup first).
+2. One copy per episode, the client's half: the player's download panel
+   lists any other copy of the episode with Stop and Delete (mockup first).
+   The core already drops a half copy once another copy of the episode has
+   played (decisions/downloads.md).
 3. Seeding shown: an upload arrow on the downloads button while seeding,
    upload speed and ratio on each row (mockup first).
 4. Settings: audio and subtitle languages in one "Audio & subtitles"

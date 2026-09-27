@@ -188,6 +188,30 @@ func TestPlayingIsNotFreedUntilItSettles(t *testing.T) {
 	}
 }
 
+// Episode five has a finished copy and two half ones. A request for the new
+// half copy whose stream never opened chooses nothing; once one opens, the old
+// half copy goes and the finished one stays. Waiting for the old one to settle
+// is free's, tested above.
+func TestPlayingAnotherCopyDropsTheUnfinishedOne(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever"})
+	for _, id := range []string{"e5-old", "e5-new"} {
+		downloads.rows = append(downloads.rows, acquire.Download{ID: id, ItemID: "show", Season: 1, Episode: 5, Locator: sources.Locator{Scheme: "torrent"}, State: acquire.StateActive})
+	}
+	start := now
+	defer func() { now = start }()
+	s.Play("e5-old")()
+	s.Opened("e5-old")
+	now = now.Add(settle)
+	s.Play("e5-new")()
+	if removed := clean(t, s, downloads); len(removed) != 0 {
+		t.Fatalf("freed %v for a copy that never opened", removed)
+	}
+	s.Opened("e5-new")
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e5-old"}) {
+		t.Fatalf("freed %v, want e5-old", removed)
+	}
+}
+
 // Play on a watched episode starts its download again before the player opens
 // the stream, which waits for the file to be ready.
 func TestStartedIsNotFreedBeforeItPlays(t *testing.T) {
