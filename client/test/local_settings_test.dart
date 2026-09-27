@@ -97,6 +97,14 @@ void main() {
     },
   );
 
+  test('a file from before release notes counts as an update', () async {
+    await File(path).create(recursive: true);
+    await File(path).writeAsString('{"volume": 40}');
+    expect((await LocalSettings.load(path: path)).lastSeenVersion, '');
+    await File(path).delete();
+    expect((await LocalSettings.load(path: path)).lastSeenVersion, isNull);
+  });
+
   test(
     'the settings page\'s own choices survive a reload, and reset',
     () async {

@@ -61,9 +61,11 @@ class LocalSettings extends ChangeNotifier {
         if (decoded['screenshotsDir'] is String) {
           settings._screenshotsDir = decoded['screenshotsDir'] as String;
         }
-        if (decoded['lastSeenVersion'] is String) {
-          settings._lastSeenVersion = decoded['lastSeenVersion'] as String;
-        }
+        // A file without it was written by a version before release notes
+        // were shown: an update, not a first run, so the notes are news.
+        settings._lastSeenVersion = decoded['lastSeenVersion'] is String
+            ? decoded['lastSeenVersion'] as String
+            : '';
         if (decoded['downloadsClearedAt'] is String) {
           settings._clearedAt = DateTime.tryParse(
             decoded['downloadsClearedAt'] as String,
