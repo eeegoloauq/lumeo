@@ -43,6 +43,9 @@ const playerProperties = <String, String>{
   'hr-seek': 'yes',
   'input-default-bindings': 'yes',
   'osd-level': '1',
+  // mpv's bar is drawn into the picture over our own; a seek shows its time.
+  'osd-bar': 'no',
+  'osd-on-seek': 'msg',
   'osd-font-size': '28',
   'osd-border-size': '1.5',
   'osd-margin-x': '32',

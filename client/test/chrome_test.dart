@@ -13,9 +13,9 @@ import 'package:lumeo/ui/widgets/window_controls.dart';
 void main() {
   _scrubberTests();
 
-  test('mpv keeps its default seek OSD', () {
-    expect(playerProperties, isNot(contains('osd-on-seek')));
-    expect(playerProperties, isNot(contains('osd-bar')));
+  test('a seek shows mpv\'s text, never its bar', () {
+    expect(playerProperties['osd-bar'], 'no');
+    expect(playerProperties['osd-on-seek'], 'msg');
   });
 
   test('clock has no leading zero on the first field', () {
