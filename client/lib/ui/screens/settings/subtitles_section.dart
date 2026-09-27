@@ -181,7 +181,7 @@ class _Preview extends StatelessWidget {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 14 + lift,
+              bottom: height * subtitleMargin / 720 + lift,
               child: Center(
                 child: background == 'box'
                     ? DecoratedBox(

@@ -10,6 +10,10 @@ const subtitleColours = <String, Color>{
   'cyan': Color(0xFF7FE0FF),
 };
 
+/// mpv's `sub-margin-y` for plain text, in its 720-line scale: a default line
+/// sits above the player's bottom bar, so the bar never has to push it up.
+const subtitleMargin = 70;
+
 /// The mpv properties behind the subtitle colour and whether a styled track
 /// keeps its own look.
 ///

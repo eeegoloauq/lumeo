@@ -96,7 +96,10 @@ guidelines — the BBC puts subtitle line height at 7–8% of picture height, wh
 is roughly what mpv draws — so the steps either side exist for a screen
 further away than the default assumes, not to fix a bad default.
 
-When the controls are up, the subtitle moves up with them. The BBC guidelines
-say it outright: subtitles must not end up behind player overlays. mpv's own
-on-screen controller does the same thing, by the height of its bar, and puts
-it back when the bar goes.
+A plain-text line sits above the player's bottom bar from the start
+(`sub-margin-y` 70 of mpv's 720 lines, about 100 px in a 1080-line window),
+so subtitles never end up behind the controls and never move when they
+appear. A line that jumps each time the mouse moves is worse than one drawn a
+little higher; styled tracks already keep their own place. Only a window
+lower than about 800 px lets the bar reach the line, and only while the bar
+is up.

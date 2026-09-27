@@ -51,6 +51,7 @@ const playerProperties = <String, String>{
   'osd-margin-x': '32',
   'osd-margin-y': '28',
   'osd-duration': '1200',
+  'sub-margin-y': '$subtitleMargin',
 };
 
 /// The mpv properties behind a subtitle background: `none`, `shadow` or
@@ -284,10 +285,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   // Other controls can change the shared window's fullscreen state.
   bool get _fullscreen => AppWindow.instance.fullscreen;
-
-  // The visible bar raises subtitles by its height in mpv's 720-unit scale.
-  static const _subtitleMargin = 22;
-  static const _subtitleMarginWithChrome = 100;
 
   @override
   void initState() {
@@ -720,7 +717,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         });
         _matchTitles();
         unawaited(_resume());
-        await _applySubtitleMargin();
       }
     } on Object catch (e) {
       if (mounted) setState(() => _error = e);
@@ -864,16 +860,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _restartIdle();
   }
 
-  void _showChrome(bool show) {
-    setState(() => _chrome = show);
-    _applySubtitleMargin();
-  }
-
-  // mpv resets subtitle margin on each file open.
-  Future<void> _applySubtitleMargin() => _mpvSet(
-    'sub-margin-y',
-    '${_chrome ? _subtitleMarginWithChrome : _subtitleMargin}',
-  );
+  void _showChrome(bool show) => setState(() => _chrome = show);
 
   Future<void> _command(List<String> args) async {
     if (_coreDead) return;
