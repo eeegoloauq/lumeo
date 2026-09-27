@@ -14,7 +14,7 @@ machine can check; the rest is for whoever adds a test.
 | Player | `client/integration_test/` | `tool/ui-test.sh` (Weston) | anything that needs a real libmpv: playback, mpv's keys and properties, the render thread |
 
 The first three run in about two minutes together. The player layer builds the
-Linux app and runs it on a headless Weston: about five minutes for 31 tests, so
+Linux app and runs it on a headless Weston: about four minutes for 30 tests, so
 nothing goes there that the other three can show.
 
 ### App tests
@@ -78,8 +78,10 @@ application meets on a desktop.
 
 A player test waits for mpv with `waitFor` and never waits out one of the
 app's own timers: a timeout it needs to see run out is a `@visibleForTesting`
-value it shortens (`openPatience`), and a setting is read back from mpv rather
-than proved by waiting for its effect.
+value it shortens (`openPatience`), and a setting or the pause is read back
+from mpv rather than proved by waiting for its effect or read off the bar,
+which hides itself. `pumpFor` counts the binding's clock: on Weston each pump
+also waits for a frame, and counted pumps ran four times as long as written.
 
 Not covered by any layer: the window itself (the absent title bar, dragging,
 maximising, real fullscreen), a real GPU, and Windows. Those are checked by

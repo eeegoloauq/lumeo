@@ -49,7 +49,7 @@ Client:
     dart format --output=none --set-exit-if-changed lib test integration_test
     flutter analyze
     flutter test                        # unit, widget and app tests, about two minutes
-    tool/ui-test.sh                     # the player on a headless Weston, about five
+    tool/ui-test.sh                     # the player on a headless Weston, about four
 
 `dart format lib test integration_test` fixes what the first line complains about; format on save
 in your editor and it never does. `third_party/` is left alone: it stays upstream's code.

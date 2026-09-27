@@ -149,14 +149,12 @@ Future<void> waitForIo(WidgetTester tester, Finder finder) async {
   fail('never: $finder');
 }
 
-/// Pumps without settling; a player spinner can run until the ten-minute
-/// timeout.
+/// Pumps for [total] without settling; a player spinner can run until the
+/// ten-minute timeout. On Weston a pump also waits for a frame, so the time is
+/// the binding's clock rather than the pumps counted.
 Future<void> pumpFor(WidgetTester tester, Duration total) async {
-  for (
-    var spent = Duration.zero;
-    spent < total;
-    spent += const Duration(milliseconds: 100)
-  ) {
+  final end = tester.binding.clock.fromNowBy(total);
+  while (tester.binding.clock.now().isBefore(end)) {
     await tester.pump(const Duration(milliseconds: 100));
   }
 }

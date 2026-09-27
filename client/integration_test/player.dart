@@ -121,16 +121,18 @@ void playerTests() {
     );
     expect(panel.left, greaterThanOrEqualTo(0));
 
-    // Playback may start at different times on different machines; compare
-    // state around the click.
-    bool stopped() => find.byTooltip('Play (Space)').evaluate().isNotEmpty;
-    final was = stopped();
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => await mpv.getProperty('pause') == 'no',
+      what: 'the film plays',
+    );
     await tester.tapAt(const Offset(120, 200));
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.text('Speed'), findsNothing, reason: 'the menu closed');
     expect(
-      stopped(),
-      was,
+      await mpv.getProperty('pause'),
+      'no',
       reason: 'and the click that closed it did not reach the film',
     );
 

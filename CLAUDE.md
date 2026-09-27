@@ -20,7 +20,7 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
   `LumeoApp` directly), and only what needs a real libmpv in `client/integration_test/`. Lowest
   layer that shows the behaviour, once; behaviour, not looks. Search for existing tests of the
   behaviour first. `test/suite_test.dart` enforces the mechanical part.
-- `flutter test` (about two minutes) runs every time; `tool/ui-test.sh` (about five) when the
+- `flutter test` (about two minutes) runs every time; `tool/ui-test.sh` (about four) when the
   player or `integration_test/` is touched, or one test with `--plain-name "<test name>"`. GitHub
   CI runs it on every client push to main and on the tag, and the release is published only when
   it passes.
