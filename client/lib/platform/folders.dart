@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'dirs.dart';
@@ -80,6 +81,13 @@ Future<String> picturesFolder({
 }
 
 Future<String>? _pictures;
+
+/// Puts this machine's answer in place of asking, as a test that builds a
+/// screen showing the folder must: the real answer launches a program. Null
+/// asks again.
+@visibleForTesting
+set picturesFolderAnswer(String? answer) =>
+    _pictures = answer == null ? null : Future.value(answer);
 
 /// Long enough for a program that prints one line, short enough that nothing
 /// waiting on this is waiting on a machine where it hangs.

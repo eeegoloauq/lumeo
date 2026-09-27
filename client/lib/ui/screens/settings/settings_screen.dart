@@ -9,7 +9,6 @@ import '../../../api/downloads_store.dart';
 import '../../../api/models.dart';
 import '../../../api/preferences_store.dart';
 import '../../../l10n/l10n.dart';
-import '../../../platform/folders.dart';
 import '../../../platform/local_settings.dart';
 import '../../theme.dart';
 import '../../widgets/top_bar.dart';
@@ -41,7 +40,6 @@ class SettingsScreen extends StatefulWidget {
     required this.settings,
     this.section,
     this.request = 0,
-    this.pictures = picturesFolder,
   });
 
   final LumeoApi api;
@@ -55,10 +53,6 @@ class SettingsScreen extends StatefulWidget {
   /// Changed by the shell to scroll to [section] again on a page already
   /// open — the downloads panel's Storage link pressed over Settings.
   final int request;
-
-  /// The desktop's Pictures folder, which screenshots go under by default.
-  /// A seam for the tests: the real answer runs a program.
-  final Future<String> Function() pictures;
 
   /// The sections that have rows. General has only the language yet: its
   /// other mockup rows (closing to a tray, pausing when minimised) need
@@ -307,7 +301,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         preferences: preferences,
         settings: widget.settings,
         about: _about,
-        pictures: widget.pictures,
         onAboutChanged: _refreshAbout,
         patch: patch,
         error: _errorIn(section),

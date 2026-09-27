@@ -40,7 +40,9 @@ Everything goes through `test/ui/app.dart`:
 
 - `uiTest` in place of `testWidgets`: the platform, the window size, a window
   channel that records calls in `windowCalls`, a machine that decodes
-  everything (`DeviceDecoders`), mpv's facts, and a stand-in for the player.
+  everything (`DeviceDecoders`), mpv's facts, a Pictures folder that is not
+  asked of `xdg-user-dir` (`picturesFolderAnswer`), and a stand-in for the
+  player. Nothing an app test runs launches a program.
 - `testApp` in place of `LumeoApp`: settings in a temporary file. `LumeoApp`
   without settings of its own reads and writes the desktop user's
   `client.json`.

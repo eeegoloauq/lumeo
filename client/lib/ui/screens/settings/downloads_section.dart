@@ -32,7 +32,6 @@ class DownloadsSection extends StatefulWidget {
     required this.preferences,
     required this.settings,
     required this.about,
-    required this.pictures,
     required this.onAboutChanged,
     required this.patch,
     required this.error,
@@ -45,7 +44,7 @@ class DownloadsSection extends StatefulWidget {
 
   /// For the download folder the core actually uses.
   final Future<CoreAbout> about;
-  final Future<String> Function() pictures;
+
   final VoidCallback onAboutChanged;
   final Future<void> Function(Map<String, Object?>) patch;
   final Object? error;
@@ -56,7 +55,7 @@ class DownloadsSection extends StatefulWidget {
 
 class _DownloadsSectionState extends State<DownloadsSection> {
   late Future<Storage> _storage = widget.api.storage();
-  late final Future<String> _pictures = widget.pictures();
+  late final Future<String> _pictures = picturesFolder();
   String? _freeing;
   Object? _actionError;
 

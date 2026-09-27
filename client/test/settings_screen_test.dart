@@ -10,6 +10,7 @@ import 'package:lumeo/api/downloads_store.dart';
 import 'package:lumeo/api/preferences_store.dart';
 import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/platform/decoders.dart';
+import 'package:lumeo/platform/folders.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/player/mpv_facts.dart';
 import 'package:lumeo/ui/screens/settings/settings_screen.dart';
@@ -93,11 +94,13 @@ void main() {
       ask: () async => '[{"codec":"h264","driver":"h264"}]',
       osRelease: () async => null,
     );
+    picturesFolderAnswer = '/nowhere/Pictures';
   });
 
   tearDown(() {
     MpvFacts.instance = MpvFacts();
     DeviceDecoders.instance = DeviceDecoders();
+    picturesFolderAnswer = null;
     temporary.deleteSync(recursive: true);
   });
 
@@ -127,7 +130,6 @@ void main() {
             preferences: preferences,
             settings: settings,
             section: section,
-            pictures: () async => '/nowhere/Pictures',
           ),
         ),
       ),

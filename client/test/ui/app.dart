@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/api/client.dart';
 import 'package:lumeo/main.dart';
 import 'package:lumeo/platform/decoders.dart';
+import 'package:lumeo/platform/folders.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/platform/window.dart';
 import 'package:lumeo/ui/player/mpv_facts.dart';
@@ -38,7 +39,8 @@ LumeoApp testApp({
 
 /// A test of the whole app on a desktop: Linux, the window's default size, a
 /// window channel that records instead of acting, a machine that decodes
-/// everything, and a stand-in where the player would open.
+/// everything and has a Pictures folder without being asked, and a stand-in
+/// where the player would open.
 void uiTest(String description, WidgetTesterCallback body) => testWidgets(
   description,
   (tester) async {
@@ -54,7 +56,9 @@ void uiTest(String description, WidgetTesterCallback body) => testWidgets(
       ask: () async => (bindings: '[]', version: 'mpv 0.41.0'),
     );
     playerLayer = PlayerStandIn.new;
+    picturesFolderAnswer = '/home/viewer/Pictures';
     addTearDown(() {
+      picturesFolderAnswer = null;
       DeviceDecoders.instance = DeviceDecoders();
       MpvFacts.instance = MpvFacts();
       playerLayer = (screen) => screen;
