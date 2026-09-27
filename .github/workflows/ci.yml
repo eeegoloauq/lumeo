@@ -5,8 +5,8 @@
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# Every push that touches the client runs the whole UI suite (about ten
-# minutes); while working, a change is checked here with the tests of its own
+# Every push that touches the client runs the whole UI suite, one job per
+# area at once (in one job it takes over ten minutes); while working, a change is checked here with the tests of its own
 # area, and this catches what it broke elsewhere. release.yml calls this too
 # and publishes only when it passes.
 name: ci
@@ -60,6 +60,13 @@ jobs:
 
   ui:
     if: github.event_name == 'push' || inputs.ui
+    strategy:
+      # Every area's result, not just the first red one.
+      fail-fast: false
+      matrix:
+        # The groups in integration_test/app_test.dart.
+        area: [shell, search, downloads, settings, library, title, playback, player]
+    name: ui (${{ matrix.area }})
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -84,4 +91,4 @@ jobs:
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev \
             weston ffmpeg
-      - run: tool/ui-test.sh
+      - run: tool/ui-test.sh --name '^${{ matrix.area }} '

@@ -52,7 +52,8 @@ void main() {
 
   tearDownAll(deleteTestFilms);
 
-  // One group per area, so `tool/ui-test.sh --name '^player '` runs one.
+  // One group per area, so `tool/ui-test.sh --name '^player '` runs one. Each is
+  // a CI job of its own: a new group goes into ci.yml's matrix too.
   group('shell', shellTests);
   group('search', searchTests);
   group('downloads', downloadsTests);
