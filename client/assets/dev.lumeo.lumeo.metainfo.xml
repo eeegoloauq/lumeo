@@ -39,6 +39,26 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.66" date="2026-09-27">
+      <description>
+        <ul>
+          <li>A torrent is shared while it downloads or plays. Settings, Downloads, Sharing can keep it shared always.</li>
+          <li xml:lang="ru">Торрент раздаётся, пока качается или смотрится. В Настройках, Загрузки, Раздача можно раздавать всегда.</li>
+          <li>A half-downloaded copy of an episode is dropped as soon as another copy of it plays, and stops taking bandwidth at once.</li>
+          <li xml:lang="ru">Недокачанная копия серии удаляется, как только играет другая копия той же серии, и сразу перестаёт занимать канал.</li>
+          <li>After an update, what is new shows once in the corner; Settings, About opens it again.</li>
+          <li xml:lang="ru">После обновления в углу один раз показывается, что нового; в Настройках, О программе это можно открыть снова.</li>
+          <li>Audio and subtitle languages are one section, Audio &amp; subtitles, which the player's gear menu also opens.</li>
+          <li xml:lang="ru">Языки звука и субтитров собраны в одном разделе «Аудио и субтитры»; его открывает и шестерёнка плеера.</li>
+          <li>The player's keys in Settings are described in the interface language.</li>
+          <li xml:lang="ru">Клавиши плеера в Настройках описаны на языке интерфейса.</li>
+          <li>The volume slider marks 100%, where amplification starts.</li>
+          <li xml:lang="ru">На ползунке громкости отмечено 100%: дальше идёт усиление.</li>
+          <li>A poster with a caption opens from anywhere on it.</li>
+          <li xml:lang="ru">Постер с подписью открывается кликом по любому месту.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.65" date="2026-09-27">
       <description>
         <ul>
