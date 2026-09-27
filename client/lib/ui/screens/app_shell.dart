@@ -23,6 +23,11 @@ import 'library_screen.dart';
 import 'search_screen.dart';
 import 'settings/settings_screen.dart';
 
+/// What the shell shows for a film. Widget tests put a stand-in here: the real
+/// screen needs libmpv and a GPU texture, which only the UI suite on Weston has.
+@visibleForTesting
+Widget Function(PlayerScreen screen) playerLayer = (screen) => screen;
+
 /// Everything the window holds: one bar that stays, and a page under it.
 ///
 /// Navigation is a stack of our own rather than a Navigator with routes,
@@ -320,44 +325,46 @@ class _AppShellState extends State<AppShell> {
     if (_playing != null) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: PlayerScreen(
-          key: ValueKey('player:${_playing!.downloadId}'),
-          api: widget.api,
-          downloads: widget.downloads,
-          frames: widget.frames,
-          download: _playing!.downloadId,
-          title: _playing!.title,
-          background: _playing!.background,
-          settings: widget.settings,
-          preferences: widget.preferences,
-          continuing: _playing!.continuing,
-          onClose: () {
-            final playing = _playing!;
-            setState(() => _playing = null);
-            // The window goes back the way the film found it. Held here and
-            // not in the screen: the screen is torn down and built again for
-            // every episode, and one that handed the window back on its way
-            // out dropped somebody out of fullscreen between two episodes.
-            AppWindow.instance.setFullscreen(playing.wasFullscreen);
-            _takeKeyboard();
-          },
-          // Runs after onClose, which the player calls first.
-          onStorage: () => openSettings(section: SettingsSection.downloads),
-          // The next episode is another film in the same sitting: a screen of
-          // its own, keyed to its own download, over the same window. The
-          // player cannot keep the one it has — media_kit's open() stops and
-          // resets the player underneath anyway, and everything the old
-          // screen had learned about the old file, down to the position it
-          // was about to report, would be applied to the new one.
-          onNext: (downloadId, title) {
-            // The film may already have been left: Escape while the next
-            // episode was being found, and the core's answer lands in the
-            // frame between the sitting ending and the screen going. There
-            // is nothing to carry it into then.
-            final playing = _playing;
-            if (playing == null) return;
-            setState(() => _playing = playing.then(downloadId, title));
-          },
+        body: playerLayer(
+          PlayerScreen(
+            key: ValueKey('player:${_playing!.downloadId}'),
+            api: widget.api,
+            downloads: widget.downloads,
+            frames: widget.frames,
+            download: _playing!.downloadId,
+            title: _playing!.title,
+            background: _playing!.background,
+            settings: widget.settings,
+            preferences: widget.preferences,
+            continuing: _playing!.continuing,
+            onClose: () {
+              final playing = _playing!;
+              setState(() => _playing = null);
+              // The window goes back the way the film found it. Held here and
+              // not in the screen: the screen is torn down and built again for
+              // every episode, and one that handed the window back on its way
+              // out dropped somebody out of fullscreen between two episodes.
+              AppWindow.instance.setFullscreen(playing.wasFullscreen);
+              _takeKeyboard();
+            },
+            // Runs after onClose, which the player calls first.
+            onStorage: () => openSettings(section: SettingsSection.downloads),
+            // The next episode is another film in the same sitting: a screen of
+            // its own, keyed to its own download, over the same window. The
+            // player cannot keep the one it has — media_kit's open() stops and
+            // resets the player underneath anyway, and everything the old
+            // screen had learned about the old file, down to the position it
+            // was about to report, would be applied to the new one.
+            onNext: (downloadId, title) {
+              // The film may already have been left: Escape while the next
+              // episode was being found, and the core's answer lands in the
+              // frame between the sitting ending and the screen going. There
+              // is nothing to carry it into then.
+              final playing = _playing;
+              if (playing == null) return;
+              setState(() => _playing = playing.then(downloadId, title));
+            },
+          ),
         ),
       );
     }

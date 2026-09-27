@@ -2,15 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumeo/main.dart';
 import 'package:lumeo/ui/widgets/episode_card.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
 
 import 'fake_core.dart';
 
-import 'helpers.dart';
+import 'app.dart';
 
-void libraryTests() {
+void main() {
   bool libraryLit(WidgetTester tester) => tester
       .widget<PillTab>(
         find.descendant(
@@ -20,7 +19,7 @@ void libraryTests() {
       )
       .selected;
 
-  testWidgets('a title added on its page is on My list, and comes off it', (
+  uiTest('a title added on its page is on My list, and comes off it', (
     tester,
   ) async {
     final calls = <String>[];
@@ -65,7 +64,7 @@ void libraryTests() {
     expect(find.text('Nothing on your list yet'), findsNothing);
   });
 
-  testWidgets('a title is scored from its page', (tester) async {
+  uiTest('a title is scored from its page', (tester) async {
     final calls = <String>[];
     await openSeries(tester, api: fakeCore(libraryCalls: calls));
     await tester.tap(find.byKey(const ValueKey('rating-button')));
@@ -91,12 +90,12 @@ void libraryTests() {
     );
   });
 
-  testWidgets('the history lists what was watched, scores it and forgets it', (
+  uiTest('the history lists what was watched, scores it and forgets it', (
     tester,
   ) async {
     final calls = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           libraryCalls: calls,
           progress: {

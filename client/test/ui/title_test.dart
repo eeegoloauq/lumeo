@@ -1,17 +1,11 @@
 // A title's page: seasons, episode cards, downloads and the sources drawer.
 import 'dart:convert';
-import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumeo/main.dart';
 import 'package:lumeo/platform/decoders.dart';
-import 'package:lumeo/ui/player/episode_frames.dart';
-import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/screens/item_screen.dart';
 import 'package:lumeo/ui/widgets/episode_card.dart';
 import 'package:lumeo/ui/widgets/horizontal_strip.dart';
@@ -20,12 +14,12 @@ import 'package:lumeo/ui/widgets/poster_tile.dart';
 
 import 'fake_core.dart';
 
-import 'helpers.dart';
+import 'app.dart';
 
-void titleTests() {
-  testWidgets('a new episode opens its title on that episode', (tester) async {
+void main() {
+  uiTest('a new episode opens its title on that episode', (tester) async {
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           newEpisodes: [
             {
@@ -60,8 +54,13 @@ void titleTests() {
       ),
       findsOneWidget,
     );
+    // On the picture: the caption is what a click in the middle of the tile
+    // lands beside when it is wider than the poster.
     await tester.tap(
-      find.descendant(of: shelf, matching: find.byType(PosterTile)),
+      find.descendant(
+        of: find.descendant(of: shelf, matching: find.byType(PosterTile)),
+        matching: find.byType(AspectRatio),
+      ),
     );
     await tester.pumpAndSettle();
     final card = find.byWidgetPredicate(
@@ -70,7 +69,7 @@ void titleTests() {
     expect(tester.widget<EpisodeCard>(card).selected, isTrue);
   });
 
-  testWidgets('the bar takes a ground once the page scrolls under it', (
+  uiTest('the bar takes a ground once the page scrolls under it', (
     tester,
   ) async {
     // It never did on this platform. A vertical ScrollView adopts the primary
@@ -92,41 +91,7 @@ void titleTests() {
     expect(tester.widget<TopBar>(find.byType(TopBar)).scrolled, isTrue);
   });
 
-  testWidgets('a season is on screen without scrolling', (tester) async {
-    // The banner was 70% of the window and the cast sat under it, so the
-    // seasons and the episode strip — the reason a series page is opened at
-    // all — started below the fold: the page looked like a poster with
-    // nothing on it until you scrolled.
-    await openHome(tester);
-    await pressCtrlF(tester);
-    await tester.enterText(find.byType(TextField), 'breaking bad');
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-    // By which title it is, not by where it landed: the grid is ranked the
-    // same way the search panel is, so the position of a tile is a property of
-    // what the catalogue answered rather than of the order it was asked in.
-    await tester.tap(
-      find.byWidgetPredicate(
-        (w) => w is PosterTile && w.item.id == 'tt0903747',
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(EpisodeCard), findsWidgets, reason: 'a series page');
-    final view = tester.view;
-    final fold = view.physicalSize.height / view.devicePixelRatio;
-    final card = tester.getRect(find.byType(EpisodeCard).first);
-    expect(
-      card.bottom,
-      lessThanOrEqualTo(fold),
-      reason:
-          'the whole card, not the top of it: a strip cut by the bottom '
-          'of the window is a strip nobody knows is there',
-    );
-  });
-
-  testWidgets('a title page that fits the window does not scroll', (
-    tester,
-  ) async {
+  uiTest('a title page that fits the window does not scroll', (tester) async {
     // 56 points under the strip that the banner was not measured to leave,
     // so both pages moved under the wheel with nothing below to move to.
     double scrollable() => tester
@@ -149,7 +114,7 @@ void titleTests() {
     expect(scrollable(), 0, reason: 'the film page');
   });
 
-  testWidgets('download season asks for every released episode, one by one', (
+  uiTest('download season asks for every released episode, one by one', (
     tester,
   ) async {
     final started = <String>[];
@@ -167,9 +132,9 @@ void titleTests() {
     expect(asked.map((b) => b['episode']), [1, 2, 3, 4, 5, 6]);
   });
 
-  testWidgets('a film downloads without opening the player', (tester) async {
+  uiTest('a film downloads without opening the player', (tester) async {
     final started = <String>[];
-    await tester.pumpWidget(LumeoApp(api: fakeCore(started: started)));
+    await tester.pumpWidget(testApp(api: fakeCore(started: started)));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(PosterTile).first);
     await waitFor(
@@ -185,12 +150,10 @@ void titleTests() {
       what: 'the download was asked for',
     );
     await tester.pumpAndSettle();
-    expect(find.byType(PlayerScreen), findsNothing);
+    expect(playing(tester), isNull);
   });
 
-  testWidgets('progress chooses and positions the current episode', (
-    tester,
-  ) async {
+  uiTest('progress chooses and positions the current episode', (tester) async {
     await openSeries(
       tester,
       progress: {
@@ -242,40 +205,12 @@ void titleTests() {
     );
   });
 
-  testWidgets('episode marks read over a real still', (tester) async {
-    // The suite's stills were grey tiles, and marks that looked fine on them
-    // were heavy boxes and mush over a real picture. So this one serves a
-    // picture, and leaves the screen in build/ui-shots for a look by eye.
-    late final List<int> still;
-    await tester.runAsync(() async {
-      final recorder = ui.PictureRecorder();
-      const size = Size(640, 360);
-      Canvas(recorder).drawRect(
-        Offset.zero & size,
-        Paint()
-          ..shader = ui.Gradient.linear(
-            Offset.zero,
-            size.bottomRight(Offset.zero),
-            const [Color(0xFFE8C9A0), Color(0xFF3A5A78), Color(0xFF101418)],
-            const [0, 0.5, 1],
-          ),
-      );
-      final image = await recorder.endRecording().toImage(640, 360);
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      still = png!.buffer.asUint8List();
-    });
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() => server.close(force: true));
-    server.listen((request) {
-      request.response
-        ..headers.contentType = ContentType('image', 'png')
-        ..add(still)
-        ..close();
-    });
+  uiTest('an episode card says watched, on disk and arriving', (tester) async {
+    // A watched episode is a full bar rather than a check, which read as a
+    // heavy box over a real still.
     await openSeries(
       tester,
       api: fakeCore(
-        stills: 'http://127.0.0.1:${server.port}',
         preferences: const {
           'subtitleLanguages': ['en'],
           'episodeArtwork': 'show',
@@ -341,20 +276,9 @@ void titleTests() {
       findsOneWidget,
       reason: 'on its way',
     );
-
-    final view = tester.binding.renderViews.first;
-    final layer = view.debugLayer! as OffsetLayer;
-    await tester.runAsync(() async {
-      final image = await layer.toImage(view.paintBounds);
-      final png = await image.toByteData(format: ui.ImageByteFormat.png);
-      final file = File('build/ui-shots/episode-marks.png')
-        ..parent.createSync(recursive: true);
-      file.writeAsBytesSync(png!.buffer.asUint8List());
-      debugPrint('shot: ${file.absolute.path}');
-    });
   });
 
-  testWidgets('arrows walk the season, keep a neighbour in sight, and Enter '
+  uiTest('arrows walk the season, keep a neighbour in sight, and Enter '
       'plays', (tester) async {
     await openSeries(tester);
     EpisodeCard card(int number) => tester.widget<EpisodeCard>(
@@ -424,12 +348,12 @@ void titleTests() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(
-      tester.widget<PlayerScreen>(find.byType(PlayerScreen)).title,
+      tester.widget<PlayerStandIn>(find.byType(PlayerStandIn)).screen.title,
       contains('S01E02'),
     );
   });
 
-  testWidgets('Play on a card that is not the chosen one plays that card', (
+  uiTest('Play on a card that is not the chosen one plays that card', (
     tester,
   ) async {
     final started = <String>[];
@@ -461,10 +385,10 @@ void titleTests() {
     expect(jsonDecode(started.single)['episode'], 3);
   });
 
-  testWidgets('progress failures do not replace the home or item screen', (
+  uiTest('progress failures do not replace the home or item screen', (
     tester,
   ) async {
-    await tester.pumpWidget(LumeoApp(api: fakeCore(progressFails: true)));
+    await tester.pumpWidget(testApp(api: fakeCore(progressFails: true)));
     await tester.pumpAndSettle();
     expect(find.text('Popular films'), findsOneWidget);
     expect(find.text('Try again'), findsNothing);
@@ -485,9 +409,7 @@ void titleTests() {
     expect(find.text('Try again'), findsNothing);
   });
 
-  testWidgets('episode artwork preference hides and blurs spoilers', (
-    tester,
-  ) async {
+  uiTest('episode artwork preference hides and blurs spoilers', (tester) async {
     final progress = {
       'tt0903747': [
         watchEntry(
@@ -541,93 +463,9 @@ void titleTests() {
       findsNothing,
       reason: 'a placeholder for a still that failed is not blurred',
     );
-
-    // One that does arrive is: served from a socket of this test's own.
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() => server.close(force: true));
-    server.listen((request) {
-      request.response
-        ..headers.contentType = ContentType('image', 'png')
-        ..add(base64Decode(pngFourByFour))
-        ..close();
-    });
-    await openSeries(
-      tester,
-      progress: progress,
-      preferences: const {
-        'subtitleLanguages': ['en'],
-        'episodeArtwork': 'blur',
-      },
-      stills: 'http://127.0.0.1:${server.port}',
-    );
-    expect(
-      find.descendant(of: second, matching: find.byType(ImageFiltered)),
-      findsOneWidget,
-      reason: 'the unwatched episode is still a spoiler',
-    );
-    await tester.drag(find.byType(HorizontalStrip), const Offset(400, 0));
-    await tester.pumpAndSettle();
-    final first = find.byWidgetPredicate(
-      (w) => w is EpisodeCard && w.episode.number == 1,
-    );
-    expect(
-      find.descendant(of: first, matching: find.byType(ImageFiltered)),
-      findsNothing,
-      reason: 'watched artwork stays sharp',
-    );
   });
 
-  testWidgets('an episode on disk without a still shows a frame of its file', (
-    tester,
-  ) async {
-    final server = await serveFilm();
-    // The real cache: a frame left by an earlier run would pass this test.
-    final taken = File('${EpisodeFrames.cacheDirectory()}/tt0903747-s1e2.jpg');
-    if (taken.existsSync()) taken.deleteSync();
-    addTearDown(() {
-      if (taken.existsSync()) taken.deleteSync();
-    });
-    // Episode 2's still points at a port nothing listens on, as metahub's
-    // missing ones effectively do.
-    await openSeries(
-      tester,
-      api: fakeCore(
-        downloads: [
-          fakeDownload(
-            id: 'e2',
-            itemId: 'tt0903747',
-            state: 'done',
-            season: 1,
-            episode: 2,
-          ),
-        ],
-        baseUrl: 'http://127.0.0.1:${server.port}',
-      ),
-    );
-    bool fromFile(int number) => tester
-        .widgetList<Image>(
-          find.descendant(
-            of: find.byWidgetPredicate(
-              (w) => w is EpisodeCard && w.episode.number == number,
-            ),
-            matching: find.byType(Image),
-          ),
-        )
-        .any(
-          (image) =>
-              image.image is ResizeImage &&
-              (image.image as ResizeImage).imageProvider is FileImage,
-        );
-    await waitFor(
-      tester,
-      () async => fromFile(2),
-      what: 'a frame of the episode on disk on its card',
-    );
-    expect(taken.existsSync(), isTrue);
-    expect(fromFile(1), isFalse, reason: 'episode 1 is not on disk');
-  });
-
-  testWidgets('a copy this machine cannot decode is marked, and not played', (
+  uiTest('a copy this machine cannot decode is marked, and not played', (
     tester,
   ) async {
     // The whole point of asking mpv before anything is chosen. The sharpest
@@ -643,7 +481,7 @@ void titleTests() {
     addTearDown(() => DeviceDecoders.instance = DeviceDecoders());
 
     final started = <String>[];
-    await tester.pumpWidget(LumeoApp(api: fakeCore(started: started)));
+    await tester.pumpWidget(testApp(api: fakeCore(started: started)));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(PosterTile).first);
     await tester.pumpAndSettle();
@@ -673,7 +511,7 @@ void titleTests() {
     );
   });
 
-  testWidgets('the sources drawer puts what is here first, then sharpest', (
+  uiTest('the sources drawer puts what is here first, then sharpest', (
     tester,
   ) async {
     Map<String, dynamic> copy(
@@ -695,7 +533,7 @@ void titleTests() {
     };
     final started = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           started: started,
           sources: [
@@ -745,7 +583,7 @@ void titleTests() {
     expect(started.single, contains('mid'), reason: 'Play starts the pick');
   });
 
-  testWidgets('a provider that refuses is said as a block, with Play off', (
+  uiTest('a provider that refuses is said as a block, with Play off', (
     tester,
   ) async {
     // An empty list used to read "Nothing to play yet — no provider has
@@ -753,7 +591,7 @@ void titleTests() {
     // 403 is not an empty catalogue: it says so, and asking again is offered.
     final asked = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           sources: const [],
           failed: const [
@@ -786,13 +624,13 @@ void titleTests() {
     );
   });
 
-  testWidgets('with no source addon, Play says so and leads to Sources', (
+  uiTest('with no source addon, Play says so and leads to Sources', (
     tester,
   ) async {
     // No source ships with the app, so this is where a fresh install starts:
     // "No copies found" would blame the title for what is a missing addon.
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           sources: const [],
           addons: [

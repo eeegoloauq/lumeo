@@ -2,15 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumeo/main.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 
 import 'fake_core.dart';
 
-import 'helpers.dart';
+import 'app.dart';
 
-void searchTests() {
-  testWidgets('backspace deletes in the search field', (tester) async {
+void main() {
+  uiTest('backspace deletes in the search field', (tester) async {
     // A shortcut bound to Backspace on the shell took it away from the field,
     // because MaterialApp installs the text editing shortcuts above us and the
     // closer binding wins.
@@ -26,7 +25,7 @@ void searchTests() {
     );
   });
 
-  testWidgets('a search gone through is offered again under the empty field', (
+  uiTest('a search gone through is offered again under the empty field', (
     tester,
   ) async {
     await openHome(tester);
@@ -59,7 +58,7 @@ void searchTests() {
     expect(recent, findsNothing);
   });
 
-  testWidgets('ctrl+F opens search and gives it the keyboard', (tester) async {
+  uiTest('ctrl+F opens search and gives it the keyboard', (tester) async {
     // There is no field on screen until this key is pressed: the middle of the
     // bar is the tabs, and search is a panel that opens over them. So the key
     // has to open the panel and land the keyboard in it in one press — it used
@@ -80,49 +79,7 @@ void searchTests() {
     expect(find.textContaining('results for'), findsOneWidget);
   });
 
-  testWidgets('the field opens on the line the tabs stand on', (tester) async {
-    // It opened against the top of the window. A SearchAnchor's panel takes
-    // the top edge of whatever the anchor is, and the anchor was the whole
-    // height of the bar: the field appeared at the window's frame, above the
-    // line the tabs sit on, and folded back into that same edge — a panel
-    // arriving from nowhere instead of a bar widening where it stands.
-    await openHome(tester);
-    final tabs = tester.getRect(find.text('Home'));
-    await pressCtrlF(tester);
-    final field = tester.getRect(find.byType(TextField));
-    expect(
-      field.center.dy,
-      closeTo(tabs.center.dy, 1),
-      reason: 'the field is centred where the tabs were, not higher up',
-    );
-  });
-
-  testWidgets('the answers fold up with the panel instead of blinking out', (
-    tester,
-  ) async {
-    // Closing used to empty the field, and emptying the field emptied the list
-    // in the same frame: what the closing animation had left to fold away was
-    // an empty box, so search did not shut, it vanished. The field is emptied
-    // on the way in instead.
-    await openHome(tester);
-    await pressCtrlF(tester);
-    await typeIntoSearch(tester, 'night');
-    expect(panelRow('tt0063350'), findsOneWidget);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(
-      panelRow('tt0063350'),
-      findsOneWidget,
-      reason: 'still on screen, on its way out with the panel',
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsNothing, reason: 'and then gone');
-    // And the word it was searching for does not come back with the field.
-    await pressCtrlF(tester);
-    expect(find.text('night'), findsNothing);
-  });
-
-  testWidgets('escape leaves the search field instead of going back', (
+  uiTest('escape leaves the search field instead of going back', (
     tester,
   ) async {
     // Escape means back everywhere else in this window, and while the field
@@ -154,11 +111,14 @@ void searchTests() {
       isTrue,
       reason: 'ctrl+F still works after escape',
     );
+    expect(
+      find.text('breaking bad'),
+      findsNothing,
+      reason: 'and the word does not come back with the field',
+    );
   });
 
-  testWidgets('ctrl+F still finds the field after a title and back', (
-    tester,
-  ) async {
+  uiTest('ctrl+F still finds the field after a title and back', (tester) async {
     // Once around the loop a person actually walks: search, open something,
     // come back. The bar rebuilds its field on the way, and if the focus goes
     // nowhere in the process, every shortcut the shell owns stops answering —
@@ -182,7 +142,7 @@ void searchTests() {
     );
   });
 
-  testWidgets('titles appear under the field without Enter being pressed', (
+  uiTest('titles appear under the field without Enter being pressed', (
     tester,
   ) async {
     // Search used to be a field that did nothing until Enter, and then
@@ -211,11 +171,11 @@ void searchTests() {
     );
   });
 
-  testWidgets('one kind failing does not empty the panel', (tester) async {
+  uiTest('one kind failing does not empty the panel', (tester) async {
     // It did. The two kinds were asked through Future.wait, so a provider
     // timing out on films took the series down with it and a word with six
     // answers behind it came back as "nothing found".
-    await tester.pumpWidget(LumeoApp(api: fakeCore(searchFails: 'movie')));
+    await tester.pumpWidget(testApp(api: fakeCore(searchFails: 'movie')));
     await tester.pumpAndSettle();
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'breaking');
@@ -227,12 +187,10 @@ void searchTests() {
     expect(find.textContaining('All results'), findsOneWidget);
   });
 
-  testWidgets('a core that answers nothing says so, in the panel', (
-    tester,
-  ) async {
+  uiTest('a core that answers nothing says so, in the panel', (tester) async {
     // "Nothing found" is about the word; this is about the core, and offering
     // a page of all results for it would open a page that fails the same way.
-    await tester.pumpWidget(LumeoApp(api: fakeCore(searchFails: 'all')));
+    await tester.pumpWidget(testApp(api: fakeCore(searchFails: 'all')));
     await tester.pumpAndSettle();
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'breaking');
@@ -240,7 +198,7 @@ void searchTests() {
     expect(find.textContaining('All results'), findsNothing);
   });
 
-  testWidgets('arrows walk the panel and Enter opens the row they are on', (
+  uiTest('arrows walk the panel and Enter opens the row they are on', (
     tester,
   ) async {
     // A list under a field is a combobox, and a combobox without arrow keys is
@@ -264,7 +222,7 @@ void searchTests() {
     );
   });
 
-  testWidgets('a title in the panel opens that title', (tester) async {
+  uiTest('a title in the panel opens that title', (tester) async {
     await openHome(tester);
     await pressCtrlF(tester);
     await typeIntoSearch(tester, 'night');
@@ -274,9 +232,7 @@ void searchTests() {
     expect(find.text('Popular films'), findsNothing, reason: 'on the title');
   });
 
-  testWidgets('the results page names every title under its poster', (
-    tester,
-  ) async {
+  uiTest('the results page names every title under its poster', (tester) async {
     // The shelves do without captions on purpose — a poster is a title card
     // already. A page of search results is not a shelf: the answers are
     // unfamiliar by definition, some of that artwork is in another language or

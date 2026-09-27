@@ -6,21 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/l10n/app_localizations.dart';
-import 'package:lumeo/main.dart';
 import 'package:lumeo/platform/decoders.dart';
-import 'package:lumeo/ui/player/bindings.dart';
-import 'package:lumeo/ui/player/chrome.dart';
-import 'package:lumeo/ui/player/mpv_host.dart';
-import 'package:lumeo/ui/screens/app_shell.dart';
 import 'package:lumeo/ui/screens/settings/settings_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/setting_row.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
 
 import 'fake_core.dart';
-import 'helpers.dart';
+import 'app.dart';
 
-void settingsTests() {
+void main() {
   /// Opens Settings from the bar and scrolls it to [section] with the list
   /// beside the page, the way a person gets there.
   Future<void> openSettingsAt(
@@ -55,9 +50,7 @@ void settingsTests() {
         ),
       );
 
-  testWidgets('Settings is a place, and Escape comes back from it', (
-    tester,
-  ) async {
+  uiTest('Settings is a place, and Escape comes back from it', (tester) async {
     await openHome(tester);
     await openSettingsAt(tester, SettingsSection.about);
     expect(find.text('Core'), findsOneWidget);
@@ -71,82 +64,41 @@ void settingsTests() {
     await homeShown(tester);
   });
 
-  testWidgets('the downloads panel\'s Storage link opens Settings at '
-      'Downloads', (tester) async {
-    await openHome(tester);
-    final shell = tester.state(find.byType(AppShell));
-    (shell as dynamic).openSettings(section: SettingsSection.downloads);
+  uiTest('Settings shows the subtitle languages the core has, and adds one', (
+    tester,
+  ) async {
+    final patched = <String>[];
+    await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
     await tester.pumpAndSettle();
-    final heading = find.descendant(
-      of: settingsSection(SettingsSection.downloads),
-      matching: find.text('Downloads'),
+    await openSettingsAt(tester, SettingsSection.subtitles);
+
+    expect(find.widgetWithText(InputChip, 'English'), findsOneWidget);
+    final picker = find.descendant(
+      of: settingsSection(SettingsSection.subtitles),
+      matching: find.text('Add a language'),
     );
-    expect(
-      tester.getTopLeft(heading.first).dy,
-      lessThan(TopBar.height + SettingsScreen.readingLine),
-      reason: 'scrolled to its section, not left at the top of the page',
-    );
-    // Pressed again over a page already open: it scrolls there again.
-    await tester.drag(
-      find
-          .descendant(
-            of: find.byType(SettingsScreen),
-            matching: find.byType(SingleChildScrollView),
-          )
-          .first,
-      const Offset(0, 800),
-    );
+    await reveal(tester, picker.last);
+    await tester.tap(picker.last);
     await tester.pumpAndSettle();
-    (shell as dynamic).openSettings(section: SettingsSection.downloads);
+    await tester.tap(find.text('Russian').last);
     await tester.pumpAndSettle();
-    expect(
-      tester.getTopLeft(heading.first).dy,
-      lessThan(TopBar.height + SettingsScreen.readingLine),
-    );
+
+    expect(jsonDecode(patched.last), {
+      'subtitleLanguages': ['en', 'ru'],
+    });
+    expect(find.widgetWithText(InputChip, 'Russian'), findsOneWidget);
   });
 
-  testWidgets(
-    'Settings shows the subtitle languages the core has, and adds one',
-    (tester) async {
-      final patched = <String>[];
-      await tester.pumpWidget(
-        LumeoApp(
-          api: fakeCore(patched: patched),
-          settings: await temporarySettings(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await openSettingsAt(tester, SettingsSection.subtitles);
-
-      expect(find.widgetWithText(InputChip, 'English'), findsOneWidget);
-      final picker = find.descendant(
-        of: settingsSection(SettingsSection.subtitles),
-        matching: find.text('Add a language'),
-      );
-      await reveal(tester, picker.last);
-      await tester.tap(picker.last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Russian').last);
-      await tester.pumpAndSettle();
-
-      expect(jsonDecode(patched.last), {
-        'subtitleLanguages': ['en', 'ru'],
-      });
-      expect(find.widgetWithText(InputChip, 'Russian'), findsOneWidget);
-    },
-  );
-
-  testWidgets('Removing a language sends the list without it', (tester) async {
+  uiTest('Removing a language sends the list without it', (tester) async {
     final patched = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           preferences: {
             'subtitleLanguages': ['en', 'ru'],
           },
           patched: patched,
         ),
-        settings: await temporarySettings(),
       ),
     );
     await tester.pumpAndSettle();
@@ -163,99 +115,10 @@ void settingsTests() {
     expect(find.widgetWithText(InputChip, 'Russian'), findsNothing);
   });
 
-  // On time, mpv's defaults arrive while the stored values are on their way
-  // to it; late, the player waits for the core first.
-  for (final (answers, unreachable) in [('on time', 0), ('late', 2)]) {
-    testWidgets(
-      'A core that answers $answers gives the player the stored subtitle size',
-      (tester) async {
-        final patched = <String>[];
-        await tester.pumpWidget(
-          LumeoApp(
-            api: fakeCore(
-              downloads: [fakeDownload()],
-              preferences: {
-                'subtitleLanguages': ['en'],
-                'subtitleScale': 1.4,
-                'subtitlePosition': 90,
-              },
-              // Late: the app's read at start and the player's first one fail.
-              preferencesUnreachable: unreachable,
-              patched: patched,
-            ),
-            settings: await temporarySettings(),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Play'));
-        await pumpFor(tester, const Duration(seconds: 1));
-        await waitFor(
-          tester,
-          () async =>
-              double.parse(
-                await mpvOnScreen(tester).getProperty('sub-scale'),
-              ) ==
-              1.4,
-          what: 'the stored subtitle size applied',
-        );
-        expect(
-          double.parse(await mpvOnScreen(tester).getProperty('sub-pos')),
-          90,
-        );
-        await pumpFor(tester, const Duration(seconds: 1));
-        expect(patched, isEmpty, reason: 'nothing the player read was stored');
-      },
-    );
-  }
-
-  testWidgets('the stored subtitle colour, styling and arrow step reach mpv', (
-    tester,
-  ) async {
-    // Read back from mpv rather than seen on screen: the colour is drawn into
-    // the picture, and the step is a binding mpv seeks with.
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(
-          downloads: [fakeDownload()],
-          preferences: {
-            'subtitleLanguages': ['en'],
-            'subtitleColor': 'yellow',
-            'subtitleKeepStyling': false,
-            'seekStep': 10,
-          },
-        ),
-        settings: await temporarySettings(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play'));
-    await playerKeysReady(tester);
-    final host = await MpvHost.attach(mpvOnScreen(tester));
-    addTearDown(host.dispose);
-    await waitFor(
-      tester,
-      () async => (await host.get('sub-ass-override')) == 'force',
-      what: 'our style over the file\'s',
-    );
-    expect(
-      (await host.get('sub-color'))?.toUpperCase(),
-      anyOf('#FFE14D', '#FFFFE14D'),
-    );
-    final bindings = MpvBinding.parse(await host.get('input-bindings') ?? '');
-    expect(
-      bindings.where(
-        (b) =>
-            b.section == ownSection && b.key == 'RIGHT' && b.cmd == 'seek 10',
-      ),
-      isNotEmpty,
-      reason: 'the arrow is bound to the stored step in our section',
-    );
-  });
-
-  testWidgets('Episode stills stores the selected treatment', (tester) async {
+  uiTest('Episode stills stores the selected treatment', (tester) async {
     final patched = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           preferences: {
             'subtitleLanguages': ['en'],
@@ -263,7 +126,6 @@ void settingsTests() {
           },
           patched: patched,
         ),
-        settings: await temporarySettings(),
       ),
     );
     await tester.pumpAndSettle();
@@ -277,16 +139,9 @@ void settingsTests() {
     expect(strip<String>(tester, 'Show').selected, {'show'});
   });
 
-  testWidgets('Appearance stores the Violet accent and applies it', (
-    tester,
-  ) async {
+  uiTest('Appearance stores the Violet accent and applies it', (tester) async {
     final patched = <String>[];
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(patched: patched),
-        settings: await temporarySettings(),
-      ),
-    );
+    await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
     await tester.pumpAndSettle();
     await openSettingsAt(tester, null);
 
@@ -300,13 +155,11 @@ void settingsTests() {
     );
   });
 
-  testWidgets('Text size is this machine\'s, and scales the text', (
-    tester,
-  ) async {
+  uiTest('Text size is this machine\'s, and scales the text', (tester) async {
     final patched = <String>[];
-    final settings = await temporarySettings();
+    final settings = temporarySettings();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(patched: patched),
         settings: settings,
       ),
@@ -329,15 +182,10 @@ void settingsTests() {
     );
   });
 
-  testWidgets('A preference the core refuses is shown and not applied', (
+  uiTest('A preference the core refuses is shown and not applied', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(preferencesFail: true),
-        settings: await temporarySettings(),
-      ),
-    );
+    await tester.pumpWidget(testApp(api: fakeCore(preferencesFail: true)));
     await tester.pumpAndSettle();
     await openSettingsAt(tester, null);
     await tester.tap(find.text('Blur'));
@@ -348,11 +196,11 @@ void settingsTests() {
     expect(strip<String>(tester, 'Show').selected, {'show'});
   });
 
-  testWidgets('Reset puts the preferences back, after asking', (tester) async {
+  uiTest('Reset puts the preferences back, after asking', (tester) async {
     final patched = <String>[];
-    final settings = await temporarySettings();
+    final settings = temporarySettings();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           preferences: {
             'subtitleLanguages': ['en'],
@@ -380,12 +228,8 @@ void settingsTests() {
     expect(settings.timelinePreviews, isTrue);
   });
 
-  testWidgets('Sources lists the addons and what each one serves', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      LumeoApp(api: fakeCore(), settings: await temporarySettings()),
-    );
+  uiTest('Sources lists the addons and what each one serves', (tester) async {
+    await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.sources);
 
@@ -403,14 +247,9 @@ void settingsTests() {
     expect(inSources(find.text('Remove')), findsNWidgets(3));
   });
 
-  testWidgets('Switching an addon off is sent to the core', (tester) async {
+  uiTest('Switching an addon off is sent to the core', (tester) async {
     final calls = <String>[];
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(addonCalls: calls),
-        settings: await temporarySettings(),
-      ),
-    );
+    await tester.pumpWidget(testApp(api: fakeCore(addonCalls: calls)));
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.sources);
 
@@ -426,62 +265,46 @@ void settingsTests() {
     expect(tester.widget<Switch>(switches.at(1)).value, isFalse);
   });
 
-  testWidgets(
-    'An address is checked by the core: a refusal stays at the field, an '
-    'addon joins the list',
-    (tester) async {
-      final calls = <String>[];
-      await tester.pumpWidget(
-        LumeoApp(
-          api: fakeCore(addonCalls: calls),
-          settings: await temporarySettings(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await openSettingsAt(tester, SettingsSection.sources);
-
-      final field = find.widgetWithText(TextField, 'Addon address');
-      await reveal(tester, field);
-      await tester.enterText(field, 'http://dead.invalid');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(
-        find.text('no addon answered there: 404 Not Found'),
-        findsOneWidget,
-      );
-      expect(find.text('Public Domain Movies'), findsNothing);
-
-      // Enter handed the keyboard back; a typed address needs it again.
-      await tester.tap(field);
-      await tester.pump();
-      await tester.enterText(field, 'https://pd.invalid/manifest.json');
-      final add = find.widgetWithText(OutlinedButton, 'Add');
-      await reveal(tester, add);
-      await tester.tap(add);
-      await tester.pumpAndSettle();
-      expect(
-        calls.last,
-        'POST /api/v1/addons {"url":"https://pd.invalid/manifest.json"}',
-      );
-      expect(find.text('Public Domain Movies'), findsOneWidget);
-      expect(find.text('Catalog · Titles · Streams'), findsOneWidget);
-      expect(find.text('no addon answered there: 404 Not Found'), findsNothing);
-      expect(
-        tester.widget<TextField>(field).controller!.text,
-        isEmpty,
-        reason: 'the address was taken',
-      );
-    },
-  );
-
-  testWidgets('Removing an addon takes it off the list', (tester) async {
+  uiTest('An address is checked by the core: a refusal stays at the field, an '
+      'addon joins the list', (tester) async {
     final calls = <String>[];
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(addonCalls: calls),
-        settings: await temporarySettings(),
-      ),
+    await tester.pumpWidget(testApp(api: fakeCore(addonCalls: calls)));
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, SettingsSection.sources);
+
+    final field = find.widgetWithText(TextField, 'Addon address');
+    await reveal(tester, field);
+    await tester.enterText(field, 'http://dead.invalid');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('no addon answered there: 404 Not Found'), findsOneWidget);
+    expect(find.text('Public Domain Movies'), findsNothing);
+
+    // Enter handed the keyboard back; a typed address needs it again.
+    await tester.tap(field);
+    await tester.pump();
+    await tester.enterText(field, 'https://pd.invalid/manifest.json');
+    final add = find.widgetWithText(OutlinedButton, 'Add');
+    await reveal(tester, add);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    expect(
+      calls.last,
+      'POST /api/v1/addons {"url":"https://pd.invalid/manifest.json"}',
     );
+    expect(find.text('Public Domain Movies'), findsOneWidget);
+    expect(find.text('Catalog · Titles · Streams'), findsOneWidget);
+    expect(find.text('no addon answered there: 404 Not Found'), findsNothing);
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      isEmpty,
+      reason: 'the address was taken',
+    );
+  });
+
+  uiTest('Removing an addon takes it off the list', (tester) async {
+    final calls = <String>[];
+    await tester.pumpWidget(testApp(api: fakeCore(addonCalls: calls)));
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.sources);
 
@@ -499,10 +322,8 @@ void settingsTests() {
     );
   });
 
-  testWidgets('Downloads lists titles and deletes one', (tester) async {
-    await tester.pumpWidget(
-      LumeoApp(api: fakeCore(), settings: await temporarySettings()),
-    );
+  uiTest('Downloads lists titles and deletes one', (tester) async {
+    await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.downloads);
 
@@ -548,12 +369,12 @@ void settingsTests() {
     );
   });
 
-  testWidgets('Downloads stores the keep policy, the disk limit, prefetch and '
+  uiTest('Downloads stores the keep policy, the disk limit, prefetch and '
       'seeding', (tester) async {
     final patched = <String>[];
-    final settings = await temporarySettings();
+    final settings = temporarySettings();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(patched: patched),
         settings: settings,
       ),
@@ -631,7 +452,7 @@ void settingsTests() {
     expect(jsonDecode(patched.last), {'uploadLimit': 1 << 20});
   });
 
-  testWidgets(
+  uiTest(
     'Downloads names the folders, and offers to open and change the videos '
     'one only on this machine',
     (tester) async {
@@ -639,13 +460,12 @@ void settingsTests() {
       addTearDown(() => directory.deleteSync(recursive: true));
       final patched = <String>[];
       await tester.pumpWidget(
-        LumeoApp(
+        testApp(
           api: fakeCore(
             baseUrl: 'http://127.0.0.1:1',
             aboutDir: directory.path,
             patched: patched,
           ),
-          settings: await temporarySettings(),
         ),
       );
       await tester.pumpAndSettle();
@@ -664,9 +484,9 @@ void settingsTests() {
       await tester.tap(
         find.descendant(of: videos, matching: find.text('Change')),
       );
-      await tester.pumpAndSettle();
+      await waitForIo(tester, find.text('Films'));
       await tester.tap(find.text('Films'));
-      await tester.pumpAndSettle();
+      await waitForIo(tester, find.text('${directory.path}/Films'));
       await tester.tap(find.text('Use this folder'));
       await tester.pumpAndSettle();
       expect(jsonDecode(patched.last), {
@@ -675,10 +495,9 @@ void settingsTests() {
       expect(find.text('${directory.path}/Films'), findsOneWidget);
 
       await tester.pumpWidget(
-        LumeoApp(
+        testApp(
           key: UniqueKey(),
           api: fakeCore(aboutDir: directory.path),
-          settings: await temporarySettings(),
         ),
       );
       await tester.pumpAndSettle();
@@ -697,39 +516,7 @@ void settingsTests() {
     },
   );
 
-  testWidgets('Timeline previews off, no second mpv is made for the bar', (
-    tester,
-  ) async {
-    final server = await serveFilm();
-    final settings = await temporarySettings();
-    settings.timelinePreviews = false;
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(
-          downloads: [fakeDownload()],
-          baseUrl: 'http://127.0.0.1:${server.port}',
-        ),
-        settings: settings,
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play'));
-    await pumpFor(tester, const Duration(seconds: 1));
-    final mpv = mpvOnScreen(tester);
-    await waitFor(
-      tester,
-      () async => (double.tryParse(await mpv.getProperty('time-pos')) ?? 0) > 0,
-      what: 'the film played',
-    );
-    // The frames' only source is what the bar is handed; with it off the bar
-    // is handed nothing, so nothing can start one.
-    expect(
-      find.byWidgetPredicate((w) => w is PlayerChrome && w.thumbnails != null),
-      findsNothing,
-    );
-  });
-
-  testWidgets('Settings prints the commands for a broken decoder, and copies '
+  uiTest('Settings prints the commands for a broken decoder, and copies '
       'them', (tester) async {
     // The advice used to be one install line inside the warning, and on a
     // machine that has not enabled RPM Fusion that line answers "no match":

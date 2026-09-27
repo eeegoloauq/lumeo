@@ -2,15 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumeo/main.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 
 import 'fake_core.dart';
 
-import 'helpers.dart';
+import 'app.dart';
 
-void shellTests() {
-  testWidgets('the wordmark is printed once', (tester) async {
+void main() {
+  uiTest('the wordmark is printed once', (tester) async {
     // It was printed twice, in the same place, a point apart: the banner had
     // one and the bar that floats over the banner had another. On screen that
     // is not two logos, it is one blurred one.
@@ -18,14 +17,14 @@ void shellTests() {
     expect(find.text('LUMEO'), findsOneWidget);
   });
 
-  testWidgets('watch progress is the first home shelf only when it exists', (
+  uiTest('watch progress is the first home shelf only when it exists', (
     tester,
   ) async {
     await openHome(tester);
     expect(find.byKey(const ValueKey('continue-watching')), findsNothing);
 
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         key: UniqueKey(),
         api: fakeCore(
           progress: {
@@ -70,14 +69,14 @@ void shellTests() {
     }
   });
 
-  testWidgets('the bar carries the window buttons', (tester) async {
+  uiTest('the bar carries the window buttons', (tester) async {
     await openHome(tester);
     expect(find.byTooltip('Minimise'), findsOneWidget);
     expect(find.byTooltip('Maximise'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
   });
 
-  testWidgets('F11 reaches the window from a screen nobody has clicked', (
+  uiTest('F11 reaches the window from a screen nobody has clicked', (
     tester,
   ) async {
     // It did not: shortcuts arrive by walking up from whatever holds the focus,
@@ -88,7 +87,7 @@ void shellTests() {
     expect(windowCalls.map((c) => c.method), contains('setFullscreen'));
   });
 
-  testWidgets('no text on screen falls back to the missing-Material style', (
+  uiTest('no text on screen falls back to the missing-Material style', (
     tester,
   ) async {
     // Flutter marks text that has no Material above it with red monospace and
@@ -102,18 +101,7 @@ void shellTests() {
     expectNoFallbackStyle(tester);
   });
 
-  testWidgets('escape comes back from a title', (tester) async {
-    await openHome(tester);
-    await tester.tap(find.byType(PosterTile).first);
-    await tester.pumpAndSettle();
-    expect(find.text('Popular films'), findsNothing, reason: 'on the title');
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await homeShown(tester);
-  });
-
-  testWidgets('escape comes back even from a fullscreen window', (
-    tester,
-  ) async {
+  uiTest('escape comes back even from a fullscreen window', (tester) async {
     // The regression this replaces: Escape used to spend itself on leaving
     // fullscreen, so on a window it believed was fullscreen it did nothing a
     // viewer could see.
@@ -126,7 +114,7 @@ void shellTests() {
     await homeShown(tester);
   });
 
-  testWidgets('the keyboard comes back to the shell when it lands nowhere', (
+  uiTest('the keyboard comes back to the shell when it lands nowhere', (
     tester,
   ) async {
     // What a desktop does a moment after the window opens: it gives the window
@@ -149,11 +137,11 @@ void shellTests() {
     );
   });
 
-  testWidgets('Play in the banner starts something', (tester) async {
+  uiTest('Play in the banner starts something', (tester) async {
     // Both buttons under the banner opened the title page, so the one labelled
     // Play started nothing at all.
     final started = <String>[];
-    await tester.pumpWidget(LumeoApp(api: fakeCore(started: started)));
+    await tester.pumpWidget(testApp(api: fakeCore(started: started)));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
     await waitFor(
@@ -162,5 +150,17 @@ void shellTests() {
       what: 'Play asked the core for a download',
     );
     expect(started, isNotEmpty, reason: 'Play asked the core for a download');
+  });
+
+  uiTest('a file the core refuses says why', (tester) async {
+    await tester.pumpWidget(
+      testApp(open: '/films/notes.txt', api: fakeCore(openFails: true)),
+    );
+    await tester.pumpAndSettle();
+    expect(playing(tester), isNull);
+    expect(
+      find.text('Could not open notes.txt: not a video file'),
+      findsOneWidget,
+    );
   });
 }

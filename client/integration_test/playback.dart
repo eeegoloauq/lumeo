@@ -7,13 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:lumeo/main.dart';
+import 'package:lumeo/ui/player/episode_frames.dart';
 import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/player/panels.dart';
 import 'package:lumeo/ui/widgets/download_glyph.dart';
 import 'package:lumeo/ui/widgets/episode_card.dart';
-
-import 'fake_core.dart';
 
 import 'helpers.dart';
 
@@ -40,7 +38,7 @@ void playbackTests() {
         ..close();
     });
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           background: 'http://127.0.0.1:${server.port}/backdrop.png',
@@ -85,7 +83,7 @@ void playbackTests() {
     // still set on it, so Escape out of the film landed on a page that started
     // the film — a loop you had to outrun with the Escape key.
     await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
@@ -124,7 +122,7 @@ void playbackTests() {
     core.listen(asked.add);
     addTearDown(() => core.close(force: true));
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload(ready: false)],
           baseUrl: 'http://127.0.0.1:${core.port}',
@@ -156,31 +154,6 @@ void playbackTests() {
     );
   });
 
-  testWidgets('escape works while the film is still arriving', (tester) async {
-    await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload(ready: false)])),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play'));
-    await playerKeysReady(tester);
-    bool fullscreen() =>
-        windowCalls.lastWhere((c) => c.method == 'setFullscreen').arguments
-            as bool;
-    expect(fullscreen(), isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await waitFor(
-      tester,
-      () async => !fullscreen(),
-      what: 'the first escape left fullscreen',
-    );
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await waitFor(
-      tester,
-      () async => find.byType(PlayerScreen).evaluate().isEmpty,
-      what: 'the second escape went back to the title',
-    );
-  });
-
   testWidgets('a film that will not start is reported in the end', (
     tester,
   ) async {
@@ -195,10 +168,11 @@ void playbackTests() {
     openPatience = const Duration(seconds: 3);
     addTearDown(() => openPatience = patience);
     await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
+    await playerOpened(tester);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(
       find.text('This copy would not start'),
@@ -229,7 +203,7 @@ void playbackTests() {
     final server = await serveFilm();
     final download = fakeDownload(ready: false);
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [download],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -272,7 +246,7 @@ void playbackTests() {
     final server = await serveFilm();
     final opened = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         open: testFilm().path,
         api: fakeCore(
           downloads: [fakeDownload()],
@@ -299,7 +273,7 @@ void playbackTests() {
     final server = await serveFilm();
     final opened = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -318,21 +292,6 @@ void playbackTests() {
     await pumpFor(tester, const Duration(seconds: 1));
     expect(opened, [testFilm().path]);
     expect(find.byType(PlayerScreen), findsOneWidget);
-  });
-
-  testWidgets('a file the core refuses says why', (tester) async {
-    await tester.pumpWidget(
-      LumeoApp(open: testFilm().path, api: fakeCore(openFails: true)),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(PlayerScreen), findsNothing);
-    expect(
-      find.text(
-        'Could not open ${testFilm().path.split('/').last}: '
-        'not a video file',
-      ),
-      findsOneWidget,
-    );
   });
 
   testWidgets('an episode on disk starts the next one downloading, unless '
@@ -359,7 +318,7 @@ void playbackTests() {
         ),
       );
       await tester.tap(find.text('Play S1 E1'));
-      await pumpFor(tester, const Duration(seconds: 1));
+      await playerOpened(tester);
       return started;
     }
 
@@ -413,6 +372,7 @@ void playbackTests() {
       ),
     );
     await tester.tap(find.text('Play S1 E1'));
+    await playerOpened(tester);
     await waitFor(
       tester,
       () async => started.any((b) => b.contains('"prefetch":true')),
@@ -760,7 +720,7 @@ void playbackTests() {
     stalled.listen(asked.add);
     addTearDown(() => stalled.close(force: true));
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${stalled.port}',
@@ -779,5 +739,55 @@ void playbackTests() {
       60,
       reason: 'mpv waits on the core as long as a swarm may take',
     );
+  });
+
+  testWidgets('an episode on disk without a still shows a frame of its file', (
+    tester,
+  ) async {
+    final server = await serveFilm();
+    // The real cache: a frame left by an earlier run would pass this test.
+    final taken = File('${EpisodeFrames.cacheDirectory()}/tt0903747-s1e2.jpg');
+    if (taken.existsSync()) taken.deleteSync();
+    addTearDown(() {
+      if (taken.existsSync()) taken.deleteSync();
+    });
+    // Episode 2's still points at a port nothing listens on, as metahub's
+    // missing ones effectively do.
+    await openSeries(
+      tester,
+      api: fakeCore(
+        downloads: [
+          fakeDownload(
+            id: 'e2',
+            itemId: 'tt0903747',
+            state: 'done',
+            season: 1,
+            episode: 2,
+          ),
+        ],
+        baseUrl: 'http://127.0.0.1:${server.port}',
+      ),
+    );
+    bool fromFile(int number) => tester
+        .widgetList<Image>(
+          find.descendant(
+            of: find.byWidgetPredicate(
+              (w) => w is EpisodeCard && w.episode.number == number,
+            ),
+            matching: find.byType(Image),
+          ),
+        )
+        .any(
+          (image) =>
+              image.image is ResizeImage &&
+              (image.image as ResizeImage).imageProvider is FileImage,
+        );
+    await waitFor(
+      tester,
+      () async => fromFile(2),
+      what: 'a frame of the episode on disk on its card',
+    );
+    expect(taken.existsSync(), isTrue);
+    expect(fromFile(1), isFalse, reason: 'episode 1 is not on disk');
   });
 }

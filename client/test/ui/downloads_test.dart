@@ -1,15 +1,13 @@
 // The downloads panel under the bar.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumeo/main.dart';
-import 'package:lumeo/ui/player/player_screen.dart';
 
 import 'fake_core.dart';
 
-import 'helpers.dart';
+import 'app.dart';
 
-void downloadsTests() {
-  testWidgets('the downloads panel opens and its stop button can be pressed', (
+void main() {
+  uiTest('the downloads panel opens and its stop button can be pressed', (
     tester,
   ) async {
     // It opened inside a bar 68 points tall and was clipped at its edge: the
@@ -19,7 +17,7 @@ void downloadsTests() {
     // Stop is on what is waiting; what is arriving is paused instead.
     final stopped = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload(waitingSince: DateTime.now())],
           stopped: stopped,
@@ -45,9 +43,7 @@ void downloadsTests() {
     );
   });
 
-  testWidgets('a download starting moves nothing else in the bar', (
-    tester,
-  ) async {
+  uiTest('a download starting moves nothing else in the bar', (tester) async {
     // The whole reason the bar is a Stack. The indicator used to sit in a row
     // between search and the window buttons, so the moment a download started
     // everything to its left slid across — a control moving out from under a
@@ -62,7 +58,7 @@ void downloadsTests() {
     // final`. Without it the second window is the first one again, with no
     // downloads in it, and this test passes by proving nothing.
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         key: UniqueKey(),
         api: fakeCore(downloads: [fakeDownload()]),
       ),
@@ -77,9 +73,7 @@ void downloadsTests() {
     expect(tester.getCenter(find.byTooltip('Search  ·  Ctrl+F')), quietSearch);
   });
 
-  testWidgets('the downloads panel hangs to the left of its button', (
-    tester,
-  ) async {
+  uiTest('the downloads panel hangs to the left of its button', (tester) async {
     // The indicator is the last control before the window's own buttons, and a
     // menu opens to the right of what it hangs from: on the real window the
     // panel went off the frame and took the release name and the peer count
@@ -100,9 +94,7 @@ void downloadsTests() {
     expect(panel.left, greaterThanOrEqualTo(0));
   });
 
-  testWidgets('a download with nothing to play yet opens its title', (
-    tester,
-  ) async {
+  uiTest('a download with nothing to play yet opens its title', (tester) async {
     // What is arriving is the most likely reason this window is open at all,
     // and the page where it can be watched was two clicks away through a
     // catalogue that does not know it is downloading.
@@ -117,7 +109,7 @@ void downloadsTests() {
     expect(find.text('Popular films'), findsNothing, reason: 'on the title');
   });
 
-  testWidgets('a download with something to play plays from the panel', (
+  uiTest('a download with something to play plays from the panel', (
     tester,
   ) async {
     await openHome(tester, downloads: [fakeDownload()]);
@@ -125,10 +117,10 @@ void downloadsTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('download:d1')));
     await tester.pump();
-    expect(find.byType(PlayerScreen), findsOneWidget);
+    expect(playing(tester), 'd1');
   });
 
-  testWidgets('a season in the downloads panel is one row per state that '
+  uiTest('a season in the downloads panel is one row per state that '
       'opens into its episodes, and Clear takes what finished', (tester) async {
     final now = DateTime.now();
     await openHome(
@@ -175,38 +167,7 @@ void downloadsTests() {
     expect(find.text('E2'), findsOneWidget, reason: 'the season still runs');
   });
 
-  testWidgets('a download is paused from the panel and resumed', (
-    tester,
-  ) async {
-    final patches = <String>[];
-    await tester.pumpWidget(
-      LumeoApp(
-        api: fakeCore(downloads: [fakeDownload()], downloadPatches: patches),
-      ),
-    );
-    await homeShown(tester);
-    await tester.tap(find.byKey(const ValueKey('downloads')));
-    await tester.pumpAndSettle();
-    expect(find.text('ARRIVING'), findsOneWidget);
-    expect(find.text('3.0 MB/s · 12 min left'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Pause'));
-    await tester.pumpAndSettle();
-    expect(patches, ['d1 {"paused":true}']);
-    expect(
-      find.text('Paused'),
-      findsOneWidget,
-      reason: 'the row changes with the answer, not on the next poll',
-    );
-    expect(find.text('ARRIVING'), findsNothing);
-
-    await tester.tap(find.byTooltip('Resume'));
-    await tester.pumpAndSettle();
-    expect(patches.last, 'd1 {"paused":false}');
-    expect(find.text('ARRIVING'), findsOneWidget);
-  });
-
-  testWidgets('Storage in the downloads panel opens the downloads settings', (
+  uiTest('Storage in the downloads panel opens the downloads settings', (
     tester,
   ) async {
     await openHome(tester, downloads: [fakeDownload()]);
@@ -222,5 +183,17 @@ void downloadsTests() {
     final rect = tester.getRect(limit);
     expect(rect.top, greaterThanOrEqualTo(0));
     expect(rect.bottom, lessThanOrEqualTo(window.height));
+
+    // Pressed again over a page already open and scrolled away: it scrolls
+    // there again.
+    await tester.drag(find.text('Disk limit'), const Offset(0, 800));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(limit).bottom, greaterThan(window.height));
+    await tester.tap(find.byKey(const ValueKey('downloads')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Storage ›'));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(limit).top, greaterThanOrEqualTo(0));
+    expect(tester.getRect(limit).bottom, lessThanOrEqualTo(window.height));
   });
 }

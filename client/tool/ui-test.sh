@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# Drives the real application and checks what it actually shows.
-#
-# Every check in integration_test/ is a defect that shipped, and none of them
-# were reachable from a unit test: a wordmark printed twice in the same place,
-# a panel clipped by the bar it hung from, a shortcut nothing could reach, a
-# keystroke stolen from a text field. So the tests run against the real widget
-# tree on a real screen, with a fake core behind them — no network, no binary,
-# no swarm, and a failure that is always the client's.
+# Drives the real application with a real libmpv: the player tests in
+# integration_test/, with a fake core behind them — no network, no binary, no
+# swarm, and a failure that is always the client's. Everything that does not
+# need mpv is an app test under `flutter test` (docs/decisions/testing.md).
 #
 #     client/tool/ui-test.sh
 #

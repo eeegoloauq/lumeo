@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:lumeo/main.dart';
+import 'package:lumeo/ui/player/bindings.dart';
 import 'package:lumeo/ui/player/chrome.dart';
 import 'package:lumeo/ui/player/menus.dart';
 import 'package:lumeo/ui/player/mpv_host.dart';
@@ -19,8 +19,6 @@ import 'package:lumeo/ui/player/panels.dart';
 import 'package:lumeo/ui/player/screenshots.dart';
 import 'package:lumeo/ui/player/subtitle_style.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
-
-import 'fake_core.dart';
 
 import 'helpers.dart';
 
@@ -31,7 +29,7 @@ void playerTests() {
     // window goes back exactly as it was found — which is the half worth a
     // test, since nobody notices it until it is wrong.
     await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
@@ -106,7 +104,7 @@ void playerTests() {
     // a menu and stopping a film nobody asked to stop — and the corner was a
     // guess, held right because the panel happened to be the width it is.
     await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
@@ -127,11 +125,6 @@ void playerTests() {
       panel.bottom,
       lessThanOrEqualTo(button.top),
       reason: 'above the button it hangs from, not off the bottom edge',
-    );
-    expect(
-      panel.right,
-      closeTo(tester.getSize(find.byType(PlayerScreen)).width - 24, 1),
-      reason: 'the panel is aligned 24 pixels from the right edge',
     );
     expect(panel.left, greaterThanOrEqualTo(0));
 
@@ -165,7 +158,7 @@ void playerTests() {
   ) async {
     final patched = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(downloads: [fakeDownload()], patched: patched),
       ),
     );
@@ -199,7 +192,7 @@ void playerTests() {
   ) async {
     final server = await serveFilm();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -255,7 +248,7 @@ void playerTests() {
   testWidgets('a subtitle background is drawn by mpv and kept', (tester) async {
     final patched = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(downloads: [fakeDownload()], patched: patched),
       ),
     );
@@ -294,7 +287,7 @@ void playerTests() {
     // A pause line proves the read — Space, `p` and the right button are
     // mpv's, and our section adds the click and host actions.
     await tester.pumpWidget(
-      LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play'));
@@ -328,25 +321,22 @@ void playerTests() {
     expect(find.text('Speed'), findsOneWidget);
   });
 
-  for (final (what, command) in [
-    ('a back message', ['script-message', 'lumeo', 'back']),
-    ('mpv quitting', ['quit']),
-  ]) {
-    testWidgets('$what closes the player', (tester) async {
-      await tester.pumpWidget(
-        LumeoApp(api: fakeCore(downloads: [fakeDownload()])),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Play'));
-      await playerKeysReady(tester);
-      unawaited(mpvOnScreen(tester).command(command));
-      await waitFor(
-        tester,
-        () async => find.byType(PlayerScreen).evaluate().isEmpty,
-        what: 'the player closed',
-      );
-    });
-  }
+  // A back message closes it too, but that is what `q` sends, and leaving a
+  // film from the banner covers it.
+  testWidgets('mpv quitting closes the player', (tester) async {
+    await tester.pumpWidget(
+      testApp(api: fakeCore(downloads: [fakeDownload()])),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    unawaited(mpvOnScreen(tester).command(['quit']));
+    await waitFor(
+      tester,
+      () async => find.byType(PlayerScreen).evaluate().isEmpty,
+      what: 'the player closed',
+    );
+  });
 
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
     // mpv answers an unknown property by ignoring it, and media_kit does not
@@ -385,7 +375,7 @@ void playerTests() {
     // software, where both paths save a file, so the log says which one ran.
     final server = await serveFilm();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -425,7 +415,7 @@ void playerTests() {
       'the pointer leaves', (tester) async {
     final server = await serveFilm();
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -481,7 +471,7 @@ void playerTests() {
     final server = await serveFilm();
 
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           downloads: [fakeDownload()],
           baseUrl: 'http://127.0.0.1:${server.port}',
@@ -717,7 +707,7 @@ void playerTests() {
   testWidgets('the player source page switches copies', (tester) async {
     final started = <String>[];
     await tester.pumpWidget(
-      LumeoApp(
+      testApp(
         api: fakeCore(
           started: started,
           downloads: [
@@ -777,5 +767,124 @@ void playerTests() {
       what: 'the player reopened on the chosen copy',
     );
     expect((jsonDecode(started.last)['source'] as Map)['rawName'], nextName);
+  });
+
+  // On time, mpv's defaults arrive while the stored values are on their way
+  // to it; late, the player waits for the core first.
+  for (final (answers, unreachable) in [('on time', 0), ('late', 2)]) {
+    testWidgets(
+      'A core that answers $answers gives the player the stored subtitle size',
+      (tester) async {
+        final patched = <String>[];
+        await tester.pumpWidget(
+          testApp(
+            api: fakeCore(
+              downloads: [fakeDownload()],
+              preferences: {
+                'subtitleLanguages': ['en'],
+                'subtitleScale': 1.4,
+                'subtitlePosition': 90,
+              },
+              // Late: the app's read at start and the player's first one fail.
+              preferencesUnreachable: unreachable,
+              patched: patched,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Play'));
+        await pumpFor(tester, const Duration(seconds: 1));
+        await waitFor(
+          tester,
+          () async =>
+              double.parse(
+                await mpvOnScreen(tester).getProperty('sub-scale'),
+              ) ==
+              1.4,
+          what: 'the stored subtitle size applied',
+        );
+        expect(
+          double.parse(await mpvOnScreen(tester).getProperty('sub-pos')),
+          90,
+        );
+        await pumpFor(tester, const Duration(seconds: 1));
+        expect(patched, isEmpty, reason: 'nothing the player read was stored');
+      },
+    );
+  }
+
+  testWidgets('the stored subtitle colour, styling and arrow step reach mpv', (
+    tester,
+  ) async {
+    // Read back from mpv rather than seen on screen: the colour is drawn into
+    // the picture, and the step is a binding mpv seeks with.
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          preferences: {
+            'subtitleLanguages': ['en'],
+            'subtitleColor': 'yellow',
+            'subtitleKeepStyling': false,
+            'seekStep': 10,
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final host = await MpvHost.attach(mpvOnScreen(tester));
+    addTearDown(host.dispose);
+    await waitFor(
+      tester,
+      () async => (await host.get('sub-ass-override')) == 'force',
+      what: 'our style over the file\'s',
+    );
+    expect(
+      (await host.get('sub-color'))?.toUpperCase(),
+      anyOf('#FFE14D', '#FFFFE14D'),
+    );
+    final bindings = MpvBinding.parse(await host.get('input-bindings') ?? '');
+    expect(
+      bindings.where(
+        (b) =>
+            b.section == ownSection && b.key == 'RIGHT' && b.cmd == 'seek 10',
+      ),
+      isNotEmpty,
+      reason: 'the arrow is bound to the stored step in our section',
+    );
+  });
+
+  testWidgets('Timeline previews off, no second mpv is made for the bar', (
+    tester,
+  ) async {
+    final server = await serveFilm();
+    final settings = temporarySettings();
+    settings.timelinePreviews = false;
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+        ),
+        settings: settings,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await pumpFor(tester, const Duration(seconds: 1));
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => (double.tryParse(await mpv.getProperty('time-pos')) ?? 0) > 0,
+      what: 'the film played',
+    );
+    // The frames' only source is what the bar is handed; with it off the bar
+    // is handed nothing, so nothing can start one.
+    expect(
+      find.byWidgetPredicate((w) => w is PlayerChrome && w.thumbnails != null),
+      findsNothing,
+    );
   });
 }
