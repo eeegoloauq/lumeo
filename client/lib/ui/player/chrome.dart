@@ -860,6 +860,9 @@ class _VolumeControlState extends State<VolumeControl> {
                       thumbColor: Colors.white,
                       thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
                       overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+                      trackShape: _ChapteredTrackShape([
+                        100 / VolumeControl.max,
+                      ]),
                     ),
                     child: Slider(
                       value: shown.clamp(0, VolumeControl.max),
