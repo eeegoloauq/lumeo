@@ -377,11 +377,17 @@ void main() {
   Future<List<String>> openDownloads(
     WidgetTester tester, {
     LocalSettings? settings,
+    bool? seed,
   }) async {
     final patched = <String>[];
     await tester.pumpWidget(
       testApp(
-        api: fakeCore(patched: patched),
+        api: fakeCore(
+          patched: patched,
+          preferences: seed == null
+              ? null
+              : {...preferenceDefaults, 'seed': seed},
+        ),
         settings: settings,
       ),
     );
@@ -444,12 +450,16 @@ void main() {
     );
   });
 
-  uiTest('Downloads sends seeding switched off', (tester) async {
-    final patched = await openDownloads(tester);
-    await reveal(tester, switchOf('Seeding'));
-    await tester.tap(switchOf('Seeding'));
+  uiTest('Downloads sends sharing Always', (tester) async {
+    final patched = await openDownloads(tester, seed: false);
+    final always = find.descendant(
+      of: find.widgetWithText(SettingRow, 'Sharing'),
+      matching: find.text('Always'),
+    );
+    await reveal(tester, always);
+    await tester.tap(always);
     await tester.pumpAndSettle();
-    expect(jsonDecode(patched.last), {'seed': false});
+    expect(jsonDecode(patched.last), {'seed': true});
   });
 
   uiTest('Downloads sends the upload limit', (tester) async {

@@ -1,27 +1,37 @@
 # Downloads and storage
 
-## Acquisition: seed by default, never touch the router
+## Acquisition: share while in use, never touch the router
 
-Downloads keep seeding once complete (`LUMEO_SEED=false` turns it off): taking
-from a swarm and giving nothing back is how swarms die. UPnP port mapping is
-off, and stays off — changing the user's network without asking is not ours to
-do, and outgoing connections plus holepunching are enough for a home client.
+A torrent shares while it is in use: while a download on it is still
+fetching, and while a finished one is playing, until the library's settle time
+after its last stream closes. Then its task stops and the torrent leaves the
+client, and nothing brings it back: playing it later, or after a restart,
+reads the file from disk. This is a player, not a seedbox; public swarms have
+no ratio to keep, and a torrent held for the whole session shared what the
+user happened to download before the last restart and nothing after it,
+invisibly, over as many connections as torrents in the session. Sharing while
+watching is the courtesy on top of sharing while fetching: a file that
+arrives in minutes gives back through the evening it is watched.
 
-Upload control is a switch and two limits, all core preferences (`seed`,
-`uploadLimit`, `downloadLimit`), because only the core can apply them and a
-second client must not see a setting the torrent client ignores;
-`LUMEO_SEED` is only the default of `seed`. Seeding off is not a hard off: a
-torrent stops uploading once it has every piece its downloads asked for, and
-one still fetching keeps trading with its peers, because a peer that gives
-nothing back is choked and the download starves. Whoever needs uploads to
-stop outright sets the upload limit low; a limit, not an off switch, is the
-tool for a metered or asymmetric line. All three apply while the client runs:
-the limits are the client's own `rate.Limiter`s, changed in place (every
-change is at a strictly later instant than the one before, since the limiter
-turns a change at the same instant with no limit into NaN tokens, which never
-run out), and seeding is decided per torrent with anacrolix's
-`DisallowDataUpload`, re-decided as pieces complete and as episodes of a pack
-come and go, because the client's own `Seed` flag cannot change once it runs.
+The `seed` preference ("Sharing: Always" in the client, `LUMEO_SEED=true` as
+its default) keeps finished downloads sharing until the core stops; a
+restart does not bring them back either, so the rule holds without a
+session-shaped exception. There is no off: a peer that gives nothing back is
+choked and its download starves. The upload limit is the tool for a metered
+or asymmetric line, and the upload rate is shown wherever the download rate
+is, so sharing is never invisible. UPnP port mapping is off, and stays off —
+changing the user's network without asking is not ours to do, and outgoing
+connections plus holepunching are enough for a home client.
+
+`seed`, `uploadLimit` and `downloadLimit` are core preferences, because only
+the core can apply them and a second client must not see a setting the
+torrent client ignores. They apply while the client runs: the limits are the
+client's own `rate.Limiter`s, changed in place (every change is at a strictly
+later instant than the one before, since the limiter turns a change at the
+same instant with no limit into NaN tokens, which never run out), and a
+torrent in the client always uploads, so which torrents are in it is the
+whole decision; the library's pass makes it, since it already knows what is
+playing and for how long it counts as playing.
 
 A pause is per download, like Remove: pausing one episode of a season pack
 stops asking the swarm for that episode and leaves the torrent running for

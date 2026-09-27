@@ -282,6 +282,40 @@ func TestProgressFlipsToDone(t *testing.T) {
 	}
 }
 
+func TestStopSharingOnlyStopsFinishedTorrent(t *testing.T) {
+	ctx := context.Background()
+	backend := &fakeBackend{scheme: "torrent", task: &fakeTask{}}
+	m, st, _ := testManager(t, backend)
+	d, err := m.Start(ctx, torrentRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.StopSharing(ctx, d.ID); err != nil || backend.task.closed {
+		t.Fatalf("active task stopped: %v", err)
+	}
+	path := filepath.Join(t.TempDir(), "film.mkv")
+	if err := os.WriteFile(path, make([]byte, 2000), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	backend.task.progress = Progress{Completed: 2000, Total: 2000}
+	backend.task.file = &fakeFile{path: path, size: 2000, head: 2000}
+	if got, err := m.Get(ctx, d.ID); err != nil || !got.Seeding {
+		t.Fatalf("finished task not sharing: %+v, %v", got, err)
+	}
+	if err := m.StopSharing(ctx, d.ID); err != nil || !backend.task.closed {
+		t.Fatalf("finished task not stopped: %v", err)
+	}
+	if got, err := m.Get(ctx, d.ID); err != nil || got.Seeding || got.State != StateDone {
+		t.Fatalf("stopped download = %+v, %v", got, err)
+	}
+	if stored, _, _ := st.Download(ctx, d.ID); stored.Seeding {
+		t.Fatal("runtime seeding state was stored")
+	}
+	if err := m.StopSharing(ctx, "missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unknown id: %v", err)
+	}
+}
+
 // Knowing the name of the file is not having any of it. A player told the
 // download was ready opened a stream whose every read blocked on a swarm that
 // had handed over nothing, ran out of patience and put "this copy has no

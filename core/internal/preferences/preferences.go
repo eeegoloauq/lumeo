@@ -73,9 +73,8 @@ type Preferences struct {
 	// DownloadDir is where new downloads go; empty is the core's own place
 	// in its data directory. Downloads already made stay where they are.
 	DownloadDir string `json:"downloadDir"`
-	// Seed keeps a torrent uploading once it has everything it was asked
-	// for. Off, one still fetching still trades with its peers: a client
-	// that gives nothing back is choked.
+	// Seed keeps finished downloads sharing until the core stops. Off, a
+	// torrent shares only while it is fetching or playing.
 	Seed bool `json:"seed"`
 	// UploadLimit and DownloadLimit cap the torrent client as a whole, in
 	// bytes per second; 0 is no cap.

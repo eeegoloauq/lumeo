@@ -384,10 +384,13 @@ class _DownloadsSectionState extends State<DownloadsSection> {
       SettingRow(
         label: context.l10n.settingsSeeding,
         hint: context.l10n.settingsSeedingHint,
-        value: SettingSwitch(
-          label: context.l10n.settingsSeeding,
-          value: current.seed,
-          onChanged: (on) => widget.patch({'seed': on}),
+        value: Segments<bool>(
+          choices: [
+            (false, context.l10n.settingsSharingWhileActive),
+            (true, context.l10n.settingsSharingAlways),
+          ],
+          selected: current.seed,
+          onSelected: (on) => widget.patch({'seed': on}),
         ),
       ),
       SettingRow(

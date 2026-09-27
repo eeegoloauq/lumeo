@@ -369,9 +369,15 @@ void main() {
       itemId: 'tt1',
       name: 'Re.Zero.S04E17.1080p',
       state: 'done',
+      seeding: true,
       season: 4,
       episode: 17,
-      progress: api.Progress(completed: 1500000000, total: 1500000000),
+      progress: api.Progress(
+        completed: 1500000000,
+        total: 1500000000,
+        upload: 1024,
+        peers: 2,
+      ),
     );
     const next = api.Episode(season: 4, number: 18, title: 'The Oath');
 
@@ -400,6 +406,7 @@ void main() {
       );
       expect(find.text('This episode'), findsOneWidget);
       expect(find.text('On disk'), findsOneWidget);
+      expect(find.text('↑ 1.0 KB/s · 2 peers'), findsOneWidget);
       expect(find.text('Next · E18 The Oath'), findsOneWidget);
       expect(find.text('No room'), findsOneWidget);
       // A menu item runs its action on the frame after the tap.
@@ -437,6 +444,7 @@ void main() {
               completed: 1 << 30,
               total: 4 << 30,
               rate: 4 << 20,
+              upload: 310 << 10,
               peers: 12,
               seeders: 7,
             ),
@@ -446,7 +454,10 @@ void main() {
       expect(find.text('This film'), findsOneWidget);
       expect(find.text('25%'), findsOneWidget);
       expect(find.text('1.0 GB of 4.0 GB · about 13 min left'), findsOneWidget);
-      expect(find.text('4.0 MB/s · 12 peers, 7 seeding'), findsOneWidget);
+      expect(
+        find.text('↓ 4.0 MB/s · ↑ 310 KB/s · 12 peers, 7 seeding'),
+        findsOneWidget,
+      );
       expect(find.textContaining('Next'), findsNothing);
     });
 

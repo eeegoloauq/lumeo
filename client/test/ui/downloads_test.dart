@@ -7,6 +7,64 @@ import 'fake_core.dart';
 import 'app.dart';
 
 void main() {
+  uiTest('sharing follows preference and Stop patches the download', (
+    tester,
+  ) async {
+    final download = fakeDownload(
+      state: 'done',
+      updatedAt: DateTime.now(),
+      seeding: true,
+      upload: 1024,
+      sent: 2048,
+    );
+    final idle = fakeDownload(
+      id: 'd2',
+      state: 'done',
+      updatedAt: DateTime.now(),
+      seeding: true,
+    );
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [download, idle],
+          preferences: {...preferenceDefaults, 'seed': false},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('downloads')));
+    await tester.pumpAndSettle();
+    expect(find.text('SHARING'), findsNothing);
+    expect(find.text('READY TO WATCH'), findsOneWidget);
+
+    final patches = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        key: UniqueKey(),
+        api: fakeCore(
+          downloads: [download, idle],
+          downloadPatches: patches,
+          preferences: {...preferenceDefaults, 'seed': true},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('downloads')));
+    await tester.pumpAndSettle();
+    expect(find.text('SHARING'), findsOneWidget);
+    expect(find.text('↑ 1.0 KB/s · 2.0 KB given'), findsOneWidget);
+    expect(find.text('Nobody asking'), findsOneWidget);
+    await tester.tap(find.byTooltip('Stop sharing').first);
+    await tester.pumpAndSettle();
+    expect(patches, ['d1 {"seeding":false}']);
+    expect(find.text('SHARING'), findsOneWidget);
+    await tester.tap(find.text('Stop all'));
+    await tester.pumpAndSettle();
+    expect(patches, ['d1 {"seeding":false}', 'd2 {"seeding":false}']);
+    expect(find.text('SHARING'), findsNothing);
+    expect(find.text('READY TO WATCH'), findsOneWidget);
+  });
+
   uiTest('the downloads panel opens and its stop button can be pressed', (
     tester,
   ) async {

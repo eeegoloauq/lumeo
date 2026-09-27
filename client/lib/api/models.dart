@@ -27,7 +27,7 @@ class Preferences {
     this.seekStep = 5,
     this.keepDays = 30,
     this.downloadDir = '',
-    this.seed = true,
+    this.seed = false,
     this.uploadLimit = 0,
     this.downloadLimit = 0,
   });
@@ -127,7 +127,7 @@ class Preferences {
       seekStep: (json['seekStep'] as num?)?.toInt() ?? 5,
       keepDays: legacyDays ? 30 : (json['keepDays'] as num?)?.toInt() ?? 30,
       downloadDir: json['downloadDir'] as String? ?? '',
-      seed: json['seed'] as bool? ?? true,
+      seed: json['seed'] as bool? ?? false,
       uploadLimit: (json['uploadLimit'] as num?)?.toInt() ?? 0,
       downloadLimit: (json['downloadLimit'] as num?)?.toInt() ?? 0,
     );
@@ -475,6 +475,7 @@ class Download {
     this.updatedAt,
     this.waitingSince,
     this.pausedByUser = false,
+    this.seeding = false,
     this.error = '',
     this.release = const Release(),
     this.locatorScheme = '',
@@ -510,6 +511,7 @@ class Download {
   /// Paused because somebody pressed Pause, rather than because the core
   /// stopped. Only this kind is the viewer's to resume.
   final bool pausedByUser;
+  final bool seeding;
 
   /// Why a failed download failed, in the core's words.
   final String error;
@@ -541,6 +543,7 @@ class Download {
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
     waitingSince: DateTime.tryParse(json['waitingSince'] as String? ?? ''),
     pausedByUser: json['pausedByUser'] as bool? ?? false,
+    seeding: json['seeding'] as bool? ?? false,
     error: json['error'] as String? ?? '',
     release: Release.fromJson(json['release'] as Map<String, dynamic>? ?? {}),
     progress: Progress.fromJson(
@@ -568,6 +571,8 @@ class Progress {
     this.peers = 0,
     this.seeders = 0,
     this.rate = 0,
+    this.upload = 0,
+    this.sent = 0,
     this.eta,
   });
 
@@ -576,6 +581,8 @@ class Progress {
   final int peers;
   final int seeders;
   final int rate;
+  final int upload;
+  final int sent;
 
   /// Seconds to completion at the core's smoothed rate; null unless bytes are
   /// arriving.
@@ -591,6 +598,8 @@ class Progress {
     peers: json['peers'] as int? ?? 0,
     seeders: json['seeders'] as int? ?? 0,
     rate: json['rate'] as int? ?? 0,
+    upload: json['upload'] as int? ?? 0,
+    sent: json['sent'] as int? ?? 0,
     eta: json['eta'] as int?,
   );
 }

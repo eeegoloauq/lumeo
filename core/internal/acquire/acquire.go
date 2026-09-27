@@ -55,7 +55,8 @@ type Download struct {
 	// blocks on its first read and, when its patience runs out, blames the
 	// copy for a swarm that had simply not got there yet. Size alone says
 	// less still: it comes from the source before anything has been fetched.
-	Ready bool `json:"ready"`
+	Ready   bool `json:"ready"`
+	Seeding bool `json:"seeding,omitempty"`
 	// Resolved means the backend knows which file of the source this is:
 	// for a magnet link, its metadata has arrived. Before that a client can
 	// say "fetching metadata" instead of a size and a rate that mean nothing.
@@ -81,7 +82,9 @@ type Progress struct {
 	Total     int64 `json:"total"`
 	Peers     int   `json:"peers,omitempty"`
 	Seeders   int   `json:"seeders,omitempty"`
-	Rate      int64 `json:"rate,omitempty"` // bytes per second, download side
+	Rate      int64 `json:"rate,omitempty"`   // bytes per second, download side
+	Upload    int64 `json:"upload,omitempty"` // bytes per second, upload side
+	Sent      int64 `json:"sent,omitempty"`   // payload bytes uploaded by the torrent
 	// ETA is whole seconds to the end at the smoothed rate, given only while
 	// bytes are arriving.
 	ETA int64 `json:"eta,omitempty"`

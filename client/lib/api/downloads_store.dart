@@ -88,6 +88,9 @@ class DownloadsStore extends ChangeNotifier {
   Future<void> resume(Download download) =>
       _patch(() => _api.resumeDownload(download.id));
 
+  Future<void> stopSharing(Download download) =>
+      _patch(() => _api.stopSharing(download.id));
+
   /// Puts the core's answer in the list at once, for the same reason [forget]
   /// does: the button pressed should change the row now, not on the next poll.
   /// A request that failed changes nothing here, and the next poll shows the
@@ -190,6 +193,9 @@ class DownloadsStore extends ChangeNotifier {
           a.progress.completed != b.progress.completed ||
           a.progress.total != b.progress.total ||
           a.progress.rate != b.progress.rate ||
+          a.progress.upload != b.progress.upload ||
+          a.progress.sent != b.progress.sent ||
+          a.seeding != b.seeding ||
           a.progress.peers != b.progress.peers ||
           a.progress.eta != b.progress.eta ||
           a.waitingSince != b.waitingSince ||

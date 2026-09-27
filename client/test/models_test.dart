@@ -10,8 +10,17 @@ void main() {
   test('downloads retain the locator scheme', () {
     final local = Download.fromJson(const {
       'locator': {'scheme': 'file'},
+      'seeding': true,
+      'progress': {'upload': 123, 'sent': 456},
     });
     expect(local.locatorScheme, 'file');
+    expect(local.seeding, isTrue);
+    expect(local.progress.upload, 123);
+    expect(local.progress.sent, 456);
+    final old = Download.fromJson(const {});
+    expect(old.seeding, isFalse);
+    expect(old.progress.upload, 0);
+    expect(old.progress.sent, 0);
   });
   test('a running series shows an open-ended year range', () {
     const series = MediaItem(

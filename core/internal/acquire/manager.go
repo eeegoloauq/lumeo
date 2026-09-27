@@ -323,6 +323,22 @@ func (m *Manager) SetPaused(ctx context.Context, id string, paused bool) (Downlo
 	return current, nil
 }
 
+// StopSharing releases a finished torrent's task while leaving its file on disk.
+func (m *Manager) StopSharing(ctx context.Context, id string) error {
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+	m.mu.Lock()
+	row, ok := m.rows[id]
+	m.mu.Unlock()
+	if !ok {
+		return ErrNotFound
+	}
+	if row = m.snapshot(ctx, row); row.State == StateDone && row.Locator.Scheme == "torrent" && m.running(id) {
+		m.stopTask(id)
+	}
+	return nil
+}
+
 func (m *Manager) List(ctx context.Context) []Download {
 	m.mu.Lock()
 	rows := make([]Download, 0, len(m.rows))
@@ -616,6 +632,7 @@ func (m *Manager) Close() error {
 // persists only when something worth persisting changed.
 func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	row.Release = release.Parse(row.Name)
+	row.Seeding = false
 	m.mu.Lock()
 	task := m.tasks[row.ID]
 	m.mu.Unlock()
@@ -668,6 +685,7 @@ func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	// After persist: how the bytes are arriving is of this moment, and not
 	// something a stored row should carry.
 	m.mu.Lock()
+	updated.Seeding = updated.State == StateDone && updated.Locator.Scheme == "torrent" && m.tasks[row.ID] == task
 	if f := m.flows[row.ID]; f != nil && m.tasks[row.ID] == task && updated.State == StateActive {
 		now := m.now()
 		f.sample(now, updated.Progress.Received)
@@ -744,6 +762,7 @@ func (m *Manager) persist(ctx context.Context, snap Download) {
 		return
 	}
 	row.State, row.FilePath, row.Size = snap.State, snap.FilePath, snap.Size
+	row.Seeding = false
 	row.Progress, row.Ready, row.Resolved, row.UpdatedAt = snap.Progress, snap.Ready, snap.Resolved, m.now()
 	m.rows[row.ID] = row
 	if err := m.store.SaveDownload(ctx, row); err != nil {

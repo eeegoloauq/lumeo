@@ -23,6 +23,7 @@ type fakeDownloads struct {
 	mu      sync.Mutex
 	rows    []acquire.Download
 	removed []string
+	stopped []string
 }
 
 func (f *fakeDownloads) List(context.Context) []acquire.Download {
@@ -60,6 +61,19 @@ func (f *fakeDownloads) SetPaused(_ context.Context, id string, paused bool) (ac
 		}
 	}
 	return acquire.Download{}, acquire.ErrNotFound
+}
+
+func (f *fakeDownloads) StopSharing(_ context.Context, id string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := range f.rows {
+		if f.rows[i].ID == id {
+			f.rows[i].Seeding = false
+			f.stopped = append(f.stopped, id)
+			return nil
+		}
+	}
+	return acquire.ErrNotFound
 }
 
 func (f *fakeDownloads) state(id string) acquire.State {
@@ -154,6 +168,40 @@ func TestForeverWithoutALimitFreesNothing(t *testing.T) {
 	s, downloads := library(t, preferences.Preferences{Keep: "forever"})
 	if removed := clean(t, s, downloads); len(removed) != 0 {
 		t.Fatalf("freed %v", removed)
+	}
+}
+
+func TestCleanStopsOnlyIdleFinishedSharing(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		seed   bool
+		play   bool
+		settle bool
+		want   bool
+	}{
+		{"idle", false, false, false, true},
+		{"playing", false, true, false, false},
+		{"settling", false, false, true, false},
+		{"always", true, false, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, downloads := library(t, preferences.Preferences{Keep: "forever", Seed: tc.seed})
+			for i := range downloads.rows {
+				if downloads.rows[i].ID == "e3" {
+					downloads.rows[i].Seeding = true
+				}
+			}
+			if tc.play {
+				defer s.Play("e3")()
+			}
+			if tc.settle {
+				s.stopped["e3"] = now.Add(-settle / 2)
+			}
+			clean(t, s, downloads)
+			if got := slices.Contains(downloads.stopped, "e3"); got != tc.want {
+				t.Fatalf("stopped = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

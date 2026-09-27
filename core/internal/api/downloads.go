@@ -139,8 +139,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, d)
 }
 
-// handlePatchDownload pauses or resumes a download: {"paused": true} or
-// {"paused": false}, nothing else.
+// handlePatchDownload pauses, resumes, or stops sharing a download.
 func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
@@ -152,8 +151,26 @@ func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	// Spelled out: null would decode into a bool as false, a resume nobody
 	// asked for.
 	value := string(patch["paused"])
-	if len(patch) != 1 || value != "true" && value != "false" {
-		writeError(w, http.StatusBadRequest, `request body must be {"paused": true} or {"paused": false}`)
+	if len(patch) != 1 || value != "true" && value != "false" && string(patch["seeding"]) != "false" {
+		writeError(w, http.StatusBadRequest, `request body must be {"paused": true}, {"paused": false}, or {"seeding": false}`)
+		return
+	}
+	if string(patch["seeding"]) == "false" {
+		id := r.PathValue("id")
+		if err := s.downloads.StopSharing(r.Context(), id); err != nil {
+			if errors.Is(err, acquire.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "unknown download")
+			} else {
+				writeError(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+		d, err := s.downloads.Get(r.Context(), id)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, d)
 		return
 	}
 	paused := value == "true"

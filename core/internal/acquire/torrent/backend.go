@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -37,11 +36,10 @@ var videoExtensions = map[string]struct{}{
 	".webm": {},
 }
 
-// Config controls the shared BitTorrent client. Seed and the limits are where
-// it starts: SetSeed and SetLimits change them while it runs.
+// Config controls the shared BitTorrent client. SetLimits changes the limits
+// while it runs.
 type Config struct {
 	Port          int
-	Seed          bool
 	UploadLimit   int64 // bytes per second, 0 for none
 	DownloadLimit int64
 	DataDir       string
@@ -66,9 +64,6 @@ type sharedTorrent struct {
 	// piece where two episodes meet is asked for by both.
 	wanted map[string]int
 	ends   map[int]int
-
-	// uploading is whether the torrent is let upload, as last set.
-	uploading bool
 }
 
 // Backend owns one client shared by every active torrent.
@@ -77,7 +72,6 @@ type Backend struct {
 	peers  []atorrent.PeerInfo
 
 	upload, download *limiter
-	seed             atomic.Bool
 
 	mu        sync.Mutex
 	closed    bool
@@ -103,14 +97,12 @@ func New(cfg Config) (*Backend, error) {
 		tasks:    make(map[*task]struct{}),
 		shared:   make(map[metainfo.Hash]*sharedTorrent),
 	}
-	b.seed.Store(cfg.Seed)
 	b.SetLimits(cfg.UploadLimit, cfg.DownloadLimit)
 
 	clientConfig := atorrent.NewDefaultClientConfig()
 	clientConfig.DataDir = cfg.DataDir
 	clientConfig.ListenPort = cfg.Port
-	// The client's own Seed cannot change while it runs, so it is on and
-	// seeding is decided per torrent instead (setUpload).
+	// A torrent in the client always uploads; the manager decides which stay.
 	clientConfig.Seed = true
 	// Ours rather than the default: that one is a package variable every
 	// client in the process shares, and ours are changed while it runs.
@@ -150,73 +142,6 @@ func New(cfg Config) (*Backend, error) {
 func (b *Backend) SetLimits(upload, download int64) {
 	b.upload.set(upload)
 	b.download.set(download)
-}
-
-// SetSeed turns seeding on or off for every torrent at once, running ones
-// included.
-func (b *Backend) SetSeed(on bool) {
-	b.seed.Store(on)
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	for _, sh := range b.shared {
-		b.setUpload(sh)
-	}
-}
-
-// setUpload lets a torrent upload unless seeding is off and it has every
-// piece it was asked for. One still fetching keeps trading with its peers:
-// a client that gives nothing back is choked by them. The caller holds mu.
-func (b *Backend) setUpload(sh *sharedTorrent) {
-	upload := b.seed.Load() || sh.fetching()
-	if upload == sh.uploading {
-		return
-	}
-	sh.uploading = upload
-	if upload {
-		sh.torrent.AllowDataUpload()
-	} else {
-		sh.torrent.DisallowDataUpload()
-	}
-}
-
-// fetching says whether any file a download wants is still incomplete. Before
-// the metadata, or before a download has picked its file, that is unknown,
-// and counts as fetching.
-func (sh *sharedTorrent) fetching() bool {
-	if sh.torrent.Info() == nil || len(sh.wanted) == 0 {
-		return true
-	}
-	for _, file := range sh.torrent.Files() {
-		if sh.wanted[file.Path()] > 0 && file.BytesCompleted() < file.Length() {
-			return true
-		}
-	}
-	return false
-}
-
-// watchPieces re-decides whether a torrent uploads as its pieces come in:
-// the last one it wanted is where seeding would start. It ends with the
-// torrent.
-func (b *Backend) watchPieces(hash metainfo.Hash, sh *sharedTorrent) {
-	changes := sh.torrent.SubscribePieceStateChanges()
-	defer changes.Close()
-	for {
-		select {
-		case <-sh.torrent.Closed():
-			return
-		case change, ok := <-changes.Values:
-			if !ok {
-				return
-			}
-			b.mu.Lock()
-			// Only a completion can end the fetching, and only a piece that
-			// stopped being complete (a failed check) can start it again.
-			if b.shared[hash] == sh && (change.Complete || !sh.uploading) {
-				b.setUpload(sh)
-			}
-			b.mu.Unlock()
-		}
-	}
 }
 
 // minBurst is the smallest burst a limiter is given: a whole chunk has to fit
@@ -319,15 +244,13 @@ func (b *Backend) Start(ctx context.Context, loc sources.Locator, dir string) (a
 			return nil, fmt.Errorf("torrent: info hash %s is active outside this backend", infoHash.HexString())
 		}
 		sh = &sharedTorrent{
-			torrent:   tor,
-			storage:   fileStorage,
-			dir:       absDir,
-			wanted:    map[string]int{},
-			ends:      map[int]int{},
-			uploading: true,
+			torrent: tor,
+			storage: fileStorage,
+			dir:     absDir,
+			wanted:  map[string]int{},
+			ends:    map[int]int{},
 		}
 		b.shared[infoHash] = sh
-		go b.watchPieces(infoHash, sh)
 	}
 	sh.refs++
 	if len(loc.Trackers) != 0 {
@@ -416,9 +339,10 @@ type task struct {
 	file   *torrentFile
 	closed bool
 
-	rateMu        sync.Mutex
-	lastRateAt    time.Time
-	lastRateBytes int64
+	rateMu          sync.Mutex
+	lastRateAt      time.Time
+	lastRateBytes   int64
+	lastUploadBytes int64
 
 	closeOnce sync.Once
 	closeErr  error
@@ -483,8 +407,6 @@ func (b *Backend) want(hash metainfo.Hash, file *atorrent.File) {
 		sh.ends[piece]++
 		sh.torrent.Piece(piece).SetPriority(atorrent.PiecePriorityNext)
 	}
-	// A new episode of a pack that was only seeding is fetching again.
-	b.setUpload(sh)
 }
 
 // unwant is the other half: what the last reader of a file asked for goes with
@@ -507,8 +429,6 @@ func (b *Backend) unwant(hash metainfo.Hash, file *atorrent.File) {
 		return
 	}
 	delete(sh.wanted, path)
-	// What is left wanted may all be here already.
-	defer b.setUpload(sh)
 	file.SetPriority(atorrent.PiecePriorityNone)
 	for _, piece := range ends(file) {
 		sh.ends[piece]--
@@ -584,7 +504,9 @@ func (t *task) Progress() acquire.Progress {
 
 	now := time.Now()
 	bytesRead := stats.BytesReadUsefulData.Int64()
+	bytesWritten := stats.BytesWrittenData.Int64()
 	progress.Received = bytesRead
+	progress.Sent = bytesWritten
 	t.rateMu.Lock()
 	if !t.lastRateAt.IsZero() {
 		elapsed := now.Sub(t.lastRateAt)
@@ -592,9 +514,13 @@ func (t *task) Progress() acquire.Progress {
 		if elapsed > 0 && delta > 0 {
 			progress.Rate = delta * int64(time.Second) / elapsed.Nanoseconds()
 		}
+		if delta := bytesWritten - t.lastUploadBytes; elapsed > 0 && delta > 0 {
+			progress.Upload = delta * int64(time.Second) / elapsed.Nanoseconds()
+		}
 	}
 	t.lastRateAt = now
 	t.lastRateBytes = bytesRead
+	t.lastUploadBytes = bytesWritten
 	t.rateMu.Unlock()
 	return progress
 }

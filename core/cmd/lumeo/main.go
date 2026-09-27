@@ -161,7 +161,6 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	}
 	torrents, err := acquiretorrent.New(acquiretorrent.Config{
 		Port:          cfg.TorrentPort,
-		Seed:          current.Seed,
 		UploadLimit:   current.UploadLimit,
 		DownloadLimit: current.DownloadLimit,
 		DataDir:       cfg.DataDir,
@@ -170,11 +169,12 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		return err
 	}
 	downloads := acquire.NewManager(downloadDir(current), []acquire.Backend{torrents, acquirelocal.Backend{}}, db, log)
+	lib := library.New(downloads, db, prefs, log)
 	// The preferences only the core can apply follow every change of them.
 	prefs.Subscribe(func(p preferences.Preferences) {
-		torrents.SetSeed(p.Seed)
 		torrents.SetLimits(p.UploadLimit, p.DownloadLimit)
 		downloads.SetDir(downloadDir(p))
+		lib.Kick()
 	})
 	localFiles := local.New(cat, downloads, log)
 	defer func() {
@@ -203,7 +203,6 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	watchProgress := progress.New(db, cat)
 	scores := ratings.New(db, cat)
 	list := watchlist.New(db, cat, db, scores)
-	lib := library.New(downloads, db, prefs, log)
 	cleaning, stopCleaning := context.WithCancel(ctx)
 	cleaned := make(chan struct{})
 	go func() {

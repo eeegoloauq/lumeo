@@ -138,6 +138,11 @@ What the download JSON says about the transfer, besides `progress.completed`,
   not from a finished file gone missing.
 - `release`: the name read by the release parser the source list uses
   (`resolution`, `hdr`, …), derived on every read and never stored.
+- `progress.upload` and `progress.sent`: bytes a second sent, and bytes sent
+  since the torrent joined the client. Both are the torrent's, like `rate`,
+  so the episodes of one pack report the same numbers.
+- `seeding`: a finished download whose torrent is still in the client and
+  sharing (decisions/downloads.md, Acquisition).
 
 `PATCH /api/v1/downloads/{id}` takes `{"paused": true}` or `{"paused": false}`
 and answers with the download. A pause stops the transfer, keeps the bytes and
@@ -145,7 +150,9 @@ how far it had got, and lasts until it is resumed or played, restarts of the
 core included. Resuming a failed download retries it. A finished download, or a
 file on this machine, has nothing to pause: 400, as is any other body; an
 unknown id is 404. Pausing one episode of a pack stops asking the swarm for
-that episode; the torrent runs on for the others.
+that episode; the torrent runs on for the others. `{"seeding": false}` stops a
+finished download sharing now instead of at the library's next pass; on
+anything not sharing it does nothing.
 
 ## Preferences
 
@@ -161,8 +168,9 @@ The keys the client applies (subtitles, accent, `seekStep`, `nextNotice`,
 apply it applies itself, before the change is answered: `keep`, `keepDays` and
 `diskLimit` run a pass of the keep policy; `downloadDir` is checked on the
 spot (absolute, made if missing, a probe file written and removed) and moves
-where new downloads go; `seed`, `uploadLimit` and `downloadLimit` change the
-running torrent client. Whatever applies a preference subscribes to the
+where new downloads go; `uploadLimit` and `downloadLimit` change the running
+torrent client, and `seed` runs a library pass, which stops finished downloads
+sharing once it is off. Whatever applies a preference subscribes to the
 service (`preferences.Service.Subscribe`); nothing reads a global copy. An
 earlier `keep: "30days"` reads back, and is still taken, as `keep: "days"`
 with `keepDays: 30`.

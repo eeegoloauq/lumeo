@@ -20,7 +20,7 @@ LumeoApi fakeCore({
   bool prefetchRefused = false,
   List<String>? stopped,
 
-  /// Every pause and resume, as "id body".
+  /// Every download patch, as "id body".
   List<String>? downloadPatches,
   Map<String, dynamic>? preferences,
   List<String>? patched,
@@ -182,7 +182,12 @@ LumeoApi fakeCore({
         if (download == null) {
           return _json({'error': 'no such download'}, status: 404);
         }
-        final paused = (jsonDecode(request.body) as Map)['paused'] as bool;
+        final body = jsonDecode(request.body) as Map;
+        if (body['seeding'] == false) {
+          download['seeding'] = false;
+          return _json(download);
+        }
+        final paused = body['paused'] as bool;
         download['state'] = paused ? 'paused' : 'active';
         if (paused) {
           download['pausedByUser'] = true;
@@ -625,6 +630,9 @@ Map<String, dynamic> fakeDownload({
   bool pausedByUser = false,
   String error = '',
   int? eta = 683,
+  bool seeding = false,
+  int upload = 0,
+  int sent = 0,
 }) => {
   ..._download,
   'id': id,
@@ -633,6 +641,7 @@ Map<String, dynamic> fakeDownload({
   'state': state,
   'ready': ready,
   'resolved': resolved,
+  'seeding': seeding,
   if (season > 0 || episode > 0) ...{'season': season, 'episode': episode},
   if (updatedAt != null) 'updatedAt': updatedAt.toUtc().toIso8601String(),
   if (waitingSince != null)
@@ -648,6 +657,8 @@ Map<String, dynamic> fakeDownload({
     },
     'peers': waitingSince == null ? 12 : 0,
     'seeders': waitingSince == null ? 7 : 0,
+    'upload': upload,
+    'sent': sent,
   },
 };
 

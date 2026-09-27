@@ -38,7 +38,7 @@ type Config struct {
 	SubtitleLanguages []string
 	EpisodeArtwork    string // episode image treatment: "show", "blur", or "hide"
 	TorrentPort       int    // 0 asks the OS for a free port
-	Seed              bool   // keep uploading after a download completes
+	Seed              bool   // default of the seed preference
 	// ExitOnStdinEOF makes the core stop when its stdin closes. The app that
 	// starts it as a child holds the pipe, and any death of the app closes
 	// it, kill -9 included; a core started by hand does not set it.
@@ -78,9 +78,8 @@ func FromEnv() Config {
 		c.EpisodeArtwork = "show"
 	}
 	c.TorrentPort, _ = strconv.Atoi(os.Getenv("LUMEO_TORRENT_PORT"))
-	// Seeding is on unless asked otherwise: leeching from a swarm and giving
-	// nothing back is how swarms die.
-	c.Seed = os.Getenv("LUMEO_SEED") != "false"
+	// Off, a torrent shares while it is in use: fetching or playing.
+	c.Seed = os.Getenv("LUMEO_SEED") == "true"
 	c.ExitOnStdinEOF = os.Getenv("LUMEO_EXIT_ON_STDIN_EOF") == "1"
 	return c
 }

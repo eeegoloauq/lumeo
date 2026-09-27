@@ -25,21 +25,19 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
    `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
    NVIDIA/Wayland, and the picture modes on Windows.
-2. Seeding shown: an upload arrow on the downloads button while seeding,
-   upload speed and ratio on each row (mockup first).
-3. Settings: audio and subtitle languages in one "Audio & subtitles"
+2. Settings: audio and subtitle languages in one "Audio & subtitles"
    section; a mark at 100% on the volume slider; shortcut descriptions
    translated by mpv command, mpv's English comment for the rest (mockup
    first).
-4. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
+3. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
    the home banner's scroll lag on Windows 10. Tested with the CI build under
    Wine here and on the user's machine.
-5. A UX map of the user's journeys with the defaults of each, reviewed
+4. A UX map of the user's journeys with the defaults of each, reviewed
    against screenshots of the real app; mockups only for what changes.
-6. Opening and ending found by comparing a season's audio, for files whose
+5. Opening and ending found by comparing a season's audio, for files whose
    chapters are unnamed (`[?]`, after the rest).
 
 ## Library and storage
@@ -136,9 +134,6 @@ language, or more than one backdrop. Waiting on it:
   like that to mpv. When it happens again, look for the core's `stream cut
   short` warning (`journalctl --user` on Linux, `core.log` on Windows) and
   `mpv.log` / `mpv.old.log` in `~/.local/state/lumeo`.
-- `[?]` "Stop seeding when playback ends". Seeding on/off and upload and
-  download limits are in Settings › Downloads.
-- `[?]` Connection limit for routers and VPNs that fall over at thousands.
 - `[?]` Proxy per addon, beyond `HTTP_PROXY`.
 - `[?]` Whether ranking by language flags holds for live action, where the
   flags are mostly dubs. Fresh anime episodes can have only raw copies for

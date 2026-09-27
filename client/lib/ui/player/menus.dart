@@ -1155,6 +1155,13 @@ class DownloadPanel extends StatelessWidget {
             value: formatBytes(p.total, l10n),
             done: true,
           ),
+          if (d.seeding && p.upload > 0)
+            _Note(
+              l10n.playerPeers(
+                l10n.downloadsUploadArrow(formatBytes(p.upload, l10n)),
+                p.peers,
+              ),
+            ),
         ];
       case 'active':
         final left = p.rate > 0
@@ -1190,7 +1197,11 @@ class DownloadPanel extends StatelessWidget {
           if (detailed)
             _Note(switch (d.stage) {
               api.DownloadStage.arriving => l10n.playerPeersSeeding(
-                l10n.downloadsRate(formatBytes(p.rate, l10n)),
+                [
+                  l10n.downloadsRateArrow(formatBytes(p.rate, l10n)),
+                  if (p.upload > 0)
+                    l10n.downloadsUploadArrow(formatBytes(p.upload, l10n)),
+                ].join(' · '),
                 p.peers,
                 p.seeders,
               ),

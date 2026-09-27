@@ -20,6 +20,7 @@ type Downloads interface {
 	List(context.Context) []acquire.Download
 	Remove(context.Context, string, bool) error
 	SetPaused(context.Context, string, bool) (acquire.Download, error)
+	StopSharing(context.Context, string) error
 	Dirs(acquire.Download) []string
 	Dir() string
 }
@@ -168,6 +169,24 @@ func (s *Service) Clean(ctx context.Context) error {
 	prefs, err := s.prefs.Get(ctx)
 	if err != nil {
 		return err
+	}
+	if !prefs.Seed {
+		now := s.now()
+		for _, row := range s.downloads.List(ctx) {
+			if !row.Seeding {
+				continue
+			}
+			s.mu.Lock()
+			busy := s.busy(row.ID, now)
+			if !busy {
+				if err := s.downloads.StopSharing(ctx, row.ID); err != nil {
+					s.log.Warn("stopping sharing failed", "download", row.ID, "err", err)
+				} else {
+					s.log.Info("stopped sharing a finished download", "download", row.ID, "name", row.Name)
+				}
+			}
+			s.mu.Unlock()
+		}
 	}
 	if prefs.Keep == "forever" && prefs.DiskLimit == 0 {
 		return nil
@@ -327,15 +346,7 @@ func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]cand
 func (s *Service) free(ctx context.Context, row acquire.Download, now time.Time) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for id, at := range s.stopped {
-		if now.Sub(at) >= settle {
-			delete(s.stopped, id)
-		}
-	}
-	if _, playing := s.streams[row.ID]; playing {
-		return false, nil
-	}
-	if _, recent := s.stopped[row.ID]; recent {
+	if s.busy(row.ID, now) {
 		return false, nil
 	}
 	if err := s.downloads.Remove(ctx, row.ID, true); err != nil {
@@ -345,6 +356,22 @@ func (s *Service) free(ctx context.Context, row acquire.Download, now time.Time)
 		return false, err
 	}
 	return true, nil
+}
+
+// busy reports a stream that is open or still settling. The caller holds mu.
+func (s *Service) busy(id string, now time.Time) bool {
+	for id, at := range s.stopped {
+		if now.Sub(at) >= settle {
+			delete(s.stopped, id)
+		}
+	}
+	if _, playing := s.streams[id]; playing {
+		return true
+	}
+	if _, recent := s.stopped[id]; recent {
+		return true
+	}
+	return false
 }
 
 // Usage is what the downloads take on disk. A download's own share is its
