@@ -39,6 +39,22 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.68" date="2026-09-27">
+      <description>
+        <ul>
+          <li>Plain subtitles sit lower and are drawn at the size of styled anime tracks, with a firm outline and a tight dark shadow instead of a grey smear.</li>
+          <li xml:lang="ru">Обычные субтитры стоят ниже и рисуются размером со стилизованные дорожки аниме, с чёткой обводкой и узкой тёмной тенью вместо серого пятна.</li>
+          <li>When a new version is out, a card in the corner says what it brings, with a Download button. Settings, About turns the check off.</li>
+          <li xml:lang="ru">Когда выходит новая версия, плашка в углу рассказывает, что в ней нового, и даёт кнопку «Скачать». Проверку можно выключить в Настройках, О программе.</li>
+          <li>After skipping versions, what is new shows for all of them at once.</li>
+          <li xml:lang="ru">Если пропустить несколько версий, после обновления показывается, что нового во всех сразу.</li>
+          <li>Links and folders open in front of the window, not behind it.</li>
+          <li xml:lang="ru">Ссылки и папки открываются поверх окна, а не за ним.</li>
+          <li>A torrent is shared while it downloads or plays; the Always setting is gone.</li>
+          <li xml:lang="ru">Торрент раздаётся, пока качается или смотрится; настройки «Всегда» больше нет.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.67" date="2026-09-27">
       <description>
         <ul>
