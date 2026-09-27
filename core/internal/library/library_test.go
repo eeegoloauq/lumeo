@@ -47,6 +47,32 @@ func (f *fakeDownloads) Remove(_ context.Context, id string, deleteData bool) er
 	return acquire.ErrNotFound
 }
 
+func (f *fakeDownloads) SetPaused(_ context.Context, id string, paused bool) (acquire.Download, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i, row := range f.rows {
+		if row.ID == id {
+			f.rows[i].State, f.rows[i].PausedByUser = acquire.StateActive, false
+			if paused {
+				f.rows[i].State, f.rows[i].PausedByUser = acquire.StatePaused, true
+			}
+			return f.rows[i], nil
+		}
+	}
+	return acquire.Download{}, acquire.ErrNotFound
+}
+
+func (f *fakeDownloads) state(id string) acquire.State {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, row := range f.rows {
+		if row.ID == id {
+			return row.State
+		}
+	}
+	return ""
+}
+
 func (f *fakeDownloads) Dirs(row acquire.Download) []string {
 	if row.Dir == "" {
 		return nil
@@ -207,6 +233,34 @@ func TestPlayingAnotherCopyDropsTheUnfinishedOne(t *testing.T) {
 		t.Fatalf("freed %v for a copy that never opened", removed)
 	}
 	s.Opened("e5-new")
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e5-old"}) {
+		t.Fatalf("freed %v, want e5-old", removed)
+	}
+}
+
+// The copy left behind stops at once, while it still waits out the settle
+// before it goes: switching back within it resumes what it had.
+func TestPlayingAnotherCopyPausesTheUnfinishedOneAtOnce(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever"})
+	for _, id := range []string{"e5-old", "e5-new"} {
+		downloads.rows = append(downloads.rows, acquire.Download{ID: id, ItemID: "show", Season: 1, Episode: 5, Locator: sources.Locator{Scheme: "torrent"}, State: acquire.StateActive})
+	}
+	start := now
+	defer func() { now = start }()
+	s.Opened("e5-old")
+	s.Play("e5-old")()
+	now = now.Add(time.Second)
+	s.Opened("e5-new")
+	if removed := clean(t, s, downloads); len(removed) != 0 {
+		t.Fatalf("freed %v before it settled", removed)
+	}
+	if got := downloads.state("e5-old"); got != acquire.StatePaused {
+		t.Fatalf("replaced copy is %q, want paused", got)
+	}
+	if got := downloads.state("e5-new"); got != acquire.StateActive {
+		t.Fatalf("chosen copy is %q, want active", got)
+	}
+	now = now.Add(settle)
 	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e5-old"}) {
 		t.Fatalf("freed %v, want e5-old", removed)
 	}

@@ -25,25 +25,21 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
    `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
    NVIDIA/Wayland, and the picture modes on Windows.
-2. One copy per episode, the client's half: the player's download panel
-   lists any other copy of the episode with Stop and Delete (mockup first).
-   The core already drops a half copy once another copy of the episode has
-   played (decisions/downloads.md).
-3. Seeding shown: an upload arrow on the downloads button while seeding,
+2. Seeding shown: an upload arrow on the downloads button while seeding,
    upload speed and ratio on each row (mockup first).
-4. Settings: audio and subtitle languages in one "Audio & subtitles"
+3. Settings: audio and subtitle languages in one "Audio & subtitles"
    section; a mark at 100% on the volume slider; shortcut descriptions
    translated by mpv command, mpv's English comment for the rest (mockup
    first).
-5. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
+4. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
    the home banner's scroll lag on Windows 10. Tested with the CI build under
    Wine here and on the user's machine.
-6. A UX map of the user's journeys with the defaults of each, reviewed
+5. A UX map of the user's journeys with the defaults of each, reviewed
    against screenshots of the real app; mockups only for what changes.
-7. Opening and ending found by comparing a season's audio, for files whose
+6. Opening and ending found by comparing a season's audio, for files whose
    chapters are unnamed (`[?]`, after the rest).
 
 ## Library and storage

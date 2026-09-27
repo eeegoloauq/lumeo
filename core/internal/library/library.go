@@ -19,6 +19,7 @@ import (
 type Downloads interface {
 	List(context.Context) []acquire.Download
 	Remove(context.Context, string, bool) error
+	SetPaused(context.Context, string, bool) (acquire.Download, error)
 	Dirs(acquire.Download) []string
 	Dir() string
 }
@@ -203,7 +204,8 @@ func (s *Service) Clean(ctx context.Context) error {
 // it has played since: picking another copy is leaving this one, and half a
 // download nobody plays again only takes disk. A finished copy stays, as does
 // the user's own file. free leaves a copy until it has not played for a while,
-// so switching back soon after finds it where it was.
+// so switching back soon after finds it where it was; it is paused meanwhile,
+// so it takes no bandwidth from the copy playing, and playing it resumes it.
 func (s *Service) dropReplaced(ctx context.Context) {
 	rows := s.downloads.List(ctx)
 	chosen := make(map[episode]string)
@@ -232,6 +234,11 @@ func (s *Service) dropReplaced(ctx context.Context) {
 		id, ok := chosen[episodeOf(row)]
 		if !ok || id == row.ID || row.State == acquire.StateDone || row.Locator.Scheme == "file" {
 			continue
+		}
+		if row.State == acquire.StateActive {
+			if _, err := s.downloads.SetPaused(ctx, row.ID, true); err != nil && !errors.Is(err, acquire.ErrNotFound) && !errors.Is(err, acquire.ErrNothingToFetch) {
+				s.log.Warn("pausing a replaced copy failed", "download", row.ID, "err", err)
+			}
 		}
 		freed, err := s.free(ctx, row, now)
 		if err != nil {

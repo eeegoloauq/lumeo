@@ -127,9 +127,12 @@ One exception to "never unfinished": a half copy of an episode the viewer
 then played another copy of. Picking another copy is leaving this one, and
 nothing plays it again, so it goes. Only a copy's stream opening counts as
 playing it, so two copies started at once both stay until one of them plays.
-The copy played last wins, and the one it replaced goes only once it has
-settled like any other, so switching back within ten minutes finds it where
-it was. A finished copy stays: it cost the whole download and plays at once.
+The copy played last wins. The one it replaced is paused at once, so it
+takes no bandwidth from the copy playing, and goes only once it has settled
+like any other, so switching back within ten minutes finds it where it was
+and playing it resumes it. The copy to go back to is picked where any copy
+is, on the source list, which puts the copies already started first; a
+second list of copies in the player would only repeat it. A finished copy stays: it cost the whole download and plays at once.
 Which copy played last is kept in memory, so after a restart the half copy
 stays until one of them plays again.
 
