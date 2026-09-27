@@ -48,19 +48,20 @@ Client:
     cd client
     dart format --output=none --set-exit-if-changed lib test integration_test
     flutter analyze
-    flutter test
-    tool/ui-test.sh --name '^player '   # the real app on a headless Weston, one area
+    flutter test                        # unit, widget and app tests, about two minutes
+    tool/ui-test.sh                     # the player on a headless Weston, about five
 
 `dart format lib test integration_test` fixes what the first line complains about; format on save
 in your editor and it never does. `third_party/` is left alone: it stays upstream's code.
 
-The UI tests are grouped by area (`shell`, `search`, `downloads`, `settings`, `library`, `title`,
-`playback`, `player`); run the areas your change reaches, or one test with
-`--plain-name "<test name>"`. The whole suite takes over ten minutes, so it runs in GitHub CI on
-every push to `main` that touches the client and on every tag; the release is published only
-when it passes. Every check
-in `client/integration_test/` is a defect that once shipped; a fix for a visible defect comes with
-one.
+Tests go in the lowest layer that can show the behaviour, once: unit and widget tests in
+`client/test/`, the whole app over the fake core in `client/test/ui/`, and only what needs a real
+libmpv in `client/integration_test/`. [docs/decisions/testing.md](docs/decisions/testing.md) says
+what goes where, what a test does not check, and which helpers every app test uses;
+`client/test/suite_test.dart` fails on what of that a machine can see. A fix for a visible defect
+comes with a test. `tool/ui-test.sh` runs one area with `--name '^player '` or one test with
+`--plain-name "<test name>"`; GitHub CI runs it on every push to `main` that touches the client and
+on every tag, and the release is published only when it passes.
 
 Nothing here builds or runs the Windows client (`packaging/build-windows.sh` runs on Windows only),
 so a change to `client/windows/` or to a Windows branch in Dart needs checking on a Windows machine.

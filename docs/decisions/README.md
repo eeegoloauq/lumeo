@@ -15,7 +15,8 @@ rejected option is usually the tempting one. How the code is laid out is in
 | [subtitles.md](subtitles.md) | Subtitles by file hash, the audio and subtitle panel, libass rendering |
 | [player.md](player.md) | Waiting for a playable file, the controls, keys and mouse, seek-bar previews |
 | [video-output.md](video-output.md) | The patched Linux half of media_kit_video, mpv's render thread, Impeller |
-| [interface.md](interface.md) | The look, the season strip, scrolling, settings, how the interface is tested |
+| [interface.md](interface.md) | The look, the season strip, scrolling, settings |
+| [testing.md](testing.md) | The client's test layers, what goes where, what a test does not check |
 | [library.md](library.md) | Watch progress and "next" in the core, My list, history, ratings |
 | [shipping.md](shipping.md) | Packages for Fedora, Arch and Windows, the app owning its core, CI |
 

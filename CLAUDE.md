@@ -15,15 +15,16 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 - Ubuntu ships libmpv 0.37, Fedora 0.41. `client/tool/build-mpv.sh` builds 0.41.0 into
   `~/.cache/lumeo` and `tool/ui-test.sh` runs on it when it is there (it prints which). CI stays on
   the runner's 0.37, so both versions are covered.
-- Locally, run the UI areas a change reaches: `tool/ui-test.sh --name '^player '` (one to three
-  minutes), or one test with `--plain-name "<test name>"`. Shared code (the shell, the fake core)
-  reaches every area that uses it, not the whole suite. The full suite (over ten minutes here)
-  never runs locally: GitHub CI runs it on every client push to main and on the tag, and the
-  release is published only when it passes. A red suite there is rerun here test by test with
-  `--plain-name`.
-- UI checks live in `client/integration_test/<area>.dart`, all started from `app_test.dart`: every
-  `*_test.dart` there is a build and a launch of its own.
-- A UI test never waits out one of the app's own timers. A timeout it needs to see run out is a
+- Tests by layer (`docs/decisions/testing.md`, read it before adding one): unit and widget in
+  `client/test/`, the whole app over the fake core in `client/test/ui/` (`uiTest`, `testApp`, never
+  `LumeoApp` directly), and only what needs a real libmpv in `client/integration_test/`. Lowest
+  layer that shows the behaviour, once; behaviour, not looks. Search for existing tests of the
+  behaviour first. `test/suite_test.dart` enforces the mechanical part.
+- `flutter test` (about two minutes) runs every time; `tool/ui-test.sh` (about five) when the
+  player or `integration_test/` is touched, or one test with `--plain-name "<test name>"`. GitHub
+  CI runs it on every client push to main and on the tag, and the release is published only when
+  it passes.
+- A player test never waits out one of the app's own timers. A timeout it needs to see run out is a
   `@visibleForTesting` value the test shortens (`openPatience`); a check that something did not
   happen waits one or two cycles of the timer behind it; a setting is read back from mpv rather
   than proved by waiting for its effect.
@@ -36,9 +37,9 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
   ignores `.github/`. Client CI and releases run on the GitHub push mirror.
 - A cloud session (claude.ai/code) works on the GitHub mirror, where no core gate runs: run the core
   gate before merging its pull request. Its client check is `dart format`, `flutter analyze` and
-  `flutter test` only: `tool/ui-test.sh` cannot build there (the proxy refuses the GitHub archive
-  media_kit's CMake downloads), so the UI suite runs in GitHub CI on the push to main. Say which UI
-  tests a change is waiting on.
+  `flutter test`, which includes the app tests: `tool/ui-test.sh` cannot build there (the proxy
+  refuses the GitHub archive media_kit's CMake downloads), so the player suite runs in GitHub CI on
+  the push to main. Say which player tests a change is waiting on.
 
 ## Player
 

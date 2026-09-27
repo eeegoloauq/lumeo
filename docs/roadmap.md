@@ -16,15 +16,11 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    instead means the activation token did not arrive. Impeller
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
-2. **UI tests by layer.** 98 UI tests run the real app on Weston with
-   software GL: over ten minutes here (median 5 s a test), which is why the
-   full suite runs only for a release tag. About 60 of them never open the
-   player (search, settings, title, library, shell); the rest need mpv. Go
-   through them one by one: what only the real app with mpv can show stays
-   on Weston, what a widget test catches moves to `client/test/`, and
-   duplicates and checks of looks rather than behaviour go, each with the
-   reason. Then the real core over a stub addon in place of
-   `fake_core.dart`'s copy of the core's rules.
+2. **App tests over the real core.** `client/test/ui/fake_core.dart` repeats
+   the Go core's rules in Dart (what is next, the watched latch) and has to be
+   changed with them. The app tests run the real core binary over a stub addon
+   serving fixed catalogue and stream JSON instead, and only the failures a
+   test injects (a 403, a late core) stay fakes (decisions/testing.md).
 3. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
@@ -173,13 +169,6 @@ top:
 
 The shell's own history duplicates a `Navigator`; it stays until it causes a
 defect.
-
-The UI suite's fake core (`integration_test/fake_core.dart`) repeats
-the Go core's rules in Dart (what is next, the watched latch) and has to be
-changed with them. The proper shape: UI tests run the real core binary over a
-stub addon serving fixed catalogue and stream JSON, and only the failures the
-tests inject (a 403, a late core) stay fakes. `[?]` Sharding (one Weston and
-app per shard) only if the suite is slow after that.
 
 ## Shipping
 
