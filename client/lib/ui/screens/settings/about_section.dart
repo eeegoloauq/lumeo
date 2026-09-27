@@ -34,6 +34,7 @@ class AboutSection extends StatefulWidget {
     required this.about,
     required this.onReset,
     required this.error,
+    this.notes = const [],
   });
 
   final LumeoApi api;
@@ -45,6 +46,9 @@ class AboutSection extends StatefulWidget {
   final VoidCallback onReset;
   final Object? error;
 
+  /// This version's release notes, the ones the shell shows after an update.
+  final List<String> notes;
+
   @override
   State<AboutSection> createState() => _AboutSectionState();
 }
@@ -53,22 +57,11 @@ class _AboutSectionState extends State<AboutSection> {
   late Future<CoreHealth> _health = widget.api.health();
   late final Future<void> _decoders = DeviceDecoders.instance.load();
   final _facts = MpvFacts.instance;
-  Future<List<String>> _notes = Future.value(const []);
-  String? _notesLanguage;
 
   @override
   void initState() {
     super.initState();
     unawaited(_facts.load());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final language = Localizations.localeOf(context).languageCode;
-    if (_notesLanguage == language) return;
-    _notesLanguage = language;
-    _notes = ReleaseNotes.load(appVersion, language);
   }
 
   Future<void> _reset() async {
@@ -181,25 +174,22 @@ class _AboutSectionState extends State<AboutSection> {
       SettingRow(
         label: 'Lumeo',
         value: const Text(appVersion, style: SettingsType.value),
-        trailing: FutureBuilder<List<String>>(
-          future: _notes,
-          builder: (context, notes) => notes.data?.isNotEmpty == true
-              ? RowButton(
-                  label: context.l10n.releaseWhatsNew,
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (dialog) => Dialog(
-                      backgroundColor: Colors.transparent,
-                      child: ReleaseNotesCard(
-                        version: appVersion,
-                        items: notes.data!,
-                        onClose: () => Navigator.pop(dialog),
-                      ),
+        trailing: widget.notes.isEmpty
+            ? null
+            : RowButton(
+                label: context.l10n.releaseWhatsNew,
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (dialog) => Dialog(
+                    backgroundColor: Colors.transparent,
+                    child: ReleaseNotesCard(
+                      version: appVersion,
+                      items: widget.notes,
+                      onClose: () => Navigator.pop(dialog),
                     ),
                   ),
-                )
-              : const SizedBox.shrink(),
-        ),
+                ),
+              ),
       ),
       SettingRow(
         label: context.l10n.settingsCore,

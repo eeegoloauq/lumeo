@@ -40,6 +40,7 @@ class SettingsScreen extends StatefulWidget {
     required this.settings,
     this.section,
     this.request = 0,
+    this.notes = const [],
   });
 
   final LumeoApi api;
@@ -53,6 +54,9 @@ class SettingsScreen extends StatefulWidget {
   /// Changed by the shell to scroll to [section] again on a page already
   /// open — the downloads panel's Storage link pressed over Settings.
   final int request;
+
+  /// This version's release notes, for About.
+  final List<String> notes;
 
   /// The sections that have rows. General has only the language yet: its
   /// other mockup rows (closing to a tray, pausing when minimised) need
@@ -314,6 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         about: _about,
         onReset: () => setState(() => _changedIn = SettingsSection.about),
         error: _errorIn(section),
+        notes: widget.notes,
       ),
     };
   }

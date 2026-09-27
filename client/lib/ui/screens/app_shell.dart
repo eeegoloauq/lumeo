@@ -519,6 +519,7 @@ class _AppShellState extends State<AppShell> {
                             downloads: widget.downloads,
                             preferences: widget.preferences,
                             settings: widget.settings,
+                            notes: _notes,
                           ),
                         },
                       ),
