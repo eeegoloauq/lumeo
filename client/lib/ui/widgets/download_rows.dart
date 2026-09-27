@@ -7,8 +7,6 @@ enum DownloadKind {
   /// On disk: play it.
   ready,
 
-  sharing,
-
   /// Bytes are flowing: pause it.
   arriving,
 
@@ -24,16 +22,15 @@ enum DownloadKind {
 
   DownloadSection get section => switch (this) {
     ready => DownloadSection.ready,
-    sharing => DownloadSection.sharing,
     arriving => DownloadSection.arriving,
     stalled || paused || failed => DownloadSection.waiting,
   };
 
   /// Null for what the panel does not list: a download paused because the
   /// core stopped, rather than by anybody, is the core's to pick up again.
-  static DownloadKind? of(Download d, {bool sharing = false}) {
+  static DownloadKind? of(Download d) {
     if (d.locatorScheme == 'file') return null;
-    if (d.isDone) return sharing && d.seeding ? DownloadKind.sharing : ready;
+    if (d.isDone) return ready;
     if (d.isActive) return d.waitingSince == null ? arriving : stalled;
     if (d.isPaused) return d.pausedByUser ? paused : null;
     if (d.isFailed) return failed;
@@ -44,12 +41,10 @@ enum DownloadKind {
 enum DownloadSection {
   ready,
   arriving,
-  waiting,
-  sharing;
+  waiting;
 
   String title(AppLocalizations l10n) => switch (this) {
     ready => l10n.downloadsReadyToWatch,
-    sharing => l10n.downloadsSharing,
     arriving => l10n.downloadsArriving,
     waiting => l10n.downloadsWaiting,
   };
@@ -102,7 +97,6 @@ class DownloadRow {
 
   int get rate => downloads.fold(0, (n, d) => n + d.progress.rate);
   int get upload => downloads.fold(0, (n, d) => n + d.progress.upload);
-  int get sent => downloads.fold(0, (n, d) => n + d.progress.sent);
 
   /// The episodes of a season arrive side by side, so the row is done when
   /// the slowest of them is. Null when none of them knows.
@@ -151,13 +145,10 @@ int? _longest(Iterable<int?> etas) {
 /// The panel's sections in their order, empty ones left out. Episodes of one
 /// season in the same state are one row; a film is always a row of its own.
 /// Rows keep the order the downloads came in.
-List<DownloadGroup> arrangeDownloads(
-  Iterable<Download> listed, {
-  bool sharing = false,
-}) {
+List<DownloadGroup> arrangeDownloads(Iterable<Download> listed) {
   final rows = <String, DownloadRow>{};
   for (final d in listed) {
-    final kind = DownloadKind.of(d, sharing: sharing);
+    final kind = DownloadKind.of(d);
     if (kind == null) continue;
     final key = d.episode > 0 && d.itemId.isNotEmpty
         ? '${kind.name}:${d.itemId}:${d.season}'
@@ -246,7 +237,7 @@ String waitingLine(DownloadRow row, DateTime now, AppLocalizations l10n) {
       // Whole minutes waited, not rounded up: "1 min" after 61 seconds.
       final waited = Duration(minutes: now.difference(since).inMinutes);
       return l10n.downloadsWaitingSince(what, spokenMinutes(waited, l10n));
-    case DownloadKind.ready || DownloadKind.sharing || DownloadKind.arriving:
+    case DownloadKind.ready || DownloadKind.arriving:
       return '';
   }
 }

@@ -19,7 +19,6 @@
   "seekStep": 5,
   "keepDays": 30,
   "downloadDir": "",
-  "seed": true,
   "uploadLimit": 0,
   "downloadLimit": 0
 }

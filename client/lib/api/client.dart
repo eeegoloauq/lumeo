@@ -285,10 +285,6 @@ class LumeoApi {
   /// Fetches again a paused download, or retries a failed one.
   Future<Download> resumeDownload(String id) => _setPaused(id, false);
 
-  Future<Download> stopSharing(String id) async => Download.fromJson(
-    await _send('PATCH', '/api/v1/downloads/${_seg(id)}', {'seeding': false}),
-  );
-
   Future<Download> _setPaused(String id, bool paused) async =>
       Download.fromJson(
         await _send('PATCH', '/api/v1/downloads/${_seg(id)}', {

@@ -470,10 +470,6 @@
   "@settingsScreenshots": {
     "description": "Screenshots in ui/screens/settings/downloads_section.dart"
   },
-  "settingsSeeding": "Sharing",
-  "@settingsSeeding": {
-    "description": "Seeding in ui/screens/settings/downloads_section.dart"
-  },
   "settingsUploadLimit": "Upload limit",
   "@settingsUploadLimit": {
     "description": "Upload limit in ui/screens/settings/downloads_section.dart"
@@ -810,20 +806,6 @@
   "settingsMegabytesPerSecondUnit": "MB/s",
   "@settingsMegabytesPerSecondUnit": {
     "description": "Unit suffix in network rate limit field."
-  },
-  "settingsSeedingHint": "Giving back to the people you download from.",
-  "settingsSharingWhileActive": "Downloading & watching",
-  "settingsSharingAlways": "Always",
-  "downloadsSharing": "Sharing",
-  "downloadsNobodyAsking": "Nobody asking",
-  "downloadsStopSharing": "Stop sharing",
-  "downloadsStopAll": "Stop all",
-  "downloadsSharingLine": "↑ {rate} · {sent} given",
-  "@downloadsSharingLine": {
-    "placeholders": {
-      "rate": {"type": "String"},
-      "sent": {"type": "String"}
-    }
   },
   "downloadsUploadArrow": "↑ {size}/s",
   "@downloadsUploadArrow": {

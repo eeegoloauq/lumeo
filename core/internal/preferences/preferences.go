@@ -73,9 +73,6 @@ type Preferences struct {
 	// DownloadDir is where new downloads go; empty is the core's own place
 	// in its data directory. Downloads already made stay where they are.
 	DownloadDir string `json:"downloadDir"`
-	// Seed keeps finished downloads sharing until the core stops. Off, a
-	// torrent shares only while it is fetching or playing.
-	Seed bool `json:"seed"`
 	// UploadLimit and DownloadLimit cap the torrent client as a whole, in
 	// bytes per second; 0 is no cap.
 	UploadLimit   int64 `json:"uploadLimit"`
@@ -166,7 +163,6 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "nextNotice", &effective.NextNotice)
 	overlay(stored, "seekStep", &effective.SeekStep)
 	overlay(stored, "downloadDir", &effective.DownloadDir)
-	overlay(stored, "seed", &effective.Seed)
 	overlay(stored, "uploadLimit", &effective.UploadLimit)
 	overlay(stored, "downloadLimit", &effective.DownloadLimit)
 	if effective.Keep == legacyKeep {
@@ -269,7 +265,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			changes[key], err = oneOf(key, raw, SubtitleBackgrounds)
 		case "subtitleColor":
 			changes[key], err = oneOf(key, raw, SubtitleColors)
-		case "subtitleKeepStyling", "prefetch", "seed":
+		case "subtitleKeepStyling", "prefetch":
 			changes[key], err = boolean(key, raw)
 		case "episodeArtwork":
 			changes[key], err = oneOf(key, raw, []string{"show", "blur", "hide"})
@@ -341,7 +337,7 @@ func known(key string) bool {
 	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
 		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch",
-		"nextCountdown", "nextNotice", "seekStep", "downloadDir", "seed",
+		"nextCountdown", "nextNotice", "seekStep", "downloadDir",
 		"uploadLimit", "downloadLimit":
 		return true
 	}

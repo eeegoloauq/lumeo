@@ -13,17 +13,19 @@ invisibly, over as many connections as torrents in the session. Sharing while
 watching is the courtesy on top of sharing while fetching: a file that
 arrives in minutes gives back through the evening it is watched.
 
-The `seed` preference ("Sharing: Always" in the client, `LUMEO_SEED=true` as
-its default) keeps finished downloads sharing until the core stops; a
-restart does not bring them back either, so the rule holds without a
-session-shaped exception. There is no off: a peer that gives nothing back is
+There is no setting to share longer. An "Always" that lasted until the core
+stopped shared whatever happened to be finished since the last restart, and
+one that outlived restarts would make a player a seedbox: a pool of peers
+per torrent for the whole library, and a longer exposure than the viewer
+asked for by pressing Play. Anyone who wants to keep a swarm alive has a
+torrent client built for it. There is no off either: a peer that gives nothing back is
 choked and its download starves. The upload limit is the tool for a metered
 or asymmetric line, and the upload rate is shown wherever the download rate
 is, so sharing is never invisible. UPnP port mapping is off, and stays off —
 changing the user's network without asking is not ours to do, and outgoing
 connections plus holepunching are enough for a home client.
 
-`seed`, `uploadLimit` and `downloadLimit` are core preferences, because only
+`uploadLimit` and `downloadLimit` are core preferences, because only
 the core can apply them and a second client must not see a setting the
 torrent client ignores. They apply while the client runs: the limits are the
 client's own `rate.Limiter`s, changed in place (every change is at a strictly

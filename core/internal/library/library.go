@@ -159,7 +159,8 @@ func (s *Service) Start(start func() (acquire.Download, error)) (acquire.Downloa
 	return d, err
 }
 
-// Clean drops the copies another copy of their episode replaced, then frees,
+// Clean drops the copies another copy of their episode replaced, stops
+// sharing every finished torrent no stream has used for the settle time, then frees,
 // oldest watched first, every finished download the keep policy has expired,
 // then more of them while the downloads take more than the ceiling. A
 // download nobody finished is never freed by the policy, so one larger than
@@ -170,23 +171,20 @@ func (s *Service) Clean(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if !prefs.Seed {
-		now := s.now()
-		for _, row := range s.downloads.List(ctx) {
-			if !row.Seeding {
-				continue
-			}
-			s.mu.Lock()
-			busy := s.busy(row.ID, now)
-			if !busy {
-				if err := s.downloads.StopSharing(ctx, row.ID); err != nil {
-					s.log.Warn("stopping sharing failed", "download", row.ID, "err", err)
-				} else {
-					s.log.Info("stopped sharing a finished download", "download", row.ID, "name", row.Name)
-				}
-			}
-			s.mu.Unlock()
+	now := s.now()
+	for _, row := range s.downloads.List(ctx) {
+		if !row.Seeding {
+			continue
 		}
+		s.mu.Lock()
+		if !s.busy(row.ID, now) {
+			if err := s.downloads.StopSharing(ctx, row.ID); err != nil {
+				s.log.Warn("stopping sharing failed", "download", row.ID, "err", err)
+			} else {
+				s.log.Info("stopped sharing a finished download", "download", row.ID, "name", row.Name)
+			}
+		}
+		s.mu.Unlock()
 	}
 	if prefs.Keep == "forever" && prefs.DiskLimit == 0 {
 		return nil
@@ -198,7 +196,6 @@ func (s *Service) Clean(ctx context.Context) error {
 	}
 	own, used := Usage(rows, s.downloads.Dirs)
 
-	now := s.now()
 	for _, c := range candidates {
 		expired := prefs.Keep == "watched" ||
 			prefs.Keep == "days" && now.Sub(c.watched) >= time.Duration(prefs.KeepDays)*day

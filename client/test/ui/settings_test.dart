@@ -377,17 +377,11 @@ void main() {
   Future<List<String>> openDownloads(
     WidgetTester tester, {
     LocalSettings? settings,
-    bool? seed,
   }) async {
     final patched = <String>[];
     await tester.pumpWidget(
       testApp(
-        api: fakeCore(
-          patched: patched,
-          preferences: seed == null
-              ? null
-              : {...preferenceDefaults, 'seed': seed},
-        ),
+        api: fakeCore(patched: patched),
         settings: settings,
       ),
     );
@@ -448,18 +442,6 @@ void main() {
       tester.widget<Switch>(switchOf('Download next episode')).value,
       isFalse,
     );
-  });
-
-  uiTest('Downloads sends sharing Always', (tester) async {
-    final patched = await openDownloads(tester, seed: false);
-    final always = find.descendant(
-      of: find.widgetWithText(SettingRow, 'Sharing'),
-      matching: find.text('Always'),
-    );
-    await reveal(tester, always);
-    await tester.tap(always);
-    await tester.pumpAndSettle();
-    expect(jsonDecode(patched.last), {'seed': true});
   });
 
   uiTest('Downloads sends the upload limit', (tester) async {

@@ -150,9 +150,7 @@ how far it had got, and lasts until it is resumed or played, restarts of the
 core included. Resuming a failed download retries it. A finished download, or a
 file on this machine, has nothing to pause: 400, as is any other body; an
 unknown id is 404. Pausing one episode of a pack stops asking the swarm for
-that episode; the torrent runs on for the others. `{"seeding": false}` stops a
-finished download sharing now instead of at the library's next pass; on
-anything not sharing it does nothing.
+that episode; the torrent runs on for the others.
 
 ## Preferences
 
@@ -169,8 +167,7 @@ apply it applies itself, before the change is answered: `keep`, `keepDays` and
 `diskLimit` run a pass of the keep policy; `downloadDir` is checked on the
 spot (absolute, made if missing, a probe file written and removed) and moves
 where new downloads go; `uploadLimit` and `downloadLimit` change the running
-torrent client, and `seed` runs a library pass, which stops finished downloads
-sharing once it is off. Whatever applies a preference subscribes to the
+torrent client. Whatever applies a preference subscribes to the
 service (`preferences.Service.Subscribe`); nothing reads a global copy. An
 earlier `keep: "30days"` reads back, and is still taken, as `keep: "days"`
 with `keepDays: 30`.

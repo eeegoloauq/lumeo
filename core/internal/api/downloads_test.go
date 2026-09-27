@@ -83,8 +83,6 @@ func TestPatchDownloadRefusals(t *testing.T) {
 		{name: "not a boolean", handler: h, id: id, body: `{"paused":"yes"}`, want: http.StatusBadRequest},
 		{name: "another key beside it", handler: h, id: id, body: `{"paused":true,"name":"x"}`, want: http.StatusBadRequest},
 		{name: "another key", handler: h, id: id, body: `{"state":"paused"}`, want: http.StatusBadRequest},
-		{name: "mixed sharing and pause", handler: h, id: id, body: `{"paused":true,"seeding":false}`, want: http.StatusBadRequest},
-		{name: "sharing true", handler: h, id: id, body: `{"seeding":true}`, want: http.StatusBadRequest},
 		{name: "array", handler: h, id: id, body: `[true]`, want: http.StatusBadRequest},
 		{name: "not an object", handler: h, id: id, body: `null`, want: http.StatusBadRequest},
 	} {
@@ -98,20 +96,5 @@ func TestPatchDownloadRefusals(t *testing.T) {
 	// None of them paused anything.
 	if got := decodeDownload(t, requestJSON(t, h, http.MethodGet, "/api/v1/downloads/"+id, "").Body.Bytes()); got["state"] != "active" {
 		t.Fatalf("state %v after refusals, want active", got["state"])
-	}
-}
-
-func TestPatchDownloadStopsSharing(t *testing.T) {
-	h, _, _, _ := storageServer(t)
-	rec := requestJSON(t, h, http.MethodPatch, "/api/v1/downloads/regular", `{"seeding":false}`)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("stop sharing: status %d: %s", rec.Code, rec.Body)
-	}
-	if got := decodeDownload(t, rec.Body.Bytes()); got["state"] != "done" {
-		t.Fatalf("download = %s", rec.Body)
-	}
-	rec = requestJSON(t, h, http.MethodPatch, "/api/v1/downloads/missing", `{"seeding":false}`)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("unknown download: status %d", rec.Code)
 	}
 }

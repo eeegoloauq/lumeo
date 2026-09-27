@@ -174,18 +174,16 @@ func TestForeverWithoutALimitFreesNothing(t *testing.T) {
 func TestCleanStopsOnlyIdleFinishedSharing(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
-		seed   bool
 		play   bool
 		settle bool
 		want   bool
 	}{
-		{"idle", false, false, false, true},
-		{"playing", false, true, false, false},
-		{"settling", false, false, true, false},
-		{"always", true, false, false, false},
+		{"idle", false, false, true},
+		{"playing", true, false, false},
+		{"settling", false, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			s, downloads := library(t, preferences.Preferences{Keep: "forever", Seed: tc.seed})
+			s, downloads := library(t, preferences.Preferences{Keep: "forever"})
 			for i := range downloads.rows {
 				if downloads.rows[i].ID == "e3" {
 					downloads.rows[i].Seeding = true

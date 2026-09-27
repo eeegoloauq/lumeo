@@ -294,10 +294,7 @@ class _PanelState extends State<_Panel> {
 
   @override
   Widget build(BuildContext context) {
-    final groups = arrangeDownloads(
-      widget.listed,
-      sharing: widget.preferences.current?.seed ?? false,
-    );
+    final groups = arrangeDownloads(widget.listed);
     final rate = _sum(widget.listed.where((d) => d.isActive)).rate;
     final upload = widget.listed.fold(
       0,
@@ -366,17 +363,9 @@ class _PanelState extends State<_Panel> {
                       ),
                     _SectionHeader(
                       group: g,
-                      action: switch (g.section) {
-                        DownloadSection.ready => widget.onClear,
-                        DownloadSection.sharing => () {
-                          for (final row in g.rows) {
-                            for (final d in row.downloads) {
-                              unawaited(widget.store.stopSharing(d));
-                            }
-                          }
-                        },
-                        _ => null,
-                      },
+                      action: g.section == DownloadSection.ready
+                          ? widget.onClear
+                          : null,
                     ),
                     for (final row in g.rows) ..._rows(row, now),
                   ],
@@ -395,8 +384,7 @@ class _PanelState extends State<_Panel> {
   Iterable<Widget> _rows(DownloadRow row, DateTime now) sync* {
     final open = _expanded.contains(row.key);
     final d = row.first;
-    final ready =
-        row.kind == DownloadKind.ready || row.kind == DownloadKind.sharing;
+    final ready = row.kind == DownloadKind.ready;
     final watched = ready && row.isSeason ? _watchedOf(d.itemId) : null;
     yield FutureBuilder<WatchProgress?>(
       // Keyed so that a row keeps what it learned when rows above it go.
@@ -426,7 +414,6 @@ class _PanelState extends State<_Panel> {
         waiting: row.kind.section == DownloadSection.waiting,
         line: switch (row.kind) {
           DownloadKind.ready => formatBytes(e.progress.total, context.l10n),
-          DownloadKind.sharing => _sharingLine(one),
           DownloadKind.arriving => context.l10n.downloadsPercent(
             (e.progress.fraction * 100).round(),
           ),
@@ -446,8 +433,6 @@ class _PanelState extends State<_Panel> {
           if (row.isSeason) context.l10n.downloadsEpisodeNext(next.episode),
           formatBytes(row.size, context.l10n),
         ].join(' · ');
-      case DownloadKind.sharing:
-        return _sharingLine(row);
       case DownloadKind.arriving:
         final parts = [
           if (row.rate > 0)
@@ -465,13 +450,6 @@ class _PanelState extends State<_Panel> {
         return waitingLine(row, now, context.l10n);
     }
   }
-
-  String _sharingLine(DownloadRow row) => row.upload > 0
-      ? context.l10n.downloadsSharingLine(
-          context.l10n.downloadsRate(formatBytes(row.upload, context.l10n)),
-          formatBytes(row.sent, context.l10n),
-        )
-      : context.l10n.downloadsNobodyAsking;
 
   /// The one thing a row's state lets you do, and Stop for what is waiting.
   List<Widget> _actions(
@@ -499,18 +477,6 @@ class _PanelState extends State<_Panel> {
               ? context.l10n.playerPlayEpisode(next.season, next.episode)
               : context.l10n.commonPlay,
           onPressed: () => widget.onPlay(next),
-        ),
-      ],
-      DownloadKind.sharing => [
-        _Action(
-          icon: Icons.stop,
-          tooltip: context.l10n.downloadsStopSharing,
-          compact: compact,
-          onPressed: () {
-            for (final d in all) {
-              unawaited(widget.store.stopSharing(d));
-            }
-          },
         ),
       ],
       DownloadKind.arriving => [
@@ -651,11 +617,7 @@ class _SectionHeader extends StatelessWidget {
                   textStyle: const TextStyle(fontSize: 12),
                   visualDensity: VisualDensity.compact,
                 ),
-                child: Text(
-                  group.section == DownloadSection.sharing
-                      ? context.l10n.downloadsStopAll
-                      : context.l10n.commonClear,
-                ),
+                child: Text(context.l10n.commonClear),
               ),
           ],
         ),

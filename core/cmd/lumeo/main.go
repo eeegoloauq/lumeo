@@ -145,7 +145,6 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		NextCountdown:       5,
 		NextNotice:          0,
 		SeekStep:            5,
-		Seed:                cfg.Seed,
 	})
 	// Read before the torrent client starts, so a download resumed at boot is
 	// held to the limits from its first block.

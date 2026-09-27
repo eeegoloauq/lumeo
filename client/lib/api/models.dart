@@ -27,7 +27,6 @@ class Preferences {
     this.seekStep = 5,
     this.keepDays = 30,
     this.downloadDir = '',
-    this.seed = false,
     this.uploadLimit = 0,
     this.downloadLimit = 0,
   });
@@ -95,9 +94,6 @@ class Preferences {
   /// Where new downloads go on the core's machine; empty for its default.
   final String downloadDir;
 
-  /// Whether finished and running torrents upload. Applied by the core.
-  final bool seed;
-
   /// Bytes per second, 0 for none.
   final int uploadLimit;
   final int downloadLimit;
@@ -127,7 +123,6 @@ class Preferences {
       seekStep: (json['seekStep'] as num?)?.toInt() ?? 5,
       keepDays: legacyDays ? 30 : (json['keepDays'] as num?)?.toInt() ?? 30,
       downloadDir: json['downloadDir'] as String? ?? '',
-      seed: json['seed'] as bool? ?? false,
       uploadLimit: (json['uploadLimit'] as num?)?.toInt() ?? 0,
       downloadLimit: (json['downloadLimit'] as num?)?.toInt() ?? 0,
     );

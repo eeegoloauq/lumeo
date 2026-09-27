@@ -35,7 +35,6 @@ void main() {
       'nextNotice': 45,
       'seekStep': 10,
       'downloadDir': '/srv/films',
-      'seed': true,
       'uploadLimit': 1048576,
       'downloadLimit': 5242880,
     });
@@ -44,7 +43,6 @@ void main() {
     expect(read.nextNotice, 45);
     expect(read.seekStep, 10);
     expect(read.downloadDir, '/srv/films');
-    expect(read.seed, isTrue);
     expect(read.uploadLimit, 1048576);
     expect(read.downloadLimit, 5242880);
 
@@ -52,7 +50,6 @@ void main() {
     expect(bare.subtitleColor, 'white');
     expect(bare.subtitleKeepStyling, isTrue);
     expect(bare.seekStep, 5);
-    expect(bare.seed, isFalse);
     expect(bare.downloadDir, isEmpty);
   });
 
