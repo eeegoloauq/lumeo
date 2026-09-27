@@ -1,3 +1,9 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:lumeo/api/client.dart';
+import 'package:lumeo/ui/widgets/library_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -192,6 +198,58 @@ void main() {
       expect(order('year'), ['Dune', 'Andor', 'The Bear', 'Arrival']);
       expect(order('rating'), ['Arrival', 'The Bear', 'Andor', 'Dune']);
     });
+  });
+
+  testWidgets('a score refreshes My list membership', (tester) async {
+    var listReads = 0;
+    final api = LumeoApi(
+      baseUrl: 'http://core.invalid',
+      client: MockClient((request) async {
+        final path = request.url.path;
+        if (path == '/api/v1/list/title') {
+          listReads++;
+          return http.Response(jsonEncode({'inList': listReads > 1}), 200);
+        }
+        if (path == '/api/v1/ratings/title' && request.method == 'GET') {
+          return http.Response(jsonEncode({'ratings': []}), 200);
+        }
+        if (path == '/api/v1/ratings/title' && request.method == 'PUT') {
+          return http.Response(
+            jsonEncode({'season': 0, 'episode': 0, 'rating': 7}),
+            200,
+          );
+        }
+        return http.Response('unexpected request $path', 404);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: lumeoTheme(),
+        home: Scaffold(
+          body: LibraryActions(api: api, itemId: 'title'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('list-button')))
+          .isSelected,
+      isFalse,
+    );
+    await tester.tap(find.byKey(const ValueKey('rating-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('7'));
+    await tester.pumpAndSettle();
+    expect(listReads, 2);
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('list-button')))
+          .isSelected,
+      isTrue,
+    );
   });
 
   group('RatingButton', () {

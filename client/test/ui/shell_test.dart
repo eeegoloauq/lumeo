@@ -27,18 +27,16 @@ void main() {
       testApp(
         key: UniqueKey(),
         api: fakeCore(
-          progress: {
-            'tt0063350': [
-              {
-                'season': 0,
-                'episode': 0,
-                'position': 900.0,
-                'duration': 5700.0,
-                'watched': false,
-                'updatedAt': '2026-09-20T12:00:00Z',
-              },
-            ],
-          },
+          continueWatching: [
+            continueItem('tt0063350', {
+              'season': 0,
+              'episode': 0,
+              'position': 900.0,
+              'duration': 5700.0,
+              'watched': false,
+              'updatedAt': '2026-09-20T12:00:00Z',
+            }),
+          ],
         ),
       ),
     );

@@ -412,8 +412,10 @@ void playbackTests() {
     // on; what is not unit-testable is any of this.
     final server = await serveFilm();
     final started = <String>[];
+    final progressCalls = <String>[];
     final api = fakeCore(
       started: started,
+      progressCalls: progressCalls,
       downloads: [
         fakeDownload(id: 'bb-s1e1', itemId: 'tt0903747', season: 1, episode: 1),
         fakeDownload(id: 'bb-s1e2', itemId: 'tt0903747', season: 1, episode: 2),
@@ -512,9 +514,13 @@ void playbackTests() {
     // anime ending starts at 87% and the core latches watched at 90%, so
     // without this the episode stays in Continue watching offering to resume
     // into its own credits.
-    final progress = await api.progress('tt0903747');
     expect(
-      progress.entry(1, 1)?.watched,
+      progressCalls.any((body) {
+        final sent = jsonDecode(body) as Map<String, dynamic>;
+        return sent['season'] == 1 &&
+            sent['episode'] == 1 &&
+            sent['watched'] == true;
+      }),
       isTrue,
       reason: 'the episode moved on from was reported as watched',
     );

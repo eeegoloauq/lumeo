@@ -1,0 +1,23 @@
+[
+  {
+    "providerId": "cinemeta",
+    "id": "top",
+    "kind": "movie",
+    "name": "Popular",
+    "searchable": true,
+    "genres": [
+      "Comedy",
+      "Drama"
+    ]
+  },
+  {
+    "providerId": "cinemeta",
+    "id": "top",
+    "kind": "series",
+    "name": "Popular",
+    "searchable": true,
+    "genres": [
+      "Comedy"
+    ]
+  }
+]

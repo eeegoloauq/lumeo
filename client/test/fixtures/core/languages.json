@@ -1,0 +1,476 @@
+[
+  {
+    "code": "sq",
+    "name": "Albanian",
+    "aliases": [
+      "alb",
+      "sqi"
+    ]
+  },
+  {
+    "code": "ar",
+    "name": "Arabic",
+    "aliases": [
+      "ara"
+    ]
+  },
+  {
+    "code": "hy",
+    "name": "Armenian",
+    "aliases": [
+      "arm",
+      "hye"
+    ]
+  },
+  {
+    "code": "eu",
+    "name": "Basque",
+    "aliases": [
+      "baq",
+      "eus"
+    ]
+  },
+  {
+    "code": "be",
+    "name": "Belarusian",
+    "aliases": [
+      "bel"
+    ]
+  },
+  {
+    "code": "bn",
+    "name": "Bengali",
+    "aliases": [
+      "ben"
+    ]
+  },
+  {
+    "code": "bs",
+    "name": "Bosnian",
+    "aliases": [
+      "bos"
+    ]
+  },
+  {
+    "code": "bg",
+    "name": "Bulgarian",
+    "aliases": [
+      "bul"
+    ]
+  },
+  {
+    "code": "my",
+    "name": "Burmese",
+    "aliases": [
+      "bur",
+      "mya"
+    ]
+  },
+  {
+    "code": "ca",
+    "name": "Catalan",
+    "aliases": [
+      "cat"
+    ]
+  },
+  {
+    "code": "zh",
+    "name": "Chinese",
+    "aliases": [
+      "chi",
+      "zhe",
+      "zho"
+    ]
+  },
+  {
+    "code": "zh-TW",
+    "name": "Chinese (traditional)",
+    "aliases": [
+      "zht"
+    ]
+  },
+  {
+    "code": "hr",
+    "name": "Croatian",
+    "aliases": [
+      "hrv"
+    ]
+  },
+  {
+    "code": "cs",
+    "name": "Czech",
+    "aliases": [
+      "ces",
+      "cze"
+    ]
+  },
+  {
+    "code": "da",
+    "name": "Danish",
+    "aliases": [
+      "dan"
+    ]
+  },
+  {
+    "code": "nl",
+    "name": "Dutch",
+    "aliases": [
+      "dut",
+      "nld"
+    ]
+  },
+  {
+    "code": "en",
+    "name": "English",
+    "aliases": [
+      "eng"
+    ]
+  },
+  {
+    "code": "eo",
+    "name": "Esperanto",
+    "aliases": [
+      "epo"
+    ]
+  },
+  {
+    "code": "et",
+    "name": "Estonian",
+    "aliases": [
+      "est"
+    ]
+  },
+  {
+    "code": "fi",
+    "name": "Finnish",
+    "aliases": [
+      "fin"
+    ]
+  },
+  {
+    "code": "fr",
+    "name": "French",
+    "aliases": [
+      "fra",
+      "fre"
+    ]
+  },
+  {
+    "code": "gl",
+    "name": "Galician",
+    "aliases": [
+      "glg"
+    ]
+  },
+  {
+    "code": "ka",
+    "name": "Georgian",
+    "aliases": [
+      "geo",
+      "kat"
+    ]
+  },
+  {
+    "code": "de",
+    "name": "German",
+    "aliases": [
+      "deu",
+      "ger"
+    ]
+  },
+  {
+    "code": "el",
+    "name": "Greek",
+    "aliases": [
+      "ell",
+      "gre"
+    ]
+  },
+  {
+    "code": "he",
+    "name": "Hebrew",
+    "aliases": [
+      "heb"
+    ]
+  },
+  {
+    "code": "hi",
+    "name": "Hindi",
+    "aliases": [
+      "hin"
+    ]
+  },
+  {
+    "code": "hu",
+    "name": "Hungarian",
+    "aliases": [
+      "hun"
+    ]
+  },
+  {
+    "code": "is",
+    "name": "Icelandic",
+    "aliases": [
+      "ice",
+      "isl"
+    ]
+  },
+  {
+    "code": "id",
+    "name": "Indonesian",
+    "aliases": [
+      "ind"
+    ]
+  },
+  {
+    "code": "ga",
+    "name": "Irish",
+    "aliases": [
+      "gle"
+    ]
+  },
+  {
+    "code": "it",
+    "name": "Italian",
+    "aliases": [
+      "ita"
+    ]
+  },
+  {
+    "code": "ja",
+    "name": "Japanese",
+    "aliases": [
+      "jpn"
+    ]
+  },
+  {
+    "code": "kk",
+    "name": "Kazakh",
+    "aliases": [
+      "kaz"
+    ]
+  },
+  {
+    "code": "km",
+    "name": "Khmer",
+    "aliases": [
+      "khm"
+    ]
+  },
+  {
+    "code": "ko",
+    "name": "Korean",
+    "aliases": [
+      "kor"
+    ]
+  },
+  {
+    "code": "lv",
+    "name": "Latvian",
+    "aliases": [
+      "lav"
+    ]
+  },
+  {
+    "code": "lt",
+    "name": "Lithuanian",
+    "aliases": [
+      "lit"
+    ]
+  },
+  {
+    "code": "mk",
+    "name": "Macedonian",
+    "aliases": [
+      "mac",
+      "mkd"
+    ]
+  },
+  {
+    "code": "ms",
+    "name": "Malay",
+    "aliases": [
+      "may",
+      "msa"
+    ]
+  },
+  {
+    "code": "ml",
+    "name": "Malayalam",
+    "aliases": [
+      "mal"
+    ]
+  },
+  {
+    "code": "mn",
+    "name": "Mongolian",
+    "aliases": [
+      "mon"
+    ]
+  },
+  {
+    "code": "no",
+    "name": "Norwegian",
+    "aliases": [
+      "nor"
+    ]
+  },
+  {
+    "code": "fa",
+    "name": "Persian",
+    "aliases": [
+      "fas",
+      "per"
+    ]
+  },
+  {
+    "code": "pl",
+    "name": "Polish",
+    "aliases": [
+      "pol"
+    ]
+  },
+  {
+    "code": "pt",
+    "name": "Portuguese",
+    "aliases": [
+      "pom",
+      "por"
+    ]
+  },
+  {
+    "code": "pt-BR",
+    "name": "Portuguese (BR)",
+    "aliases": [
+      "pob"
+    ]
+  },
+  {
+    "code": "ro",
+    "name": "Romanian",
+    "aliases": [
+      "ron",
+      "rum"
+    ]
+  },
+  {
+    "code": "ru",
+    "name": "Russian",
+    "aliases": [
+      "rus"
+    ]
+  },
+  {
+    "code": "sr",
+    "name": "Serbian",
+    "aliases": [
+      "srp"
+    ]
+  },
+  {
+    "code": "si",
+    "name": "Sinhala",
+    "aliases": [
+      "sin"
+    ]
+  },
+  {
+    "code": "sk",
+    "name": "Slovak",
+    "aliases": [
+      "slk",
+      "slo"
+    ]
+  },
+  {
+    "code": "sl",
+    "name": "Slovenian",
+    "aliases": [
+      "slv"
+    ]
+  },
+  {
+    "code": "es",
+    "name": "Spanish",
+    "aliases": [
+      "spa"
+    ]
+  },
+  {
+    "code": "es-419",
+    "name": "Spanish (Latin America)",
+    "aliases": [
+      "spl"
+    ]
+  },
+  {
+    "code": "sv",
+    "name": "Swedish",
+    "aliases": [
+      "swe"
+    ]
+  },
+  {
+    "code": "ta",
+    "name": "Tamil",
+    "aliases": [
+      "tam"
+    ]
+  },
+  {
+    "code": "te",
+    "name": "Telugu",
+    "aliases": [
+      "tel"
+    ]
+  },
+  {
+    "code": "th",
+    "name": "Thai",
+    "aliases": [
+      "tha"
+    ]
+  },
+  {
+    "code": "bo",
+    "name": "Tibetan",
+    "aliases": [
+      "bod"
+    ]
+  },
+  {
+    "code": "tr",
+    "name": "Turkish",
+    "aliases": [
+      "tur"
+    ]
+  },
+  {
+    "code": "uk",
+    "name": "Ukrainian",
+    "aliases": [
+      "ukr"
+    ]
+  },
+  {
+    "code": "ur",
+    "name": "Urdu",
+    "aliases": [
+      "urd"
+    ]
+  },
+  {
+    "code": "vi",
+    "name": "Vietnamese",
+    "aliases": [
+      "vie"
+    ]
+  },
+  {
+    "code": "cy",
+    "name": "Welsh",
+    "aliases": [
+      "cym"
+    ]
+  }
+]

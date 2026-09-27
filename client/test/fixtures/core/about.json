@@ -1,0 +1,6 @@
+{
+  "version": "dev",
+  "dataDir": "/nowhere/data",
+  "downloadDir": "/nowhere/downloads",
+  "addr": "127.0.0.1:7666"
+}

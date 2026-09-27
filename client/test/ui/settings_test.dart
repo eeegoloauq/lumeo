@@ -73,12 +73,18 @@ void main() {
     await openSettingsAt(tester, SettingsSection.subtitles);
 
     expect(find.widgetWithText(InputChip, 'English'), findsOneWidget);
-    final picker = find.descendant(
-      of: settingsSection(SettingsSection.subtitles),
-      matching: find.text('Add a language'),
+    final picker = find.ancestor(
+      of: find.descendant(
+        of: settingsSection(SettingsSection.subtitles),
+        matching: find.text('Add a language'),
+      ),
+      matching: find.byType(TextField),
     );
     await reveal(tester, picker.last);
     await tester.tap(picker.last);
+    await tester.pumpAndSettle();
+    // The core's list runs past the menu's foot; typing narrows it.
+    await tester.enterText(picker.last, 'Rus');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Russian').last);
     await tester.pumpAndSettle();
@@ -257,12 +263,12 @@ void main() {
       of: settingsSection(SettingsSection.sources),
       matching: find.byType(Switch),
     );
-    await reveal(tester, switches.at(1));
-    await tester.tap(switches.at(1));
+    await reveal(tester, switches.at(2));
+    await tester.tap(switches.at(2));
     await tester.pumpAndSettle();
 
     expect(calls.last, 'PATCH /api/v1/addons/torrentio {"enabled":false}');
-    expect(tester.widget<Switch>(switches.at(1)).value, isFalse);
+    expect(tester.widget<Switch>(switches.at(2)).value, isFalse);
   });
 
   uiTest('An address is checked by the core: a refusal stays at the field, an '
@@ -314,8 +320,8 @@ void main() {
     await tester.tap(remove.last);
     await tester.pumpAndSettle();
 
-    expect(calls.last, 'DELETE /api/v1/addons/opensubtitles');
-    expect(find.text('OpenSubtitles v3'), findsNothing);
+    expect(calls.last, 'DELETE /api/v1/addons/torrentio');
+    expect(find.text('Torrentio'), findsNothing);
     expect(
       find.descendant(of: sources, matching: find.byType(Switch)),
       findsNWidgets(2),

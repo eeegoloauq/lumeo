@@ -75,13 +75,6 @@ void main() {
       'PUT /api/v1/ratings/tt0903747 {"season":0,"episode":0,"rating":7}',
     ]);
     expect(
-      tester
-          .widget<IconButton>(find.byKey(const ValueKey('list-button')))
-          .isSelected,
-      isTrue,
-      reason: 'a title scored before it was played is on My list',
-    );
-    expect(
       find.descendant(
         of: find.byKey(const ValueKey('rating-button')),
         matching: find.text('7'),
@@ -99,14 +92,35 @@ void main() {
         api: fakeCore(
           libraryCalls: calls,
           progress: {
-            'tt0903747': [
-              watchEntry(
-                episode: 1,
-                position: 0,
+            'tt0903747': {
+              'entries': [
+                watchEntry(
+                  episode: 1,
+                  position: 0,
+                  duration: 1200,
+                  watched: true,
+                  updatedAt: '2026-09-20T11:00:00Z',
+                ),
+                watchEntry(
+                  episode: 2,
+                  position: 480,
+                  duration: 1200,
+                  watched: false,
+                  updatedAt: '2026-09-20T12:00:00Z',
+                ),
+              ],
+              'next': watchEntry(
+                episode: 2,
+                position: 480,
                 duration: 1200,
-                watched: true,
-                updatedAt: '2026-09-20T11:00:00Z',
+                watched: false,
+                updatedAt: '2026-09-20T12:00:00Z',
               ),
+            },
+          },
+          continueWatching: [
+            continueItem(
+              'tt0903747',
               watchEntry(
                 episode: 2,
                 position: 480,
@@ -114,8 +128,26 @@ void main() {
                 watched: false,
                 updatedAt: '2026-09-20T12:00:00Z',
               ),
-            ],
-          },
+            ),
+          ],
+          history: [
+            for (final episode in [2, 1])
+              {
+                'item': Map<String, dynamic>.of(fakeItem('tt0903747'))
+                  ..remove('episodes'),
+                'entry': watchEntry(
+                  episode: episode,
+                  position: episode == 2 ? 480 : 0,
+                  duration: 1200,
+                  watched: episode == 1,
+                  updatedAt: episode == 2
+                      ? '2026-09-20T12:00:00Z'
+                      : '2026-09-20T11:00:00Z',
+                ),
+                'episode':
+                    (fakeItem('tt0903747')['episodes'] as List)[episode - 1],
+              },
+          ],
         ),
       ),
     );

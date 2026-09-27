@@ -233,9 +233,15 @@ Map<String, dynamic> watchEntry({
   'updatedAt': updatedAt,
 };
 
+Map<String, dynamic> continueItem(String id, Map<String, dynamic> next) => {
+  'item': Map<String, dynamic>.of(fakeItem(id))..remove('episodes'),
+  'next': next,
+  'updatedAt': next['updatedAt'],
+};
+
 Future<void> openSeries(
   WidgetTester tester, {
-  Map<String, List<Map<String, dynamic>>> progress = const {},
+  Map<String, Map<String, dynamic>> progress = const {},
   Map<String, dynamic>? preferences,
   String stills = '',
   // For a test that needs a core of its own — one serving a film from a

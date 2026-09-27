@@ -17,6 +17,31 @@ import 'fake_core.dart';
 import 'app.dart';
 
 void main() {
+  // Episode 1 watched and 2 left at [position], which the core then plays
+  // next.
+  Map<String, dynamic> secondEpisodeStarted(double position) {
+    final second = watchEntry(
+      episode: 2,
+      position: position,
+      duration: 1200,
+      watched: false,
+      updatedAt: '2026-09-20T12:00:00Z',
+    );
+    return {
+      'entries': [
+        watchEntry(
+          episode: 1,
+          position: 1200,
+          duration: 1200,
+          watched: true,
+          updatedAt: '2026-09-20T11:00:00Z',
+        ),
+        second,
+      ],
+      'next': second,
+    };
+  }
+
   uiTest('a new episode opens its title on that episode', (tester) async {
     await tester.pumpWidget(
       testApp(
@@ -151,24 +176,7 @@ void main() {
   uiTest('progress chooses and positions the current episode', (tester) async {
     await openSeries(
       tester,
-      progress: {
-        'tt0903747': [
-          watchEntry(
-            episode: 1,
-            position: 1200,
-            duration: 1200,
-            watched: true,
-            updatedAt: '2026-09-20T11:00:00Z',
-          ),
-          watchEntry(
-            episode: 2,
-            position: 120,
-            duration: 1200,
-            watched: false,
-            updatedAt: '2026-09-20T12:00:00Z',
-          ),
-        ],
-      },
+      progress: {'tt0903747': secondEpisodeStarted(120)},
     );
 
     expect(find.text('Resume S1 E2'), findsOneWidget);
@@ -219,24 +227,7 @@ void main() {
           ),
           fakeDownload(id: 'd2', itemId: 'tt0903747', season: 1, episode: 3),
         ],
-        progress: {
-          'tt0903747': [
-            watchEntry(
-              episode: 1,
-              position: 1200,
-              duration: 1200,
-              watched: true,
-              updatedAt: '2026-09-20T11:00:00Z',
-            ),
-            watchEntry(
-              episode: 2,
-              position: 500,
-              duration: 1200,
-              watched: false,
-              updatedAt: '2026-09-20T12:00:00Z',
-            ),
-          ],
-        },
+        progress: {'tt0903747': secondEpisodeStarted(500)},
       ),
     );
     await tester.drag(find.byType(HorizontalStrip), const Offset(400, 0));
@@ -405,24 +396,7 @@ void main() {
   });
 
   uiTest('episode artwork preference hides and blurs spoilers', (tester) async {
-    final progress = {
-      'tt0903747': [
-        watchEntry(
-          episode: 1,
-          position: 1200,
-          duration: 1200,
-          watched: true,
-          updatedAt: '2026-09-20T11:00:00Z',
-        ),
-        watchEntry(
-          episode: 2,
-          position: 120,
-          duration: 1200,
-          watched: false,
-          updatedAt: '2026-09-20T12:00:00Z',
-        ),
-      ],
-    };
+    final progress = {'tt0903747': secondEpisodeStarted(120)};
     await openSeries(
       tester,
       progress: progress,

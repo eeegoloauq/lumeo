@@ -46,8 +46,11 @@ Everything goes through `test/ui/app.dart`:
 - `testApp` in place of `LumeoApp`: settings in a temporary file. `LumeoApp`
   without settings of its own reads and writes the desktop user's
   `client.json`.
-- `fakeCore` (`test/ui/fake_core.dart`) answers every endpoint from fixtures,
-  with switches for the failures a test needs.
+- `fakeCore` (`test/ui/fake_core.dart`) answers with the core's JSON from
+  `test/fixtures/core/`, which `core/internal/api/fixtures_test.go` checks
+  against the types the handlers write, so the two cannot drift. It keeps none
+  of the core's rules: what is next, Continue watching and the history are
+  what the test sets, and switches give the failures a test needs.
 - The player is a stand-in, `PlayerStandIn`, through `playerLayer` in
   `app_shell.dart`: the real screen needs libmpv and a GPU texture. An app test
   checks what Play asked the core for and which download the player was opened
@@ -128,8 +131,9 @@ tests, 31 stayed on Weston, and 8 went:
 "Episode marks read over a real still" lost its screenshot and became a check
 of the marks. The blur over an arrived still moved to the card's widget test.
 
-Next: the fake core repeats the Go core's rules in Dart (what is next, the
-watched latch). It is to return what a test sets instead, with its JSON as
-fixtures the Go tests check against the real handlers (roadmap). The real core
-binary cannot serve app tests: they run in fake time, and HTTP to another
-process is real I/O.
+The fake core used to repeat the core's rules in Dart (what is next, the
+watched latch) and had drifted from them: a scored film was not marked
+watched, downloads lacked fields, and Torrentio sat among a fresh core's
+addons. It now answers what a test sets, from fixtures the Go tests check.
+The real core binary cannot serve app tests: they run in fake time, and HTTP
+to another process is real I/O.

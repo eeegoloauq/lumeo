@@ -1,0 +1,35 @@
+[
+  {
+    "id": "cinemeta",
+    "name": "Cinemeta",
+    "url": "https://v3-cinemeta.strem.io",
+    "enabled": true,
+    "resources": [
+      "catalog",
+      "meta"
+    ],
+    "description": "The official addon for movie and series catalogs",
+    "version": "3.0.14"
+  },
+  {
+    "id": "opensubtitles",
+    "name": "OpenSubtitles v3",
+    "url": "https://opensubtitles-v3.strem.io",
+    "enabled": true,
+    "resources": [
+      "subtitles"
+    ],
+    "version": "1.0.0"
+  },
+  {
+    "id": "torrentio",
+    "name": "Torrentio",
+    "url": "https://torrentio.strem.fun/sort=qualitysize",
+    "enabled": true,
+    "resources": [
+      "stream"
+    ],
+    "description": "Streams from public trackers.",
+    "version": "0.0.14"
+  }
+]

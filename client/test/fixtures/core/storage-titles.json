@@ -1,0 +1,44 @@
+[
+  {
+    "itemId": "tt3230854",
+    "title": "The Expanse",
+    "poster": "",
+    "kind": "series",
+    "onDisk": 4509715661,
+    "downloads": [
+      {
+        "id": "storage-series-1",
+        "season": 1,
+        "episode": 1,
+        "name": "Dulcinea",
+        "state": "done",
+        "onDisk": 2254857830
+      },
+      {
+        "id": "storage-series-2",
+        "season": 1,
+        "episode": 2,
+        "name": "The Big Empty",
+        "state": "active",
+        "onDisk": 2254857831
+      }
+    ]
+  },
+  {
+    "itemId": "tt2543164",
+    "title": "Arrival",
+    "poster": "",
+    "kind": "movie",
+    "onDisk": 1932735283,
+    "downloads": [
+      {
+        "id": "storage-film",
+        "season": 0,
+        "episode": 0,
+        "name": "Arrival",
+        "state": "done",
+        "onDisk": 1932735283
+      }
+    ]
+  }
+]

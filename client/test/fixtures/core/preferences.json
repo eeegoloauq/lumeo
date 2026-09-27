@@ -1,0 +1,25 @@
+{
+  "subtitleLanguages": [
+    "en"
+  ],
+  "subtitleBackground": "none",
+  "episodeArtwork": "show",
+  "accent": "white",
+  "keep": "forever",
+  "diskLimit": 0,
+  "prefetch": true,
+  "subtitleMode": "always",
+  "audioLanguages": [],
+  "subtitleScale": 1.0,
+  "subtitlePosition": 100,
+  "nextCountdown": 5,
+  "subtitleColor": "white",
+  "subtitleKeepStyling": true,
+  "nextNotice": 0,
+  "seekStep": 5,
+  "keepDays": 30,
+  "downloadDir": "",
+  "seed": true,
+  "uploadLimit": 0,
+  "downloadLimit": 0
+}

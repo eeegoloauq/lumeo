@@ -1,0 +1,91 @@
+[
+  {
+    "id": "tt0063350",
+    "kind": "movie",
+    "title": "Night of the Living Dead",
+    "year": 1968,
+    "imdbRating": 7.8,
+    "overview": "Seven people take refuge in a farmhouse.",
+    "runtime": "96 min",
+    "genres": [
+      "Horror"
+    ]
+  },
+  {
+    "id": "tt0110912",
+    "kind": "movie",
+    "title": "Pulp Fiction",
+    "year": 1994,
+    "imdbRating": 8.9,
+    "overview": "Lives of two mob hitmen intertwine.",
+    "runtime": "154 min",
+    "genres": [
+      "Crime"
+    ]
+  },
+  {
+    "id": "tt0903747",
+    "kind": "series",
+    "title": "Breaking Bad",
+    "year": 2008,
+    "yearEnd": 2013,
+    "imdbRating": 9.5,
+    "overview": "A chemistry teacher turns to manufacturing.",
+    "runtime": "49 min",
+    "genres": [
+      "Crime",
+      "Drama"
+    ],
+    "episodes": [
+      {
+        "season": 1,
+        "number": 1,
+        "title": "Pilot",
+        "overview": "It begins.",
+        "released": "2008-01-20T00:00:00Z",
+        "thumbnail": "http://127.0.0.1:1/breaking-bad-1.jpg"
+      },
+      {
+        "season": 1,
+        "number": 2,
+        "title": "Cat's in the Bag...",
+        "overview": "It continues.",
+        "released": "2008-01-27T00:00:00Z",
+        "thumbnail": "http://127.0.0.1:1/breaking-bad-2.jpg"
+      },
+      {
+        "season": 1,
+        "number": 3,
+        "title": "And the Bag is in the River",
+        "overview": "The story continues.",
+        "released": "2008-02-10T00:00:00Z"
+      },
+      {
+        "season": 1,
+        "number": 4,
+        "title": "Cancer Man",
+        "overview": "The story continues.",
+        "released": "2008-02-17T00:00:00Z"
+      },
+      {
+        "season": 1,
+        "number": 5,
+        "title": "Gray Matter",
+        "overview": "The story continues.",
+        "released": "2008-02-24T00:00:00Z"
+      },
+      {
+        "season": 1,
+        "number": 6,
+        "title": "Crazy Handful of Nothin",
+        "released": "2008-03-02T00:00:00Z"
+      },
+      {
+        "season": 2,
+        "number": 1,
+        "title": "Seven Thirty-Seven",
+        "released": "2009-03-08T00:00:00Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "providerId": "torrentio",
+    "rawName": "Night of the Living Dead 1968 2160p BluRay x265 DTS-HD",
+    "release": {
+      "title": "Night of the Living Dead",
+      "year": 1968,
+      "resolution": "2160p",
+      "source": "BluRay",
+      "videoCodec": "HEVC",
+      "audioCodec": "DTS-HD",
+      "group": "GROUP"
+    },
+    "locator": {
+      "scheme": "torrent",
+      "infoHash": "def",
+      "fileIndex": 0
+    },
+    "size": 19327352832,
+    "seeders": 61,
+    "tracker": "test",
+    "languages": [
+      "en"
+    ]
+  },
+  {
+    "providerId": "torrentio",
+    "rawName": "Night of the Living Dead 1968 1080p BluRay x264 AC3",
+    "release": {
+      "title": "Night of the Living Dead",
+      "year": 1968,
+      "resolution": "1080p",
+      "source": "BluRay",
+      "videoCodec": "AVC",
+      "audioCodec": "AC3",
+      "group": "GROUP"
+    },
+    "locator": {
+      "scheme": "torrent",
+      "infoHash": "abc",
+      "fileIndex": 0
+    },
+    "size": 4294967296,
+    "seeders": 42,
+    "tracker": "test",
+    "languages": [
+      "en"
+    ]
+  }
+]

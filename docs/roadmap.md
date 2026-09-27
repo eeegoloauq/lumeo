@@ -17,13 +17,6 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
 2. **Finish the test cleanup** (decisions/testing.md), in this order:
-   - A fake core without the core's rules. `client/test/ui/fake_core.dart`
-     computes what is next and the watched latch (about 150 lines) and has to
-     change with the Go core. It should return what the test set instead, and
-     the JSON it answers with should be shared fixtures that the Go tests
-     check against the real handlers, so the two cannot drift. The real core
-     binary cannot serve app tests: they run in fake time, and HTTP to a
-     process is real I/O that fake time does not advance.
    - Comments in tests: one or two lines on why, not the story of the
      defect (533 comment lines in `test/ui/` and `integration_test/`).
    - Split app tests that check several behaviours at once (settings'

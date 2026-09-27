@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -33,7 +34,10 @@ LumeoApi fakeCore({
   /// How many reads of the preferences fail before one succeeds, as when
   /// the client starts before the core is up.
   int preferencesUnreachable = 0,
-  Map<String, List<Map<String, dynamic>>> progress = const {},
+  Map<String, Map<String, dynamic>> progress = const {},
+  List<Map<String, dynamic>> continueWatching = const [],
+  List<Map<String, dynamic>> history = const [],
+  List<String>? progressCalls,
   bool progressFails = false,
 
   /// Every body the player patched the title's track choice with.
@@ -43,7 +47,7 @@ LumeoApi fakeCore({
   /// Every request about the addon list, as "METHOD path body", so a test
   /// about a switch can prove the core was told.
   List<String>? addonCalls,
-  List<Map<String, dynamic>> addons = fakeAddons,
+  List<Map<String, dynamic>>? addons,
   String baseUrl = 'http://core.invalid',
 
   /// Artwork for every title served, when a test has somewhere real to serve
@@ -65,7 +69,7 @@ LumeoApi fakeCore({
   Duration sourcesDelay = Duration.zero,
 
   /// The copies /api/v1/sources answers with, when a test needs its own.
-  List<Map<String, dynamic>> sources = _sources,
+  List<Map<String, dynamic>>? sources,
 
   /// The providers /api/v1/sources says refused, as the core reports them.
   List<Map<String, dynamic>> failed = const [],
@@ -86,38 +90,13 @@ LumeoApi fakeCore({
   /// Every change to the list or to a score, as "METHOD path body".
   List<String>? libraryCalls,
 }) {
-  const preferenceDefaults = <String, dynamic>{
-    'subtitleLanguages': ['en'],
-    'subtitleBackground': 'none',
-    'episodeArtwork': 'show',
-    'accent': 'white',
-    'keep': 'forever',
-    'diskLimit': 0,
-    'prefetch': true,
-    'subtitleMode': 'always',
-    'audioLanguages': <String>[],
-    'subtitleScale': 1.0,
-    'subtitlePosition': 100,
-    'nextCountdown': 5,
-    'subtitleColor': 'white',
-    'subtitleKeepStyling': true,
-    'nextNotice': 0,
-    'seekStep': 5,
-    'keepDays': 30,
-    'downloadDir': '',
-    'seed': true,
-    'uploadLimit': 0,
-    'downloadLimit': 0,
-  };
   final preferenceState = Map<String, dynamic>.of(
     preferences ?? preferenceDefaults,
   );
   final addonState = [
-    for (final addon in addons) Map<String, dynamic>.of(addon),
+    for (final addon in addons ?? fakeAddons) Map<String, dynamic>.of(addon),
   ];
   var artworkCache = 212 * 1024 * 1024;
-  // The core's search history: once per word whatever its case, the latest
-  // first, ten at most.
   final searches = <String>[];
   final storageTitles = [
     for (final title in fakeStorageTitles)
@@ -129,9 +108,18 @@ LumeoApi fakeCore({
         ],
       },
   ];
-  final progressState = <String, List<Map<String, dynamic>>>{
+  final historyState = [
+    for (final item in history) Map<String, dynamic>.of(item),
+  ];
+  final progressState = <String, Map<String, dynamic>>{
     for (final item in progress.entries)
-      item.key: [for (final entry in item.value) Map.of(entry)],
+      item.key: {
+        'entries': [
+          for (final entry in item.value['entries'] as List)
+            Map<String, dynamic>.of((entry as Map).cast<String, dynamic>()),
+        ],
+        'next': item.value['next'],
+      },
   };
 
   final choiceState = <String, Map<String, dynamic>>{};
@@ -141,68 +129,11 @@ LumeoApi fakeCore({
       item.key: [for (final r in item.value) Map.of(r)],
   };
 
-  int scoreOf(String id, int season, int episode) {
-    for (final r in ratingState[id] ?? const <Map<String, dynamic>>[]) {
-      if (r['season'] == season && r['episode'] == episode) {
-        return r['rating'] as int;
-      }
-    }
-    return 0;
-  }
-
   Map<String, dynamic>? itemFor(String id) {
     for (final item in [..._itemsFor('movie'), ..._itemsFor('series')]) {
       if (item['id'] == id) return item;
     }
     return null;
-  }
-
-  DateTime updated(Map<String, dynamic> entry) =>
-      DateTime.tryParse(entry['updatedAt'] as String? ?? '') ??
-      DateTime.fromMillisecondsSinceEpoch(0);
-
-  Map<String, dynamic>? nextFor(String id) {
-    final entries = progressState[id] ?? const [];
-    if (entries.isEmpty) return null;
-    final latest = entries.reduce(
-      (a, b) => updated(b).isAfter(updated(a)) ? b : a,
-    );
-    if (latest['watched'] != true || (latest['position'] as num) > 0) {
-      return Map.of(latest);
-    }
-    final item = itemFor(id);
-    if (item == null || item['kind'] != 'series') return null;
-    final episodes =
-        [
-          for (final episode in item['episodes'] as List<dynamic>)
-            Map<String, dynamic>.of(episode as Map<String, dynamic>),
-        ]..sort((a, b) {
-          final season = (a['season'] as int).compareTo(b['season'] as int);
-          return season != 0
-              ? season
-              : (a['number'] as int).compareTo(b['number'] as int);
-        });
-    final index = episodes.indexWhere(
-      (episode) =>
-          episode['season'] == latest['season'] &&
-          episode['number'] == latest['episode'],
-    );
-    if (index < 0 || index + 1 >= episodes.length) return null;
-    final following = episodes[index + 1];
-    for (final entry in entries) {
-      if (entry['season'] == following['season'] &&
-          entry['episode'] == following['number']) {
-        return Map.of(entry);
-      }
-    }
-    return {
-      'season': following['season'],
-      'episode': following['number'],
-      'position': 0,
-      'duration': 0,
-      'watched': false,
-      'updatedAt': latest['updatedAt'],
-    };
   }
 
   return LumeoApi(
@@ -367,93 +298,59 @@ LumeoApi fakeCore({
         return _json({'error': 'progress unavailable'}, status: 500);
       }
       if (path == '/api/v1/continue' && request.method == 'GET') {
-        final items = <Map<String, dynamic>>[];
-        for (final id in progressState.keys) {
-          final next = nextFor(id);
-          final item = itemFor(id);
-          if (next == null || item == null) continue;
-          final entries = progressState[id]!;
-          final latest = entries
-              .map(updated)
-              .reduce((a, b) => b.isAfter(a) ? b : a);
-          items.add({
-            'item': Map<String, dynamic>.of(item)..remove('episodes'),
-            'next': next,
-            'updatedAt': latest.toUtc().toIso8601String(),
-          });
-        }
-        items.sort(
-          (a, b) =>
-              DateTime.parse(b['updatedAt'] as String)
-                  .compareTo(DateTime.parse(a['updatedAt'] as String)),
-        );
         final limit = int.tryParse(query['limit'] ?? '') ?? 30;
-        return _json(items.take(limit).toList());
+        return _json(continueWatching.take(limit).toList());
       }
       if (path.startsWith('/api/v1/progress/')) {
         final id = path.split('/').last;
         if (request.method == 'GET') {
-          return _json({
-            'entries': progressState[id] ?? const [],
-            'next': nextFor(id),
-          });
+          return _json(progressState[id] ?? {'entries': [], 'next': null});
         }
         if (request.method == 'DELETE') {
-          final hasSeason = query.containsKey('season');
-          final hasEpisode = query.containsKey('episode');
-          if (hasSeason != hasEpisode) {
-            return _json({
-              'error': 'season and episode must be provided together',
-            }, status: 400);
-          }
-          final season = int.tryParse(query['season'] ?? '');
-          final episode = int.tryParse(query['episode'] ?? '');
-          if (!hasSeason) {
-            progressState.remove(id);
-          } else if (season == null ||
-              episode == null ||
-              season < 0 ||
-              episode < 0) {
-            return _json({
-              'error': 'season and episode must be non-negative integers',
-            }, status: 400);
-          } else {
-            progressState[id]?.removeWhere(
+          final entries =
+              (progressState[id]?['entries'] as List<Map<String, dynamic>>?);
+          if (query.containsKey('season') && query.containsKey('episode')) {
+            final season = int.tryParse(query['season'] ?? '');
+            final episode = int.tryParse(query['episode'] ?? '');
+            entries?.removeWhere(
               (entry) =>
                   entry['season'] == season && entry['episode'] == episode,
             );
+          } else {
+            progressState.remove(id);
           }
+          historyState.removeWhere(
+            (viewing) =>
+                viewing['item']['id'] == id &&
+                (!query.containsKey('season') ||
+                    (viewing['entry']['season'].toString() == query['season'] &&
+                        viewing['entry']['episode'].toString() ==
+                            query['episode'])),
+          );
           return http.Response('', 204);
         }
         if (request.method == 'PUT') {
+          progressCalls?.add(request.body);
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           final season = body['season'] as int? ?? 0;
           final episode = body['episode'] as int? ?? 0;
-          var position = (body['position'] as num? ?? 0).toDouble();
-          final duration = (body['duration'] as num? ?? 0).toDouble();
-          final forced = body['watched'] as bool?;
-
-          final entries = progressState.putIfAbsent(id, () => []);
-          final index = entries.indexWhere(
-            (entry) => entry['season'] == season && entry['episode'] == episode,
+          final state = progressState.putIfAbsent(
+            id,
+            () => {'entries': <Map<String, dynamic>>[], 'next': null},
           );
-          final latched = index >= 0 && entries[index]['watched'] == true;
-          final finished =
-              forced ?? (duration > 0 && position / duration >= 0.9);
-          if (finished || forced != null) position = 0;
+          final entries = state['entries'] as List<Map<String, dynamic>>;
           final entry = <String, dynamic>{
             'season': season,
             'episode': episode,
-            'position': position,
-            'duration': duration,
-            'watched': forced ?? (latched || finished),
+            'position': body['position'] ?? 0,
+            'duration': body['duration'] ?? 0,
+            'watched': body['watched'] ?? false,
             'updatedAt': DateTime.now().toUtc().toIso8601String(),
           };
-          if (index < 0) {
-            entries.add(entry);
-          } else {
-            entries[index] = entry;
-          }
+          entries.removeWhere(
+            (old) => old['season'] == season && old['episode'] == episode,
+          );
+          entries.add(entry);
           return _json(entry);
         }
       }
@@ -467,15 +364,7 @@ LumeoApi fakeCore({
                 {
                   'item': Map<String, dynamic>.of(item)..remove('episodes'),
                   'addedAt': listState[id],
-                  if (scoreOf(id, 0, 0) > 0) 'rating': scoreOf(id, 0, 0),
-                  'seen': {
-                    'watched': (progressState[id] ?? const [])
-                        .where((e) => e['watched'] == true)
-                        .length,
-                    'released': item['kind'] == 'series'
-                        ? (item['episodes'] as List).length
-                        : 1,
-                  },
+                  'seen': {'watched': 0, 'released': 0},
                 },
           ],
         });
@@ -525,14 +414,6 @@ LumeoApi fakeCore({
                   r['episode'] == rating['episode'],
             );
             list.add(rating);
-            // As the core does: a title scored before it was ever played
-            // joins My list.
-            if ((progressState[id] ?? const []).isEmpty) {
-              listState.putIfAbsent(
-                id,
-                () => DateTime.now().toUtc().toIso8601String(),
-              );
-            }
             return _json(rating);
           case 'DELETE':
             libraryCalls?.add('DELETE $path ${request.url.query}'.trim());
@@ -546,41 +427,11 @@ LumeoApi fakeCore({
         return _json({'ratings': list});
       }
       if (path == '/api/v1/history') {
-        final viewed = <Map<String, dynamic>>[];
-        for (final id in progressState.keys) {
-          final item = itemFor(id);
-          if (item == null) continue;
-          for (final entry in progressState[id]!) {
-            if (entry['watched'] != true && (entry['position'] as num) <= 0) {
-              continue;
-            }
-            final season = entry['season'] as int;
-            final number = entry['episode'] as int;
-            Map<String, dynamic>? episode;
-            for (final e in (item['episodes'] as List<dynamic>?) ?? const []) {
-              final map = e as Map<String, dynamic>;
-              if (map['season'] == season && map['number'] == number) {
-                episode = map;
-              }
-            }
-            final score = scoreOf(id, season, number);
-            viewed.add({
-              'item': Map<String, dynamic>.of(item)..remove('episodes'),
-              'entry': entry,
-              'episode': ?episode,
-              if (score > 0) 'rating': score,
-            });
-          }
-        }
-        viewed.sort((a, b) {
-          final at = updated(a['entry'] as Map<String, dynamic>);
-          return updated(b['entry'] as Map<String, dynamic>).compareTo(at);
-        });
         final limit = int.tryParse(query['limit'] ?? '') ?? 50;
         final offset = int.tryParse(query['offset'] ?? '') ?? 0;
         return _json({
-          'entries': viewed.skip(offset).take(limit).toList(),
-          'more': viewed.length > offset + limit,
+          'entries': historyState.skip(offset).take(limit).toList(),
+          'more': false,
         });
       }
       if (path.startsWith('/api/v1/choices/')) {
@@ -604,40 +455,15 @@ LumeoApi fakeCore({
           }
           return _json(preferenceState);
         case '/api/v1/preferences/languages':
-          return _json({
-            'languages': const [
-              {
-                'code': 'en',
-                'name': 'English',
-                'aliases': ['eng'],
-              },
-              {
-                'code': 'ru',
-                'name': 'Russian',
-                'aliases': ['rus'],
-              },
-              {
-                'code': 'de',
-                'name': 'German',
-                'aliases': ['deu', 'ger'],
-              },
-              {
-                'code': 'fr',
-                'name': 'French',
-                'aliases': ['fra', 'fre'],
-              },
-            ],
-          });
+          return _json({'languages': _languages});
         case '/api/v1/about':
           return _json({
-            'version': 'dev',
-            'dataDir': '/nowhere/data',
+            ..._about,
             'downloadDir':
                 preferenceState['downloadDir'] is String &&
                     (preferenceState['downloadDir'] as String).isNotEmpty
                 ? preferenceState['downloadDir']
                 : aboutDir,
-            'addr': '127.0.0.1:7666',
           });
         case '/api/v1/storage':
           final used = storageTitles.fold<int>(
@@ -677,7 +503,7 @@ LumeoApi fakeCore({
           sourceCalls?.add(request.url.query);
           await Future<void>.delayed(sourcesDelay);
           return _json({
-            'sources': sources,
+            'sources': sources ?? _sources,
             'failed': failed,
             'providers': addonState
                 .where(
@@ -735,7 +561,7 @@ LumeoApi fakeCore({
         ];
         return _json({
           ...item,
-          'background': background,
+          if (background.isNotEmpty) 'background': background,
           if (episodes.isNotEmpty) 'episodes': episodes,
         });
       }
@@ -744,14 +570,8 @@ LumeoApi fakeCore({
           case 'GET':
             return _json({'searches': searches});
           case 'POST':
-            final query = ((jsonDecode(request.body) as Map)['query'] as String)
-                .split(RegExp(r'\s+'))
-                .where((word) => word.isNotEmpty)
-                .join(' ');
-            searches
-              ..removeWhere((q) => q.toLowerCase() == query.toLowerCase())
-              ..insert(0, query);
-            if (searches.length > 10) searches.removeLast();
+            final query = (jsonDecode(request.body) as Map)['query'] as String;
+            searches.insert(0, query);
             return http.Response('', 204);
           case 'DELETE':
             final one = query['q']?.toLowerCase();
@@ -776,82 +596,36 @@ LumeoApi fakeCore({
   );
 }
 
-/// The three addons a fresh core starts with, as its list reports them —
-/// one of each kind, so the words a settings page uses for them are all on
-/// screen at once.
-const fakeAddons = <Map<String, dynamic>>[
-  {
-    'id': 'cinemeta',
-    'name': 'Cinemeta',
-    'url': 'https://v3-cinemeta.strem.io',
-    'enabled': true,
-    'resources': ['catalog', 'meta'],
-    'description': 'The official addon for movie and series catalogs',
-    'version': '3.0.14',
-  },
-  {
-    'id': 'torrentio',
-    'name': 'Torrentio',
-    'url': 'https://torrentio.strem.fun/sort=qualitysize',
-    'enabled': true,
-    'resources': ['stream'],
-    'description': 'Streams from public trackers.',
-    'version': '0.0.14',
-  },
-  {
-    'id': 'opensubtitles',
-    'name': 'OpenSubtitles v3',
-    'url': 'https://opensubtitles-v3.strem.io',
-    'enabled': true,
-    'resources': ['subtitles'],
-    'version': '1.0.0',
-  },
-];
+// The core's own JSON, which core/internal/api/fixtures_test.go checks
+// against the types its handlers write. Relative to client/, the working
+// directory of flutter test and of the player suite.
+List<Map<String, dynamic>> _fixtureList(String name) =>
+    (jsonDecode(File('test/fixtures/core/$name').readAsStringSync()) as List)
+        .cast<Map<String, dynamic>>();
 
-const fakeStorageTitles = <Map<String, dynamic>>[
-  {
-    'itemId': 'tt3230854',
-    'title': 'The Expanse',
-    'poster': '',
-    'kind': 'series',
-    'onDisk': 4509715661,
-    'downloads': [
-      {
-        'id': 'storage-series-1',
-        'season': 1,
-        'episode': 1,
-        'name': 'Dulcinea',
-        'state': 'done',
-        'onDisk': 2254857830,
-      },
-      {
-        'id': 'storage-series-2',
-        'season': 1,
-        'episode': 2,
-        'name': 'The Big Empty',
-        'state': 'active',
-        'onDisk': 2254857831,
-      },
-    ],
-  },
-  {
-    'itemId': 'tt2543164',
-    'title': 'Arrival',
-    'poster': '',
-    'kind': 'movie',
-    'onDisk': 1932735283,
-    'downloads': [
-      {
-        'id': 'storage-film',
-        'season': 0,
-        'episode': 0,
-        'name': 'Arrival',
-        'state': 'done',
-        'onDisk': 1932735283,
-      },
-    ],
-  },
-];
+Map<String, dynamic> _fixtureMap(String name) =>
+    jsonDecode(File('test/fixtures/core/$name').readAsStringSync())
+        as Map<String, dynamic>;
+
+/// The two addons a fresh core starts with, and a stream addon the viewer
+/// added, without which nothing has a copy to play.
+final fakeAddons = _fixtureList('addons.json');
+final fakeStorageTitles = _fixtureList('storage-titles.json');
+final preferenceDefaults = _fixtureMap('preferences.json');
+final _catalogs = _fixtureList('catalogs.json');
+// Two films and one series, without artwork: a test must not depend on a
+// picture arriving.
+final _items = _fixtureList('items.json');
+final _sources = _fixtureList('sources.json');
+final _languages = _fixtureList('languages.json');
+final _about = _fixtureMap('about.json');
+final _download = _fixtureMap('download.json');
+
+Map<String, dynamic> fakeItem(String id) =>
+    _items.firstWhere((item) => item['id'] == id);
+
+List<Map<String, dynamic>> _itemsFor(String kind) =>
+    _items.where((item) => item['kind'] == kind).toList();
 
 /// One download, active and half arrived, for the tests about the indicator.
 Map<String, dynamic> fakeDownload({
@@ -865,9 +639,7 @@ Map<String, dynamic> fakeDownload({
   // Whether the core knows which file it is. False is a magnet still asking
   // its peers for the metadata.
   bool resolved = true,
-  // Which episode this is, for the tests that are about a series. Left out
-  // entirely for a film, which is what the core does and what keeps every
-  // other fixture here exactly as it was.
+  // Left out entirely for a film, as the core does.
   int season = 0,
   int episode = 0,
   DateTime? updatedAt,
@@ -878,6 +650,7 @@ Map<String, dynamic> fakeDownload({
   // Seconds left; the fixture's rate and size make it about eleven minutes.
   int? eta = 683,
 }) => {
+  ..._download,
   'id': id,
   'itemId': itemId,
   'name': name,
@@ -891,11 +664,11 @@ Map<String, dynamic> fakeDownload({
   if (pausedByUser) 'pausedByUser': true,
   if (error.isNotEmpty) 'error': error,
   'progress': {
-    'completed': 2 * 1024 * 1024 * 1024,
-    'total': 4 * 1024 * 1024 * 1024,
+    'completed': (_download['progress'] as Map)['completed'],
+    'total': (_download['progress'] as Map)['total'],
     // Bytes flow only while it is active and not waiting.
     if (state == 'active' && waitingSince == null) ...{
-      'rate': 3 * 1024 * 1024,
+      'rate': (_download['progress'] as Map)['rate'],
       'eta': ?eta,
     },
     'peers': waitingSince == null ? 12 : 0,
@@ -908,158 +681,3 @@ http.Response _json(Object body, {int status = 200}) => http.Response(
   status,
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
-
-const _catalogs = [
-  {
-    'providerId': 'cinemeta',
-    'id': 'top',
-    'kind': 'movie',
-    'name': 'Popular',
-    'searchable': true,
-    'genres': ['Comedy', 'Drama'],
-  },
-  {
-    'providerId': 'cinemeta',
-    'id': 'top',
-    'kind': 'series',
-    'name': 'Popular',
-    'searchable': true,
-    'genres': ['Comedy'],
-  },
-];
-
-/// Two films and one series, with the fields the interface actually reads. No
-/// artwork URLs: a test must not depend on a picture arriving, and the tile
-/// without one is a case worth having under test anyway.
-List<Map<String, dynamic>> _itemsFor(String kind) => kind == 'series'
-    ? const [
-        {
-          'id': 'tt0903747',
-          'kind': 'series',
-          'title': 'Breaking Bad',
-          'year': 2008,
-          'yearEnd': 2013,
-          'imdbRating': 9.5,
-          'overview': 'A chemistry teacher turns to manufacturing.',
-          'runtime': '49 min',
-          'genres': ['Crime', 'Drama'],
-          'episodes': [
-            {
-              'season': 1,
-              'number': 1,
-              'title': 'Pilot',
-              'overview': 'It begins.',
-              'released': '2008-01-20',
-              'thumbnail': 'http://127.0.0.1:1/breaking-bad-1.jpg',
-            },
-            {
-              'season': 1,
-              'number': 2,
-              'title': "Cat's in the Bag...",
-              'overview': 'It continues.',
-              'released': '2008-01-27',
-              'thumbnail': 'http://127.0.0.1:1/breaking-bad-2.jpg',
-            },
-            {
-              'season': 1,
-              'number': 3,
-              'title': 'And the Bag is in the River',
-              'overview': 'The story continues.',
-              'released': '2008-02-10',
-            },
-            {
-              'season': 1,
-              'number': 4,
-              'title': 'Cancer Man',
-              'overview': 'The story continues.',
-              'released': '2008-02-17',
-            },
-            {
-              'season': 1,
-              'number': 5,
-              'title': 'Gray Matter',
-              'overview': 'The story continues.',
-              'released': '2008-02-24',
-            },
-            {
-              'season': 1,
-              'number': 6,
-              'title': 'Crazy Handful of Nothin',
-              'released': '2008-03-02',
-            },
-            {
-              'season': 2,
-              'number': 1,
-              'title': 'Seven Thirty-Seven',
-              'released': '2009-03-08',
-            },
-          ],
-        },
-      ]
-    : const [
-        {
-          'id': 'tt0063350',
-          'kind': 'movie',
-          'title': 'Night of the Living Dead',
-          'year': 1968,
-          'imdbRating': 7.8,
-          'overview': 'Seven people take refuge in a farmhouse.',
-          'runtime': '96 min',
-          'genres': ['Horror'],
-        },
-        {
-          'id': 'tt0110912',
-          'kind': 'movie',
-          'title': 'Pulp Fiction',
-          'year': 1994,
-          'imdbRating': 8.9,
-          'overview': 'Lives of two mob hitmen intertwine.',
-          'runtime': '154 min',
-          'genres': ['Crime'],
-        },
-      ];
-
-/// Two copies, ranked the way the core ranks them: the sharper one first.
-///
-/// The field names are the core's own — a fixture that invents its own spelling
-/// tests nothing, and this one used to say "kind" and "codec" where the API
-/// says "source" and "videoCodec", so every row in every test had an empty
-/// KIND column and no codec in it at all.
-const _sources = [
-  {
-    'providerId': 'torrentio',
-    'rawName': 'Night of the Living Dead 1968 2160p BluRay x265 DTS-HD',
-    'release': {
-      'title': 'Night of the Living Dead',
-      'year': 1968,
-      'resolution': '2160p',
-      'source': 'BluRay',
-      'videoCodec': 'HEVC',
-      'audioCodec': 'DTS-HD',
-      'group': 'GROUP',
-    },
-    'locator': {'scheme': 'torrent', 'infoHash': 'def', 'fileIndex': 0},
-    'size': 18 * 1024 * 1024 * 1024,
-    'seeders': 61,
-    'tracker': 'test',
-    'languages': ['en'],
-  },
-  {
-    'providerId': 'torrentio',
-    'rawName': 'Night of the Living Dead 1968 1080p BluRay x264 AC3',
-    'release': {
-      'title': 'Night of the Living Dead',
-      'year': 1968,
-      'resolution': '1080p',
-      'source': 'BluRay',
-      'videoCodec': 'AVC',
-      'audioCodec': 'AC3',
-      'group': 'GROUP',
-    },
-    'locator': {'scheme': 'torrent', 'infoHash': 'abc', 'fileIndex': 0},
-    'size': 4 * 1024 * 1024 * 1024,
-    'seeders': 42,
-    'tracker': 'test',
-    'languages': ['en'],
-  },
-];

@@ -1,0 +1,23 @@
+{
+  "id": "d1",
+  "itemId": "tt0063350",
+  "name": "Night of the Living Dead 1968 1080p BluRay x264 AC3",
+  "state": "active",
+  "ready": true,
+  "resolved": true,
+  "progress": {
+    "completed": 2147483648,
+    "total": 4294967296,
+    "rate": 3145728,
+    "eta": 683,
+    "peers": 12,
+    "seeders": 7
+  },
+  "locator": {
+    "scheme": "torrent",
+    "infoHash": "abc",
+    "fileIndex": 0
+  },
+  "createdAt": "2026-09-20T11:00:00Z",
+  "updatedAt": "2026-09-20T11:00:00Z"
+}
