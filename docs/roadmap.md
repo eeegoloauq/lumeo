@@ -19,6 +19,39 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
 2. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
+## From the user's notes of 2026-09-27, in order
+
+1. Player bugs with a known cause: mpv's OSD sits inside the video texture,
+   so Picture › Fill (`BoxFit.cover`) crops it — fill and stretch go to mpv
+   (`panscan`, `keepaspect`); "Skip ending" is missing when a chapter follows
+   the ending — it seeks to the next chapter, as the opening's does; the OSD
+   bar becomes text (`osd-bar=no`, `osd-on-seek=msg`); `nextNotice` defaults
+   to 0, the 5 s countdown after the end stays.
+2. Waiting: an error shown only once the player gives up for good (one
+   appeared mid-load and went away), and progress toward "can start" (the
+   core reports how much of the required front is on disk) with speed and
+   peers.
+3. One copy per episode: a source switch drops the old unfinished copy once
+   the new one plays, the title page follows the same rule, and the player's
+   download panel lists any other copy with Stop and Delete (mockup first).
+4. Seeding shown: an upload arrow on the downloads button while seeding,
+   upload speed and ratio on each row (mockup first).
+5. A score given to a title never played marks it watched, so it is in
+   History.
+6. Settings: audio and subtitle languages in one "Audio & subtitles"
+   section; a mark at 100% on the volume slider; shortcut descriptions
+   translated by mpv command, mpv's English comment for the rest.
+7. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
+   the console and statistics cannot work: ship a current libmpv with Lua,
+   pinned by hash. Then left click not pausing on Windows 10, the picture
+   frozen after the display sleeps (leaving fullscreen brings it back), and
+   the home banner's scroll lag on Windows 10. Tested with the CI build under
+   Wine here and on the user's machine.
+8. A UX map of the user's journeys with the defaults of each, reviewed
+   against screenshots of the real app; mockups only for what changes.
+9. Opening and ending found by comparing a season's audio, for files whose
+   chapters are unnamed (`[?]`, after the rest).
+
 ## Library and storage
 
 - Download folder: `$(xdg-user-dir VIDEOS)/Lumeo`, changeable, laid out
