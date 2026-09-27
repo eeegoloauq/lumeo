@@ -129,5 +129,7 @@ tests, 31 stayed on Weston, and 8 went:
 of the marks. The blur over an arrived still moved to the card's widget test.
 
 Next: the fake core repeats the Go core's rules in Dart (what is next, the
-watched latch). App tests are to run the real core binary over a stub addon,
-with only the failures a test injects kept fake (roadmap).
+watched latch). It is to return what a test sets instead, with its JSON as
+fixtures the Go tests check against the real handlers (roadmap). The real core
+binary cannot serve app tests: they run in fake time, and HTTP to another
+process is real I/O.

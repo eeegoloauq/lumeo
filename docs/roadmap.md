@@ -16,11 +16,23 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    instead means the activation token did not arrive. Impeller
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
-2. **App tests over the real core.** `client/test/ui/fake_core.dart` repeats
-   the Go core's rules in Dart (what is next, the watched latch) and has to be
-   changed with them. The app tests run the real core binary over a stub addon
-   serving fixed catalogue and stream JSON instead, and only the failures a
-   test injects (a 403, a late core) stay fakes (decisions/testing.md).
+2. **Finish the test cleanup** (decisions/testing.md), in this order:
+   - A fake core without the core's rules. `client/test/ui/fake_core.dart`
+     computes what is next and the watched latch (about 150 lines) and has to
+     change with the Go core. It should return what the test set instead, and
+     the JSON it answers with should be shared fixtures that the Go tests
+     check against the real handlers, so the two cannot drift. The real core
+     binary cannot serve app tests: they run in fake time, and HTTP to a
+     process is real I/O that fake time does not advance.
+   - Comments in tests: one or two lines on why, not the story of the
+     defect (533 comment lines in `test/ui/` and `integration_test/`).
+   - Split app tests that check several behaviours at once (settings'
+     "Downloads stores the keep policy, the disk limit, prefetch and
+     seeding" and the like), so a failure names what broke.
+   - The player jobs bound CI's wall time: go through `integration_test/` for
+     tests that open a player only to check one property.
+   Expected: 300–500 fewer lines, not a thousand; the routing and fixtures
+   of the fake stay.
 3. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
