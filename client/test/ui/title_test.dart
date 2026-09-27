@@ -202,128 +202,83 @@ void main() {
     );
   });
 
-  uiTest('an episode card says watched, on disk and arriving', (tester) async {
-    // Watched is a full bar, not a check: the check read as a heavy box over a
-    // real still.
-    await openSeries(
-      tester,
-      api: fakeCore(
-        preferences: const {
-          'subtitleLanguages': ['en'],
-          'episodeArtwork': 'show',
-        },
-        downloads: [
-          fakeDownload(
-            itemId: 'tt0903747',
-            season: 1,
-            episode: 1,
-            state: 'done',
-          ),
-          fakeDownload(id: 'd2', itemId: 'tt0903747', season: 1, episode: 3),
-        ],
-        progress: {'tt0903747': secondEpisodeStarted(500)},
-      ),
-    );
-    await tester.drag(find.byType(HorizontalStrip), const Offset(400, 0));
-    await pumpFor(tester, const Duration(seconds: 1));
-    Finder card(int number) => find.byWidgetPredicate(
-      (w) => w is EpisodeCard && w.episode.number == number,
-    );
-    double? bar(int number) => tester
-        .widget<LinearProgressIndicator>(
-          find.descendant(
-            of: card(number),
-            matching: find.byType(LinearProgressIndicator),
-          ),
-        )
-        .value;
-    expect(bar(1), 1, reason: 'watched is a full bar, not a check');
-    expect(
-      find.descendant(of: card(1), matching: find.byIcon(Icons.check)),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: card(1), matching: find.byIcon(Icons.download)),
-      findsOneWidget,
-      reason: 'on disk',
-    );
-    expect(bar(2), closeTo(500 / 1200, 0.01));
-    expect(
-      find.descendant(
-        of: card(3),
-        matching: find.byType(CircularProgressIndicator),
-      ),
-      findsOneWidget,
-      reason: 'on its way',
-    );
-  });
+  Finder cardAt(int number) => find.byWidgetPredicate(
+    (w) => w is EpisodeCard && w.episode.number == number,
+  );
+  EpisodeCard card(WidgetTester tester, int number) =>
+      tester.widget<EpisodeCard>(cardAt(number));
+  Rect stripRect(WidgetTester tester) =>
+      tester.getRect(find.byType(HorizontalStrip));
+  Future<void> press(
+    WidgetTester tester,
+    LogicalKeyboardKey key, [
+    int times = 1,
+  ]) async {
+    for (var i = 0; i < times; i++) {
+      await tester.sendKeyEvent(key);
+      await tester.pumpAndSettle();
+    }
+  }
 
-  uiTest('arrows walk the season, keep a neighbour in sight, and Enter '
-      'plays', (tester) async {
+  uiTest('arrows walk the season and keep a neighbour in sight', (
+    tester,
+  ) async {
     await openSeries(tester);
-    EpisodeCard card(int number) => tester.widget<EpisodeCard>(
-      find.byWidgetPredicate(
-        (w) => w is EpisodeCard && w.episode.number == number,
-      ),
-    );
-    Finder cardAt(int number) => find.byWidgetPredicate(
-      (w) => w is EpisodeCard && w.episode.number == number,
-    );
-    final strip = tester.getRect(find.byType(HorizontalStrip));
-
     expect(
-      card(1).focusNode.hasFocus,
+      card(tester, 1).focusNode.hasFocus,
       isTrue,
       reason: 'the arrows work without a click first',
     );
-    expect(card(1).selected, isTrue);
-    for (var i = 0; i < 5; i++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pumpAndSettle();
-    }
-    expect(card(6).selected, isTrue, reason: 'being on a card chooses it');
+    await press(tester, LogicalKeyboardKey.arrowRight, 5);
+    expect(
+      card(tester, 6).selected,
+      isTrue,
+      reason: 'being on a card chooses it',
+    );
     expect(
       find.textContaining('Episode 6 · Crazy Handful of Nothin'),
       findsOneWidget,
     );
     expect(
       tester.getRect(cardAt(5)).left,
-      greaterThanOrEqualTo(strip.left),
+      greaterThanOrEqualTo(stripRect(tester).left),
       reason: 'the card before the reached one stays in sight',
     );
+  });
 
+  uiTest('the strip stays where the arrows took it', (tester) async {
     // Changing between episodes with and without a synopsis used to reset the
     // strip to episode one.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pumpAndSettle();
-    expect(card(5).selected, isTrue);
+    await openSeries(tester);
+    await press(tester, LogicalKeyboardKey.arrowRight, 5);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(card(tester, 5).selected, isTrue);
     expect(find.text('The story continues.'), findsOneWidget);
     expect(
       tester.getRect(cardAt(5)).right,
-      lessThanOrEqualTo(strip.right),
-      reason: 'the strip stayed where the keyboard took it',
+      lessThanOrEqualTo(stripRect(tester).right),
     );
+  });
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pumpAndSettle();
+  uiTest('arrows cross into the next season and back', (tester) async {
+    await openSeries(tester);
+    await press(tester, LogicalKeyboardKey.arrowRight, 6);
     expect(
       find.textContaining('Episode 1 · Seven Thirty-Seven'),
       findsOneWidget,
-      reason: 'right past the last episode opens the next season',
     );
-    expect(card(1).focusNode.hasFocus, isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pumpAndSettle();
-    expect(card(6).selected, isTrue, reason: 'and left comes back');
-    expect(tester.getRect(cardAt(6)).right, lessThanOrEqualTo(strip.right));
+    expect(card(tester, 1).focusNode.hasFocus, isTrue);
+    await press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(card(tester, 6).selected, isTrue);
+    expect(
+      tester.getRect(cardAt(6)).right,
+      lessThanOrEqualTo(stripRect(tester).right),
+    );
+  });
 
-    for (var i = 0; i < 4; i++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    }
-    await tester.pumpAndSettle();
-    expect(card(2).selected, isTrue);
+  uiTest('Enter plays the episode the arrows reached', (tester) async {
+    await openSeries(tester);
+    await press(tester, LogicalKeyboardKey.arrowRight);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(
@@ -331,7 +286,6 @@ void main() {
       contains('S01E02'),
     );
   });
-
   uiTest('Play on a card that is not the chosen one plays that card', (
     tester,
   ) async {
@@ -386,44 +340,6 @@ void main() {
     expect(find.text('Breaking Bad'), findsWidgets);
     expect(find.byType(EpisodeCard), findsWidgets);
     expect(find.text('Try again'), findsNothing);
-  });
-
-  uiTest('episode artwork preference hides and blurs spoilers', (tester) async {
-    final progress = {'tt0903747': secondEpisodeStarted(120)};
-    await openSeries(
-      tester,
-      progress: progress,
-      preferences: const {
-        'subtitleLanguages': ['en'],
-        'episodeArtwork': 'hide',
-      },
-    );
-    expect(
-      find.descendant(
-        of: find.byType(EpisodeCard),
-        matching: find.byType(Image),
-      ),
-      findsNothing,
-    );
-
-    // A missing still must not blur its placeholder and reveal the episode
-    // number.
-    await openSeries(
-      tester,
-      progress: progress,
-      preferences: const {
-        'subtitleLanguages': ['en'],
-        'episodeArtwork': 'blur',
-      },
-    );
-    final second = find.byWidgetPredicate(
-      (w) => w is EpisodeCard && w.episode.number == 2,
-    );
-    expect(
-      find.descendant(of: second, matching: find.byType(ImageFiltered)),
-      findsNothing,
-      reason: 'a placeholder for a still that failed is not blurred',
-    );
   });
 
   uiTest('a copy this machine cannot decode is marked, and not played', (

@@ -107,52 +107,6 @@ void main() {
     expect(playing(tester), 'd1');
   });
 
-  uiTest('a season in the downloads panel is one row per state that '
-      'opens into its episodes, and Clear takes what finished', (tester) async {
-    final now = DateTime.now();
-    await openHome(
-      tester,
-      downloads: [
-        for (final e in [1, 2, 3])
-          fakeDownload(
-            id: 'bb$e',
-            itemId: 'tt0903747',
-            season: 1,
-            episode: e,
-            state: e == 1 ? 'done' : 'active',
-            updatedAt: now,
-          ),
-        fakeDownload(state: 'done', updatedAt: now),
-        fakeDownload(
-          id: 'old',
-          itemId: 'tt0000001',
-          state: 'done',
-          updatedAt: now.subtract(const Duration(days: 3)),
-        ),
-      ],
-    );
-    await tester.tap(find.byKey(const ValueKey('downloads')));
-    await tester.pumpAndSettle();
-    expect(find.text('READY TO WATCH'), findsOneWidget);
-    expect(find.text('S1 E1'), findsOneWidget);
-    expect(find.text('S1 E2–E3'), findsOneWidget, reason: 'one row for both');
-    expect(find.text('E2'), findsNothing, reason: 'collapsed');
-    expect(find.byKey(const ValueKey('download:old')), findsNothing);
-
-    await tester.tap(find.text('S1 E2–E3'));
-    await tester.pumpAndSettle();
-    for (final e in ['E2', 'E3']) {
-      expect(find.text(e), findsOneWidget);
-    }
-
-    await tester.tap(find.text('Clear'));
-    await tester.pumpAndSettle();
-    expect(find.text('READY TO WATCH'), findsNothing);
-    expect(find.byKey(const ValueKey('download:d1')), findsNothing);
-    expect(find.text('S1 E1'), findsNothing);
-    expect(find.text('E2'), findsOneWidget, reason: 'the season still runs');
-  });
-
   uiTest('Storage in the downloads panel opens the downloads settings', (
     tester,
   ) async {

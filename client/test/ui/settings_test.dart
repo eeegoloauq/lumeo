@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/platform/decoders.dart';
+import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/screens/settings/settings_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/setting_row.dart';
@@ -372,10 +373,12 @@ void main() {
     );
   });
 
-  uiTest('Downloads stores the keep policy, the disk limit, prefetch and '
-      'seeding', (tester) async {
+  /// Opens Settings at Downloads over a core that records what it is sent.
+  Future<List<String>> openDownloads(
+    WidgetTester tester, {
+    LocalSettings? settings,
+  }) async {
     final patched = <String>[];
-    final settings = temporarySettings();
     await tester.pumpWidget(
       testApp(
         api: fakeCore(patched: patched),
@@ -384,8 +387,18 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.downloads);
-    final downloads = settingsSection(SettingsSection.downloads);
+    return patched;
+  }
 
+  Finder switchOf(String row) => find.descendant(
+    of: find.widgetWithText(SettingRow, row),
+    matching: find.byType(Switch),
+  );
+
+  uiTest('Downloads sends the keep policy, a custom one in days', (
+    tester,
+  ) async {
+    final patched = await openDownloads(tester);
     await tester.tap(find.text('Right away'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'keep': 'watched'});
@@ -410,49 +423,62 @@ void main() {
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'keep': 'days', 'keepDays': 12});
     expect(find.text('After 12 days'), findsOneWidget);
+  });
 
+  uiTest('Downloads sends the disk limit', (tester) async {
+    final patched = await openDownloads(tester);
     await tester.tap(find.text('100 GB'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'diskLimit': 100 << 30});
     expect(strip<int>(tester, '100 GB').selected, {100 << 30});
+  });
 
-    final prefetch = find.descendant(
-      of: find.widgetWithText(SettingRow, 'Download next episode'),
-      matching: find.byType(Switch),
-    );
-    await tester.tap(prefetch);
+  uiTest('Downloads sends prefetch switched off', (tester) async {
+    final patched = await openDownloads(tester);
+    await tester.tap(switchOf('Download next episode'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'prefetch': false});
-    expect(tester.widget<Switch>(prefetch).value, isFalse);
-
-    final seeding = find.descendant(
-      of: find.widgetWithText(SettingRow, 'Seeding'),
-      matching: find.byType(Switch),
+    expect(
+      tester.widget<Switch>(switchOf('Download next episode')).value,
+      isFalse,
     );
-    await reveal(tester, seeding);
-    await tester.tap(seeding);
+  });
+
+  uiTest('Downloads sends seeding switched off', (tester) async {
+    final patched = await openDownloads(tester);
+    await reveal(tester, switchOf('Seeding'));
+    await tester.tap(switchOf('Seeding'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'seed': false});
+  });
 
+  uiTest('Downloads sends the upload limit', (tester) async {
+    final patched = await openDownloads(tester);
     final upload = find.descendant(
       of: find.widgetWithText(SettingRow, 'Upload limit'),
       matching: find.text('1 MB/s'),
     );
+    await reveal(tester, upload);
     await tester.tap(upload);
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'uploadLimit': 1 << 20});
+  });
 
+  uiTest('How long finished downloads stay in the panel is this machine\'s', (
+    tester,
+  ) async {
+    final settings = temporarySettings();
+    final patched = await openDownloads(tester, settings: settings);
     final finished = find.descendant(
-      of: downloads,
+      of: settingsSection(SettingsSection.downloads),
       matching: find.text('7 days'),
     );
     await reveal(tester, finished);
     await tester.tap(finished);
     await tester.pumpAndSettle();
     expect(settings.keepFinished, '7d');
-    expect(jsonDecode(patched.last), {'uploadLimit': 1 << 20});
+    expect(patched, isEmpty);
   });
-
   uiTest(
     'Downloads names the folders, and offers to open and change the videos '
     'one only on this machine',

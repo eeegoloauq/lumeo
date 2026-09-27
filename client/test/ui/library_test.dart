@@ -82,10 +82,9 @@ void main() {
     );
   });
 
-  uiTest('the history lists what was watched, scores it and forgets it', (
-    tester,
-  ) async {
-    final calls = <String>[];
+  /// Episode 1 watched and episode 2 started, both in the history, which
+  /// is open; what the history sends goes to [calls].
+  Future<void> openHistory(WidgetTester tester, List<String> calls) async {
     await tester.pumpWidget(
       testApp(
         api: fakeCore(
@@ -158,9 +157,15 @@ void main() {
     await openLibrary(tester);
     await tester.tap(find.byKey(const ValueKey('library:history')));
     await tester.pumpAndSettle();
+  }
 
-    final second = find.byKey(const ValueKey('viewing:tt0903747:1:2'));
-    final first = find.byKey(const ValueKey('viewing:tt0903747:1:1'));
+  final second = find.byKey(const ValueKey('viewing:tt0903747:1:2'));
+  final first = find.byKey(const ValueKey('viewing:tt0903747:1:1'));
+
+  uiTest('the history lists what was watched, the latest first', (
+    tester,
+  ) async {
+    await openHistory(tester, []);
     expect(
       find.descendant(
         of: second,
@@ -176,12 +181,12 @@ void main() {
       find.descendant(of: first, matching: find.textContaining('watched')),
       findsOneWidget,
     );
-    expect(
-      tester.getTopLeft(second).dy,
-      lessThan(tester.getTopLeft(first).dy),
-      reason: 'the latest first',
-    );
+    expect(tester.getTopLeft(second).dy, lessThan(tester.getTopLeft(first).dy));
+  });
 
+  uiTest('an episode is scored from the history', (tester) async {
+    final calls = <String>[];
+    await openHistory(tester, calls);
     await tester.tap(find.descendant(of: first, matching: find.text('Rate')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('9'));
@@ -193,7 +198,10 @@ void main() {
       find.descendant(of: first, matching: find.text('9')),
       findsOneWidget,
     );
+  });
 
+  uiTest('an episode is removed from the history', (tester) async {
+    await openHistory(tester, []);
     await tester.tap(
       find.descendant(
         of: second,
@@ -203,7 +211,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(second, findsNothing);
     expect(first, findsOneWidget);
+  });
 
+  uiTest('a line of the history opens its title on its episode', (
+    tester,
+  ) async {
+    await openHistory(tester, []);
     await tester.tap(
       find.descendant(of: first, matching: find.textContaining('Pilot')),
     );

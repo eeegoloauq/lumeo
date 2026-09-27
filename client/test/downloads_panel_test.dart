@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,7 @@ Map<String, Object?> _download(
   String? error,
   int? eta,
   int rate = 0,
+  DateTime? updatedAt,
 }) => {
   'id': id,
   'itemId': 'tt1',
@@ -45,7 +47,7 @@ Map<String, Object?> _download(
   'waitingSince': ?waitingSince,
   if (pausedByUser) 'pausedByUser': true,
   'error': ?error,
-  'updatedAt': DateTime.now().toUtc().toIso8601String(),
+  'updatedAt': (updatedAt ?? DateTime.now()).toUtc().toIso8601String(),
   'progress': {
     'completed': _gb,
     'total': 2 * _gb,
@@ -111,6 +113,7 @@ void main() {
     void Function(Download)? onPlay,
     void Function(Download)? onStop,
     VoidCallback? onStorage,
+    LocalSettings? settings,
   }) async {
     final store = DownloadsStore(api);
     final preferences = PreferencesStore(api);
@@ -125,7 +128,8 @@ void main() {
             child: DownloadsIndicator(
               api: api,
               store: store,
-              settings: LocalSettings(path: '/nonexistent/client.json'),
+              settings:
+                  settings ?? LocalSettings(path: '/nonexistent/client.json'),
               preferences: preferences,
               onStop: onStop ?? (_) {},
               onOpen: (_) {},
@@ -235,6 +239,43 @@ void main() {
     expect(stopped, ['e8']);
     await tester.tap(find.byTooltip('Stop and discard E7–E8'));
     expect(stopped, ['e8', 'e7', 'e8']);
+    await close(tester, store);
+  }, variant: _linux);
+
+  testWidgets('Clear takes what finished and leaves what still runs', (
+    tester,
+  ) async {
+    downloads = [
+      _download('done', state: 'done', season: 1, episode: 1),
+      _download('running', season: 1, episode: 2),
+    ];
+    final directory = Directory.systemTemp.createTempSync('lumeo-panel-');
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final settings = LocalSettings(path: '${directory.path}/client.json');
+    final store = await open(tester, settings: settings);
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+    expect(find.text('READY TO WATCH'), findsNothing);
+    expect(find.byKey(const ValueKey('download:running')), findsOneWidget);
+    await close(tester, store);
+    // Runs out the save Clear scheduled, or its timer fails the test.
+    await tester.pump(const Duration(seconds: 1));
+  }, variant: _linux);
+
+  testWidgets('what finished before the keep time is not listed', (
+    tester,
+  ) async {
+    downloads = [
+      _download('recent', state: 'done'),
+      _download(
+        'old',
+        state: 'done',
+        updatedAt: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+    ];
+    final store = await open(tester);
+    expect(find.byKey(const ValueKey('download:recent')), findsOneWidget);
+    expect(find.byKey(const ValueKey('download:old')), findsNothing);
     await close(tester, store);
   }, variant: _linux);
 

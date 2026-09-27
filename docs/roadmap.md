@@ -16,14 +16,9 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    instead means the activation token did not arrive. Impeller
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
-2. **Finish the test cleanup** (decisions/testing.md), in this order:
-   - Split app tests that check several behaviours at once (settings'
-     "Downloads stores the keep policy, the disk limit, prefetch and
-     seeding" and the like), so a failure names what broke.
-   - The player jobs bound CI's wall time: go through `integration_test/` for
-     tests that open a player only to check one property.
-   Expected: 300–500 fewer lines, not a thousand; the routing and fixtures
-   of the fake stay.
+2. **Finish the test cleanup** (decisions/testing.md): the player jobs bound
+   CI's wall time, so go through `integration_test/` for tests that open a
+   player only to check one property.
 3. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
