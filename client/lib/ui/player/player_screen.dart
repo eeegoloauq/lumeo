@@ -193,6 +193,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   // Core and mpv failures need different messages.
   Object? _playbackError;
+  // mpv's last error line explains a failure; on its own it is not one.
+  Object? _lastLogError;
 
   int _attempts = 0;
   DateTime? _firstFailure;
@@ -410,6 +412,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
         } else if (args[1] == 'tracks') {
           _openMenu(PlayerMenu.tracks);
         }
+      }),
+    );
+    _subscriptions.add(
+      host.failures.listen((reason) {
+        if (mounted) _onLoadFailed(reason);
       }),
     );
     host.shutdown.then((_) {
@@ -701,6 +708,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
         final stream = widget.api.streamUrl(widget.download);
         final headers = await widget.api.token.headers();
+        _lastLogError = null;
         await _player.open(Media(stream, httpHeaders: headers));
         // A superseded async open must not hide the waiting overlay.
         if (!mounted || attempt != _generation) return;
@@ -1569,18 +1577,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// Decoder availability determines which recovery advice is accurate.
   Future<void> _explain(Object error) async {
     final codec = decoderErrorCodec(error);
-    final sound = codec != null && await _isSoundTrack(codec);
-    if (!mounted) return;
-    // A network startup failure may be transient; no picture and no named
-    // codec is insufficient evidence that the copy is broken.
-    if (!sound && !_hasPicture && codec == null) {
-      // mpv may report the same failure more than once per attempt.
-      if (_reopenPending) return;
-      if (_worthAnotherAttempt) {
-        _openAgainLater();
-        return;
-      }
+    // A line naming no codec is kept to explain a failure mpv reports later:
+    // Windows without a working d3d11va logs an error per hardware decoder it
+    // tries before it decodes in software, and the film plays.
+    if (codec == null) {
+      _lastLogError = error;
+      return;
     }
+    final sound = await _isSoundTrack(codec);
+    if (!mounted) return;
     setState(() {
       if (sound) {
         _silent = codec;
@@ -1590,7 +1595,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
     if (sound || _hasPicture) _showNotice(_trouble(error, sound: sound));
 
-    if (codec == null || _decoderAsked) return;
+    if (_decoderAsked) return;
     _decoderAsked = true;
     await DeviceDecoders.instance.load();
     if (!mounted) return;
@@ -1604,6 +1609,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!present && (sound || _hasPicture)) {
       _showNotice(_trouble(error, sound: sound));
     }
+  }
+
+  /// mpv gave up on the file. Before the first picture that may be a stream
+  /// dropped while it was opened, so it is opened again until [openPatience]
+  /// runs out; a missing picture decoder is already a verdict.
+  void _onLoadFailed(String reason) {
+    if (_playbackError != null || _reopenPending) return;
+    if (!_hasPicture && _worthAnotherAttempt) {
+      _openAgainLater();
+      return;
+    }
+    final error = _lastLogError ?? reason;
+    setState(() => _playbackError = error);
+    if (_hasPicture) _showNotice(_trouble(error, sound: false));
   }
 
   String _trouble(Object error, {required bool sound}) {

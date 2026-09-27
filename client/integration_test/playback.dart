@@ -217,6 +217,55 @@ void playbackTests() {
     );
   });
 
+  testWidgets('an error mpv logs while it finds a decoder does not reopen '
+      'the film', (tester) async {
+    // Windows with no working d3d11va or dxva2 logs "Failed to allocate
+    // AVHWDeviceContext." as a decoder error on every open, then decodes in
+    // software and plays. media_kit hands that line on as a player error, and
+    // the player took it for a failed open and opened the film again and
+    // again. The line is from mpv's Windows code, so a script named vd, whose
+    // log lines carry that prefix, logs it here as each file loads and counts
+    // the loads.
+    final server = await serveFilm();
+    final download = fakeDownload(ready: false);
+    await tester.pumpWidget(
+      LumeoApp(
+        api: fakeCore(
+          downloads: [download],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await pumpFor(tester, const Duration(seconds: 1));
+    final scripts = Directory.systemTemp.createTempSync('lumeo-vd');
+    addTearDown(() => scripts.deleteSync(recursive: true));
+    final script = File('${scripts.path}/vd.lua')
+      ..writeAsStringSync(
+        'local loads = 0\n'
+        'mp.add_hook("on_load", 50, function()\n'
+        '  loads = loads + 1\n'
+        '  mp.set_property_native("user-data/loads", loads)\n'
+        '  mp.msg.error("Failed to allocate AVHWDeviceContext.")\n'
+        'end)\n',
+      );
+    final mpv = mpvOnScreen(tester);
+    await mpv.command(['load-script', script.path]);
+    download['ready'] = true;
+    await waitFor(
+      tester,
+      () async => (double.tryParse(await mpv.getProperty('time-pos')) ?? 0) > 3,
+      what: 'the film playing',
+    );
+    expect(
+      await mpv.getProperty('user-data/loads'),
+      '1',
+      reason: 'opened once, not again for a decoder mpv did without',
+    );
+    expect(find.text('This copy would not start'), findsNothing);
+  });
+
   testWidgets('a file opened with Lumeo plays at once', (tester) async {
     // "Open with Lumeo" on a file did nothing: nothing read the argument.
     // The core makes the file a download, and the player plays that.

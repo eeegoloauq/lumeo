@@ -11,8 +11,8 @@ import 'package:media_kit/src/player/native/core/native_library.dart';
 MPV openLibmpv() => MPV(DynamicLibrary.open(NativeLibrary.path));
 
 /// A second libmpv client on the player's core. media_kit keeps
-/// client-message and shutdown events to itself; this one hears them, and
-/// reads properties without blocking the Dart thread.
+/// client-message, end-file and shutdown events to itself; this one hears
+/// them, and reads properties without blocking the Dart thread.
 class MpvHost {
   MpvHost._(this._mpv, this._handle) {
     _wakeup = NativeCallable<Void Function(Pointer<Void>)>.listener((
@@ -28,6 +28,14 @@ class MpvHost {
               for (var i = 0; i < message.num_args; i++)
                 message.args[i].cast<Utf8>().toDartString(),
             ]);
+            break;
+          case mpv_event_id.MPV_EVENT_END_FILE:
+            final end = event.data.cast<mpv_event_end_file>().ref;
+            if (end.reason == mpv_end_file_reason.MPV_END_FILE_REASON_ERROR) {
+              _failures.add(
+                _mpv.mpv_error_string(end.error).cast<Utf8>().toDartString(),
+              );
+            }
             break;
           case mpv_event_id.MPV_EVENT_SHUTDOWN:
             if (!_shutdown.isCompleted) _shutdown.complete();
@@ -68,12 +76,18 @@ class MpvHost {
   final Pointer<mpv_handle> _handle;
   late final NativeCallable<Void Function(Pointer<Void>)> _wakeup;
   final _messages = StreamController<List<String>>.broadcast();
+  final _failures = StreamController<String>.broadcast();
   final _shutdown = Completer<void>();
   final _reads = <int, Completer<String?>>{};
   int _nextReply = 0;
   bool _disposed = false;
 
   Stream<List<String>> get messages => _messages.stream;
+
+  /// Why mpv gave up on a file it was loading or playing, in mpv's words.
+  /// Its error log lines are not this: a hardware decoder that fails before
+  /// mpv falls back to software logs errors and the film still plays.
+  Stream<String> get failures => _failures.stream;
   Future<void> get shutdown => _shutdown.future;
 
   Future<String?> get(String property) {
@@ -105,6 +119,7 @@ class MpvHost {
     }
     _reads.clear();
     _messages.close();
+    _failures.close();
     _mpv.mpv_destroy(_handle);
   }
 }
