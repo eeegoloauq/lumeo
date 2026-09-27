@@ -4,6 +4,10 @@
 #
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
+#
+# release.yml calls this too, and publishes only when it passes: the full UI
+# suite runs here and nowhere else, since on the dev box it takes over ten
+# minutes and a change there is checked with the tests of its own area.
 name: ci
 
 on:
@@ -13,6 +17,12 @@ on:
       - client/**
       - .github/workflows/ci.yml
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      cache:
+        # release.yml restores no cache; it says why.
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -33,7 +43,7 @@ jobs:
         with:
           channel: stable
           flutter-version: 3.47.2
-          cache: true
+          cache: ${{ inputs.cache != false }}
       - run: flutter pub get
       # Not third_party/: the fork stays byte-for-byte upstream plus LUMEO.md's patches.
       - run: dart format --output=none --set-exit-if-changed lib test integration_test

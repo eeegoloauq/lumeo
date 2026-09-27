@@ -20,6 +20,12 @@ permissions:
   contents: read
 
 jobs:
+  # The client checks and the full UI suite, which publish waits for.
+  checks:
+    uses: ./.github/workflows/ci.yml
+    with:
+      cache: false
+
   dist:
     runs-on: ubuntu-latest
     steps:
@@ -120,10 +126,10 @@ jobs:
           name: windows
           path: dist/*.exe
 
-  # Waits for every build: the release appears whole, with one SHA256SUMS
-  # over all of its files, or not at all.
+  # Waits for every build and the checks: the release appears whole and
+  # tested, with one SHA256SUMS over all of its files, or not at all.
   publish:
-    needs: [dist, rpm, arch, windows]
+    needs: [checks, dist, rpm, arch, windows]
     runs-on: ubuntu-latest
     # The only job that writes to the repository.
     permissions:

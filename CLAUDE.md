@@ -15,10 +15,11 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 - Ubuntu ships libmpv 0.37, Fedora 0.41. `client/tool/build-mpv.sh` builds 0.41.0 into
   `~/.cache/lumeo` and `tool/ui-test.sh` runs on it when it is there (it prints which). CI stays on
   the runner's 0.37, so both versions are covered.
-- While debugging, run one UI test: `tool/ui-test.sh --plain-name "<test name>"` (about a
-  minute). The full suite (about five) runs once before the commit. A later fix that the tests
-  it touches cover is checked with those; the full suite runs again only when a fix reaches
-  shared code (the shell, the player, the fake core) and before a release.
+- Locally, run the UI areas a change reaches: `tool/ui-test.sh --name '^player '` (one to three
+  minutes), or one test with `--plain-name "<test name>"`. Shared code (the shell, the fake core)
+  reaches every area that uses it, not the whole suite. The full suite (over ten minutes here)
+  never runs locally: GitHub CI runs it on every push to main and on the tag, and the release is
+  published only when it passes.
 - UI checks live in `client/integration_test/<area>.dart`, all started from `app_test.dart`: every
   `*_test.dart` there is a build and a launch of its own.
 - A UI test never waits out one of the app's own timers. A timeout it needs to see run out is a

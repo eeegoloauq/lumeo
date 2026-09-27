@@ -49,13 +49,17 @@ Client:
     dart format --output=none --set-exit-if-changed lib test integration_test
     flutter analyze
     flutter test
-    tool/ui-test.sh                # the real app on a headless Weston, about five minutes
+    tool/ui-test.sh --name '^player '   # the real app on a headless Weston, one area
 
 `dart format lib test integration_test` fixes what the first line complains about; format on save
 in your editor and it never does. `third_party/` is left alone: it stays upstream's code.
 
-`tool/ui-test.sh --plain-name "<test name>"` runs one UI test. Every check in
-`client/integration_test/` is a defect that once shipped; a fix for a visible defect comes with one.
+The UI tests are grouped by area (`shell`, `search`, `downloads`, `settings`, `library`, `title`,
+`playback`, `player`); run the areas your change reaches, or one test with
+`--plain-name "<test name>"`. The whole suite takes over ten minutes, so it runs in GitHub CI on
+every push to `main` and on every tag, and a release is published only when it passes. Every check
+in `client/integration_test/` is a defect that once shipped; a fix for a visible defect comes with
+one.
 
 Nothing here builds or runs the Windows client (`packaging/build-windows.sh` runs on Windows only),
 so a change to `client/windows/` or to a Windows branch in Dart needs checking on a Windows machine.
