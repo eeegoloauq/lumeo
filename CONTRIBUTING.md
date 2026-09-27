@@ -56,9 +56,9 @@ in your editor and it never does. `third_party/` is left alone: it stays upstrea
 
 The UI tests are grouped by area (`shell`, `search`, `downloads`, `settings`, `library`, `title`,
 `playback`, `player`); run the areas your change reaches, or one test with
-`--plain-name "<test name>"`. The whole suite takes over ten minutes, so GitHub CI runs it for
-every tag, and the release is published only when it passes; a push to `main` gets the quick
-checks. Every check
+`--plain-name "<test name>"`. The whole suite takes over ten minutes, so it runs in GitHub CI on
+every push to `main` that touches the client and on every tag; the release is published only
+when it passes. Every check
 in `client/integration_test/` is a defect that once shipped; a fix for a visible defect comes with
 one.
 

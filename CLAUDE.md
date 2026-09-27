@@ -18,8 +18,9 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 - Locally, run the UI areas a change reaches: `tool/ui-test.sh --name '^player '` (one to three
   minutes), or one test with `--plain-name "<test name>"`. Shared code (the shell, the fake core)
   reaches every area that uses it, not the whole suite. The full suite (over ten minutes here)
-  never runs locally: GitHub CI runs it for the tag, and the release is published only when it
-  passes. A red suite there is rerun here test by test with `--plain-name`.
+  never runs locally: GitHub CI runs it on every client push to main and on the tag, and the
+  release is published only when it passes. A red suite there is rerun here test by test with
+  `--plain-name`.
 - UI checks live in `client/integration_test/<area>.dart`, all started from `app_test.dart`: every
   `*_test.dart` there is a build and a launch of its own.
 - A UI test never waits out one of the app's own timers. A timeout it needs to see run out is a

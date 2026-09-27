@@ -5,9 +5,10 @@
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# A push gets the quick checks. The UI suite (over ten minutes) runs when
-# release.yml calls this with ui, and the release is published only when it
-# passes; while working, a change is checked with the UI tests of its area.
+# Every push that touches the client runs the whole UI suite (about ten
+# minutes); while working, a change is checked here with the tests of its own
+# area, and this catches what it broke elsewhere. release.yml calls this too
+# and publishes only when it passes.
 name: ci
 
 on:
@@ -58,7 +59,7 @@ jobs:
       - run: flutter test
 
   ui:
-    if: inputs.ui
+    if: github.event_name == 'push' || inputs.ui
     runs-on: ubuntu-latest
     defaults:
       run:
