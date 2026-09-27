@@ -140,6 +140,31 @@ void main() {
     expect(started, isNotEmpty, reason: 'Play asked the core for a download');
   });
 
+  uiTest('leaving a film started from the banner does not start it again', (
+    tester,
+  ) async {
+    // Play from the banner used to leave "start this" set, so leaving the film
+    // started it again.
+    final started = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(started: started, downloads: [fakeDownload()]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await waitFor(
+      tester,
+      () async => playing(tester) != null,
+      what: 'the film opened',
+    );
+    tester.widget<PlayerStandIn>(find.byType(PlayerStandIn)).screen.onClose();
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    expect(playing(tester), isNull);
+    expect(started, hasLength(1));
+  });
+
   uiTest('a file the core refuses says why', (tester) async {
     await tester.pumpWidget(
       testApp(open: '/films/notes.txt', api: fakeCore(openFails: true)),

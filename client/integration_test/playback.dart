@@ -68,36 +68,6 @@ void playbackTests() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('leaving a film started from the banner does not start it again', (
-    tester,
-  ) async {
-    // Play from the banner used to leave "start this" set, so leaving the film
-    // started it again.
-    await tester.pumpWidget(
-      testApp(api: fakeCore(downloads: [fakeDownload()])),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play'));
-    await waitFor(
-      tester,
-      () async => find.byType(PlayerScreen).evaluate().isNotEmpty,
-      what: 'the player opened',
-    );
-    expect(
-      find.byType(PlayerScreen),
-      findsOneWidget,
-      reason: 'the film opened',
-    );
-    await playerKeysReady(tester);
-    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
-    await pumpFor(tester, const Duration(seconds: 6));
-    expect(
-      find.byType(PlayerScreen),
-      findsNothing,
-      reason: 'and it stays shut',
-    );
-  });
-
   testWidgets('a film the core cannot serve yet is never handed to mpv', (
     tester,
   ) async {
