@@ -52,12 +52,13 @@ void main() {
 
   tearDownAll(deleteTestFilms);
 
-  shellTests();
-  searchTests();
-  downloadsTests();
-  settingsTests();
-  libraryTests();
-  titleTests();
-  playbackTests();
-  playerTests();
+  // One group per area, so `tool/ui-test.sh --name '^player '` runs one.
+  group('shell', shellTests);
+  group('search', searchTests);
+  group('downloads', downloadsTests);
+  group('settings', settingsTests);
+  group('library', libraryTests);
+  group('title', titleTests);
+  group('playback', playbackTests);
+  group('player', playerTests);
 }
