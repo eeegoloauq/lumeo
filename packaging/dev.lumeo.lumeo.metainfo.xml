@@ -39,6 +39,26 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.65" date="2026-09-27">
+      <description>
+        <ul>
+          <li>A film starts at once on a computer without hardware video
+            decoding, instead of reopening three or four times and
+            showing an error first.</li>
+          <li>Subtitles sit above the controls and stay there, instead
+            of jumping up whenever the mouse moves.</li>
+          <li>Scoring a film or an episode you have not played here
+            marks it watched and puts the title on My list.</li>
+          <li>Fill and zoom keep the player's on-screen messages whole.</li>
+          <li>A seek shows its time as text instead of a bar across the
+            picture.</li>
+          <li>The next episode is offered on the last frame rather than
+            thirty seconds early, and Skip ending appears when a chapter
+            follows the credits.</li>
+          <li>The subtitle size you set is kept when a film opens.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.64" date="2026-09-26">
       <description>
         <ul>

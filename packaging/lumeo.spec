@@ -89,6 +89,20 @@ appstream-util validate-relax --nonet \
 %{_datadir}/icons/hicolor/*/apps/dev.lumeo.lumeo.*
 
 %changelog
+* Sun Sep 27 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.65-1
+- A film starts at once on a computer without hardware video decoding,
+  instead of reopening three or four times and showing an error first.
+- Subtitles sit above the controls and stay there, instead of jumping up
+  whenever the mouse moves.
+- Scoring a film or an episode you have not played here marks it watched
+  and puts the title on My list.
+- Fill and zoom keep the player's on-screen messages whole.
+- A seek shows its time as text instead of a bar across the picture.
+- The next episode is offered on the last frame rather than thirty
+  seconds early, and Skip ending appears when a chapter follows the
+  credits.
+- The subtitle size you set is kept when a film opens.
+
 * Sat Sep 26 2026 Lumeo <67159275+eeegoloauq@users.noreply.github.com> - 0.1.64-1
 - The interface is translated, Russian first. It follows the system language,
   and Settings, General, Language switches it at once. Titles, descriptions
