@@ -218,6 +218,20 @@ func TestPageRoundTripIncludingEmptyKey(t *testing.T) {
 	}
 }
 
+// A commit that waits for fsync waits out whatever else is writing to the
+// disk: a preference change took 18 s behind a torrent download.
+func TestCommitsDoNotWaitForTheDisk(t *testing.T) {
+	db := openTestDB(t, filepath.Join(t.TempDir(), "catalog.db"))
+	defer db.Close()
+	var level int
+	if err := db.db.QueryRow("PRAGMA synchronous").Scan(&level); err != nil {
+		t.Fatalf("read synchronous: %v", err)
+	}
+	if level != 1 {
+		t.Fatalf("synchronous = %d, want 1 (NORMAL)", level)
+	}
+}
+
 func openTestDB(t *testing.T, path string) *DB {
 	t.Helper()
 	db, err := Open(path, "test")

@@ -40,7 +40,13 @@ func Open(path, version string) (*DB, error) {
 	// at once instead of waiting out busy_timeout (SQLITE_BUSY_SNAPSHOT).
 	// Two pages opened quickly one after another hit exactly that. Immediate
 	// takes the lock up front, where the timeout applies.
-	db, err := sql.Open("sqlite", "file:"+path+"?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)")
+	//
+	// synchronous NORMAL: in WAL mode a commit then waits for no fsync, only a
+	// checkpoint does. At FULL, every commit waited for the disk, and with a
+	// torrent writing to the same disk one preference change took up to 18 s.
+	// NORMAL survives the app crashing; a power cut can lose the last few
+	// commits, never the database.
+	db, err := sql.Open("sqlite", "file:"+path+"?_txlock=immediate&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)&_pragma=synchronous(NORMAL)")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite database: %w", err)
 	}
