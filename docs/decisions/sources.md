@@ -24,6 +24,13 @@ Both were being thrown away with the rest of the text under the first line.
 Six rows show by default. Enough to see there is a choice, few enough that the
 list stays a detail of the page rather than the page itself.
 
+Each addon's answer for a film or episode is kept in the core's memory for as
+long as the addon's `cacheMaxAge` says, fifteen minutes without one, an hour at
+most: seeders and new copies move within the hour. Going to the next episode
+and back asks nothing again. An empty answer and a failure are not kept, so a
+copy released since, or an addon back from an outage, is found by the next
+look. Memory, not the database: a restart asking once more costs one request.
+
 ## What Play picks, and where the preference for it lives
 
 Ranking health before resolution is the first rule: the sharpest copy in a

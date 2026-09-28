@@ -45,7 +45,24 @@ type Addon struct {
 
 	mu       sync.Mutex
 	manifest *Manifest
+	streams  map[string]cachedStreams
 }
+
+// cachedStreams is an addon's answer for one film or episode, kept for as
+// long as the addon says it holds: switching episodes and back would
+// otherwise ask again, and wait again, for a list that has not changed.
+type cachedStreams struct {
+	found []sources.MediaSource
+	until time.Time
+}
+
+const (
+	// streamsFresh is how long an answer without cacheMaxAge is kept.
+	streamsFresh = 15 * time.Minute
+	// streamsMax bounds what an addon may ask for: seeders and new copies
+	// move within the hour, whatever the addon's own cache does.
+	streamsMax = time.Hour
+)
 
 // New builds a provider for one addon. baseURL is the configured addon root,
 // e.g. https://torrentio.strem.fun/sort=qualitysize (trailing manifest.json is
@@ -151,6 +168,21 @@ type streamResponse struct {
 			VideoSize  int64  `json:"videoSize"`
 		} `json:"behaviorHints"`
 	} `json:"streams"`
+	// CacheMaxAge is how many seconds the addon says its answer holds.
+	CacheMaxAge *int64 `json:"cacheMaxAge"`
+}
+
+// keep is how long an answer is cached: the addon's cacheMaxAge within
+// streamsMax, streamsFresh without one. An empty answer is not kept, so a
+// copy released a minute later is found by the next look.
+func (r streamResponse) keep() time.Duration {
+	if len(r.Streams) == 0 {
+		return 0
+	}
+	if r.CacheMaxAge == nil {
+		return streamsFresh
+	}
+	return min(time.Duration(max(*r.CacheMaxAge, 0))*time.Second, streamsMax)
 }
 
 func (a *Addon) Find(ctx context.Context, q sources.Query) ([]sources.MediaSource, error) {
@@ -161,10 +193,36 @@ func (a *Addon) Find(ctx context.Context, q sources.Query) ([]sources.MediaSourc
 	if q.Kind == catalog.KindSeries {
 		id = fmt.Sprintf("%s:%d:%d", q.IMDbID, q.Season, q.Episode)
 	}
+	address := fmt.Sprintf("%s/stream/%s/%s.json", a.baseURL, q.Kind, id)
+	now := time.Now()
+	a.mu.Lock()
+	cached, ok := a.streams[address]
+	a.mu.Unlock()
+	if ok && now.Before(cached.until) {
+		return cached.found, nil
+	}
 	var body streamResponse
-	if err := a.getJSON(ctx, fmt.Sprintf("%s/stream/%s/%s.json", a.baseURL, q.Kind, id), &body); err != nil {
+	if err := a.getJSON(ctx, address, &body); err != nil {
 		return nil, err
 	}
+	found := streams(a.id, body)
+	if keep := body.keep(); keep > 0 {
+		a.mu.Lock()
+		if a.streams == nil {
+			a.streams = make(map[string]cachedStreams)
+		}
+		for key, old := range a.streams {
+			if !now.Before(old.until) {
+				delete(a.streams, key)
+			}
+		}
+		a.streams[address] = cachedStreams{found: found, until: now.Add(keep)}
+		a.mu.Unlock()
+	}
+	return found, nil
+}
+
+func streams(providerID string, body streamResponse) []sources.MediaSource {
 
 	out := make([]sources.MediaSource, 0, len(body.Streams))
 	for _, s := range body.Streams {
@@ -179,7 +237,7 @@ func (a *Addon) Find(ctx context.Context, q sources.Query) ([]sources.MediaSourc
 			name = s.Name
 		}
 		ms := sources.MediaSource{
-			ProviderID: a.id,
+			ProviderID: providerID,
 			RawName:    name,
 			Release:    release.Parse(name),
 			Seeders:    parseSeeders(text),
@@ -210,7 +268,7 @@ func (a *Addon) Find(ctx context.Context, q sources.Query) ([]sources.MediaSourc
 		}
 		out = append(out, ms)
 	}
-	return out, nil
+	return out
 }
 
 var (
