@@ -75,9 +75,11 @@ func (s *Server) handleSubtitleFile(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, subtitles.ErrUnknownToken):
 		writeError(w, http.StatusNotFound, "unknown subtitle")
 		return
-	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+	case r.Context().Err() != nil:
 		return // the player gave up
 	case err != nil:
+		// The provider's own timeout is an error too: answered with nothing,
+		// the player reads an empty file and cannot tell it from a failure.
 		s.log.Warn("subtitle fetch failed", "err", err)
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
