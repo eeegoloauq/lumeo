@@ -39,6 +39,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.71" date="2026-09-28">
+      <description>
+        <ul>
+          <li>The banner's picture covers the whole width again. In 0.1.70 it stopped short of the right edge on wide windows.</li>
+          <li xml:lang="ru">Картинка баннера снова на всю ширину. В 0.1.70 на широком окне она обрывалась, не доходя до правого края.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.70" date="2026-09-28">
       <description>
         <ul>
