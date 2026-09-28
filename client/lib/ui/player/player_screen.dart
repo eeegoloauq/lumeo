@@ -97,6 +97,11 @@ Map<String, String> subtitleBackgroundProperties(
 @visibleForTesting
 Duration openPatience = const Duration(seconds: 30);
 
+/// How long a prefetch that failed waits before it asks again: without a
+/// network every provider fails, and the poll would ask every two seconds.
+@visibleForTesting
+Duration prefetchRetry = const Duration(seconds: 30);
+
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({
     super.key,
@@ -105,7 +110,6 @@ class PlayerScreen extends StatefulWidget {
     required this.frames,
     required this.download,
     required this.title,
-    required this.background,
     required this.settings,
     required this.preferences,
     required this.onClose,
@@ -121,8 +125,6 @@ class PlayerScreen extends StatefulWidget {
   final EpisodeFrames frames;
   final String download;
   final String title;
-
-  final String background;
   final LocalSettings settings;
   final PreferencesStore preferences;
   final VoidCallback onClose;
@@ -1025,20 +1027,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   bool _prefetchAsked = false;
+  DateTime? _prefetchAgainAt;
   NextFetch _nextFetch = NextFetch.waiting;
 
   /// The next episode's download, once there is one.
   Download? get _nextDownload {
     final download = _download, next = _next;
     if (download == null || next == null) return null;
-    return widget.downloads.all
-        .where(
-          (d) =>
-              d.itemId == download.itemId &&
-              d.season == next.season &&
-              d.episode == next.number,
-        )
-        .firstOrNull;
+    return widget.downloads.of(
+      download.itemId,
+      season: next.season,
+      episode: next.number,
+    );
   }
 
   void _onDownloads() {
@@ -1056,6 +1056,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final download = _download, next = _next;
     if (_prefetchAsked || download == null || !download.isDone) return;
     if (next == null || next.isUpcoming) return;
+    if (_prefetchAgainAt case final at? when DateTime.now().isBefore(at)) {
+      return;
+    }
     _prefetchAsked = true;
     try {
       // The panel reads "off" from the preference itself.
@@ -1091,6 +1094,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } on Object catch (error) {
       outcome = NextFetch.failed;
       debugPrint('downloading the next episode did not start: $error');
+    }
+    // A failure is the network or a provider, not an answer: the prefetch
+    // asks again, while a refusal for room or an empty list stands.
+    if (prefetch && outcome == NextFetch.failed) {
+      _prefetchAgainAt = DateTime.now().add(prefetchRetry);
+      _prefetchAsked = false;
     }
     await widget.downloads.refresh();
     if (mounted) setState(() => _nextFetch = outcome);
@@ -1209,6 +1218,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _switchTo(
       SourceChoice(
         api: widget.api,
+        downloads: widget.downloads,
         itemId: download.itemId,
         season: episode.season,
         episode: episode.number,
@@ -1385,6 +1395,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _sources =
           SourceChoice(
             api: widget.api,
+            downloads: widget.downloads,
             itemId: download.itemId,
             season: download.season,
             episode: download.episode,
@@ -1931,14 +1942,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     );
                   },
                 ),
-                // mpv can report playing before any decodable frame arrives.
-                // Dim artwork under the wait so it cannot look like a frozen frame.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _hasPicture || widget.background.isEmpty
-                      ? const SizedBox.shrink()
-                      : PlayerBackdrop(url: widget.background),
-                ),
                 if (!_hasPicture || _advancing)
                   PlayerWaiting(
                     title: switch ((_switchingTo, _download)) {
@@ -1960,6 +1963,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     choiceError: _advancing ? _switch?.error : null,
                     choiceEmpty:
                         _advancing && (_switch?.sources?.isEmpty ?? false),
+                    choiceFailed: _switch?.failed ?? const [],
                     overPicture: _advancing && _hasPicture,
                     playbackError: _playbackError,
                     decoderMissing: _decoderMissing,

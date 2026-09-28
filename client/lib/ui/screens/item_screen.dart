@@ -96,8 +96,7 @@ class ItemScreen extends StatefulWidget {
   final ({int season, int episode})? episode;
 
   /// Hands the window over to the player once there is something to play.
-  final void Function(String downloadId, String title, String background)
-  onPlay;
+  final void Function(String downloadId, String title) onPlay;
 
   /// Opens the Sources settings, where a source addon is added.
   final VoidCallback onAddSource;
@@ -161,6 +160,7 @@ class _ItemScreenState extends State<ItemScreen> {
     existing?.dispose();
     final choice = SourceChoice(
       api: widget.api,
+      downloads: widget.downloads,
       itemId: widget.itemId,
       season: episode?.season ?? 0,
       episode: episode?.number ?? 0,
@@ -168,8 +168,7 @@ class _ItemScreenState extends State<ItemScreen> {
       // Only the first list this page asks for: a Play from the banner means
       // this title, not whichever episode gets selected later.
       startWhenReady: widget.autoplay && existing == null,
-      onStarted: (download) =>
-          widget.onPlay(download.id, _playTitle(episode), _lastBackground),
+      onStarted: (download) => widget.onPlay(download.id, _playTitle(episode)),
       onAddSource: widget.onAddSource,
     );
     _choice = choice;
@@ -194,11 +193,6 @@ class _ItemScreenState extends State<ItemScreen> {
   /// behind a future; keeping the last one avoids threading it through every
   /// callback.
   String _lastTitle = '';
-
-  /// And the artwork with it: the player puts it behind the wait for the
-  /// file, and it is the title's, not the episode's — a still of an episode
-  /// not yet watched is the one picture this client takes care not to show.
-  String _lastBackground = '';
 
   /// Plays an episode straight from its card. The list may still be on its
   /// way, so it starts as soon as there is something to start.
@@ -243,7 +237,6 @@ class _ItemScreenState extends State<ItemScreen> {
         final item = data.item;
         final progress = data.progress;
         _lastTitle = item.title;
-        _lastBackground = item.background;
         final seasons = _seasonsOf(item);
         final opensAt =
             widget.episode ??
@@ -359,14 +352,11 @@ class _ItemScreenState extends State<ItemScreen> {
                       ),
                       artworkPreference:
                           widget.preferences.current?.episodeArtwork ?? 'show',
-                      download: widget.downloads.all
-                          .where(
-                            (d) =>
-                                d.itemId == widget.itemId &&
-                                d.season == episodes[i].season &&
-                                d.episode == episodes[i].number,
-                          )
-                          .firstOrNull,
+                      download: widget.downloads.of(
+                        widget.itemId,
+                        season: episodes[i].season,
+                        episode: episodes[i].number,
+                      ),
                       onSelect: () => _selectEpisode(episodes[i]),
                       onPlay: () => _playEpisode(episodes[i]),
                       onStep: (by) => i + by >= 0 && i + by < episodes.length
@@ -476,9 +466,9 @@ class _ItemScreenState extends State<ItemScreen> {
         if (!mounted) return;
       }
     } on Object catch (error) {
-      // Only the core not answering lands here: a provider that refuses gives
-      // an empty list, and that episode is skipped. Without the core the rest
-      // would fail the same way.
+      // The core not answering, or a provider refusing or silent while it
+      // listed nothing: the rest would fail the same way. An episode nobody
+      // has a copy of is skipped.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

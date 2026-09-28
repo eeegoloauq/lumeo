@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -44,9 +45,6 @@ LumeoApi fakeCore({
   List<Map<String, dynamic>>? addons,
   String baseUrl = 'http://core.invalid',
 
-  /// Overrides fixture artwork URLs with a real serving address.
-  String background = '',
-
   /// Overrides fixture still URLs with a real serving address when set.
   String stills = '',
 
@@ -80,6 +78,16 @@ LumeoApi fakeCore({
 
   /// Every change to the list or to a score, as "METHOD path body".
   List<String>? libraryCalls,
+
+  /// The metadata provider unreachable, as without a network: a title's
+  /// details the core never cached never arrive, and with [catalogUncached]
+  /// neither does a catalogue page.
+  bool providerDown = false,
+  bool catalogUncached = false,
+
+  /// The source providers have not answered yet: the core waits for them
+  /// before it lists anything, even a copy on disk.
+  bool sourcesUnanswered = false,
 }) {
   final preferenceState = Map<String, dynamic>.of(
     preferences ?? preferenceDefaults,
@@ -472,6 +480,8 @@ LumeoApi fakeCore({
           });
         case '/api/v1/catalogs':
           return _json({'catalogs': _catalogs});
+        case '/api/v1/catalog' when providerDown && catalogUncached:
+          return _json({'error': 'provider unreachable'}, status: 502);
         case '/api/v1/catalog':
           // Past the first page every shelf runs out, or a test would page for
           // as long as it was scrolled.
@@ -487,9 +497,10 @@ LumeoApi fakeCore({
           return _json({'items': _itemsFor(kind)});
         case '/api/v1/sources':
           sourceCalls?.add(request.url.query);
+          if (sourcesUnanswered) return Completer<http.Response>().future;
           await Future<void>.delayed(sourcesDelay);
           return _json({
-            'sources': sources ?? _sources,
+            'sources': sources ?? fakeSources,
             'failed': failed,
             'providers': addonState
                 .where(
@@ -527,6 +538,9 @@ LumeoApi fakeCore({
             : episodes[index + 1];
         return _json({'next': following});
       }
+      if (path.startsWith('/api/v1/items/') && providerDown) {
+        return Completer<http.Response>().future;
+      }
       if (path.startsWith('/api/v1/items/')) {
         final id = path.split('/').last;
         final all = [..._itemsFor('movie'), ..._itemsFor('series')];
@@ -543,11 +557,7 @@ LumeoApi fakeCore({
                     '$stills/${(episode['thumbnail'] as String).split('/').last}',
             },
         ];
-        return _json({
-          ...item,
-          if (background.isNotEmpty) 'background': background,
-          if (episodes.isNotEmpty) 'episodes': episodes,
-        });
+        return _json({...item, if (episodes.isNotEmpty) 'episodes': episodes});
       }
       if (path == '/api/v1/searches') {
         switch (request.method) {
@@ -598,7 +608,7 @@ final fakeUpdate = _fixtureMap('update.json');
 final _catalogs = _fixtureList('catalogs.json');
 // Fixture artwork cannot arrive, so app tests do not depend on network images.
 final _items = _fixtureList('items.json');
-final _sources = _fixtureList('sources.json');
+final fakeSources = _fixtureList('sources.json');
 final _languages = _fixtureList('languages.json');
 final _about = _fixtureMap('about.json');
 final _download = _fixtureMap('download.json');

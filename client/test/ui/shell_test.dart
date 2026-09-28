@@ -105,6 +105,45 @@ void main() {
     expect(find.text('LUMEO'), findsOneWidget);
   });
 
+  uiTest('the home screen does not wait for a title\'s details', (
+    tester,
+  ) async {
+    // The banner asked the core for its title's details; for one never
+    // opened, without a network, that is the provider's whole timeout.
+    await tester.pumpWidget(testApp(api: fakeCore(providerDown: true)));
+    await homeShown(tester);
+    expect(find.text('More info'), findsOneWidget);
+  });
+
+  uiTest('watch progress stays when the catalogue cannot be fetched', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          providerDown: true,
+          catalogUncached: true,
+          continueWatching: [
+            continueItem('tt0063350', {
+              'season': 0,
+              'episode': 0,
+              'position': 900.0,
+              'duration': 5700.0,
+              'watched': false,
+              'updatedAt': '2026-09-20T12:00:00Z',
+            }),
+          ],
+        ),
+      ),
+    );
+    await waitFor(
+      tester,
+      () async =>
+          find.byKey(const ValueKey('continue-watching')).evaluate().isNotEmpty,
+      what: 'watch progress',
+    );
+  });
+
   uiTest('watch progress is the first home shelf only when it exists', (
     tester,
   ) async {

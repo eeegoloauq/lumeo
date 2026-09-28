@@ -206,17 +206,16 @@ class _AppShellState extends State<AppShell> {
     final name = Uri.file(path).pathSegments.last;
     try {
       final download = await widget.api.openLocal(path);
-      var title = name, background = '';
+      var title = name;
       if (download.itemId.isNotEmpty) {
         try {
           final item = await widget.api.item(download.itemId);
           title = item.title;
-          background = item.background;
         } on Object catch (_) {
           // Not a catalogue title: the file plays under its own name.
         }
       }
-      if (mounted) _play(download.id, title, background);
+      if (mounted) _play(download.id, title);
     } on Object catch (error) {
       if (!mounted) return;
       final reason = error is LumeoApiException ? error.message : '$error';
@@ -388,7 +387,7 @@ class _AppShellState extends State<AppShell> {
     _takeKeyboard();
   }
 
-  void _play(String downloadId, String title, String background) {
+  void _play(String downloadId, String title) {
     setState(() {
       // Play from the banner is a one-off. Left set on the page it opened,
       // coming back out of the film landed on a page that started it again —
@@ -402,7 +401,6 @@ class _AppShellState extends State<AppShell> {
       _playing = _Playing(
         downloadId,
         title,
-        background,
         wasFullscreen: AppWindow.instance.fullscreen,
       );
     });
@@ -423,7 +421,6 @@ class _AppShellState extends State<AppShell> {
             frames: widget.frames,
             download: _playing!.downloadId,
             title: _playing!.title,
-            background: _playing!.background,
             settings: widget.settings,
             preferences: widget.preferences,
             continuing: _playing!.continuing,
@@ -654,7 +651,7 @@ class _AppShellState extends State<AppShell> {
       final e = NumberFormat('00', context.l10n.localeName).format(d.episode);
       title = context.l10n.itemPlaybackTitle(title, s, e);
     }
-    _play(d.id, title, item?.background ?? '');
+    _play(d.id, title);
   }
 
   Future<void> _stop(Download download) async {
@@ -686,15 +683,13 @@ class _FocusSearchIntent extends Intent {
 class _Playing {
   const _Playing(
     this.downloadId,
-    this.title,
-    this.background, {
+    this.title, {
     required this.wasFullscreen,
     this.continuing = false,
   });
 
   final String downloadId;
   final String title;
-  final String background;
 
   /// How the window stood when the sitting began, to be put back when it
   /// ends. It belongs to the sitting rather than to any one episode's screen.
@@ -707,7 +702,6 @@ class _Playing {
   _Playing then(String downloadId, String title) => _Playing(
     downloadId,
     title,
-    background,
     wasFullscreen: wasFullscreen,
     continuing: true,
   );

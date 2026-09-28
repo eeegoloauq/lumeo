@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/player/waiting.dart';
-import 'package:lumeo/ui/widgets/loading.dart';
 
 void main() {
   Widget waiting({Object? error, double? percent}) => MaterialApp(
@@ -26,14 +25,14 @@ void main() {
     ),
   );
 
-  testWidgets('waiting presentation appears together after 300 ms', (
+  testWidgets('waiting presentation appears together after the delay', (
     tester,
   ) async {
     await tester.pumpWidget(waiting(percent: 0.5));
     expect(find.text('S1 E2 · Episode'), findsNothing);
     expect(find.text('50%'), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    await tester.pump(Loading.delay);
+    await tester.pump(PlayerWaiting.delay);
     expect(find.text('S1 E2 · Episode'), findsOneWidget);
     expect(find.text('50%'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);

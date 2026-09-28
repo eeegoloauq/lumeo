@@ -16,58 +16,6 @@ import 'package:lumeo/ui/widgets/episode_card.dart';
 import 'helpers.dart';
 
 void playbackTests() {
-  testWidgets('the wait for a film stands on the title\'s artwork', (
-    tester,
-  ) async {
-    // The waiting screen needs the title artwork until the first frame arrives.
-    // A test socket is needed because Image.network bypasses the fake core.
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() => server.close(force: true));
-    server.listen((request) {
-      request.response
-        ..headers.contentType = ContentType('image', 'png')
-        ..add(base64Decode(pngFourByFour))
-        ..close();
-    });
-    await tester.pumpWidget(
-      testApp(
-        api: fakeCore(
-          downloads: [fakeDownload()],
-          background: 'http://127.0.0.1:${server.port}/backdrop.png',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Play'));
-    await waitFor(
-      tester,
-      () async => find
-          .descendant(
-            of: find.byType(PlayerScreen),
-            matching: find.byType(Image),
-          )
-          .evaluate()
-          .isNotEmpty,
-      what: 'the player is up with the artwork under the wait',
-    );
-    expect(find.byType(PlayerScreen), findsOneWidget);
-    final artwork = find.descendant(
-      of: find.byType(PlayerScreen),
-      matching: find.byType(Image),
-    );
-    expect(
-      artwork,
-      findsOneWidget,
-      reason: 'the wait has the artwork under it',
-    );
-    expect(
-      tester.getRect(artwork),
-      tester.getRect(find.byType(PlayerScreen)),
-      reason: 'and it covers the screen',
-    );
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('a film the core cannot serve yet is never handed to mpv', (
     tester,
   ) async {
@@ -334,6 +282,64 @@ void playbackTests() {
     final body = jsonDecode(started.single) as Map<String, dynamic>;
     expect(body['episode'], 2);
     expect(body.containsKey('prefetch'), isFalse);
+  });
+
+  testWidgets('a prefetch no provider answered is asked for again', (
+    tester,
+  ) async {
+    // Without a network every provider fails and the list comes back empty;
+    // the prefetch took that for "no copy" and never asked again.
+    final retry = prefetchRetry;
+    prefetchRetry = const Duration(seconds: 1);
+    addTearDown(() => prefetchRetry = retry);
+    final started = <String>[];
+    final sources = <Map<String, dynamic>>[];
+    final failed = [
+      {'provider': 'torrentio', 'reason': 'no answer'},
+    ];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          started: started,
+          sources: sources,
+          failed: failed,
+          downloads: [
+            fakeDownload(
+              id: 'bb-s1e1',
+              itemId: 'tt0903747',
+              season: 1,
+              episode: 1,
+              state: 'done',
+              updatedAt: DateTime.now(),
+            ),
+          ],
+        ),
+      ),
+    );
+    await homeShown(tester);
+    final panel = find.byKey(const ValueKey('downloads'));
+    await waitFor(
+      tester,
+      () async => panel.evaluate().isNotEmpty,
+      what: 'the downloads button',
+    );
+    await tester.tap(panel);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('download:bb-s1e1')));
+    await playerOpened(tester);
+    await tester.tap(find.byTooltip('On disk'));
+    await waitFor(
+      tester,
+      () async => find.text('Failed').evaluate().isNotEmpty,
+      what: 'the prefetch failed',
+    );
+    failed.clear();
+    sources.addAll(fakeSources);
+    await waitFor(
+      tester,
+      () async => started.any((b) => b.contains('"prefetch":true')),
+      what: 'the prefetch was asked for again',
+    );
   });
 
   testWidgets('an episode that runs out starts the next one', (tester) async {

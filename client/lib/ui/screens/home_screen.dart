@@ -14,9 +14,6 @@ import '../widgets/hero_logo.dart';
 import '../widgets/loading.dart';
 import '../widgets/shelf.dart';
 
-/// The shelves worth a home screen, named by us: a provider calls its rows
-/// "Popular" and "New", which says nothing once five of them are stacked.
-
 /// The shelves worth a home screen, in order, named by us in
 /// [ShelfSpec.label]: a provider calls its rows "Popular" and "New", which
 /// says nothing once five of them are stacked.
@@ -83,25 +80,25 @@ class _HomeScreenState extends State<HomeScreen> {
     if (lead == null) {
       return _HomeData(null, const [], const [], await continueItems);
     }
-    final leadItems = await widget.api.catalog(lead.row);
+    // Watch progress is local: a catalogue the core cannot fetch must not take
+    // it off the page. The shelves say for themselves what they could not load.
+    final leadItems = await widget.api
+        .catalog(lead.row)
+        .catchError((_) => <MediaItem>[]);
     if (leadItems.isEmpty) {
       return _HomeData(null, shelves, const [], await continueItems);
     }
     // Never the title that opens the shelf underneath: the same poster twice
     // in a row reads as a bug even when it is not one.
     final choices = leadItems.length > 1 ? leadItems.sublist(1) : leadItems;
-    final pick = choices[Random().nextInt(min(10, choices.length))];
-    MediaItem? hero;
-    try {
-      hero = await widget.api.item(pick.id);
-    } on Object catch (_) {
-      // One title without metadata is not a reason to withhold the catalogue.
-      hero = null;
-    }
+    // The catalogue row carries everything the banner shows. The title's
+    // details would wait on the provider for one never opened, and without a
+    // network that is its whole timeout with the home screen behind it.
+    final hero = choices[Random().nextInt(min(10, choices.length))];
     // The title in the banner does not also open the shelf underneath it.
-    final rest = hero == null
-        ? leadItems
-        : leadItems.where((e) => e.id != hero!.id).toList(growable: false);
+    final rest = leadItems
+        .where((e) => e.id != hero.id)
+        .toList(growable: false);
     return _HomeData(hero, shelves, rest, await continueItems);
   }
 

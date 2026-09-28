@@ -57,6 +57,20 @@ class DownloadsStore extends ChangeNotifier {
     return count == 0 ? null : Progress(completed: completed, total: total);
   }
 
+  /// The download of a film, or of one episode: the copy on disk when there
+  /// is one among several.
+  Download? of(String itemId, {int season = 0, int episode = 0}) {
+    Download? found;
+    for (final d in _downloads) {
+      if (d.itemId != itemId || d.season != season || d.episode != episode) {
+        continue;
+      }
+      if (d.isDone) return d;
+      found ??= d;
+    }
+    return found;
+  }
+
   bool isDoneFor(String itemId) {
     var any = false;
     for (final d in _downloads) {

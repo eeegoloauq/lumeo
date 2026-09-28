@@ -153,6 +153,72 @@ void main() {
     expect(asked.map((b) => b['episode']), [1, 2, 3, 4, 5, 6]);
   });
 
+  uiTest('download season says so when no provider answers', (tester) async {
+    // A provider that did not answer listed nothing, and every episode was
+    // skipped as if nobody had a copy: the press did nothing, silently.
+    final started = <String>[];
+    await openSeries(
+      tester,
+      api: fakeCore(
+        started: started,
+        sources: const [],
+        failed: const [
+          {'provider': 'torrentio', 'reason': 'no answer'},
+        ],
+      ),
+    );
+    await tester.tap(find.byTooltip('Download season 1'));
+    await waitFor(
+      tester,
+      () async =>
+          find.textContaining('The season did not start').evaluate().isNotEmpty,
+      what: 'the failure was reported',
+    );
+    expect(started, isEmpty);
+  });
+
+  uiTest('an episode on disk plays without waiting for the providers', (
+    tester,
+  ) async {
+    // Play waited for the source list, which the core answers once every
+    // provider has: without a network, after they all timed out.
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          sourcesUnanswered: true,
+          downloads: [
+            fakeDownload(
+              id: 'bb-s1e1',
+              itemId: 'tt0903747',
+              season: 1,
+              episode: 1,
+              state: 'done',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await pressCtrlF(tester);
+    await tester.enterText(find.byType(TextField), 'breaking bad');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is PosterTile && w.item.id == 'tt0903747',
+      ),
+    );
+    // Not settled: the list of copies never arrives.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(find.text('Play S1 E1'));
+    await tester.pump();
+    expect(playing(tester), 'bb-s1e1');
+    // The client's own timeout on the list that never came; fake time.
+    await tester.pump(const Duration(minutes: 1));
+  });
+
   uiTest('a film downloads without opening the player', (tester) async {
     final started = <String>[];
     await tester.pumpWidget(testApp(api: fakeCore(started: started)));

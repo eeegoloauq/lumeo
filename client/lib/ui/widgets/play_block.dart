@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../api/client.dart';
+import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/decoders.dart';
@@ -21,6 +22,7 @@ import 'source_list.dart';
 class SourceChoice extends ChangeNotifier {
   SourceChoice({
     required this.api,
+    required this.downloads,
     required this.itemId,
     this.season = 0,
     this.episode = 0,
@@ -33,6 +35,7 @@ class SourceChoice extends ChangeNotifier {
   }
 
   final LumeoApi api;
+  final DownloadsStore downloads;
   final String itemId;
   final int season;
   final int episode;
@@ -81,6 +84,8 @@ class SourceChoice extends ChangeNotifier {
   Future<void> load() async {
     loading = true;
     _ping();
+    // After the caller is done building: starting opens the player.
+    if (startWhenReady && _onDisk != null) scheduleMicrotask(start);
     try {
       final found = await api.sources(itemId, season: season, episode: episode);
       // What this machine can decode decides which of them Play starts, so the
@@ -121,6 +126,15 @@ class SourceChoice extends ChangeNotifier {
   Future<void> _start({required bool play}) async {
     if (starting) return;
     final source = picked;
+    // A copy on disk needs no provider to play, and without a network the
+    // list would keep Play waiting for as long as they take to fail. The list
+    // still arrives, for the table and for a copy picked from it.
+    final local = source == null && play ? _onDisk : null;
+    if (local != null) {
+      startWhenReady = false;
+      if (!_disposed) onStarted?.call(local);
+      return;
+    }
     if (source == null) {
       // Still looking. Hold the press instead of losing it; if the look is
       // already over and found nothing, there is genuinely nothing to hold.
@@ -149,6 +163,11 @@ class SourceChoice extends ChangeNotifier {
       starting = false;
       _ping();
     }
+  }
+
+  Download? get _onDisk {
+    final d = downloads.of(itemId, season: season, episode: episode);
+    return d != null && d.isDone ? d : null;
   }
 
   String label(AppLocalizations l10n) =>
@@ -182,7 +201,9 @@ MediaSource? preferredSource(List<MediaSource> found) {
 }
 
 /// Downloads the copy Play would start for an episode, without opening the
-/// player; null when no copy is listed for it.
+/// player; null when no copy is listed for it. An empty list with a provider
+/// that refused or did not answer says nothing about the copies, as
+/// [emptySources] has it, and throws [SourcesFailed].
 Future<Download?> downloadPreferred(
   LumeoApi api,
   String itemId, {
@@ -193,7 +214,10 @@ Future<Download?> downloadPreferred(
   final found = await api.sources(itemId, season: season, episode: episode);
   await DeviceDecoders.instance.load();
   final source = preferredSource(found.sources);
-  if (source == null) return null;
+  if (source == null) {
+    if (found.failed.isNotEmpty) throw SourcesFailed(found.failed);
+    return null;
+  }
   return api.startDownload(
     itemId: itemId,
     source: source,
@@ -201,6 +225,17 @@ Future<Download?> downloadPreferred(
     episode: episode,
     prefetch: prefetch,
   );
+}
+
+/// No copy was listed, and a provider refused or did not answer.
+class SourcesFailed implements Exception {
+  const SourcesFailed(this.failed);
+
+  final List<ProviderFailure> failed;
+
+  @override
+  String toString() =>
+      failed.map((f) => '${f.provider}: ${f.reason}').join(', ');
 }
 
 /// Play, and under it what Play will start: the copy on disk or the stream.

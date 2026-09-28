@@ -1,16 +1,14 @@
 // What the player shows instead of, or over, the picture: the wait for a film,
 // the reason it did not start, and short notices.
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../api/models.dart';
 import '../../l10n/l10n.dart';
-
 import '../theme.dart';
-import '../widgets/artwork_image.dart';
 import '../widgets/buttons.dart';
-import '../widgets/loading.dart';
+import '../widgets/play_block.dart' show emptySources;
 
 /// Translate mpv failures into actionable playback messages.
 String playbackTrouble(Object error, AppLocalizations l10n) {
@@ -52,45 +50,6 @@ class PlayerNotice extends StatelessWidget {
   }
 }
 
-/// Dim artwork behind loading text; decode it at its display width.
-class PlayerBackdrop extends StatelessWidget {
-  const PlayerBackdrop({super.key, required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    // AnimatedSwitcher lays children out loosely; fill the screen explicitly.
-    return IgnorePointer(
-      child: SizedBox.expand(
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Image(
-            image: ResizeImage.resizeIfNeeded(
-              (MediaQuery.sizeOf(context).width *
-                      MediaQuery.devicePixelRatioOf(context))
-                  .round(),
-              null,
-              ArtworkImage(url),
-            ),
-            fit: BoxFit.cover,
-            color: const Color(0xA8000000),
-            colorBlendMode: BlendMode.darken,
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            frameBuilder: (_, child, frame, loadedSync) => loadedSync
-                ? child
-                : AnimatedOpacity(
-                    opacity: frame == null ? 0 : 1,
-                    duration: const Duration(milliseconds: 300),
-                    child: child,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class PlayerWaiting extends StatefulWidget {
   const PlayerWaiting({
     super.key,
@@ -99,6 +58,7 @@ class PlayerWaiting extends StatefulWidget {
     required this.error,
     required this.choiceError,
     required this.choiceEmpty,
+    this.choiceFailed = const [],
     required this.overPicture,
     required this.playbackError,
     required this.decoderMissing,
@@ -108,11 +68,21 @@ class PlayerWaiting extends StatefulWidget {
     required this.showBack,
   });
 
+  /// The blurred artwork is there at once; the spinner and the title only once
+  /// the wait is long enough to need saying. A file on disk opens in under a
+  /// second, mostly mpv starting, and a spinner flashed for half of it read as
+  /// something going wrong.
+  static const delay = Duration(seconds: 1);
+
   final String title;
   final double? percent;
   final Object? error;
   final Object? choiceError;
   final bool choiceEmpty;
+
+  /// The providers that refused or did not answer while the list came back
+  /// empty: then they, not the copies, are the reason.
+  final List<ProviderFailure> choiceFailed;
   final bool overPicture;
   final Object? playbackError;
   final bool? decoderMissing;
@@ -132,7 +102,7 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(Loading.delay, () {
+    _timer = Timer(PlayerWaiting.delay, () {
       if (mounted) setState(() => _showPresentation = true);
     });
   }
@@ -154,7 +124,13 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
         ? null
         : decoderErrorCodec(widget.playbackError!);
     final message = widget.choiceEmpty
-        ? context.l10n.playerNoCopyOf(widget.title)
+        ? widget.choiceFailed.isEmpty
+              ? context.l10n.playerNoCopyOf(widget.title)
+              : emptySources(
+                  failed: widget.choiceFailed,
+                  now: DateTime.now(),
+                  l10n: context.l10n,
+                ).text
         : widget.choiceError != null
         ? context.l10n.playerCouldNotStartCopy
         : widget.error != null
