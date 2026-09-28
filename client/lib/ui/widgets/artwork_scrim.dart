@@ -177,7 +177,9 @@ class BannerBox extends StatelessWidget {
             // Its own layer, so scrolling the page or hovering the shelf that
             // lies over the banner does not record the artwork and scrim again.
             Positioned.fill(
-              child: RepaintBoundary(child: Stack(children: background)),
+              child: RepaintBoundary(
+                child: Stack(fit: StackFit.expand, children: background),
+              ),
             ),
             child,
           ],

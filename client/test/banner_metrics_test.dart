@@ -171,4 +171,25 @@ void main() {
     );
     expect(tester.getSize(find.byType(BannerBox)).height, 420);
   });
+
+  testWidgets('every background layer covers the whole banner', (tester) async {
+    // An image under loose constraints keeps its own size, which left the
+    // artwork stopping short of the banner's right edge.
+    await tester.pumpWidget(
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: SingleChildScrollView(
+          child: BannerBox(
+            height: 420,
+            background: [SizedBox(key: Key('layer'), width: 10, height: 10)],
+            child: SizedBox(height: 100),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('layer'))),
+      tester.getSize(find.byType(BannerBox)),
+    );
+  });
 }
