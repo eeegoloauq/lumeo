@@ -1,3 +1,6 @@
 # Shell scripts run in Git Bash on the Windows release runner too, and a
 # checkout with CRLF endings is a script bash refuses line by line.
 *.sh text eol=lf
+
+# A fork of an upstream package: not ours to count in the repository's languages.
+client/third_party/** linguist-vendored
