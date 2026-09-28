@@ -16,7 +16,12 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    instead means the activation token did not arrive. Impeller
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
-2. A "keep running in the background" setting (tray or systemd user unit),
+2. Comments cut to the why, in a line or two, starting with the largest
+   client files (`player_screen.dart`, `menus.dart`, `models.dart`,
+   `item_screen.dart`): many narrate how a value was arrived at, which is
+   history git already holds. Duplication and dead code found on the way go
+   in the same pass.
+3. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
 ## From the user's notes of 2026-09-27, in order
@@ -29,7 +34,8 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
    frozen after the display sleeps (leaving fullscreen brings it back), and
-   the home banner's scroll lag on Windows 10. The frozen picture is below
+   whether the home banner still lags on scroll on Windows 10 now that its
+   scrim is one shader pass (0.1.70). The frozen picture is below
    us: after the display turns back on, Flutter's raster thread still
    presents frames and DWM does not show them (mpv and the sound go on);
    resizing the FLUTTERVIEW child window by a pixel and back revives it,
