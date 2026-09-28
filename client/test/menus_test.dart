@@ -488,6 +488,35 @@ void main() {
       expect(find.textContaining('Next'), findsNothing);
     });
 
+    testWidgets('the next episode arriving shows its peers like this one', (
+      tester,
+    ) async {
+      await show(
+        tester,
+        DownloadPanel(
+          download: done,
+          next: next,
+          nextDownload: const api.Download(
+            id: 'e18',
+            itemId: 'tt1',
+            name: 'Series.S04E18.1080p',
+            state: 'active',
+            resolved: true,
+            season: 4,
+            episode: 18,
+            progress: api.Progress(
+              completed: 1 << 20,
+              total: 4 << 20,
+              rate: 1 << 20,
+              peers: 5,
+              seeders: 3,
+            ),
+          ),
+        ),
+      );
+      expect(find.text('↓ 1.0 MB/s · 5 peers, 3 seeding'), findsOneWidget);
+    });
+
     testWidgets('a magnet with peers and no metadata yet says it is asking', (
       tester,
     ) async {

@@ -1089,7 +1089,7 @@ class DownloadPanel extends StatelessWidget {
                 ? context.l10n.playerThisEpisode
                 : context.l10n.playerThisFilm,
           ),
-          ..._state(download, accent, context.l10n, detailed: true),
+          ..._state(download, accent, context.l10n),
           if (onSource != null)
             MenuRow(
               label: source.isEmpty ? download.name : source,
@@ -1154,9 +1154,8 @@ class DownloadPanel extends StatelessWidget {
   static List<Widget> _state(
     api.Download d,
     Color accent,
-    AppLocalizations l10n, {
-    bool detailed = false,
-  }) {
+    AppLocalizations l10n,
+  ) {
     final p = d.progress;
     switch (d.state) {
       case 'done':
@@ -1205,23 +1204,22 @@ class DownloadPanel extends StatelessWidget {
               left,
             ].where((part) => part.isNotEmpty).join(' · '),
           ),
-          if (detailed)
-            _Note(switch (d.stage) {
-              api.DownloadStage.arriving => l10n.playerPeersSeeding(
-                [
-                  l10n.downloadsRateArrow(formatBytes(p.rate, l10n)),
-                  if (p.upload > 0)
-                    l10n.downloadsUploadArrow(formatBytes(p.upload, l10n)),
-                ].join(' · '),
-                p.peers,
-                p.seeders,
-              ),
-              api.DownloadStage.fetchingMetadata => l10n.playerPeers(
-                d.stage.label(l10n),
-                p.peers,
-              ),
-              api.DownloadStage.findingPeers => d.stage.label(l10n),
-            }),
+          _Note(switch (d.stage) {
+            api.DownloadStage.arriving => l10n.playerPeersSeeding(
+              [
+                l10n.downloadsRateArrow(formatBytes(p.rate, l10n)),
+                if (p.upload > 0)
+                  l10n.downloadsUploadArrow(formatBytes(p.upload, l10n)),
+              ].join(' · '),
+              p.peers,
+              p.seeders,
+            ),
+            api.DownloadStage.fetchingMetadata => l10n.playerPeers(
+              d.stage.label(l10n),
+              p.peers,
+            ),
+            api.DownloadStage.findingPeers => d.stage.label(l10n),
+          }),
         ];
       case 'failed':
         return [_Line(l10n.playerFailed)];
