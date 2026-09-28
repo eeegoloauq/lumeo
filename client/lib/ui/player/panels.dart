@@ -72,25 +72,24 @@ class EpisodesPanel extends StatefulWidget {
 }
 
 class _EpisodesPanelState extends State<EpisodesPanel> {
-  late int season = widget.currentSeason;
-  final _scroll = ScrollController();
+  static const _row = 88.0;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final index = widget.episodes
-          .where((e) => e.season == season)
-          .toList()
-          .indexWhere((e) => e.number == widget.currentEpisode);
-      if (index > 0 && _scroll.hasClients) _scroll.jumpTo(index * 88.0);
-    });
+  late int season = widget.currentSeason;
+  ScrollController? _scroll;
+
+  /// Where the list opens: the playing episode second from the top, so the
+  /// one before it shows too. Set before the first frame, not jumped to after
+  /// it, and never past the end, which the list would spring back from.
+  double _opening(List<Episode> episodes, double height) {
+    final index = episodes.indexWhere((e) => e.number == widget.currentEpisode);
+    final end = episodes.length * _row - height;
+    if (index < 1 || end <= 0) return 0;
+    return ((index - 1) * _row).clamp(0, end);
   }
 
   @override
   void dispose() {
-    _scroll.dispose();
+    _scroll?.dispose();
     super.dispose();
   }
 
@@ -114,7 +113,7 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
                     MenuItemButton(
                       onPressed: () => setState(() {
                         season = s;
-                        if (_scroll.hasClients) _scroll.jumpTo(0);
+                        if (_scroll?.hasClients ?? false) _scroll!.jumpTo(0);
                       }),
                       child: Text(context.l10n.playerSeason(s)),
                     ),
@@ -136,115 +135,119 @@ class _EpisodesPanelState extends State<EpisodesPanel> {
             ),
           ),
           Flexible(
-            child: ListView.builder(
-              controller: _scroll,
-              shrinkWrap: true,
-              itemCount: episodes.length,
-              itemExtent: 88,
-              itemBuilder: (context, index) {
-                final e = episodes[index];
-                final entry = widget.progress?.entry(e.season, e.number);
-                final current =
-                    e.season == widget.currentSeason &&
-                    e.number == widget.currentEpisode;
-                final upcoming = e.isUpcoming;
-                String detail;
-                if (upcoming) {
-                  detail = context.l10n.playerOutDate(
-                    shortDate(
-                      e.released!,
-                      Localizations.localeOf(context).toString(),
-                    ),
-                  );
-                } else if (entry != null &&
-                    entry.position > Duration.zero &&
-                    entry.duration > entry.position) {
-                  detail = context.l10n.downloadsTimeLeftMinutes(
-                    (entry.duration - entry.position).inMinutes,
-                  );
-                } else {
-                  final minutes = entry?.duration.inMinutes ?? 0;
-                  detail = [
-                    if (minutes > 0)
-                      context.l10n.downloadsMinutes(minutes)
-                    else if (widget.runtime.isNotEmpty)
-                      widget.runtime,
-                    if (entry?.watched ?? false) context.l10n.playerWatched,
-                  ].join(' · ');
-                }
-                return Opacity(
-                  opacity: upcoming ? 0.45 : 1,
-                  child: Material(
-                    color: current
-                        ? const Color(0x14FFFFFF)
-                        : Colors.transparent,
-                    child: InkWell(
-                      onTap: upcoming || current
-                          ? null
-                          : () => widget.onPlay(e),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Stack(
-                              children: [
-                                EpisodeStill(
-                                  e,
-                                  width: 128,
-                                  height: 72,
-                                  artwork: widget.artwork,
-                                  frame: widget.frameOf(e),
-                                  watched: entry?.watched ?? false,
-                                ),
-                                if (entry != null && entry.bar > 0)
-                                  Positioned(
-                                    left: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      width: 128 * entry.bar,
-                                      height: 3,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
+            child: LayoutBuilder(
+              builder: (context, box) => ListView.builder(
+                controller: _scroll ??= ScrollController(
+                  initialScrollOffset: _opening(episodes, box.maxHeight),
+                ),
+                shrinkWrap: true,
+                itemCount: episodes.length,
+                itemExtent: _row,
+                itemBuilder: (context, index) {
+                  final e = episodes[index];
+                  final entry = widget.progress?.entry(e.season, e.number);
+                  final current =
+                      e.season == widget.currentSeason &&
+                      e.number == widget.currentEpisode;
+                  final upcoming = e.isUpcoming;
+                  String detail;
+                  if (upcoming) {
+                    detail = context.l10n.playerOutDate(
+                      shortDate(
+                        e.released!,
+                        Localizations.localeOf(context).toString(),
+                      ),
+                    );
+                  } else if (entry != null &&
+                      entry.position > Duration.zero &&
+                      entry.duration > entry.position) {
+                    detail = context.l10n.downloadsTimeLeftMinutes(
+                      (entry.duration - entry.position).inMinutes,
+                    );
+                  } else {
+                    final minutes = entry?.duration.inMinutes ?? 0;
+                    detail = [
+                      if (minutes > 0)
+                        context.l10n.downloadsMinutes(minutes)
+                      else if (widget.runtime.isNotEmpty)
+                        widget.runtime,
+                      if (entry?.watched ?? false) context.l10n.playerWatched,
+                    ].join(' · ');
+                  }
+                  return Opacity(
+                    opacity: upcoming ? 0.45 : 1,
+                    child: Material(
+                      color: current
+                          ? const Color(0x14FFFFFF)
+                          : Colors.transparent,
+                      child: InkWell(
+                        onTap: upcoming || current
+                            ? null
+                            : () => widget.onPlay(e),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              Stack(
                                 children: [
-                                  Text(
-                                    e.label(context.l10n),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  EpisodeStill(
+                                    e,
+                                    width: 128,
+                                    height: 72,
+                                    artwork: widget.artwork,
+                                    frame: widget.frameOf(e),
+                                    watched: entry?.watched ?? false,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    detail,
-                                    style: const TextStyle(
-                                      color: Color(0xFFAAAAAA),
-                                      fontSize: 13,
+                                  if (entry != null && entry.bar > 0)
+                                    Positioned(
+                                      left: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 128 * entry.bar,
+                                        height: 3,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      e.label(context.l10n),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      detail,
+                                      style: const TextStyle(
+                                        color: Color(0xFFAAAAAA),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],
