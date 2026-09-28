@@ -10,6 +10,7 @@ import 'package:lumeo/platform/decoders.dart';
 import 'package:lumeo/platform/local_settings.dart';
 import 'package:lumeo/ui/screens/settings/settings_screen.dart';
 import 'package:lumeo/ui/theme.dart';
+import 'package:lumeo/ui/widgets/artwork_image.dart';
 import 'package:lumeo/ui/widgets/setting_row.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
 
@@ -50,6 +51,39 @@ void main() {
           matching: find.byType(SegmentedButton<T>),
         ),
       );
+
+  uiTest('the subtitle sample is drawn over the last title watched', (
+    tester,
+  ) async {
+    // Nothing serves it: what is under test is which picture is asked for.
+    final retries = ArtworkImage.retryDelays;
+    ArtworkImage.retryDelays = const [];
+    addTearDown(() => ArtworkImage.retryDelays = retries);
+    const picture = 'http://127.0.0.1:1/backdrop.jpg';
+    final watched = continueItem('tt0063350', {
+      'season': 0,
+      'episode': 0,
+      'position': 900.0,
+      'duration': 5700.0,
+      'watched': false,
+      'updatedAt': '2026-09-20T12:00:00Z',
+    });
+    (watched['item'] as Map<String, dynamic>)['background'] = picture;
+    await tester.pumpWidget(
+      testApp(api: fakeCore(continueWatching: [watched])),
+    );
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, SettingsSection.audioSubtitles);
+    expect(
+      find.descendant(
+        of: settingsSection(SettingsSection.audioSubtitles),
+        matching: find.byWidgetPredicate(
+          (w) => w is Image && w.image == const ArtworkImage(picture),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
 
   uiTest('Settings is a place, and Escape comes back from it', (tester) async {
     await openHome(tester);

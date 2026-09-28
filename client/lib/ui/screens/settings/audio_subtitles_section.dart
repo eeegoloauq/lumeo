@@ -5,6 +5,7 @@ import '../../../api/preferences_store.dart';
 import '../../../l10n/l10n.dart';
 import '../../player/menus.dart';
 import '../../player/subtitle_style.dart';
+import '../../widgets/artwork_image.dart';
 import '../../widgets/setting_row.dart';
 import 'controls.dart';
 
@@ -12,11 +13,15 @@ class AudioSubtitlesSection extends StatelessWidget {
   const AudioSubtitlesSection({
     super.key,
     required this.preferences,
+    required this.picture,
     required this.patch,
     required this.error,
   });
 
   final PreferencesStore preferences;
+
+  /// What the sample line is drawn over; empty for a plain backdrop.
+  final Future<String> picture;
   final Future<void> Function(Map<String, Object?>) patch;
   final Object? error;
 
@@ -66,7 +71,7 @@ class AudioSubtitlesSection extends StatelessWidget {
         ]),
         if (current != null) ...[
           SettingsSubheading(context.l10n.settingsSubtitleStyle),
-          _Preview(preferences: current),
+          _Preview(preferences: current, picture: picture),
           const SizedBox(height: 8),
           SettingRows([
             SettingRow(
@@ -146,9 +151,10 @@ class AudioSubtitlesSection extends StatelessWidget {
 /// the same size, outline, shadow and box in mpv's units, in our font rather
 /// than the system's sans.
 class _Preview extends StatelessWidget {
-  const _Preview({required this.preferences});
+  const _Preview({required this.preferences, required this.picture});
 
   final Preferences preferences;
+  final Future<String> picture;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +224,18 @@ class _Preview extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            Positioned.fill(
+              child: FutureBuilder(
+                future: picture,
+                builder: (context, url) => (url.data ?? '').isEmpty
+                    ? const SizedBox.shrink()
+                    : Image(
+                        image: ArtworkImage(url.data!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+              ),
+            ),
             Positioned(
               left: 0,
               right: 0,

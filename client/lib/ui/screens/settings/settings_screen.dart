@@ -83,6 +83,13 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late Future<CoreAbout> _about = widget.api.about();
+  // Subtitles are judged on a picture: the last title watched, if any.
+  late final Future<String> _recentPicture = widget.api
+      .continueWatching(limit: 1)
+      .then(
+        (items) => items.firstOrNull?.item.background ?? '',
+        onError: (_) => '',
+      );
   late final _addons = AddonsStore(widget.api)..load();
   final _keys = {
     for (final section in SettingsScreen.shown) section: GlobalKey(),
@@ -296,6 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       SettingsSection.audioSubtitles => AudioSubtitlesSection(
         preferences: preferences,
+        picture: _recentPicture,
         patch: patch,
         error: _errorIn(section),
       ),
