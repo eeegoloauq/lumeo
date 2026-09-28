@@ -15,6 +15,8 @@
 AppId={{82158435-1197-4765-B0B6-5BC91DBFB79F}
 AppName=Lumeo
 AppVersion={#Version}
+; Without it the setup file's own version resource reads 0.0.0.0.
+VersionInfoVersion={#Version}
 AppPublisher=Lumeo
 DefaultDirName={autopf}\Lumeo
 DisableProgramGroupPage=yes
