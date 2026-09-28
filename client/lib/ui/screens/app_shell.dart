@@ -90,7 +90,10 @@ class _AppShellState extends State<AppShell> {
   late final void Function() _stopOpening;
 
   final _history = <_Page>[const _Page.home()];
-  bool _scrolled = false;
+  // A notifier rather than state: crossing the threshold changes the bar's
+  // ground and nothing else, and a setState here rebuilt the whole page under
+  // it the moment a scroll began.
+  final _scrolled = ValueNotifier(false);
   _Playing? _playing;
   // This release's notes, and what the viewer has not been told since the
   // version they last saw: every release they skipped.
@@ -243,6 +246,7 @@ class _AppShellState extends State<AppShell> {
     _scroll.dispose();
     _search.dispose();
     _shellFocus.dispose();
+    _scrolled.dispose();
     super.dispose();
   }
 
@@ -256,8 +260,7 @@ class _AppShellState extends State<AppShell> {
   /// not the page scrolling.
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
-    final scrolled = notification.metrics.pixels > 12;
-    if (scrolled != _scrolled) setState(() => _scrolled = scrolled);
+    _scrolled.value = notification.metrics.pixels > 12;
     return false;
   }
 
@@ -272,7 +275,7 @@ class _AppShellState extends State<AppShell> {
   void _go(_Page page) {
     setState(() {
       _history.add(page);
-      _scrolled = false;
+      _scrolled.value = false;
     });
     if (_scroll.hasClients) _scroll.jumpTo(0);
     _takeKeyboard();
@@ -290,7 +293,7 @@ class _AppShellState extends State<AppShell> {
       _history
         ..clear()
         ..add(const _Page.home());
-      _scrolled = false;
+      _scrolled.value = false;
     });
     if (_scroll.hasClients) _scroll.jumpTo(0);
     _takeKeyboard();
@@ -330,7 +333,7 @@ class _AppShellState extends State<AppShell> {
         ..removeRange(at, _history.length)
         ..add(_Page.settings(section));
       _settingsRequest++;
-      _scrolled = false;
+      _scrolled.value = false;
     });
     _takeKeyboard();
   }
@@ -344,7 +347,7 @@ class _AppShellState extends State<AppShell> {
     }
     setState(() {
       _history.removeRange(at + 1, _history.length);
-      _scrolled = false;
+      _scrolled.value = false;
     });
     if (_scroll.hasClients) _scroll.jumpTo(0);
     _takeKeyboard();
@@ -379,7 +382,7 @@ class _AppShellState extends State<AppShell> {
     if (_history.length < 2) return;
     setState(() {
       _history.removeLast();
-      _scrolled = false;
+      _scrolled.value = false;
     });
     if (_scroll.hasClients) _scroll.jumpTo(0);
     _takeKeyboard();

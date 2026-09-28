@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
@@ -47,7 +48,7 @@ class TopBar extends StatelessWidget {
     required this.onOpenItem,
   });
 
-  final bool scrolled;
+  final ValueListenable<bool> scrolled;
   final LumeoApi api;
 
   /// Which tab is lit. A title or a search opened from Home is still Home:
@@ -76,21 +77,29 @@ class TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Motion.wash,
-      height: height,
-      decoration: BoxDecoration(
-        // Opaque where the type sits, gone by the bottom edge. The stops are
-        // not symmetrical on purpose: the tabs and the window buttons need a
-        // ground under them, so the wash only starts giving way below them.
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: scrolled
-              ? [Palette.ground(0.95), Palette.ground(0.90), Palette.ground(0)]
-              : [Palette.ground(0), Palette.ground(0), Palette.ground(0)],
-          stops: const [0, 0.72, 1],
+    return ValueListenableBuilder<bool>(
+      valueListenable: scrolled,
+      builder: (context, scrolled, controls) => AnimatedContainer(
+        duration: Motion.wash,
+        height: height,
+        decoration: BoxDecoration(
+          // Opaque where the type sits, gone by the bottom edge. The stops are
+          // not symmetrical on purpose: the tabs and the window buttons need a
+          // ground under them, so the wash only starts giving way below them.
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: scrolled
+                ? [
+                    Palette.ground(0.95),
+                    Palette.ground(0.90),
+                    Palette.ground(0),
+                  ]
+                : [Palette.ground(0), Palette.ground(0), Palette.ground(0)],
+            stops: const [0, 0.72, 1],
+          ),
         ),
+        child: controls,
       ),
       child: Stack(
         children: [

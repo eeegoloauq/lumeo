@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/platform/decoders.dart';
+import 'package:lumeo/ui/screens/home_screen.dart';
 import 'package:lumeo/ui/screens/item_screen.dart';
 import 'package:lumeo/ui/widgets/episode_card.dart';
 import 'package:lumeo/ui/widgets/horizontal_strip.dart';
@@ -94,15 +95,21 @@ void main() {
     // bar overlaid scrolled text.
     await openHome(tester);
     expect(
-      tester.widget<TopBar>(find.byType(TopBar)).scrolled,
+      tester.widget<TopBar>(find.byType(TopBar)).scrolled.value,
       isFalse,
       reason: 'at the top it is over artwork, and shows nothing',
     );
+    final page = tester.widget(find.byType(HomeScreen));
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
     pointer.hover(tester.getCenter(find.byType(PosterTile).first));
     await tester.sendEventToBinding(pointer.scroll(const Offset(0, 300)));
     await tester.pumpAndSettle();
-    expect(tester.widget<TopBar>(find.byType(TopBar)).scrolled, isTrue);
+    expect(tester.widget<TopBar>(find.byType(TopBar)).scrolled.value, isTrue);
+    expect(
+      tester.widget(find.byType(HomeScreen)),
+      same(page),
+      reason: 'the bar taking its ground rebuilt the page under it',
+    );
   });
 
   uiTest('a title page that fits the window does not scroll', (tester) async {
