@@ -20,10 +20,7 @@ func openData(path string, create bool) (*os.File, error) {
 		}
 		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
 		if err == nil {
-			// Best effort: FAT32 and exFAT have no sparse files, and the data
-			// is the same either way.
-			var n uint32
-			_ = windows.DeviceIoControl(windows.Handle(f.Fd()), windows.FSCTL_SET_SPARSE, nil, 0, nil, 0, &n, nil)
+			makeSparse(f)
 			return f, nil
 		}
 		if !errors.Is(err, fs.ErrExist) {
@@ -39,4 +36,11 @@ func openData(path string, create bool) (*os.File, error) {
 		f, err = os.OpenFile(path, os.O_RDWR, 0o600)
 	}
 	return f, err
+}
+
+// makeSparse marks a new file sparse. Best effort: FAT32 and exFAT have no
+// sparse files, and the data is the same either way.
+func makeSparse(f *os.File) {
+	var n uint32
+	_ = windows.DeviceIoControl(windows.Handle(f.Fd()), windows.FSCTL_SET_SPARSE, nil, 0, nil, 0, &n, nil)
 }

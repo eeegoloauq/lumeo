@@ -3,6 +3,7 @@ package torrent
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"math/rand"
@@ -672,5 +673,121 @@ func TestBackendRestartsWithoutAPeerForTheInfo(t *testing.T) {
 	file := waitForFile(t, start(second), 5*time.Second)
 	if got := file.(*torrentFile).file.Length(); got != 6<<20 {
 		t.Fatalf("length = %d, want %d", got, 6<<20)
+	}
+}
+
+// Freeing one episode of a pack leaves the next one whole, offline: the piece
+// they share stays, in the freed episode's .part file, and nothing else of it
+// does. Whether the torrent still runs for another episode or not.
+func TestBackendFreesAnEpisodeWithoutTakingTheNextOnesPiece(t *testing.T) {
+	for _, running := range []bool{true, false} {
+		t.Run(fmt.Sprintf("running=%v", running), func(t *testing.T) {
+			seedDir := oneSeason(t)
+			info := metainfo.Info{PieceLength: 256 << 10}
+			if err := info.BuildFromFilePath(seedDir); err != nil {
+				t.Fatalf("build metainfo: %v", err)
+			}
+			infoBytes, err := bencode.Marshal(info)
+			if err != nil {
+				t.Fatalf("marshal metainfo: %v", err)
+			}
+			hash := metainfo.HashBytes(infoBytes)
+			// Downloaded already: the files and the info, the pieces checked
+			// on start.
+			dir := t.TempDir()
+			if err := os.CopyFS(filepath.Join(dir, "season"), os.DirFS(seedDir)); err != nil {
+				t.Fatalf("copy the pack: %v", err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, infoFile(hash)), infoBytes, 0o600); err != nil {
+				t.Fatalf("write info: %v", err)
+			}
+			nobody := []atorrent.PeerInfo{{
+				Addr:   &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+				Source: atorrent.PeerSourceDirect,
+			}}
+			episodeTask := func(backend *Backend, index int) (acquire.Task, acquire.File) {
+				t.Helper()
+				loc := sources.Locator{Scheme: "torrent", InfoHash: hash.HexString(), FileIndex: &index}
+				task, err := backend.Start(context.Background(), loc, dir)
+				if err != nil {
+					t.Fatalf("start episode %d: %v", index, err)
+				}
+				return task, waitForFile(t, task, 10*time.Second)
+			}
+			episode := func(backend *Backend, index int) (acquire.Task, acquire.File) {
+				t.Helper()
+				task, file := episodeTask(backend, index)
+				waitFor(t, 30*time.Second, "the episode checked whole", func() bool { return file.Head() == file.Size() })
+				return task, file
+			}
+
+			backend, err := New(Config{DataDir: t.TempDir(), Peers: nobody})
+			if err != nil {
+				t.Fatalf("create backend: %v", err)
+			}
+			first, firstFile := episode(backend, 0)
+			second, _ := episode(backend, 1)
+			if err := first.Close(); err != nil {
+				t.Fatalf("close first episode: %v", err)
+			}
+			if !running {
+				if err := second.Close(); err != nil {
+					t.Fatalf("close second episode: %v", err)
+				}
+			}
+			loc := sources.Locator{Scheme: "torrent", InfoHash: hash.HexString()}
+			if err := backend.Free(loc, dir, firstFile.Path()); err != nil {
+				t.Fatalf("free first episode: %v", err)
+			}
+			if running {
+				tor := torrentOf(second)
+				if tor.PieceState(0).Complete {
+					t.Error("the torrent still offers a piece of the freed episode")
+				}
+				if last := int(firstFile.Size() / info.PieceLength); !tor.PieceState(last).Complete {
+					t.Error("the piece the episodes share is no longer complete")
+				}
+				// Asked for again, the episode can be fetched again.
+				_, _ = episodeTask(backend, 0)
+				if backend.shared[hash].storage.opened().files[0].freed.Load() {
+					t.Error("the episode asked for again still refuses its pieces")
+				}
+			}
+			if err := backend.Close(); err != nil {
+				t.Fatalf("close backend: %v", err)
+			}
+
+			if _, err := os.Stat(firstFile.Path()); !os.IsNotExist(err) {
+				t.Errorf("the freed episode is still under its own name: %v", err)
+			}
+			kept, err := os.ReadFile(firstFile.Path() + ".part")
+			if err != nil {
+				t.Fatalf("read what was kept: %v", err)
+			}
+			whole, err := os.ReadFile(filepath.Join(seedDir, "S02E01.mkv"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			tail := len(whole) / int(info.PieceLength) * int(info.PieceLength)
+			assertSame(t, "the shared piece's bytes", kept[tail:], whole[tail:])
+			if !bytes.Equal(kept[:tail], make([]byte, tail)) {
+				t.Error("bytes of the freed episode's own pieces are still there")
+			}
+
+			again, err := New(Config{DataDir: t.TempDir(), Peers: nobody})
+			if err != nil {
+				t.Fatalf("create backend: %v", err)
+			}
+			t.Cleanup(func() {
+				if err := again.Close(); err != nil {
+					t.Errorf("close backend: %v", err)
+				}
+			})
+			task, _ := episode(again, 1)
+			waitForPieceCheck(t, torrentOf(task), 10*time.Second)
+			if torrentOf(task).PieceState(0).Complete {
+				t.Error("a freed piece came back complete")
+			}
+		})
 	}
 }

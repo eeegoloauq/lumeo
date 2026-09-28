@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -420,6 +421,53 @@ func TestRemoveFreesOneEpisodeOfAPack(t *testing.T) {
 		t.Fatalf("remove: %v", err)
 	}
 	if _, err := os.Stat(d1.Dir); !os.IsNotExist(err) {
+		t.Fatalf("the pack's directory outlived its last episode: %v", err)
+	}
+}
+
+type freeingBackend struct {
+	fakeBackend
+	freed []string
+}
+
+func (b *freeingBackend) Free(_ sources.Locator, _, path string) error {
+	b.freed = append(b.freed, path)
+	return nil
+}
+
+// An episode whose pack still has another download is freed by the backend,
+// which keeps what the two share; the last one goes with its directory.
+func TestRemoveLetsTheBackendFreeAnEpisodeOfAPack(t *testing.T) {
+	backend := &freeingBackend{fakeBackend: fakeBackend{scheme: "torrent"}}
+	m, st, dir := testManager(t, backend)
+	loc := sources.Locator{Scheme: "torrent", InfoHash: "deadbeef"}
+	pack := filepath.Join(dir, "pack")
+	for id, name := range map[string]string{"one": "e1.mkv", "two": "e2.mkv"} {
+		path := filepath.Join(pack, name)
+		if err := os.MkdirAll(pack, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("video"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		st.rows[id] = Download{ID: id, Locator: loc, Dir: pack, FilePath: path, State: StateDone, Size: 5}
+	}
+	if err := m.Resume(context.Background()); err != nil {
+		t.Fatalf("resume: %v", err)
+	}
+	if err := m.Remove(context.Background(), "one", true); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if want := []string{filepath.Join(pack, "e1.mkv")}; !slices.Equal(backend.freed, want) {
+		t.Fatalf("freed %v, want %v", backend.freed, want)
+	}
+	if err := m.Remove(context.Background(), "two", true); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if len(backend.freed) != 1 {
+		t.Fatalf("the last episode went through the backend: %v", backend.freed)
+	}
+	if _, err := os.Stat(pack); !os.IsNotExist(err) {
 		t.Fatalf("the pack's directory outlived its last episode: %v", err)
 	}
 }

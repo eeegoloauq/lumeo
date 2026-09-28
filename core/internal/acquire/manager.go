@@ -524,7 +524,7 @@ func (m *Manager) Remove(ctx context.Context, id string, deleteData bool) error 
 // other download still keeps bytes in.
 func (m *Manager) removeData(row Download, rest []Download, running map[string]bool) error {
 	if fileRoot(row) != "" {
-		if err := os.Remove(row.FilePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err := m.removeFile(row, rest); err != nil {
 			return fmt.Errorf("acquire: remove data: %w", err)
 		}
 	}
@@ -535,6 +535,20 @@ func (m *Manager) removeData(row Download, rest []Download, running map[string]b
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("acquire: remove data: %w", err)
 		}
+	}
+	return nil
+}
+
+// removeFile deletes a download's file. Another download of the same source,
+// an episode of the same pack, can share bytes with it, which its backend
+// knows how to keep.
+func (m *Manager) removeFile(row Download, rest []Download) error {
+	if freer, ok := m.backends[row.Locator.Scheme].(Freer); ok &&
+		slices.ContainsFunc(rest, func(other Download) bool { return sameTorrent(row.Locator, other.Locator) }) {
+		return freer.Free(row.Locator, row.Dir, row.FilePath)
+	}
+	if err := os.Remove(row.FilePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
 	return nil
 }

@@ -49,6 +49,18 @@ one deletes its file: the directory goes with the last download that keeps
 anything in it. Deleting a download's directory, as Free once did, took the
 other episodes of the pack with it.
 
+Deleting the file whole also broke the next episode. Files of a pack are
+consecutive in the torrent, so the last piece of E01 is also the first of E02,
+and a piece is verified whole: with E01's bytes gone, the storage's size check
+found the piece short, marked it lost and took E02 back to `.part`, not ready
+until a peer sent the piece again (forever, offline). So freeing a file of a
+torrent another download still uses (`Backend.Free`) keeps the bytes of the
+pieces at its ends that reach into a neighbour, in a sparse `.part` file of at
+most two pieces, and records every other piece of it as missing, in the
+completion database and, when the torrent runs, in anacrolix. Without the
+torrent's info, from the running torrent or `.lumeo-<infohash>.info`, nothing
+says where the pieces fall, and the file goes whole.
+
 anacrolix's file reader needs a fence around it: it decides how much is
 readable from the torrent's chunk map and clamps that to the caller's buffer,
 but not to the end of the file it was opened on. Ask for more than is left —

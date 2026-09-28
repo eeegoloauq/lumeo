@@ -16,8 +16,8 @@ import (
 	"time"
 
 	atorrent "github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/storage"
 	"golang.org/x/time/rate"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
@@ -53,7 +53,7 @@ type Config struct {
 // torrent — with one storage, in one directory — per infohash.
 type sharedTorrent struct {
 	torrent *atorrent.Torrent
-	storage storage.ClientImplCloser
+	storage *fileStorage
 	dir     string
 	refs    int
 
@@ -335,21 +335,93 @@ func saveInfo(tor *atorrent.Torrent, dir string) {
 
 func (b *Backend) release(infoHash metainfo.Hash) error {
 	b.mu.Lock()
+	defer b.mu.Unlock()
 	sh, ok := b.shared[infoHash]
 	if !ok {
-		b.mu.Unlock()
 		return nil
 	}
 	sh.refs--
 	if sh.refs > 0 {
-		b.mu.Unlock()
 		return nil
 	}
+	// Dropped under the lock: until its storage is closed, a Start or a Free
+	// of the same torrent must not open its completion record a second time.
 	delete(b.shared, infoHash)
-	b.mu.Unlock()
-
 	sh.torrent.Drop()
 	return sh.storage.Close()
+}
+
+// Free deletes the file at path, one file of loc's torrent, whose other files
+// stay in dir: what it shares with them is kept (torrentStorage.free). Under
+// the backend's lock, so no download of the torrent starts meanwhile and
+// opens the same completion record. Without the torrent's info, from the
+// running torrent or saved beside its bytes, nothing says where its pieces
+// fall, and the file goes whole.
+func (b *Backend) Free(loc sources.Locator, dir, path string) error {
+	var infoHash metainfo.Hash
+	if err := infoHash.FromHexString(loc.InfoHash); err != nil {
+		return fmt.Errorf("torrent: invalid info hash: %w", err)
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("torrent: resolve download dir: %w", err)
+	}
+	if path, err = filepath.Abs(path); err != nil {
+		return fmt.Errorf("torrent: resolve file: %w", err)
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	var found bool
+	if sh, ok := b.shared[infoHash]; ok {
+		if t := sh.storage.opened(); t != nil {
+			found, err = t.free(path, func(piece int) { forget(sh.torrent, piece) })
+		}
+	} else if infoBytes := savedInfo(absDir, infoHash); infoBytes != nil {
+		found, err = freeStopped(absDir, infoHash, infoBytes, path)
+	}
+	if err != nil {
+		return fmt.Errorf("torrent: free %q: %w", path, err)
+	}
+	if found {
+		return nil
+	}
+	for _, name := range []string{path, path + ".part"} {
+		if err := os.Remove(name); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
+// forget tells a running torrent a freed piece is gone. A hash of it that
+// passed just before, or is running now, sets the torrent's own idea of it to
+// complete once the storage has turned it down, so that is waited out first.
+func forget(tor *atorrent.Torrent, piece int) {
+	for state := tor.PieceState(piece); state.Hashing || state.Marking; state = tor.PieceState(piece) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	tor.Piece(piece).UpdateCompletion()
+}
+
+// freeStopped frees a file of a torrent that is not running, through its
+// storage opened for just that.
+func freeStopped(dir string, infoHash metainfo.Hash, infoBytes []byte, path string) (found bool, err error) {
+	var info metainfo.Info
+	if err := bencode.Unmarshal(infoBytes, &info); err != nil {
+		return false, err
+	}
+	s, err := newFileStorage(dir)
+	if err != nil {
+		return false, err
+	}
+	defer func() { err = errors.Join(err, s.Close()) }()
+	t, err := s.OpenTorrent(context.Background(), &info, infoHash)
+	if err != nil {
+		return false, err
+	}
+	defer func() { err = errors.Join(err, t.Close()) }()
+	return s.opened().free(path, nil)
 }
 
 func (b *Backend) Close() error {
@@ -451,6 +523,11 @@ func (b *Backend) want(hash metainfo.Hash, file *atorrent.File) {
 		return
 	}
 	sh.wanted[file.Path()]++
+	if t := sh.storage.opened(); t != nil {
+		if path, ok := safeFilePath(sh.dir, file.Path()); ok {
+			t.want(path)
+		}
+	}
 	file.Download()
 	for _, piece := range ends(file) {
 		sh.ends[piece]++

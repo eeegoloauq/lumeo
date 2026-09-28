@@ -104,6 +104,14 @@ type Backend interface {
 	Close() error
 }
 
+// Freer is a Backend whose sources hold more than one file, as a season pack
+// does: deleting one of them has to keep what it shares with the others.
+type Freer interface {
+	// Free deletes the file at path of loc, acquired into dir, while other
+	// files of loc stay.
+	Free(loc sources.Locator, dir, path string) error
+}
+
 // Task is one running acquisition inside a backend.
 type Task interface {
 	// Progress must be cheap: the API polls it per request.

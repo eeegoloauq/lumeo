@@ -6,44 +6,19 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
 
 ## Next, in order
 
-1. **Check on an NVIDIA/Wayland desktop before the release.** The app owning
-   its core (decisions/shipping.md): close and reopen at once comes back, the
-   screen waits for a core still waiting for the previous one instead of
-   stopping on "Try again", and a file opened with a second launch plays at
-   once and is named while it plays. The window comes forward on Wayland:
-   cover Lumeo with another window and double-click a video in the file
-   manager; it should come forward and play, and a "Lumeo is ready" notice
-   instead means the activation token did not arrive. Impeller
-   (decisions/video-output.md): seeking, fullscreen, and a long pause with the
-   window minimised, the case of the freezes in the media_kit_video fork.
-2. **Freeing an episode of a pack breaks the one next to it.** Files of a
-   pack are consecutive in the torrent, so the last piece of E01 is also the
-   first of E02. Freeing E01 deletes its file; the piece's check then finds
-   E01 short, marks the piece lost and takes E02 back to `.part`, and E02
-   is not ready (`Head() == 0`) until a peer sends the piece again: 40 s on
-   2026-09-28, forever offline. Fix in the torrent backend, the way torrent
-   clients keep the parts of unwanted files: freeing a file of a torrent
-   that still has other downloads rewrites it sparse with only the bytes of
-   the pieces it shares with its neighbours, marks its own pieces not
-   complete in the completion database and, when the torrent is running,
-   in anacrolix (`Piece.UpdateCompletion`), under the storage's handle lock
-   (Windows renames no open file). Info comes from the running torrent or
-   `.lumeo-<infohash>.info`; without either, today's delete. Needs a check
-   on Windows.
-3. Comments cut to the why, in a line or two, starting with the largest
+1. Comments cut to the why, in a line or two, starting with the largest
    client files (`player_screen.dart`, `menus.dart`, `models.dart`,
    `item_screen.dart`): many narrate how a value was arrived at, which is
    history git already holds. Duplication and dead code found on the way go
    in the same pass.
-4. A "keep running in the background" setting (tray or systemd user unit),
+2. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
 ## From the user's notes of 2026-09-27, in order
 
 1. mpv renders at the view's size and owns fit, fill and stretch (`panscan`,
    `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
-   `LUMEO.md`). Left to check by hand: a window resize and fullscreen on
-   NVIDIA/Wayland, and the picture modes on Windows.
+   `LUMEO.md`). Left to check by hand: the picture modes on Windows.
 2. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
    the console and statistics cannot work: ship a current libmpv with Lua,
    pinned by hash. Then left click not pausing on Windows 10, the picture
@@ -206,7 +181,8 @@ the title bar (drag, snap, maximise, the Windows 10 top edge), fullscreen in
 and out, a second launch and "Open with", the core starting and stopping with
 the app (`%LOCALAPPDATA%\Lumeo\State\core.log`), playback and seeking on
 media_kit's libmpv (a 2023-09 build, older than any Linux one), subtitles and
-screenshots. Later: a signed installer, if SmartScreen's warning costs users;
+screenshots, and freeing one episode of a pack while the next one plays (the
+freed file is rewritten and renamed, which Windows refuses for an open file). Later: a signed installer, if SmartScreen's warning costs users;
 the Snap Layouts flyout on the maximise button, which needs the runner to know
 where the client draws it.
 

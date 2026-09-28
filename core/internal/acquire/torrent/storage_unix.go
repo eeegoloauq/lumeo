@@ -29,3 +29,6 @@ func openData(path string, create bool) (*os.File, error) {
 	}
 	return f, err
 }
+
+// makeSparse does nothing: a file past its end is sparse here already.
+func makeSparse(*os.File) {}

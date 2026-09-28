@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/segments"
@@ -29,6 +31,9 @@ import (
 type fileStorage struct {
 	dir        string
 	completion storage.PieceCompletion
+
+	mu      sync.Mutex
+	torrent *torrentStorage // the one torrent this storage holds, once its info is known
 }
 
 var _ storage.ClientImplCloser = (*fileStorage)(nil)
@@ -42,6 +47,12 @@ func newFileStorage(dir string) (*fileStorage, error) {
 }
 
 func (s *fileStorage) Close() error { return s.completion.Close() }
+
+func (s *fileStorage) opened() *torrentStorage {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.torrent
+}
 
 func (s *fileStorage) OpenTorrent(_ context.Context, info *metainfo.Info, infoHash metainfo.Hash) (storage.TorrentImpl, error) {
 	t := &torrentStorage{
@@ -78,6 +89,9 @@ func (s *fileStorage) OpenTorrent(_ context.Context, info *metainfo.Info, infoHa
 			return storage.TorrentImpl{}, err
 		}
 	}
+	s.mu.Lock()
+	s.torrent = t
+	s.mu.Unlock()
 	return storage.TorrentImpl{Piece: t.piece, Close: t.close}, nil
 }
 
@@ -87,6 +101,10 @@ type torrentStorage struct {
 	completion storage.PieceCompletion
 	index      segments.Index
 	files      []*storedFile
+
+	// markMu makes checking whether a piece is freed and recording it
+	// complete one step, against free doing the opposite.
+	markMu sync.Mutex
 }
 
 var errStorageClosed = errors.New("torrent: storage is closed")
@@ -107,6 +125,10 @@ type storedFile struct {
 	countMu sync.Mutex
 	missing int
 	counted bool
+
+	// freed is set from free until the file is wanted again: its own pieces
+	// then neither read nor count as complete (storedPiece.freed).
+	freed atomic.Bool
 }
 
 func (f *storedFile) partPath() string { return f.path + ".part" }
@@ -230,6 +252,9 @@ func (p *storedPiece) each(off int64, n int, fn func(f *storedFile, fileOff int6
 // ReadAt answers a short read with io.EOF, as a missing or short file is: the
 // caller takes that for data lost and fetches the piece again.
 func (p *storedPiece) ReadAt(b []byte, off int64) (int, error) {
+	if p.freed() {
+		return 0, io.EOF
+	}
 	return p.each(off, len(b), func(f *storedFile, at int64, begin, length int) (int, error) {
 		n, err := f.use(false, func(h *os.File) (int, error) { return h.ReadAt(b[begin:begin+length], at) })
 		if err == io.EOF && n == length {
@@ -254,7 +279,13 @@ func (p *storedPiece) MarkComplete() error {
 			return err
 		}
 	}
+	p.t.markMu.Lock()
+	if p.freed() {
+		p.t.markMu.Unlock()
+		return nil
+	}
 	changed, err := p.set(true)
+	p.t.markMu.Unlock()
 	if err != nil || !changed {
 		return err
 	}
@@ -342,6 +373,20 @@ func (t *torrentStorage) lost(f *storedFile, size int64) error {
 	return nil
 }
 
+// freed says whether the piece is one free took out of its file. A hash of it
+// that read the bytes before they went, or a chunk that was on its way, must
+// not make it complete again, and a peer must not be sent its holes.
+func (p *storedPiece) freed() bool {
+	var only *storedFile
+	for f := range p.files() {
+		if only != nil {
+			return false // shared with a neighbour: kept
+		}
+		only = f
+	}
+	return only != nil && only.freed.Load()
+}
+
 func (p *storedPiece) files() func(func(*storedFile) bool) {
 	return func(yield func(*storedFile) bool) {
 		for i := range p.t.index.LocateIter(segments.Extent{Start: p.p.Offset(), Length: p.p.Length()}) {
@@ -400,4 +445,112 @@ func (t *torrentStorage) count(f *storedFile, delta int) (bool, error) {
 	}
 	f.missing, f.counted = missing, true
 	return missing == 0, nil
+}
+
+// free takes the file at path out of the torrent but for the bytes it shares
+// with its neighbours, and says whether the torrent has such a file. A piece is
+// checked whole, so the pieces at the file's ends, which can hold the last
+// bytes of the file before it or the first of the one after, stay: deleted,
+// they would take a verified piece from a neighbour, which then waits for a
+// peer to send it again. Every other piece of the file is recorded as missing
+// before its bytes go, so a crash in between leaves data nobody counts rather
+// than a count of data that is gone; forget hears of each such piece first,
+// so a running torrent stops offering it to peers.
+func (t *torrentStorage) free(path string, forget func(piece int)) (bool, error) {
+	i := slices.IndexFunc(t.files, func(f *storedFile) bool { return f.path == path })
+	if i < 0 {
+		return false, nil
+	}
+	f := t.files[i]
+	var keep []segments.Extent
+	var own []int
+	t.markMu.Lock()
+	f.freed.Store(true)
+	for piece := f.begin; piece < f.end; piece++ {
+		p := t.info.Piece(piece)
+		start, end := max(p.Offset(), f.offset), min(p.Offset()+p.Length(), f.offset+f.length)
+		if start > p.Offset() || end < p.Offset()+p.Length() {
+			keep = append(keep, segments.Extent{Start: start - f.offset, Length: end - start})
+			continue
+		}
+		if _, err := (&storedPiece{t: t, p: p}).set(false); err != nil {
+			t.markMu.Unlock()
+			return true, err
+		}
+		own = append(own, piece)
+	}
+	t.markMu.Unlock()
+	if forget != nil {
+		for _, piece := range own {
+			forget(piece)
+		}
+	}
+	f.countMu.Lock()
+	f.counted = false
+	f.countMu.Unlock()
+	return true, f.shrink(keep)
+}
+
+// want lets the file at path be read and completed again after free.
+func (t *torrentStorage) want(path string) {
+	for _, f := range t.files {
+		if f.path == path {
+			f.freed.Store(false)
+		}
+	}
+}
+
+// shrink leaves only the bytes of keep in the file, under its .part name. The
+// file is demoted first and replaced whole after, so a crash leaves either the
+// old bytes or the new ones under that name. A new sparse file rather than
+// holes punched in the old one: every filesystem can do that, and it copies
+// two pieces at most.
+func (f *storedFile) shrink(keep []segments.Extent) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.closed {
+		return errStorageClosed
+	}
+	if err := f.closeHandle(); err != nil {
+		return err
+	}
+	if err := os.Rename(f.path, f.partPath()); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if len(keep) == 0 {
+		if err := os.Remove(f.partPath()); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		return nil
+	}
+	src, err := os.Open(f.partPath())
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	tmp, err := os.CreateTemp(filepath.Dir(f.path), ".lumeo-free-*")
+	if err != nil {
+		return err
+	}
+	err = copyExtents(tmp, src, keep)
+	if err = errors.Join(err, tmp.Close(), src.Close()); err == nil {
+		err = os.Rename(tmp.Name(), f.partPath())
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+	}
+	return err
+}
+
+func copyExtents(dst, src *os.File, extents []segments.Extent) error {
+	makeSparse(dst)
+	for _, e := range extents {
+		if _, err := io.Copy(io.NewOffsetWriter(dst, e.Start), io.NewSectionReader(src, e.Start, e.Length)); err != nil {
+			return err
+		}
+	}
+	return dst.Sync()
 }
