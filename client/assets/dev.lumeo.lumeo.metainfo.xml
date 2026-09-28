@@ -39,6 +39,24 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.74" date="2026-09-28">
+      <description>
+        <ul>
+          <li>Subtitles are kept with each download: the best match in each of your subtitle languages is saved beside the file and plays offline. The subtitle menu marks them "on disk".</li>
+          <li xml:lang="ru">Субтитры сохраняются вместе с загрузкой: лучшие для каждого вашего языка субтитров лежат рядом с файлом и работают без сети. В меню субтитров они помечены «на диске».</li>
+          <li>Freeing one episode of a season pack no longer makes the next one wait for the network before it plays.</li>
+          <li xml:lang="ru">Удаление одной серии из пака сезона больше не заставляет следующую ждать сети, прежде чем она запустится.</li>
+          <li>Closing the window during playback no longer crashes the app.</li>
+          <li xml:lang="ru">Закрытие окна во время просмотра больше не роняет приложение.</li>
+          <li>A subtitle database that does not answer no longer holds up the next episode.</li>
+          <li xml:lang="ru">База субтитров, которая не отвечает, больше не задерживает следующую серию.</li>
+          <li>A download resumed without a network knows its files at once, and switching episodes asks the sources once instead of every time.</li>
+          <li xml:lang="ru">Загрузка, продолженная без сети, сразу знает свои файлы, а при переключении серий источники опрашиваются один раз, а не каждый раз.</li>
+          <li>An episode finished just before a restart is kept for the usual time instead of being freed at once.</li>
+          <li xml:lang="ru">Серия, досмотренная перед перезапуском, хранится обычный срок, а не удаляется сразу.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.73" date="2026-09-28">
       <description>
         <ul>
