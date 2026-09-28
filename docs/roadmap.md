@@ -74,6 +74,11 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   fence code, not alone.
 - "Open with": `[?]` Identify as… for a file nothing or the wrong title
   matched (a search picked by hand).
+- Subtitles offline: a picked external track is fetched from the provider on
+  every open, and the list itself needs the network, so a download plays
+  without it with its embedded tracks only. Keep the picked file beside the
+  download, and list it as a local track the way the core lists a copy on
+  disk among the sources.
 
 ## Application
 
