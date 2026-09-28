@@ -39,6 +39,18 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.75" date="2026-09-28">
+      <description>
+        <ul>
+          <li>A subtitle file that stops downloading fails after 5 seconds of silence instead of 20, and the player says so; picking it again retries.</li>
+          <li xml:lang="ru">Файл субтитров, который перестал скачиваться, отбрасывается после 5 секунд тишины, а не 20, и плеер сообщает об этом; повторный выбор пробует снова.</li>
+          <li>The subtitle list asks every database at once and answers within 15 seconds, with whatever the ones that answered had.</li>
+          <li xml:lang="ru">Список субтитров опрашивает все базы одновременно и приходит не позже чем через 15 секунд — с тем, что успели дать ответившие.</li>
+          <li>Choosing an episode no longer flashes "Looking for sources…" under Play when the list is quick.</li>
+          <li xml:lang="ru">При выборе серии под кнопкой «Смотреть» больше не мелькает «Ищу источники…», если список пришёл быстро.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.74" date="2026-09-28">
       <description>
         <ul>
