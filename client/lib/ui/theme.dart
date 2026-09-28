@@ -366,10 +366,18 @@ ThemeData lumeoTheme([String accent = 'white']) {
     progressIndicatorTheme: ProgressIndicatorThemeData(
       linearTrackColor: lamp.withValues(alpha: 0.2),
     ),
-    scrollbarTheme: const ScrollbarThemeData(
-      thumbColor: WidgetStatePropertyAll(Palette.line),
-      thickness: WidgetStatePropertyAll(6),
-      radius: Radius.circular(3),
+    scrollbarTheme: ScrollbarThemeData(
+      thumbColor: const WidgetStatePropertyAll(Palette.line),
+      // Thin at rest, wide under the pointer: a 6 px thumb is easy to miss,
+      // and a press beside it pages the list instead of grabbing it.
+      thickness: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.dragged)
+            ? 10
+            : 6,
+      ),
+      radius: const Radius.circular(5),
     ),
   );
 }
