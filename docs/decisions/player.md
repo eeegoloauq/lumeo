@@ -36,6 +36,12 @@ a few kilobytes of the episode before it. So the message at the end of all that
 says only what is known: this copy would not start. That it has no picture is
 said only where a codec was actually named.
 
+Closing the window stops mpv before the process ends. The embedder asks the
+app first, and the player saves the position, stops both mpvs and frees the
+video output, then lets it go. Ending with them running crashed every close
+during playback: the GPU driver's exit handlers tear down what a decoder or
+the render thread still uses.
+
 ## The player's controls, and where each of them came from
 
 The bar is deliberately the one every player already has, because nobody

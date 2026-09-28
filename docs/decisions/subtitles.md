@@ -26,6 +26,11 @@ endpoint takes an id the core minted, never an address — an endpoint that
 fetched whatever it was handed would be an open proxy into the network the
 core sits on, which for a home server is the whole home.
 
+And the player fetches it from the core itself and hands mpv the file, never
+the address. mpv waits on an address it is handed, and while it waits every
+command after it waits too: a provider that kept silent held the switch to the
+next episode for as long as the core waited on it.
+
 The picker itself does not distinguish where a track came from: the ones inside
 the file and the ones a database has for this copy are the same decision to
 whoever is watching. So the subtitle column is a list of languages rather than
