@@ -39,6 +39,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.70" date="2026-09-28">
+      <description>
+        <ul>
+          <li>Scrolling past the banner on the home page no longer stutters on laptops and other modest graphics. The banner looks the same and is drawn in one pass instead of several.</li>
+          <li xml:lang="ru">Прокрутка мимо баннера на главной больше не дёргается на ноутбуках и слабой графике. Баннер выглядит так же, но рисуется за один проход вместо нескольких.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.69" date="2026-09-28">
       <description>
         <ul>
