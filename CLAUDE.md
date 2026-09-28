@@ -24,10 +24,11 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
   player or `integration_test/` is touched, or one test with `--plain-name "<test name>"`. GitHub
   CI runs it on every client push to main and on the tag, and the release is published only when
   it passes.
-- A player test never waits out one of the app's own timers. A timeout it needs to see run out is a
+- No test waits out one of the app's own timers. A timeout it needs to see run out is a
   `@visibleForTesting` value the test shortens (`openPatience`); a check that something did not
   happen waits one or two cycles of the timer behind it; a setting is read back from mpv rather
-  than proved by waiting for its effect.
+  than proved by waiting for its effect. After adding tests, `client/tool/slow_tests.dart`
+  (`CONTRIBUTING.md`) shows one that waits anyway.
 - Nothing here builds or runs the Windows client, so a change to `client/windows/` or a Windows
   branch in Dart is checked on a real Windows machine.
 

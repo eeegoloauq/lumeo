@@ -60,7 +60,8 @@ libmpv in `client/integration_test/`. [docs/decisions/testing.md](docs/decisions
 what goes where, what a test does not check, and which helpers every app test uses;
 `client/test/suite_test.dart` fails on what of that a machine can see. A fix for a visible defect
 comes with a test. `tool/ui-test.sh` runs one area with `--name '^player '` or one test with
-`--plain-name "<test name>"`; GitHub CI runs it on every push to `main` that touches the client and
+`--plain-name "<test name>"`, and `flutter test --reporter json | dart run tool/slow_tests.dart`
+lists the slowest tests, which is where a test waiting for a real timer shows; GitHub CI runs it on every push to `main` that touches the client and
 on every tag, and the release is published only when it passes.
 
 Nothing here builds or runs the Windows client (`packaging/build-windows.sh` runs on Windows only),

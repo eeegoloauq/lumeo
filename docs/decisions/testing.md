@@ -60,6 +60,14 @@ Everything goes through `test/ui/app.dart`:
   nothing, including the app's own timers, which `uiTest` runs out after the
   test.
 
+No test, at any layer, waits out one of the app's own timers: a timeout it
+needs to see run out is a `@visibleForTesting` value it shortens
+(`openPatience`, `picturesAskTimeout`). A unit test that waited two real
+seconds for a timeout went unnoticed until the run was timed.
+`flutter test --reporter json | dart run tool/slow_tests.dart` lists the
+slowest tests; after the first of each file, which compiles what it opens, a
+test of a second or more is waiting for something.
+
 A picture over HTTP cannot be loaded in an app test: flutter test stubs
 `HttpClient`, and `ArtworkImage` keeps the first client it made. What depends
 on a decoded picture is tested on the widget, with the picture from a file
@@ -76,9 +84,7 @@ exercised. 0.1.19 shipped with every film frozen on its first frame under a
 green suite on Xvfb. Weston on llvmpipe is Wayland and EGL, which is what the
 application meets on a desktop.
 
-A player test waits for mpv with `waitFor` and never waits out one of the
-app's own timers: a timeout it needs to see run out is a `@visibleForTesting`
-value it shortens (`openPatience`), and a setting or the pause is read back
+A player test waits for mpv with `waitFor`, and a setting or the pause is read back
 from mpv rather than proved by waiting for its effect or read off the bar,
 which hides itself. `pumpFor` counts the binding's clock: on Weston each pump
 also waits for a frame, and counted pumps ran four times as long as written.
