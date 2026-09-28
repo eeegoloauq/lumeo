@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -307,6 +308,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     widget.downloads.addListener(_onDownloads);
     widget.frames.addListener(_onFrames);
     widget.preferences.addListener(_onPreferences);
+    _exit = AppLifecycleListener(onExitRequested: _beforeExit);
     _hostReady = _attachHost();
     _volume = widget.settings.volume;
     _player.setVolume(_volume);
@@ -675,8 +677,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _focus.dispose();
     _host?.dispose();
     _thumbnails?.dispose();
-    unawaited(_hostReady.whenComplete(_player.dispose));
+    _exit.dispose();
+    unawaited(_teardown());
     super.dispose();
+  }
+
+  late final AppLifecycleListener _exit;
+  Future<void>? _released;
+
+  /// Stops both mpvs and frees the video output, once.
+  Future<void> _teardown() => _released ??= () async {
+    await _hostReady;
+    final thumbnails = _thumbnails?..dispose();
+    await Future.wait([_player.dispose(), ?thumbnails?.closed]);
+  }();
+
+  /// Closing the window ends the process, and the GPU driver's exit handlers
+  /// tear down what a decoder or the render thread still uses: every close
+  /// during playback crashed there. So mpv stops first, and the position is
+  /// saved while the core still answers. Bounded, so a stuck teardown cannot
+  /// keep the window open.
+  Future<AppExitResponse> _beforeExit() async {
+    await Future.wait([_reportProgress(afterCurrent: true), _teardown()])
+        .timeout(const Duration(seconds: 3), onTimeout: () => const []);
+    return AppExitResponse.exit;
   }
 
   // Schedule after each response to avoid overlapping polls and stale progress.

@@ -71,6 +71,7 @@ class FrameGrabber {
   Pointer<mpv_handle> _handle = nullptr;
   NativeCallable<Void Function(Pointer<Void>)>? _wakeup;
   final _opened = Completer<bool>();
+  final _closed = Completer<void>();
   bool _dead = false;
   bool _disposed = false;
 
@@ -82,6 +83,9 @@ class FrameGrabber {
 
   /// True once the file is loaded, false if it never will be.
   Future<bool> get opened => _opened.future;
+
+  /// Completes once [dispose] has destroyed this mpv.
+  Future<void> get closed => _closed.future;
 
   /// The frame at [at], as mpv's `seek` takes it with [flags]; null when
   /// there is none.
@@ -99,7 +103,11 @@ class FrameGrabber {
     _fail();
     // libmpv's asynchronous teardown: quit, then destroy on the shutdown
     // event; mpv_terminate_destroy would block this thread.
-    if (_handle != nullptr) _command(0, ['quit']);
+    if (_handle != nullptr) {
+      _command(0, ['quit']);
+    } else if (!_closed.isCompleted) {
+      _closed.complete();
+    }
   }
 
   Future<Object?> _request(String at, String flags, String? file) {
@@ -163,6 +171,7 @@ class FrameGrabber {
           _wakeup!.close();
           _mpv.mpv_destroy(_handle);
           _handle = nullptr;
+          _closed.complete();
       }
     }
   }

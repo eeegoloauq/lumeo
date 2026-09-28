@@ -323,6 +323,61 @@ void playerTests() {
     );
   });
 
+  testWidgets('closing the window mid-film saves the position and stops mpv '
+      'before the app exits', (tester) async {
+    final server = await serveFilm();
+    final progressCalls = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          progressCalls: progressCalls,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    Future<double> position() async =>
+        double.tryParse(await mpv.getProperty('time-pos')) ?? 0;
+    await waitFor(
+      tester,
+      () async => await position() > 0,
+      what: 'the film playing',
+    );
+    await mpv.command(['seek', '5', 'absolute']);
+    await waitFor(
+      tester,
+      () async => await position() >= 5,
+      what: 'the film past five seconds',
+    );
+    progressCalls.clear();
+
+    // What the embedder sends when the window is asked to close.
+    const codec = JSONMethodCodec();
+    final reply = Completer<ByteData?>();
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.platform.name,
+      codec.encodeMethodCall(const MethodCall('System.requestAppExit')),
+      reply.complete,
+    );
+    final answer = await reply.future;
+
+    expect(
+      (codec.decodeEnvelope(answer!) as Map)['response'],
+      'exit',
+      reason: 'the exit waits for the player and then goes ahead',
+    );
+    expect(mpv.disposed, isTrue, reason: 'mpv is stopped before the exit');
+    expect(
+      progressCalls.map((body) => jsonDecode(body)['position'] as num),
+      contains(greaterThanOrEqualTo(5)),
+      reason: 'the position is saved before the exit',
+    );
+  });
+
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
     // mpv silently ignores unknown option names, so read properties back to
     // catch misspellings.

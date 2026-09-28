@@ -61,6 +61,9 @@ class Thumbnails {
     _grabber?.dispose();
   }
 
+  /// Completes once [dispose] has let go of the mpv behind the frames.
+  Future<void> get closed => _grabber?.closed ?? Future.value();
+
   Future<void> _next() async {
     final at = _wanted;
     if (_busy || _disposed || at == null) return;
