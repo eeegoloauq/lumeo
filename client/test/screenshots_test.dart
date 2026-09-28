@@ -149,6 +149,9 @@ void main() {
     test('a command that never answers is given up on', () async {
       // The one that matters for the film: this used to be awaited between a
       // download being ready and mpv being handed it.
+      final patience = picturesAskTimeout;
+      picturesAskTimeout = Duration.zero;
+      addTearDown(() => picturesAskTimeout = patience);
       expect(
         await picturesFolder(
           environment: {'HOME': '/home/me'},

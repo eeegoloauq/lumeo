@@ -89,7 +89,8 @@ set picturesFolderAnswer(String? answer) =>
 
 /// Long enough for a program that prints one line, short enough that nothing
 /// waiting on this is waiting on a machine where it hangs.
-const _askTimeout = Duration(seconds: 2);
+@visibleForTesting
+Duration picturesAskTimeout = const Duration(seconds: 2);
 
 Future<String> _findPictures(
   Map<String, String> environment,
@@ -100,7 +101,9 @@ Future<String> _findPictures(
   // would put frames in the home directory itself.
   final home = _withoutTrailingSlash(environment['HOME'] ?? '');
   try {
-    final found = await run('xdg-user-dir', ['PICTURES']).timeout(_askTimeout);
+    final found = await run('xdg-user-dir', [
+      'PICTURES',
+    ]).timeout(picturesAskTimeout);
     final path = _withoutTrailingSlash((found.stdout as String).trim());
     // With no Pictures folder configured, xdg-user-dir answers with the home
     // directory itself. That is not a place to drop frames into.
