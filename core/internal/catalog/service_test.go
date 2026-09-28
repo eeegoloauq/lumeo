@@ -275,9 +275,10 @@ func TestBrowseFallsBackToStalePage(t *testing.T) {
 	}
 }
 
-// A page another core version wrote may be parsed differently: it waits for
-// the provider, and is still better than an error when the provider is down.
-func TestBrowseWaitsOutPageOfAnotherVersion(t *testing.T) {
+// A page another core version wrote may be parsed differently, but it is
+// served while the provider is asked: an update must not make the home screen
+// wait for Cinemeta, or come up empty without a network.
+func TestBrowseServesPageOfAnotherVersionAndRefreshesIt(t *testing.T) {
 	st := newMemStore(time.Unix(1_700_000_000, 0))
 	p := &fakeProvider{id: "meta", items: []MediaItem{movie("tt0133093", "The Matrix")}}
 	svc := testService(t, p, st)
@@ -285,15 +286,15 @@ func TestBrowseWaitsOutPageOfAnotherVersion(t *testing.T) {
 		t.Fatalf("browse: %v", err)
 	}
 	st.expire()
+	gate := p.hold()
 	p.items = []MediaItem{movie("tt0133093", "The Matrix"), movie("tt0234215", "The Matrix Reloaded")}
-	if items, err := svc.Browse(context.Background(), browseReq()); err != nil || len(items) != 2 {
-		t.Fatalf("expired page not refetched: %+v, %v", items, err)
+	if items, err := svc.Browse(context.Background(), browseReq()); err != nil || len(items) != 1 {
+		t.Fatalf("expired page not served while the provider is out: %+v, %v", items, err)
 	}
-
-	st.expire()
-	p.fail(errors.New("cinemeta down"))
-	if items, err := svc.Browse(context.Background(), browseReq()); err != nil || len(items) != 2 {
-		t.Fatalf("expired page not served when the provider is down: %+v, %v", items, err)
+	close(gate)
+	svc.pages.Wait()
+	if items, _ := svc.Browse(context.Background(), browseReq()); len(items) != 2 {
+		t.Errorf("expired page not refetched: %+v", items)
 	}
 }
 
@@ -394,9 +395,9 @@ func TestItemServesStaleDetailsWithoutWaiting(t *testing.T) {
 	}
 }
 
-// Details another core version wrote wait for the provider, so a parser
-// change shows on the next open.
-func TestItemWaitsOutDetailsOfAnotherVersion(t *testing.T) {
+// Details another core version wrote are served while new ones load, so a
+// parser change shows on the next open.
+func TestItemServesDetailsOfAnotherVersionAndRefreshesThem(t *testing.T) {
 	st := newMemStore(time.Unix(1_700_000_000, 0))
 	series, full := severanceFixture()
 	p := &fakeProvider{id: "meta", items: []MediaItem{series}, meta: &full}
@@ -407,15 +408,18 @@ func TestItemWaitsOutDetailsOfAnotherVersion(t *testing.T) {
 	}
 
 	st.expire()
+	gate := p.hold()
 	newer := full
 	newer.Overview = "Parsed anew"
 	p.meta = &newer
 	got, err := svc.Item(context.Background(), id)
-	if err != nil {
-		t.Fatalf("item: %v", err)
+	if err != nil || got.Overview != full.Overview {
+		t.Fatalf("details of another version not served while the provider is out: %+v, %v", got, err)
 	}
-	if got.Overview != "Parsed anew" {
-		t.Errorf("details of another version served: %+v", got)
+	close(gate)
+	svc.items.Wait()
+	if got, _ := svc.Item(context.Background(), id); got.Overview != "Parsed anew" {
+		t.Errorf("details of another version not refreshed: %+v", got)
 	}
 }
 

@@ -71,7 +71,9 @@ func Open(path, version string) (*DB, error) {
 
 // expireCatalog marks the cached catalog stale when another core version
 // wrote it: rows hold what that version's code made of the provider's
-// answer, and a newer parser must not wait out the TTL to take effect.
+// answer, and a newer parser must not wait out the TTL to take effect. They
+// are still served while the new ones load, so an update does not make the
+// home screen wait for the provider, or fail without a network.
 func expireCatalog(ctx context.Context, db *sql.DB, version string) error {
 	var stored string
 	err := db.QueryRowContext(ctx, "SELECT version FROM core_version").Scan(&stored)
@@ -290,8 +292,8 @@ func (d *DB) Page(ctx context.Context, key string) ([]string, time.Time, error) 
 }
 
 // fetchedAt reads a catalog row's updated_at. 0 is expireCatalog's mark for a
-// row another core version wrote, and it comes back as the zero time: the
-// catalog must not serve that row while it fetches a new one.
+// row another core version wrote, and it comes back as the zero time, which
+// is never fresh.
 func fetchedAt(unix int64) time.Time {
 	if unix == 0 {
 		return time.Time{}

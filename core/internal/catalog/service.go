@@ -98,10 +98,9 @@ func (s *Service) Rows(ctx context.Context) []Row {
 }
 
 // Browse returns one page of one row. A cached page is served as it is: when
-// it is past the TTL the provider is asked again in the background, and the
-// next request gets the new page. Only a page never fetched, or fetched by
-// another core version, waits for the provider — and falls back to what the
-// cache has when the provider fails.
+// it is past the TTL, or another core version wrote it, the provider is asked
+// again in the background and the next request gets the new page. Only a page
+// never fetched waits for the provider.
 func (s *Service) Browse(ctx context.Context, req BrowseRequest) ([]MediaItem, error) {
 	p, err := s.provider(req.ProviderID)
 	if err != nil {
@@ -129,18 +128,10 @@ func (s *Service) Browse(ctx context.Context, req BrowseRequest) ([]MediaItem, e
 	call := s.pages.Go(key, func(ctx context.Context) ([]MediaItem, error) {
 		return s.fetchPage(ctx, p, req, key)
 	})
-	if len(stale) > 0 && !fetchedAt.IsZero() {
+	if len(stale) > 0 {
 		return stale, nil
 	}
-	items, err := call.Wait(ctx)
-	if err != nil {
-		if ctx.Err() == nil && len(stale) > 0 {
-			s.log.Warn("browse failed, serving stale page", "provider", p.ID(), "err", err)
-			return stale, nil
-		}
-		return nil, err
-	}
-	return items, nil
+	return call.Wait(ctx)
 }
 
 func (s *Service) fetchPage(ctx context.Context, p Provider, req BrowseRequest, key string) ([]MediaItem, error) {
@@ -203,8 +194,8 @@ func (s *Service) Search(ctx context.Context, kind Kind, query string) ([]MediaI
 // Item returns the full item behind one of our ids, fetching the details the
 // catalog row did not carry (episodes, cast, artwork) when they are missing or
 // stale. Details already fetched are served at once and refreshed in the
-// background once past the TTL; only a title never opened, or opened under
-// another core version, waits for the provider. A provider that is down costs
+// background once past the TTL or written by another core version; only a
+// title never opened waits for the provider. A provider that is down costs
 // freshness, not the page.
 func (s *Service) Item(ctx context.Context, id string) (MediaItem, error) {
 	item, state, err := s.store.Item(ctx, id)
@@ -220,7 +211,7 @@ func (s *Service) Item(ctx context.Context, id string) (MediaItem, error) {
 	call := s.items.Go(id, func(ctx context.Context) (MediaItem, error) {
 		return s.fetchItem(ctx, id, item)
 	})
-	if state.Detailed && !state.UpdatedAt.IsZero() {
+	if state.Detailed {
 		return item, nil
 	}
 	full, err := call.Wait(ctx)

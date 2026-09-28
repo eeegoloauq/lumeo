@@ -84,9 +84,10 @@ The request runs on the catalog's own context (`internal/flight`), so a page
 closed before Cinemeta answered still gets its answer cached.
 
 The cache holds what the core's code made of Cinemeta's answer, so a core of
-another version starts with all of it expired rather than stale: expired
-copies wait for Cinemeta like missing ones, and a parser change takes effect
-on the next open, not a day later.
+another version starts with all of it past the TTL: a parser change takes
+effect on the next open, not a day later. It is still served while the new
+answer loads, so an update never makes a page wait for Cinemeta, and without
+a network the home screen is yesterday's rather than a spinner.
 
 Lists of titles nobody is opening right now — My list, the series whose new
 episodes are looked for — are answered from the cache as it is, whatever the

@@ -112,7 +112,7 @@ type ItemState struct {
 	// UpdatedAt is when the details were fetched once Detailed: a catalog row
 	// carries no episodes, so seeing the title in a list must not make them
 	// look fresh. It is zero for details another core version wrote, which
-	// may be parsed differently and are not served while new ones load.
+	// may be parsed differently and are refreshed behind the answer.
 	UpdatedAt time.Time
 }
 
