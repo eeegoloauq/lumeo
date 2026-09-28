@@ -231,9 +231,11 @@ func (b *Backend) Start(ctx context.Context, loc sources.Locator, dir string) (a
 		if err != nil {
 			return nil, err
 		}
+		infoBytes := savedInfo(absDir, infoHash)
 		tor, added := b.client.AddTorrentOpt(atorrent.AddTorrentOpts{
-			InfoHash: infoHash,
-			Storage:  fileStorage,
+			InfoHash:  infoHash,
+			InfoBytes: infoBytes,
+			Storage:   fileStorage,
 		})
 		if !added {
 			// The client knows this infohash but we do not, so we cannot tell
@@ -251,6 +253,9 @@ func (b *Backend) Start(ctx context.Context, loc sources.Locator, dir string) (a
 			ends:    map[int]int{},
 		}
 		b.shared[infoHash] = sh
+		if infoBytes == nil {
+			go saveInfo(tor, absDir)
+		}
 	}
 	sh.refs++
 	if len(loc.Trackers) != 0 {
@@ -284,6 +289,50 @@ func (b *Backend) Start(ctx context.Context, loc sources.Locator, dir string) (a
 }
 
 // release drops a torrent once the last download that wanted it is gone.
+// infoFile keeps a torrent's info beside its bytes, so a download started
+// again knows its files, sizes and finished pieces at once: from the infohash
+// alone that waits for a peer to send them, and offline it never comes. It
+// lives in the torrent's own directory and goes with it. The name carries the
+// infohash, which the torrent's own file names are hashed into, so none of
+// them can be it.
+func infoFile(infoHash metainfo.Hash) string {
+	return ".lumeo-" + infoHash.HexString() + ".info"
+}
+
+// savedInfo is the info saved for infoHash in dir, or nil.
+func savedInfo(dir string, infoHash metainfo.Hash) []byte {
+	info, err := os.ReadFile(filepath.Join(dir, infoFile(infoHash)))
+	if err != nil || metainfo.HashBytes(info) != infoHash {
+		return nil
+	}
+	return info
+}
+
+func saveInfo(tor *atorrent.Torrent, dir string) {
+	select {
+	case <-tor.GotInfo():
+	case <-tor.Closed():
+	}
+	// Both can be ready at once: info that arrived before the close is kept.
+	if tor.Info() == nil {
+		return
+	}
+	name := infoFile(tor.InfoHash())
+	// Written whole or not at all: a torn file would fail its hash and be
+	// fetched again, but a rename costs nothing.
+	tmp, err := os.CreateTemp(dir, name+"-*")
+	if err != nil {
+		return
+	}
+	_, err = tmp.Write(tor.Metainfo().InfoBytes)
+	if err = errors.Join(err, tmp.Close()); err == nil {
+		err = os.Rename(tmp.Name(), filepath.Join(dir, name))
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+	}
+}
+
 func (b *Backend) release(infoHash metainfo.Hash) error {
 	b.mu.Lock()
 	sh, ok := b.shared[infoHash]

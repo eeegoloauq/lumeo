@@ -616,3 +616,61 @@ func waitForPieceCheck(t *testing.T, tor *atorrent.Torrent, timeout time.Duratio
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// A download started again, offline, knows its file at once: the info the
+// swarm handed over the first time is kept beside the bytes.
+func TestBackendRestartsWithoutAPeerForTheInfo(t *testing.T) {
+	seedDir := oneFilm(t)
+	info := metainfo.Info{PieceLength: 256 << 10}
+	if err := info.BuildFromFilePath(seedDir); err != nil {
+		t.Fatalf("build metainfo: %v", err)
+	}
+	infoBytes, err := bencode.Marshal(info)
+	if err != nil {
+		t.Fatalf("marshal metainfo: %v", err)
+	}
+	hash := metainfo.HashBytes(infoBytes)
+	nobody := []atorrent.PeerInfo{{
+		Addr:   &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1},
+		Source: atorrent.PeerSourceDirect,
+	}}
+	dir := t.TempDir()
+	start := func(backend *Backend) acquire.Task {
+		t.Helper()
+		task, err := backend.Start(context.Background(), sources.Locator{Scheme: "torrent", InfoHash: hash.HexString()}, dir)
+		if err != nil {
+			t.Fatalf("start download: %v", err)
+		}
+		return task
+	}
+
+	first, err := New(Config{DataDir: t.TempDir(), Peers: nobody})
+	if err != nil {
+		t.Fatalf("create backend: %v", err)
+	}
+	// What a swarm would have handed over, handed over directly.
+	if err := torrentOf(start(first)).SetInfoBytes(infoBytes); err != nil {
+		t.Fatalf("hand over the metainfo: %v", err)
+	}
+	waitFor(t, 10*time.Second, "the info saved", func() bool {
+		_, err := os.Stat(filepath.Join(dir, infoFile(hash)))
+		return err == nil
+	})
+	if err := first.Close(); err != nil {
+		t.Fatalf("close backend: %v", err)
+	}
+
+	second, err := New(Config{DataDir: t.TempDir(), Peers: nobody})
+	if err != nil {
+		t.Fatalf("create backend: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := second.Close(); err != nil {
+			t.Errorf("close backend: %v", err)
+		}
+	})
+	file := waitForFile(t, start(second), 5*time.Second)
+	if got := file.(*torrentFile).file.Length(); got != 6<<20 {
+		t.Fatalf("length = %d, want %d", got, 6<<20)
+	}
+}

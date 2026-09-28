@@ -122,7 +122,9 @@ persisted: it is cheaper to ask the backend than to keep a stale number honest.
 The exception is a pause, which freezes it. A download says `resolved` once the backend knows
 which file it is (a magnet's metadata has arrived), so the client can tell
 "Finding peers" (nobody yet) from "Fetching metadata" (peers, no file yet)
-from bytes arriving. The client's list of downloads is a poll, slow while
+from bytes arriving. The metadata is kept beside the bytes once it arrives
+(`.lumeo-<infohash>.info` in the torrent's directory), so a download started again
+resolves at once, offline included. The client's list of downloads is a poll, slow while
 nothing moves; a download this client starts is put in it from the start
 call's answer, not from the next poll. Stopping a download and discarding what it fetched
 are separate intentions and separate calls.
