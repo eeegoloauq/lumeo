@@ -142,8 +142,9 @@ class AudioSubtitlesSection extends StatelessWidget {
   }
 }
 
-/// A sample line drawn the way the choices below would have mpv draw it:
-/// close enough to judge a colour and a size, not a promise about a font.
+/// A sample line drawn the way the choices above would have mpv draw it:
+/// the same size, outline, shadow and box in mpv's units, in our font rather
+/// than the system's sans.
 class _Preview extends StatelessWidget {
   const _Preview({required this.preferences});
 
@@ -154,27 +155,55 @@ class _Preview extends StatelessWidget {
     final colour =
         subtitleColours[preferences.subtitleColor] ?? subtitleColours['white']!;
     final background = preferences.subtitleBackground;
-    // Twice mpv's size: true to scale, a line in a preview this small is too
-    // small to judge.
     const height = 180.0;
-    final size =
-        height * subtitleFontSize / 720 * 2 * preferences.subtitleScale;
+    // Pixels per unit of mpv's 720-line scale, twice true to scale: a line in
+    // a preview this small is too small to judge. sub-scale grows the outline
+    // and the shadow with the text, as libass does.
+    final unit = height / 720 * 2 * preferences.subtitleScale;
     final lift = (100 - preferences.subtitlePosition) / 100 * height;
-    final text = Text(
+    // libass sizes a font by its OS/2 win ascent plus descent rather than
+    // its em, and that line is 1.395 em of IBM Plex Sans.
+    const plexLine = 1.395;
+    final style = TextStyle(
+      fontSize: subtitleFontSize * unit / plexLine,
+      height: plexLine,
+      color: colour,
+    );
+    Text line(TextStyle style) => Text(
       context.l10n.settingsSubtitlePreview,
       textAlign: TextAlign.center,
       textScaler: TextScaler.noScaling,
-      style: TextStyle(
-        fontSize: size,
-        fontWeight: FontWeight.w600,
-        color: colour,
-        shadows: [
-          const Shadow(color: Color(0xFF000000), blurRadius: 2),
-          if (background == 'shadow')
-            const Shadow(color: Color(0xFF000000), offset: Offset(1.5, 1.5)),
-        ],
-      ),
+      style: style,
     );
+    // mpv's outline grows the glyph by the border size, which is a stroke
+    // twice as wide centred on its edge; the shadow is that outlined shape
+    // again, moved down and right. The box replaces both.
+    final Widget text = background == 'box'
+        ? line(style)
+        : Stack(
+            children: [
+              line(
+                style.copyWith(
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = subtitleBorder * unit * 2
+                    ..strokeJoin = StrokeJoin.round
+                    ..color = const Color(0xFF000000),
+                  color: null,
+                  shadows: [
+                    if (background == 'shadow')
+                      Shadow(
+                        offset: Offset(
+                          subtitleShadow * unit,
+                          subtitleShadow * unit,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              line(style),
+            ],
+          );
     return ExcludeSemantics(
       child: Container(
         height: height,
@@ -197,10 +226,10 @@ class _Preview extends StatelessWidget {
                 child: background == 'box'
                     ? DecoratedBox(
                         decoration: const BoxDecoration(
-                          color: Color(0xC0000000),
+                          color: Color(subtitleBoxColour),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          padding: EdgeInsets.all(subtitleBorder * unit),
                           child: text,
                         ),
                       )

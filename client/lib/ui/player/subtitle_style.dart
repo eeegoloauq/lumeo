@@ -18,6 +18,11 @@ const subtitleFontSize = 48;
 const subtitleMargin = 36;
 const subtitleBorder = 4;
 
+/// The shadow background moves the outlined line down and right by this much,
+/// opaque and unblurred; the box background is this translucent black.
+const subtitleShadow = 2;
+const subtitleBoxColour = 0xC0000000;
+
 /// The mpv properties behind the subtitle colour and whether a styled track
 /// keeps its own look.
 ///

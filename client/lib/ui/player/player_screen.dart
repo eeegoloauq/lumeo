@@ -67,9 +67,10 @@ Map<String, String> subtitleBackgroundProperties(
   // The shadow is a tight, opaque one that thickens the outline downwards; a
   // wide translucent one reads as a grey smear.
   const shadow = '#FF000000';
-  const box = '#C0000000';
+  final box =
+      '#${subtitleBoxColour.toRadixString(16).padLeft(8, '0').toUpperCase()}';
   const clear = '#00000000';
-  final offset = background == 'shadow' ? '2' : '0';
+  final offset = background == 'shadow' ? '$subtitleShadow' : '0';
   if (borderStyle) {
     return {
       'sub-border-style': background == 'box'
