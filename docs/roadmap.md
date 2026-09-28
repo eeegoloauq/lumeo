@@ -16,12 +16,26 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    instead means the activation token did not arrive. Impeller
    (decisions/video-output.md): seeking, fullscreen, and a long pause with the
    window minimised, the case of the freezes in the media_kit_video fork.
-2. Comments cut to the why, in a line or two, starting with the largest
+2. **Freeing an episode of a pack breaks the one next to it.** Files of a
+   pack are consecutive in the torrent, so the last piece of E01 is also the
+   first of E02. Freeing E01 deletes its file; the piece's check then finds
+   E01 short, marks the piece lost and takes E02 back to `.part`, and E02
+   is not ready (`Head() == 0`) until a peer sends the piece again: 40 s on
+   2026-09-28, forever offline. Fix in the torrent backend, the way torrent
+   clients keep the parts of unwanted files: freeing a file of a torrent
+   that still has other downloads rewrites it sparse with only the bytes of
+   the pieces it shares with its neighbours, marks its own pieces not
+   complete in the completion database and, when the torrent is running,
+   in anacrolix (`Piece.UpdateCompletion`), under the storage's handle lock
+   (Windows renames no open file). Info comes from the running torrent or
+   `.lumeo-<infohash>.info`; without either, today's delete. Needs a check
+   on Windows.
+3. Comments cut to the why, in a line or two, starting with the largest
    client files (`player_screen.dart`, `menus.dart`, `models.dart`,
    `item_screen.dart`): many narrate how a value was arrived at, which is
    history git already holds. Duplication and dead code found on the way go
    in the same pass.
-3. A "keep running in the background" setting (tray or systemd user unit),
+4. A "keep running in the background" setting (tray or systemd user unit),
    off by default so nothing seeds forever. Needs a design first.
 
 ## From the user's notes of 2026-09-27, in order
