@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -113,6 +114,42 @@ func TestFindSurvivesAFailingProvider(t *testing.T) {
 	if got := testService(dead, live).Find(context.Background(), Query{}); len(got) != 1 {
 		t.Fatalf("got %d subtitles, want 1", len(got))
 	}
+}
+
+// Providers are asked together: one after another, two slow ones add up past
+// what the player waits for the list.
+func TestFindAsksProvidersTogether(t *testing.T) {
+	var started sync.WaitGroup
+	started.Add(2)
+	both := func(id string) Provider {
+		return funcProvider{id: id, fn: func(ctx context.Context) error {
+			started.Done()
+			done := make(chan struct{})
+			go func() { started.Wait(); close(done) }()
+			select {
+			case <-done:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if _, err := testService(both("a"), both("b")).find(ctx, Query{}); err != nil {
+		t.Fatalf("one provider waited for the other: %v", err)
+	}
+}
+
+type funcProvider struct {
+	id string
+	fn func(context.Context) error
+}
+
+func (p funcProvider) ID() string   { return p.id }
+func (p funcProvider) Name() string { return p.id }
+func (p funcProvider) Subtitles(ctx context.Context, _ Query) ([]Subtitle, error) {
+	return nil, p.fn(ctx)
 }
 
 // Two providers indexing the same database is the normal case, and the same

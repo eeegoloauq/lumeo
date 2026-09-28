@@ -95,16 +95,24 @@ func (s *Service) find(ctx context.Context, q Query) ([]Subtitle, error) {
 	if len(q.Languages) == 0 {
 		q.Languages = s.Languages
 	}
+	// Asked together: one after another, the slowest providers' limits add
+	// up past what the player waits for the list.
+	providers := s.providers()
+	found := make([][]Subtitle, len(providers))
+	errs := make([]error, len(providers))
+	var wg sync.WaitGroup
+	for i, p := range providers {
+		wg.Go(func() { found[i], errs[i] = p.Subtitles(ctx, q) })
+	}
+	wg.Wait()
 	var all []Subtitle
 	var failed []error
-	providers := s.providers()
-	for _, p := range providers {
-		found, err := p.Subtitles(ctx, q)
-		if err != nil {
-			failed = append(failed, fmt.Errorf("%s: %w", p.ID(), err))
+	for i, p := range providers {
+		if errs[i] != nil {
+			failed = append(failed, fmt.Errorf("%s: %w", p.ID(), errs[i]))
 			continue
 		}
-		all = append(all, found...)
+		all = append(all, found[i]...)
 	}
 	rank(all, q)
 	all = dedupe(all)

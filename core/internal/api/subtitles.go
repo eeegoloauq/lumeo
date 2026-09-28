@@ -22,6 +22,9 @@ import (
 // matches an encode by, and the files kept with it, which come first and are
 // the answer on their own when the catalog or the providers cannot be asked.
 func (s *Server) handleSubtitles(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), lookupLimit)
+	defer cancel()
+	r = r.WithContext(ctx)
 	params := r.URL.Query()
 	var kept []subtitles.Subtitle
 	if id := params.Get("download"); id != "" && s.downloads != nil {
@@ -141,6 +144,11 @@ func (s *Server) handleSubtitleFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(text.Body)))
 	_, _ = w.Write(text.Body)
 }
+
+// lookupLimit is how long a subtitle list takes at most, the item and the
+// hash included: under the client's own 20 s, so the client gets what the
+// providers that answered had rather than a timeout.
+const lookupLimit = 15 * time.Second
 
 // hashWait bounds how long a subtitle lookup will wait for the tail of a file
 // that is still arriving. Past it the lookup goes ahead on the title alone:
