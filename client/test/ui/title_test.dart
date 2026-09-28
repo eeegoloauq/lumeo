@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/platform/decoders.dart';
 import 'package:lumeo/ui/screens/home_screen.dart';
 import 'package:lumeo/ui/screens/item_screen.dart';
+import 'package:lumeo/ui/widgets/library_actions.dart';
 import 'package:lumeo/ui/widgets/episode_card.dart';
 import 'package:lumeo/ui/widgets/horizontal_strip.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
@@ -348,6 +349,35 @@ void main() {
       lessThanOrEqualTo(stripRect(tester).right),
     );
   });
+
+  for (final slow in [false, true]) {
+    uiTest(
+      slow
+          ? 'a slow source list is said under Play'
+          : 'choosing an episode keeps the source line until its list is slow',
+      (tester) async {
+        await openSeries(
+          tester,
+          api: fakeCore(
+            sourcesDelay: Duration(milliseconds: slow ? 3000 : 150),
+          ),
+        );
+        final looking = find.text('Looking for sources…');
+        // The buttons beside the line move whenever its width changes.
+        Rect actions() => tester.getRect(find.byType(LibraryActions));
+        await pumpFor(tester, const Duration(seconds: 4));
+        final before = actions();
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        for (var i = 0; i < 2; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+          expect(looking, findsNothing);
+          expect(actions(), before);
+        }
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(looking, slow ? findsOneWidget : findsNothing);
+      },
+    );
+  }
 
   uiTest('Enter plays the episode the arrows reached', (tester) async {
     await openSeries(tester);

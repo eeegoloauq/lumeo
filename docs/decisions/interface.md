@@ -24,7 +24,9 @@ blue or teal under Settings → Appearance (the core's `accent` preference), bec
 is what the player's own bar already is and a second colour next to it read as
 a theme. Widgets read it as the theme's `primary`, never as a constant.
 Waiting is Material's spinner held back 300 ms, not a line of our own: a
-local core usually answers before anything would have flashed.
+local core usually answers before anything would have flashed. A line that
+says what is being waited for, such as the sources under Play, is held back
+the same way and keeps what it said before until then.
 
 The ground was blue-black for most of the project's life, on the reasoning
 that posters are warm and a cool ground makes them ring. What that produced

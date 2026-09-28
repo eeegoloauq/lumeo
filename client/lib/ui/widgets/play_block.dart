@@ -11,6 +11,7 @@ import '../../platform/decoders.dart';
 import '../theme.dart';
 import 'buttons.dart';
 import 'episode_card.dart' show shortDate;
+import 'loading.dart';
 import 'source_list.dart';
 
 /// The choice of how to watch one thing: which copies exist, which one Play
@@ -319,20 +320,38 @@ class PlayHead extends StatelessWidget {
 
 /// What Play is about to start, and the way into the rest; or why there is
 /// nothing to start.
-class _Summary extends StatelessWidget {
+class _Summary extends StatefulWidget {
   const _Summary({required this.choice});
 
   final SourceChoice choice;
 
   @override
+  State<_Summary> createState() => _SummaryState();
+}
+
+class _SummaryState extends State<_Summary> {
+  /// What the line said before the list now on its way: choosing another
+  /// episode keeps it while [Loading] would still hold back, rather than
+  /// blanking the line, since most lists arrive from the core's cache within
+  /// a frame or two.
+  Widget? _before;
+
+  @override
   Widget build(BuildContext context) {
-    if (choice.loading) {
-      return Text(
-        choice.pending
-            ? context.l10n.playerWaitingForSource
-            : context.l10n.playerLookingForSources,
-        style: Typo.data,
+    final choice = widget.choice;
+    if (choice.loading && !choice.pending) {
+      return _Late(
+        early: IgnorePointer(child: _before ?? const SizedBox.shrink()),
+        child: Text(context.l10n.playerLookingForSources, style: Typo.data),
       );
+    }
+    return _before = _settled(context, choice);
+  }
+
+  Widget _settled(BuildContext context, SourceChoice choice) {
+    // A press is answered at once.
+    if (choice.loading) {
+      return Text(context.l10n.playerWaitingForSource, style: Typo.data);
     }
     if (choice.error != null && choice.sources == null) {
       return _Line(
@@ -457,6 +476,38 @@ class _Summary extends StatelessWidget {
     if (days == 1) return (text: l10n.playerOutYesterdayNoCopies, retry: true);
   }
   return (text: l10n.playerNoCopies, retry: true);
+}
+
+/// [early] for as long as [Loading] holds its spinner back, and [child] from
+/// then on.
+class _Late extends StatefulWidget {
+  const _Late({required this.early, required this.child});
+
+  final Widget early;
+  final Widget child;
+
+  @override
+  State<_Late> createState() => _LateState();
+}
+
+class _LateState extends State<_Late> {
+  bool _late = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(Loading.delay, () => setState(() => _late = true));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _late ? widget.child : widget.early;
 }
 
 class _Line extends StatelessWidget {
