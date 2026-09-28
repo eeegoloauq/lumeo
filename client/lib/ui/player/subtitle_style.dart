@@ -11,16 +11,20 @@ const subtitleColours = <String, Color>{
 };
 
 /// Plain text in mpv's 720-line scale: a line 1/15 of the picture high, 1/20
-/// of it above the bottom edge, with an opaque outline, where a styled track
-/// of a streaming release puts its dialogue too, so the two read alike. The
-/// bar covers the line while it is up rather than pushing it around.
+/// of it above the bottom edge, where a styled track of a streaming release
+/// puts its dialogue too, so the two read alike. The bar covers the line while
+/// it is up rather than pushing it around.
 const subtitleFontSize = 48;
 const subtitleMargin = 36;
-const subtitleBorder = 4;
 
-/// The shadow background moves the outlined line down and right by this much,
-/// opaque and unblurred; the box background is this translucent black.
-const subtitleShadow = 2;
+/// The width of the outline for each `subtitleBackground`: a thick one alone,
+/// a thin one under a drop shadow (a thick one would hide the shadow), and
+/// for the box its padding, as mpv draws it.
+double subtitleBorder(String background) => background == 'shadow' ? 1.5 : 4;
+
+/// The drop shadow moves the outlined line down and right by this much,
+/// opaque and unblurred; the box is this translucent black.
+const subtitleShadow = 3;
 const subtitleBoxColour = 0xC0000000;
 
 /// The mpv properties behind the subtitle colour and whether a styled track

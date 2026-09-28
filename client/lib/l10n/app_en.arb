@@ -352,13 +352,13 @@
   "@settingsSubtitleColour": {
     "description": "Colour in ui/screens/settings/audio_subtitles_section.dart"
   },
-  "settingsSubtitleBackground": "Background",
+  "settingsSubtitleBackground": "Edge",
   "@settingsSubtitleBackground": {
-    "description": "Background in ui/screens/settings/audio_subtitles_section.dart"
+    "description": "What sets subtitle text off the picture: an outline, a shadow or a box."
   },
-  "settingsNone": "None",
-  "@settingsNone": {
-    "description": "None in ui/screens/settings/audio_subtitles_section.dart"
+  "settingsOutline": "Outline",
+  "@settingsOutline": {
+    "description": "Subtitle text with a thick outline alone."
   },
   "settingsShadow": "Shadow",
   "@settingsShadow": {
@@ -2018,13 +2018,13 @@
   "@playerInSync": {
     "description": "Subtitle timing is unchanged."
   },
-  "playerBackground": "Background",
+  "playerBackground": "Edge",
   "@playerBackground": {
-    "description": "Subtitle background style control."
+    "description": "What sets subtitle text off the picture: an outline, a shadow or a box."
   },
-  "playerNone": "None",
-  "@playerNone": {
-    "description": "No subtitle background."
+  "playerOutline": "Outline",
+  "@playerOutline": {
+    "description": "Subtitle text with a thick outline alone."
   },
   "playerShadow": "Shadow",
   "@playerShadow": {

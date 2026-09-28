@@ -100,7 +100,7 @@ class AudioSubtitlesSection extends StatelessWidget {
               label: context.l10n.settingsSubtitleBackground,
               value: Segments<String>(
                 choices: [
-                  ('none', context.l10n.settingsNone),
+                  ('none', context.l10n.settingsOutline),
                   ('shadow', context.l10n.settingsShadow),
                   ('box', context.l10n.settingsBox),
                 ],
@@ -186,7 +186,7 @@ class _Preview extends StatelessWidget {
                 style.copyWith(
                   foreground: Paint()
                     ..style = PaintingStyle.stroke
-                    ..strokeWidth = subtitleBorder * unit * 2
+                    ..strokeWidth = subtitleBorder(background) * unit * 2
                     ..strokeJoin = StrokeJoin.round
                     ..color = const Color(0xFF000000),
                   color: null,
@@ -229,7 +229,9 @@ class _Preview extends StatelessWidget {
                           color: Color(subtitleBoxColour),
                         ),
                         child: Padding(
-                          padding: EdgeInsets.all(subtitleBorder * unit),
+                          padding: EdgeInsets.all(
+                            subtitleBorder(background) * unit,
+                          ),
                           child: text,
                         ),
                       )

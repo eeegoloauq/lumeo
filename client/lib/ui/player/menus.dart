@@ -648,7 +648,7 @@ class _TracksMenuState extends State<TracksMenu> {
           context.l10n.playerBackground,
           _choices([
             for (final (value, label) in [
-              ('none', context.l10n.playerNone),
+              ('none', context.l10n.playerOutline),
               ('shadow', context.l10n.playerShadow),
               ('box', context.l10n.playerBox),
             ])

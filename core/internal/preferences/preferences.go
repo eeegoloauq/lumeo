@@ -34,8 +34,9 @@ type Preferences struct {
 	// edge of the picture, with lower numbers lifting it.
 	SubtitleScale    float64 `json:"subtitleScale"`
 	SubtitlePosition int     `json:"subtitlePosition"`
-	// SubtitleBackground is what sits behind the text: "none" is mpv's
-	// outline alone, "shadow" adds a drop shadow, "box" a dark box.
+	// SubtitleBackground is what sets the text off the picture: "none" is a
+	// thick outline alone, "shadow" a thin one under a drop shadow, "box" a
+	// dark box.
 	SubtitleBackground string `json:"subtitleBackground"`
 	// SubtitleColor is the colour of the text, by name: each client maps it
 	// to the shade it draws.

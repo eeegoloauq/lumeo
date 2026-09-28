@@ -53,26 +53,26 @@ const playerProperties = <String, String>{
   'osd-duration': '1200',
   'sub-font-size': '$subtitleFontSize',
   'sub-margin-y': '$subtitleMargin',
-  'sub-border-size': '$subtitleBorder',
 };
 
-/// The mpv properties behind a subtitle background: `none`, `shadow` or
-/// `box`. mpv 0.38 gave the box its own `sub-border-style` and made
+/// The mpv properties behind a subtitle background: `none` (the outline
+/// alone), `shadow` or `box`. mpv 0.38 gave the box its own `sub-border-style` and made
 /// `sub-back-color` the shadow's colour; before it, `sub-back-color` alone drew
 /// the box and the shadow had `sub-shadow-color`.
 Map<String, String> subtitleBackgroundProperties(
   String background, {
   required bool borderStyle,
 }) {
-  // The shadow is a tight, opaque one that thickens the outline downwards; a
-  // wide translucent one reads as a grey smear.
+  // Opaque and unblurred: a wide translucent shadow reads as a grey smear.
   const shadow = '#FF000000';
   final box =
       '#${subtitleBoxColour.toRadixString(16).padLeft(8, '0').toUpperCase()}';
   const clear = '#00000000';
   final offset = background == 'shadow' ? '$subtitleShadow' : '0';
+  final border = {'sub-border-size': '${subtitleBorder(background)}'};
   if (borderStyle) {
     return {
+      ...border,
       'sub-border-style': background == 'box'
           ? 'background-box'
           : 'outline-and-shadow',
@@ -85,6 +85,7 @@ Map<String, String> subtitleBackgroundProperties(
     };
   }
   return {
+    ...border,
     'sub-back-color': background == 'box' ? box : clear,
     'sub-shadow-color': shadow,
     'sub-shadow-offset': offset,

@@ -96,11 +96,19 @@ screen further away than the default assumes, not to fix a bad default.
 
 A plain-text line is drawn where and as large as the styled dialogue of a
 streaming release is, converted to mpv's 720-line scale: `sub-font-size` 48
-(1/15 of the picture), `sub-margin-y` 36 (1/20 above the bottom edge), an
-opaque 4 outline, and for the shadow background a tight opaque shadow offset
-by 2. A viewer sees both kinds of track on the same screen, and a plain one
+(1/15 of the picture), `sub-margin-y` 36 (1/20 above the bottom edge) and an
+opaque 4 outline. A viewer sees both kinds of track on the same screen, and a plain one
 drawn larger and higher reads as a mistake. The line does not move for the
 bar: the bar covers it while it is up. A line kept above the bar all the time
 sat twice as high as any release draws it, and one that jumps each time the
 mouse moves is worse than one briefly covered; styled tracks keep their own
 place either way.
+
+The edge is one choice of three: that outline alone, a drop shadow, or a box.
+The shadow comes with a 1.5 outline and an opaque, unblurred offset of 3: under
+the full outline a shadow is two more pixels of the same black and cannot be
+told from the outline alone, and without any outline white text is lost on a
+white picture. The settings page draws its sample from the same numbers and
+libass's way of sizing a font (by its win ascent plus descent, not its em),
+over the backdrop of the last title watched, since an edge is judged against
+a picture.
