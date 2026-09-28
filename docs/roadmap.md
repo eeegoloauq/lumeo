@@ -63,18 +63,6 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   fence code, not alone.
 - "Open with": `[?]` Identify as… for a file nothing or the wrong title
   matched (a search picked by hand).
-- Subtitles with the download: today an external track is fetched from the
-  provider on every open and the list needs the network, so offline only the
-  embedded tracks play. Instead the core fetches, once a download knows its
-  file, the best match for each preferred subtitle language (by the file's
-  hash, which asks the swarm for the first and last pieces early) and keeps
-  it in the download's directory, deleted with it. The list shows kept files
-  first, as it lists a copy on disk among the sources; the player's rule
-  stands, so an external track is added only when mpv chose no embedded one
-  in a wanted language, and an embedded track is never doubled. Files are
-  stored under names the core makes up, never the provider's, within the
-  existing size and gzip limits, converted to UTF-8 text and never
-  executable; their only reader is libass/FFmpeg, as it is now.
 
 ## Application
 

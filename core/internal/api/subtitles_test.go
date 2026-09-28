@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -201,5 +202,78 @@ func TestSubtitlesUsesPreferencesUnlessLangIsGiven(t *testing.T) {
 	}
 	if !reflect.DeepEqual(provider.got.Languages, []string{"de"}) {
 		t.Fatalf("parameter languages = %v, want [de]", provider.got.Languages)
+	}
+}
+
+type keptProvider struct {
+	url string
+	err error
+}
+
+func (p *keptProvider) ID() string   { return "os" }
+func (p *keptProvider) Name() string { return "os" }
+func (p *keptProvider) Subtitles(context.Context, subtitles.Query) ([]subtitles.Subtitle, error) {
+	return []subtitles.Subtitle{{ProviderID: "os", ID: "7", Language: "en", SourceURL: p.url}}, p.err
+}
+
+// Subtitles kept with a download come first and play with no provider and no
+// catalog to ask: offline, they are all there is.
+func TestSubtitlesKeptWithTheDownloadAnswerOffline(t *testing.T) {
+	files := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "1\n00:00:01,000 --> 00:00:02,000\nPlay it, Sam.\n")
+	}))
+	defer files.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cat := catalog.NewService(catalog.Fixed(stubMeta{}), &stubStore{item: severance()}, log)
+	backend := &fakeStreamBackend{task: &fakeStreamTask{
+		file: &fakeStreamFile{name: "episode.mkv", data: make([]byte, 200000)},
+	}}
+	manager := acquire.NewManager(t.TempDir(), []acquire.Backend{backend}, newFakeStore(), log)
+	d, err := manager.Start(context.Background(), acquire.Request{
+		ItemID: "abc123", Season: 2, Episode: 3,
+		Source: sources.MediaSource{Locator: sources.Locator{Scheme: "torrent", InfoHash: "abc"}},
+	})
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	provider := &keptProvider{url: files.URL + "/en.srt"}
+	subs := subtitles.NewService(func() []subtitles.Provider { return []subtitles.Provider{provider} }, nil, log)
+	subtitles.NewKeeper(subs, manager, cat, func(context.Context, string) []string { return []string{"en"} }, log).
+		Pass(context.Background())
+	h := New(Deps{Catalog: cat, Downloads: manager, Subtitles: subs}, log).Handler()
+
+	provider.err = errors.New("no route to host")
+	for _, item := range []string{"abc123", "not-in-the-catalog"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/subtitles?item="+item+"&download="+d.ID, nil))
+		var body struct {
+			Subtitles []subtitles.Subtitle `json:"subtitles"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || rec.Code != http.StatusOK {
+			t.Fatalf("item %s: status %d: %s", item, rec.Code, rec.Body)
+		}
+		if len(body.Subtitles) != 1 || !body.Subtitles[0].Kept || body.Subtitles[0].URL != "/api/v1/downloads/"+d.ID+"/subtitles/1.srt" {
+			t.Fatalf("item %s: got %+v, want the kept file", item, body.Subtitles)
+		}
+	}
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/downloads/"+d.ID+"/subtitles/1.srt", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Play it, Sam.") ||
+		!strings.HasPrefix(rec.Header().Get("Content-Type"), "application/x-subrip") {
+		t.Fatalf("kept file: %d %q %s", rec.Code, rec.Header().Get("Content-Type"), rec.Body)
+	}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/downloads/"+d.ID+"/subtitles/subtitles.json", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("a file the index does not list: status %d", rec.Code)
+	}
+
+	// Answered again, the provider's copy of the kept file is not listed twice.
+	provider.err = nil
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/subtitles?item=abc123&download="+d.ID, nil))
+	if n := strings.Count(rec.Body.String(), `"id":"7"`); n != 1 {
+		t.Fatalf("the kept subtitle is listed %d times: %s", n, rec.Body)
 	}
 }

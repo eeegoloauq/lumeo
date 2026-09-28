@@ -909,3 +909,30 @@ func TestLocalFileRemovalAndResume(t *testing.T) {
 		t.Fatalf("user file removed: %v", err)
 	}
 }
+
+// A download's extras go with its row, even when its data stays: nothing can
+// ask for them any more.
+func TestRemoveDeletesTheExtrasOfADownload(t *testing.T) {
+	m, _, _ := testManager(t, &fakeBackend{scheme: "torrent", task: &fakeTask{}})
+	d, err := m.Start(context.Background(), torrentRequest())
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if err := m.Extras(d.ID, func(dir string) error {
+		return os.WriteFile(filepath.Join(dir, "1.srt"), []byte("subtitle"), 0o600)
+	}); err != nil {
+		t.Fatalf("extras: %v", err)
+	}
+	if err := m.Remove(context.Background(), d.ID, false); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if _, err := os.Stat(d.ExtrasDir()); !os.IsNotExist(err) {
+		t.Fatalf("the extras outlived the download: %v", err)
+	}
+	if _, err := os.Stat(d.Dir); err != nil {
+		t.Fatalf("the data went with the extras: %v", err)
+	}
+	if err := m.Extras(d.ID, func(string) error { return nil }); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("extras of a removed download: %v", err)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"io"
+	"path/filepath"
 	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/release"
@@ -74,6 +75,18 @@ type Download struct {
 	WaitingSince time.Time `json:"waitingSince,omitzero"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// ExtrasDir is where files that go with the download but are not its bytes,
+// such as subtitles, are kept: in its directory, so they go where it goes,
+// and one of its own, as the episodes of a pack share that directory. The
+// name carries the download's id, which nothing in a torrent can guess.
+// Empty for a file on this machine, whose directory is the user's.
+func (d Download) ExtrasDir() string {
+	if d.Dir == "" || d.Locator.Scheme == "file" {
+		return ""
+	}
+	return filepath.Join(d.Dir, ".lumeo-"+d.ID)
 }
 
 // Progress is what a player bar shows while the file is still arriving.

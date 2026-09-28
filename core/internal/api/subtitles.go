@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -18,13 +19,24 @@ import (
 // handleSubtitles answers with the tracks for one file, ranked. The download
 // is optional and is what makes the answer about a file rather than about a
 // title: from it come the size, the name and the hash a subtitle database
-// matches an encode by.
+// matches an encode by, and the files kept with it, which come first and are
+// the answer on their own when the catalog or the providers cannot be asked.
 func (s *Server) handleSubtitles(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	var kept []subtitles.Subtitle
+	if id := params.Get("download"); id != "" && s.downloads != nil {
+		if d, err := s.downloads.Get(r.Context(), id); err == nil {
+			kept = subtitles.Kept(d.ExtrasDir(), "/api/v1/downloads/"+id+"/subtitles/")
+		}
+	}
 	if s.subtitles == nil {
+		if len(kept) > 0 {
+			writeJSON(w, http.StatusOK, map[string]any{"subtitles": kept})
+			return
+		}
 		writeError(w, http.StatusServiceUnavailable, "no subtitle provider configured")
 		return
 	}
-	params := r.URL.Query()
 	q := subtitles.Query{
 		Kind:      kindOr(params.Get("kind"), catalog.KindMovie),
 		IMDbID:    params.Get("imdb"),
@@ -42,20 +54,58 @@ func (s *Server) handleSubtitles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if itemID := params.Get("item"); itemID != "" {
-		imdbID, kind, ok := s.resolveItem(w, r, itemID)
-		if !ok {
-			return
+		if len(kept) > 0 && s.catalog != nil {
+			item, err := s.catalog.Item(r.Context(), itemID)
+			if err != nil {
+				writeJSON(w, http.StatusOK, map[string]any{"subtitles": kept})
+				return
+			}
+			q.IMDbID, q.Kind = item.IMDbID(), item.Kind
+		} else {
+			imdbID, kind, ok := s.resolveItem(w, r, itemID)
+			if !ok {
+				return
+			}
+			q.IMDbID, q.Kind = imdbID, kind
 		}
-		q.IMDbID, q.Kind = imdbID, kind
 	}
 	if q.IMDbID == "" {
+		if len(kept) > 0 {
+			writeJSON(w, http.StatusOK, map[string]any{"subtitles": kept})
+			return
+		}
 		writeError(w, http.StatusBadRequest, "item or imdb parameter is required")
 		return
 	}
 	if id := params.Get("download"); id != "" && s.downloads != nil {
 		s.describePlaying(r, id, &q)
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"subtitles": s.subtitles.Find(r.Context(), q)})
+	found := slices.DeleteFunc(s.subtitles.Find(r.Context(), q), func(sub subtitles.Subtitle) bool {
+		return slices.ContainsFunc(kept, func(k subtitles.Subtitle) bool {
+			return k.ProviderID == sub.ProviderID && k.ID != "" && k.ID == sub.ID
+		})
+	})
+	writeJSON(w, http.StatusOK, map[string]any{"subtitles": append(kept, found...)})
+}
+
+// handleKeptSubtitle serves a subtitle file kept with a download, by the name
+// the core gave it.
+func (s *Server) handleKeptSubtitle(w http.ResponseWriter, r *http.Request) {
+	if !s.haveDownloads(w) {
+		return
+	}
+	d, err := s.downloads.Get(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "unknown download")
+		return
+	}
+	path, format, ok := subtitles.KeptFile(d.ExtrasDir(), r.PathValue("file"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "unknown subtitle")
+		return
+	}
+	w.Header().Set("Content-Type", subtitleContentType(format))
+	http.ServeFile(w, r, path)
 }
 
 // handleSubtitleFile serves the track itself, converted to UTF-8. The token

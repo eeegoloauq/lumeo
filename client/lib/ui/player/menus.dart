@@ -526,7 +526,7 @@ class _TracksMenuState extends State<TracksMenu> {
       rows.add(
         MenuRow(
           label: best.label,
-          detail: context.l10n.playerSubtitleOpenSubtitles,
+          detail: _origin(best),
           current: _isLoaded(best),
           height: 36,
           trailing: others.isEmpty ? null : _more(entry.key, others.length),
@@ -543,13 +543,17 @@ class _TracksMenuState extends State<TracksMenu> {
     for (final sub in subs)
       MenuRow(
         label: sub.name.isEmpty ? sub.label : sub.name,
-        detail: context.l10n.playerSubtitleOpenSubtitles,
+        detail: _origin(sub),
         current: _isLoaded(sub),
         height: 36,
         indent: true,
         onTap: () => widget.onFound(sub),
       ),
   ];
+
+  String _origin(api.Subtitle sub) => sub.kept
+      ? context.l10n.downloadsOnDiskLower
+      : context.l10n.playerSubtitleOpenSubtitles;
 
   Widget _more(String language, int count) {
     final open = _expanded == language;

@@ -64,6 +64,8 @@ type Subtitle struct {
 	// timed at 25 against a 23.976 encode drifts by minutes over a film, and
 	// it is the only fact here a viewer can act on before pressing play.
 	FPS float64 `json:"fps,omitempty"`
+	// Kept is a file kept with the download (Keeper): it plays offline.
+	Kept bool `json:"kept,omitempty"`
 
 	// SourceURL is where it really lives. It never leaves the core.
 	SourceURL string `json:"-"`

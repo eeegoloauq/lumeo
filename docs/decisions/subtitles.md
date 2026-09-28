@@ -39,6 +39,25 @@ and otherwise as the database's best copy for this file — and the rest of what
 the database holds sits behind a count on the row, for the viewer whose copy
 turned out to be a second out.
 
+## Subtitles are kept with the download
+
+Looked up at every open, an external track needed the network each time and
+offline only the embedded tracks played. So once a download knows its file,
+the core (`subtitles.Keeper`) fetches the best match for each wanted language
+(the subtitle languages, and the language last picked for the title), by the
+file's hash, once, and keeps it in the download's own extras directory,
+`.lumeo-<download id>` beside its bytes, which goes with the download. The
+hash costs nothing extra here: the torrent backend asks for both ends of a
+file first anyway. A language no provider has is asked for again after a day;
+while no provider answers at all, lookups back off from a minute to an hour.
+
+The files are the same UTF-8 text as a fetched one, under names the core makes
+up and an extension from a fixed list, never executable, and served only by
+the names their index lists. `/api/v1/subtitles` lists them first, marked as
+kept, and they are the whole answer when the catalog or every provider fails;
+the picker says "on disk" beside them. The player's rule does not change: a
+kept track is added only when mpv chose no embedded one in a wanted language.
+
 ## Audio and subtitles are one panel, and mpv does the choosing
 
 One button, two columns: the soundtrack on the left, the subtitles on the

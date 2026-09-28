@@ -514,10 +514,38 @@ func (m *Manager) Remove(ctx context.Context, id string, deleteData bool) error 
 	if err := m.store.DeleteDownload(ctx, id); err != nil {
 		return err
 	}
+	// Whatever the data, nothing can ask for these without the row.
+	if dir := row.ExtrasDir(); dir != "" {
+		if err := os.RemoveAll(dir); err != nil {
+			return fmt.Errorf("acquire: remove extras: %w", err)
+		}
+	}
 	if deleteData && row.Locator.Scheme != "file" {
 		return m.removeData(row, rest, running)
 	}
 	return nil
+}
+
+// Extras runs fn on the download's extras directory, made if need be, with
+// the download held: a Remove waits for it, so fn never writes into a
+// directory Remove has just deleted.
+func (m *Manager) Extras(id string, fn func(dir string) error) error {
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+	m.mu.Lock()
+	row, ok := m.rows[id]
+	m.mu.Unlock()
+	if !ok {
+		return ErrNotFound
+	}
+	dir := row.ExtrasDir()
+	if dir == "" {
+		return fmt.Errorf("acquire: download %s keeps no extras", id)
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	return fn(dir)
 }
 
 // removeData deletes a download's file, and each of its directories that no

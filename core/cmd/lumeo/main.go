@@ -216,6 +216,28 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		stopCleaning()
 		<-cleaned
 	}()
+	keeper := subtitles.NewKeeper(subs, downloads, cat, func(ctx context.Context, itemID string) []string {
+		var langs []string
+		if c, err := watchProgress.Choice(ctx, itemID); err == nil && c.Subtitle != nil && c.Subtitle.Language != "" {
+			langs = append(langs, subtitles.Language(c.Subtitle.Language))
+		}
+		if p, err := prefs.Get(ctx); err == nil {
+			langs = append(langs, p.SubtitleLanguages...)
+		}
+		return langs
+	}, log)
+	keeping, stopKeeping := context.WithCancel(ctx)
+	kept := make(chan struct{})
+	go func() {
+		defer close(kept)
+		keeper.Run(keeping)
+	}()
+	// Deferred after the downloads' Close, so it runs first: it writes into
+	// their directories.
+	defer func() {
+		stopKeeping()
+		<-kept
+	}()
 	about := api.About{
 		Version: version,
 		Addr:    listener.Addr().String(),

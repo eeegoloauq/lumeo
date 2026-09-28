@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -68,24 +69,42 @@ func NewService(providers func() []Provider, languages []string, log *slog.Logge
 // down costs its own results and nothing else — subtitles are an addition to
 // playback that has already started, never a reason to interrupt it.
 func (s *Service) Find(ctx context.Context, q Query) []Subtitle {
+	all, err := s.find(ctx, q)
+	if err != nil {
+		s.log.Warn("subtitle providers failed", "err", err)
+	}
+	for i := range all {
+		all[i].URL = "/api/v1/subtitles/" + s.mint(all[i])
+	}
+	return all
+}
+
+// find is Find without the addresses, and with an error when there were
+// providers and none of them answered.
+func (s *Service) find(ctx context.Context, q Query) ([]Subtitle, error) {
 	if len(q.Languages) == 0 {
 		q.Languages = s.Languages
 	}
 	var all []Subtitle
-	for _, p := range s.providers() {
+	var failed []error
+	providers := s.providers()
+	for _, p := range providers {
 		found, err := p.Subtitles(ctx, q)
 		if err != nil {
-			s.log.Warn("subtitle provider failed", "provider", p.ID(), "err", err)
+			failed = append(failed, fmt.Errorf("%s: %w", p.ID(), err))
 			continue
 		}
 		all = append(all, found...)
 	}
 	rank(all, q)
 	all = dedupe(all)
-	for i := range all {
-		all[i].URL = "/api/v1/subtitles/" + s.mint(all[i])
+	if len(providers) > 0 && len(failed) == len(providers) {
+		return all, errors.Join(failed...)
 	}
-	return all
+	if len(failed) > 0 {
+		s.log.Warn("subtitle provider failed", "err", errors.Join(failed...))
+	}
+	return all, nil
 }
 
 // Text is one subtitle file, as the player should receive it.
@@ -105,8 +124,11 @@ func (s *Service) Fetch(ctx context.Context, token string) (Text, error) {
 	if !ok || s.now().Sub(entry.at) > tokenTTL {
 		return Text{}, ErrUnknownToken
 	}
+	return s.fetch(ctx, entry.sub)
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, entry.sub.SourceURL, nil)
+func (s *Service) fetch(ctx context.Context, sub Subtitle) (Text, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sub.SourceURL, nil)
 	if err != nil {
 		return Text{}, err
 	}
@@ -117,7 +139,7 @@ func (s *Service) Fetch(ctx context.Context, token string) (Text, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return Text{}, &egress.StatusError{Provider: entry.sub.ProviderID, Status: resp.Status, Code: resp.StatusCode}
+		return Text{}, &egress.StatusError{Provider: sub.ProviderID, Status: resp.Status, Code: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFileSize+1))
@@ -132,8 +154,8 @@ func (s *Service) Fetch(ctx context.Context, token string) (Text, error) {
 		return Text{}, err
 	}
 	return Text{
-		Format: format(entry.sub, body),
-		Body:   toUTF8(body, entry.sub.Encoding, entry.sub.Language),
+		Format: format(sub, body),
+		Body:   toUTF8(body, sub.Encoding, sub.Language),
 	}, nil
 }
 

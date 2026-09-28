@@ -445,6 +445,7 @@ class Subtitle {
     this.name = '',
     this.hashMatch = false,
     this.fps = 0,
+    this.kept = false,
   });
 
   final String id;
@@ -469,6 +470,9 @@ class Subtitle {
   /// timed at 25 against a 23.976 encode drifts by minutes over a film.
   final double fps;
 
+  /// Kept with the download by the core: it plays offline.
+  final bool kept;
+
   String get label =>
       languageName.isNotEmpty ? languageName : language.toUpperCase();
 
@@ -481,6 +485,7 @@ class Subtitle {
     url: json['url'] as String? ?? '',
     hashMatch: json['hashMatch'] as bool? ?? false,
     fps: (json['fps'] as num?)?.toDouble() ?? 0,
+    kept: json['kept'] as bool? ?? false,
   );
 }
 

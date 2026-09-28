@@ -85,8 +85,9 @@ void main() {
       id: 'e',
       language: 'th',
       languageName: 'Thai',
-      url: '/api/v1/subtitles/e',
+      url: '/api/v1/downloads/x/subtitles/1.srt',
       name: '2026.ReZero.S4.E17',
+      kept: true,
     ),
   ];
 
@@ -153,6 +154,8 @@ void main() {
     expect(find.text('ReZero.17.PL'), findsNothing);
     expect(find.text('1 more'), findsOneWidget);
     expect(find.text('Thai'), findsOneWidget);
+    // A copy kept with the download says so: it plays offline.
+    expect(find.text('on disk'), findsOneWidget);
     // The soundtrack, with what a viewer compares two of them by.
     expect(find.text('2.0'), findsOneWidget);
     expect(find.text('5.1'), findsOneWidget);
