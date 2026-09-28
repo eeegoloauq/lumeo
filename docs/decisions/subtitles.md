@@ -29,7 +29,10 @@ core sits on, which for a home server is the whole home.
 And the player fetches it from the core itself and hands mpv the file, never
 the address. mpv waits on an address it is handed, and while it waits every
 command after it waits too: a provider that kept silent held the switch to the
-next episode for as long as the core waited on it.
+next episode for as long as the core waited on it. The core gives up on a file
+once nothing of it has arrived for 5 s, well before the player's own 20 s,
+since a filtered route passes the first few KB of a body and then nothing; the
+player says the file did not download, and picking it again asks again.
 
 The picker itself does not distinguish where a track came from: the ones inside
 the file and the ones a database has for this copy are the same decision to

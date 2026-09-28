@@ -373,6 +373,7 @@
   "playerSubtitles": "Субтитры",
   "playerSubtitleStyle": "Стиль субтитров",
   "playerNoCoreAnswer": "Ядро не отвечает",
+  "playerSubtitleFailed": "Не удалось скачать субтитры. Выберите их снова, чтобы повторить.",
   "playerOpenSubtitlesNone": "На OpenSubtitles нет ничего для этого файла",
   "playerOpenSubtitlesNoMore": "На OpenSubtitles больше ничего нет для этого файла",
   "playerNoSound": "В этом файле нет звука",

@@ -1983,6 +1983,10 @@
     "description": "Player subtitle style menu."
   },
   "playerNoCoreAnswer": "No answer from the core",
+  "playerSubtitleFailed": "Couldn’t download the subtitles. Pick them again to retry.",
+  "@playerSubtitleFailed": {
+    "description": "Player notice when a subtitle file from a database did not download."
+  },
   "playerOpenSubtitlesNone": "OpenSubtitles has nothing for this file",
   "playerOpenSubtitlesNoMore": "OpenSubtitles has nothing else for this file",
   "playerNoSound": "No sound in this file",

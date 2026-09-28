@@ -1582,6 +1582,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           debugPrint('subtitle fetch failed: $error');
           // Asked again on the next pick: the provider may answer by then.
           _subtitleFiles.remove(found.url);
+          if (mounted) _showNotice(context.l10n.playerSubtitleFailed);
           return null;
         }
       }();

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/release"
 )
@@ -162,6 +163,33 @@ func TestFetchConvertsToUTF8(t *testing.T) {
 	}
 	if text.Format != "srt" {
 		t.Errorf("format: got %q", text.Format)
+	}
+}
+
+// A body that stops arriving fails once it has been silent for stallLimit,
+// not when the whole fetch runs out of time.
+func TestFetchGivesUpOnABodyThatStops(t *testing.T) {
+	defer func(limit time.Duration) { stallLimit = limit }(stallLimit)
+	stallLimit = 200 * time.Millisecond
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Each write comes inside the limit, so only the silence after them counts.
+		for range 4 {
+			_, _ = w.Write([]byte("1\n00:00:00,000 --> 00:00:01,000\nLine\n\n"))
+			w.(http.Flusher).Flush()
+			time.Sleep(100 * time.Millisecond)
+		}
+		<-r.Context().Done()
+	}))
+	defer origin.Close()
+
+	s := testService()
+	start := time.Now()
+	_, err := s.fetch(context.Background(), Subtitle{SourceURL: origin.URL + "/1.srt"})
+	if !errors.Is(err, errStalled) {
+		t.Fatalf("got %v, want errStalled", err)
+	}
+	if took := time.Since(start); took < 400*time.Millisecond || took > 2*time.Second {
+		t.Errorf("gave up after %v, want after the writes and within the limit of the silence", took)
 	}
 }
 

@@ -58,9 +58,11 @@ LumeoApi fakeCore({
   List<Map<String, dynamic>> subtitles = const [],
 
   /// Every subtitle file asked for; with [subtitlesSilent] none is answered,
-  /// as a provider that keeps silent.
+  /// as a provider that keeps silent, and with [subtitlesFail] each is a 502,
+  /// as the core answers when the provider stopped sending.
   List<String>? subtitleCalls,
   bool subtitlesSilent = false,
+  bool subtitlesFail = false,
 
   /// How long the source list takes, as a provider does on a real network.
   Duration sourcesDelay = Duration.zero,
@@ -304,6 +306,9 @@ LumeoApi fakeCore({
       if (path.startsWith('/api/v1/subtitles/')) {
         subtitleCalls?.add(path);
         if (subtitlesSilent) return Completer<http.Response>().future;
+        if (subtitlesFail) {
+          return _json({'error': 'the provider stopped sending'}, status: 502);
+        }
         return http.Response('1\n00:00:00,000 --> 00:00:30,000\nFound\n', 200);
       }
       if (path.startsWith('/api/v1/progress/')) {

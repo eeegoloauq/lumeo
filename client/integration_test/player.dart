@@ -378,10 +378,16 @@ void playerTests() {
     );
   });
 
-  for (final silent in [false, true]) {
+  for (final (silent, fails) in [
+    (false, false),
+    (true, false),
+    (false, true),
+  ]) {
     testWidgets(
       silent
           ? 'a subtitle the provider keeps back never reaches mpv'
+          : fails
+          ? 'a subtitle the core could not fetch is said on screen'
           : 'a subtitle from the database reaches mpv as a file',
       (tester) async {
         // mpv waits on an address it was handed, and every command after it
@@ -406,6 +412,7 @@ void playerTests() {
               ],
               subtitleCalls: subtitleCalls,
               subtitlesSilent: silent,
+              subtitlesFail: fails,
             ),
           ),
         );
@@ -423,6 +430,20 @@ void playerTests() {
                 .where((t) => t['type'] == 'sub' && t['external'] == true)
                 .map((t) => t['external-filename'])
                 .toList();
+        if (fails) {
+          await waitFor(
+            tester,
+            () async => find
+                .text(
+                  'Couldn’t download the subtitles. Pick them again to retry.',
+                )
+                .evaluate()
+                .isNotEmpty,
+            what: 'the notice',
+          );
+          expect(await external(), isEmpty);
+          return;
+        }
         if (silent) {
           // What switching to the next episode does: a new file for mpv.
           Future<double> position() async =>

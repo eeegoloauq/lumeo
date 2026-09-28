@@ -26,10 +26,20 @@ const (
 	// answering with something else cannot fill memory.
 	maxFileSize = 8 << 20
 	// tokenTTL outlives watching a film with the subtitle picker open.
-	tokenTTL   = 12 * time.Hour
-	maxTokens  = 1024
-	fetchLimit = 30 * time.Second
+	tokenTTL  = 12 * time.Hour
+	maxTokens = 1024
+	// fetchLimit is under the client's own 20 s, so the player hears why a
+	// file failed rather than timing out first.
+	fetchLimit = 15 * time.Second
 )
+
+// stallLimit is how long a fetch waits without a byte arriving. A filtered
+// route passes the first few KB of a body and then nothing, and waiting out
+// the whole fetchLimit on it only delays the answer.
+var stallLimit = 5 * time.Second
+
+// errStalled is a fetch that stopped receiving.
+var errStalled = errors.New("subtitles: the provider stopped sending")
 
 // Service is the subtitle side of the core: providers behind one lookup, and
 // the only thing that ever fetches a subtitle file.
@@ -128,6 +138,17 @@ func (s *Service) Fetch(ctx context.Context, token string) (Text, error) {
 }
 
 func (s *Service) fetch(ctx context.Context, sub Subtitle) (Text, error) {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	stall := time.AfterFunc(stallLimit, func() { cancel(errStalled) })
+	defer stall.Stop()
+	stalled := func(err error) error {
+		if errors.Is(context.Cause(ctx), errStalled) {
+			return errStalled
+		}
+		return err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sub.SourceURL, nil)
 	if err != nil {
 		return Text{}, err
@@ -135,16 +156,16 @@ func (s *Service) fetch(ctx context.Context, sub Subtitle) (Text, error) {
 	req.Header.Set("User-Agent", egress.UserAgent)
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return Text{}, err
+		return Text{}, stalled(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return Text{}, &egress.StatusError{Provider: sub.ProviderID, Status: resp.Status, Code: resp.StatusCode}
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFileSize+1))
+	body, err := io.ReadAll(progress{io.LimitReader(resp.Body, maxFileSize+1), stall})
 	if err != nil {
-		return Text{}, err
+		return Text{}, stalled(err)
 	}
 	if len(body) > maxFileSize {
 		return Text{}, errors.New("subtitles: file is implausibly large for text")
@@ -157,6 +178,20 @@ func (s *Service) fetch(ctx context.Context, sub Subtitle) (Text, error) {
 		Format: format(sub, body),
 		Body:   toUTF8(body, sub.Encoding, sub.Language),
 	}, nil
+}
+
+// progress restarts the stall timer on every byte that arrives.
+type progress struct {
+	io.Reader
+	stall *time.Timer
+}
+
+func (p progress) Read(b []byte) (int, error) {
+	n, err := p.Reader.Read(b)
+	if n > 0 {
+		p.stall.Reset(stallLimit)
+	}
+	return n, err
 }
 
 // mint gives a subtitle an id of ours. The provider's URL stays inside the
