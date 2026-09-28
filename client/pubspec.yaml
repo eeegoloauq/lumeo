@@ -55,6 +55,8 @@ flutter:
   generate: true
   assets:
     - assets/dev.lumeo.lumeo.metainfo.xml
+  shaders:
+    - shaders/scrim.frag
 
   fonts:
     # Unbounded exists for one word — the wordmark — so it ships as five

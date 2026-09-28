@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -9,247 +7,85 @@ import 'package:flutter/rendering.dart';
 import '../theme.dart';
 import 'artwork_image.dart';
 
-/// The two washes that turn a frame we do not control into a page.
+/// The washes that turn a frame we do not control into a page.
 ///
-/// One horizontal, which gives the type a ground to sit on; one vertical,
-/// which hands the page an edge to start from. They were written out twice —
-/// once in the home banner, once in the title banner — and drifted apart by a
-/// stop each, which is how the title page ended up with a visible line across
-/// it: the vertical wash was still a fifth transparent where the artwork
-/// stopped, so the picture did not fade out, it was cut off.
+/// One horizontal, which gives the type a ground to sit on; a light one on
+/// the right, because the frame is brightest where nothing has darkened it and
+/// a bright half that ends is more of an edge than a dim half that ends; one
+/// vertical, which hands the page an edge to start from. The home banner and
+/// the title banner both draw this one, so they cannot drift apart again.
 ///
-/// The ramp therefore ends well before the edge. Whatever the last band of a
-/// banner is, it is the page's colour and nothing else.
-class ArtworkScrim extends StatelessWidget {
+/// The vertical wash is a smoothstep, not a straight line. A linear ramp to
+/// opaque has a knee where the alpha stops climbing, and on black the eye reads
+/// that corner as a line across the picture. It starts falling at about half
+/// the banner and reaches the page's colour at the banner's own edge, where the
+/// first shelf already overlaps it: a ramp that finished short left a flat
+/// black band with the picture stopping above it, which read as a cut.
+///
+/// Eight bits per channel cannot express a fall this long on black, so the
+/// wash carries a grain of one part in forty: noise pushes each band's edge
+/// above or below the threshold at random, and an eye that was reading a step
+/// reads a texture instead. It is additive, so it can only lift a value, and it
+/// lives only in the stretch where the bands are — over solid page colour it
+/// lifted black into a faintly lighter rectangle ending at the banner's edge.
+///
+/// All of it is one fragment shader (`shaders/scrim.frag`), drawn in a single
+/// pass. As stacked gradients and a masked grain layer it was four full-banner
+/// draws and an offscreen pass each frame, which stuttered scrolling on laptop
+/// GPUs.
+class ArtworkScrim extends StatefulWidget {
   const ArtworkScrim({super.key});
 
-  /// Where the vertical wash becomes the page and stays it.
-  ///
-  /// It was 0.86, and that was the cut. The ramp finished a seventh of the
-  /// banner short of the bottom, so the last band was not a picture fading
-  /// out — it was a flat black field with a picture stopping above it, and the
-  /// eye reads the line between "still the frame" and "already the page"
-  /// however smooth the ramp above it was. Now the wash arrives at the page's
-  /// colour at the banner's own edge, and the edge is where the first shelf
-  /// already overlaps it.
-  static const _solidFrom = 0.995;
-
-  /// Where it starts falling. Roughly half the banner, which is what a hero
-  /// gets in every interface that does this well: a fall short enough to see
-  /// begin is a fall you can see end.
-  static const _fallFrom = 0.45;
-
-  /// The vertical wash, as a curve rather than a straight line.
-  ///
-  /// A linear ramp to opaque has a knee in it: the alpha climbs at a constant
-  /// rate and then simply stops, and the eye reads that corner as an edge —
-  /// which on a blue-black ground was lost in the ground and on black is a
-  /// line across the picture. These stops are a smoothstep, so the wash
-  /// arrives at the page's colour asymptotically and there is no moment where
-  /// it changes its mind.
-  ///
-  /// It is also why there are nine of them and not four. Between two stops the
-  /// engine interpolates in eight-bit steps, and over four hundred points of
-  /// screen that is a visible stair; more stops put each stair inside a
-  /// shorter run. The rest of the stair is taken out by the grain below.
-  static List<Color> _fall() => [
-    Palette.ground(0.50),
-    Palette.ground(0),
-    for (var i = 0; i <= 10; i++) Palette.ground(_smoothstep(i / 10)),
-    Palette.ground(1),
-  ];
-
-  static List<double> _fallStops() => [
-    0,
-    0.26,
-    for (var i = 0; i <= 10; i++)
-      _fallFrom + (_solidFrom - _fallFrom) * (i / 10),
-    1,
-  ];
-
-  /// 3t² − 2t³: flat at both ends, steepest in the middle.
-  static double _smoothstep(double t) => t * t * (3 - 2 * t);
-
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerRight,
-              end: Alignment.centerLeft,
-              colors: [
-                Palette.ground(0),
-                Palette.ground(0.70),
-                Palette.ground(0.94),
-              ],
-              stops: const [0.42, 0.72, 1],
-            ),
-          ),
-        ),
-        // The right-hand edge, lightly. Not a mirror of the wash on the left:
-        // that one exists so type can be read over it and is heavy enough to
-        // say so. This one exists because the frame is brightest where nothing
-        // has darkened it, and a bright half that ends is more of an edge than
-        // a dim half that ends.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Palette.ground(0), Palette.ground(0.34)],
-              stops: const [0.72, 1],
-            ),
-          ),
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: _fall(),
-              stops: _fallStops(),
-            ),
-          ),
-        ),
-        const _Grain(),
-      ],
-    );
-  }
+  State<ArtworkScrim> createState() => _ArtworkScrimState();
 }
 
-/// A film grain of one part in forty, laid over the wash.
-///
-/// Eight bits per channel cannot express a gradient this long: between two
-/// values there is nowhere to go, so the engine draws bands, and on black —
-/// where the last stretch of the ramp lives in the darkest few values — the
-/// bands are wide enough to count. Every industry that fades to black solves
-/// this the same way and has since film: put noise over it. A pixel of noise
-/// pushes each band's edge above or below the threshold at random, and an eye
-/// that was reading a step reads a texture instead.
-///
-/// One part in forty is below the threshold of "there is something on this
-/// picture" and above the threshold of "these are bands". It is drawn additive
-/// so it can only lift a value, never dig a hole in the artwork.
-///
-/// And it is masked to the stretch of the banner where the bands actually
-/// are. Laid over the whole rectangle it did the opposite of its job: additive
-/// noise over a part of the picture that is already solid page colour lifts
-/// black by a couple of values, which is a faintly lighter rectangle ending
-/// exactly at the banner's bottom edge — a seam drawn by the very thing put
-/// there to remove one.
-class _Grain extends StatefulWidget {
-  const _Grain();
-
-  @override
-  State<_Grain> createState() => _GrainState();
-}
-
-class _GrainState extends State<_Grain> {
-  /// One tile for the whole application: it is 128 by 128 and every banner in
-  /// the process repeats the same one.
-  static ui.Image? _tile;
-  static Future<ui.Image>? _loading;
+class _ArtworkScrimState extends State<ArtworkScrim> {
+  static ui.FragmentProgram? _program;
+  static Future<ui.FragmentProgram>? _loading;
 
   @override
   void initState() {
     super.initState();
-    if (_tile == null) {
-      (_loading ??= _make()).then((image) {
-        _tile = image;
+    if (_program == null) {
+      (_loading ??= ui.FragmentProgram.fromAsset('shaders/scrim.frag')).then((
+        program,
+      ) {
+        _program = program;
         if (mounted) setState(() {});
       });
     }
   }
 
-  static Future<ui.Image> _make() {
-    const side = 128;
-    // Seeded, so the grain is the same on every run and a screenshot that
-    // differs from the last one differs for a reason.
-    final random = math.Random(20260903);
-    final pixels = Uint8List(side * side * 4);
-    for (var i = 0; i < side * side; i++) {
-      final v = random.nextInt(256);
-      pixels[i * 4] = v;
-      pixels[i * 4 + 1] = v;
-      pixels[i * 4 + 2] = v;
-      pixels[i * 4 + 3] = 255;
-    }
-    final done = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      pixels,
-      side,
-      side,
-      ui.PixelFormat.rgba8888,
-      done.complete,
-    );
-    return done.future;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final tile = _tile;
-    if (tile == null) return const SizedBox.shrink();
-    return CustomPaint(painter: _GrainPainter(tile), size: Size.infinite);
+    final program = _program;
+    if (program == null) return const SizedBox.shrink();
+    return CustomPaint(
+      painter: _ScrimPainter(program.fragmentShader()),
+      size: Size.infinite,
+    );
   }
 }
 
-class _GrainPainter extends CustomPainter {
-  const _GrainPainter(this.tile);
+class _ScrimPainter extends CustomPainter {
+  _ScrimPainter(this.shader);
 
-  final ui.Image tile;
-
-  /// One part in forty.
-  static const _strength = 0.025;
-
-  /// Where the noise lives: nothing at the top, where the picture is itself
-  /// and needs no help; full through the fall, where the bands are; nothing
-  /// again at the foot, where there is only page.
-  static const _maskStops = [0.30, 0.50, 0.92, 1.0];
+  final ui.FragmentShader shader;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    // The layer is what makes the whole thing additive once, rather than each
-    // draw inside it fighting the one before.
-    canvas.saveLayer(rect, Paint()..blendMode = BlendMode.plus);
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..colorFilter = const ColorFilter.mode(
-          Color.fromRGBO(255, 255, 255, _strength),
-          BlendMode.modulate,
-        )
-        ..shader = ImageShader(
-          tile,
-          TileMode.repeated,
-          TileMode.repeated,
-          Matrix4.identity().storage,
-        ),
-    );
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..blendMode = BlendMode.dstIn
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0x00FFFFFF),
-            Color(0xFFFFFFFF),
-            Color(0xFFFFFFFF),
-            Color(0x00FFFFFF),
-          ],
-          stops: _maskStops,
-        ).createShader(rect),
-    );
-    canvas.restore();
+    shader
+      ..setFloat(0, size.width)
+      ..setFloat(1, size.height)
+      ..setFloat(2, Palette.page.r)
+      ..setFloat(3, Palette.page.g)
+      ..setFloat(4, Palette.page.b);
+    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   }
 
   @override
-  bool shouldRepaint(_GrainPainter old) => old.tile != tile;
+  bool shouldRepaint(_ScrimPainter old) => false;
 }
 
 /// How tall a banner is.
@@ -338,7 +174,11 @@ class BannerBox extends StatelessWidget {
         child: Stack(
           alignment: AlignmentDirectional.bottomStart,
           children: [
-            for (final layer in background) Positioned.fill(child: layer),
+            // Its own layer, so scrolling the page or hovering the shelf that
+            // lies over the banner does not record the artwork and scrim again.
+            Positioned.fill(
+              child: RepaintBoundary(child: Stack(children: background)),
+            ),
             child,
           ],
         ),
