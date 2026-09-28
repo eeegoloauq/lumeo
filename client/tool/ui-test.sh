@@ -59,8 +59,10 @@ socket=lumeo-ui-test-$$
 weston --backend=headless --renderer=gl --socket="$socket" \
   --width=1600 --height=1000 --idle-time=0 >"$log/weston.log" 2>&1 &
 weston_pid=$!
-for _ in $(seq 50); do
-  if [[ -S $XDG_RUNTIME_DIR/$socket ]]; then break; fi
+# Bringing up EGL on llvmpipe has taken over 6 s on a CI runner, so the wait is
+# generous, and it ends at once if Weston exits.
+for _ in $(seq 300); do
+  if [[ -S $XDG_RUNTIME_DIR/$socket ]] || ! kill -0 "$weston_pid" 2>/dev/null; then break; fi
   sleep 0.2
 done
 if [[ ! -S $XDG_RUNTIME_DIR/$socket ]]; then
