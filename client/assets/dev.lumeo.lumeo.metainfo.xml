@@ -39,6 +39,24 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.69" date="2026-09-28">
+      <description>
+        <ul>
+          <li>Settings answer at once while a download is writing to the disk. A change used to wait up to half a minute and then land with the clicks after it.</li>
+          <li xml:lang="ru">Настройки отвечают сразу, даже когда загрузка пишет на диск. Раньше изменение могло ждать до полуминуты, а потом применялось вместе со всеми следующими нажатиями.</li>
+          <li>The subtitle sample in Settings is drawn the way the player draws subtitles, over a picture of the last title watched.</li>
+          <li xml:lang="ru">Пример субтитров в настройках выглядит так же, как в плеере, и показан на кадре из последнего просмотренного.</li>
+          <li>The subtitle edge is Outline, Shadow or Box. Shadow is a visible drop shadow under a thin outline.</li>
+          <li xml:lang="ru">Контур субтитров: обводка, тень или плашка. Тень теперь заметная, под тонкой обводкой.</li>
+          <li>The player's episode list opens on the playing episode, with the one before it above, and no longer jumps.</li>
+          <li xml:lang="ru">Список серий в плеере открывается сразу на текущей серии, над ней видна предыдущая, и больше не дёргается.</li>
+          <li>In the player's download panel, the next episode shows its speed, peers and seeders.</li>
+          <li xml:lang="ru">В панели загрузки плеера у следующей серии видны скорость, пиры и сиды.</li>
+          <li>The scrollbar widens under the pointer, so it is easier to grab.</li>
+          <li xml:lang="ru">Полоса прокрутки расширяется под курсором, её легче ухватить.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.68" date="2026-09-27">
       <description>
         <ul>
