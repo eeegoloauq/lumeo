@@ -690,6 +690,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     await _hostReady;
     final thumbnails = _thumbnails?..dispose();
     await Future.wait([_player.dispose(), ?thumbnails?.closed]);
+    await _subtitleDir?.then((dir) => dir.delete(recursive: true));
   }();
 
   /// Closing the window ends the process, and the GPU driver's exit handlers
@@ -1539,18 +1540,51 @@ class _PlayerScreenState extends State<PlayerScreen> {
         .where((f) => languages.rank(f.language, wanted) >= 0)
         .firstOrNull;
     if (best == null) return;
-    final url = widget.api.url(best.url);
-    _ownFound = url;
+    final download = _download;
+    final path = await _subtitleFile(best);
+    if (path == null ||
+        !mounted ||
+        _download?.id != download?.id ||
+        _selectedSubtitle != null) {
+      return;
+    }
+    _ownFound = path;
     unawaited(
       _command([
         'sub-add',
-        url,
+        path,
         'auto',
         best.name.isEmpty ? best.label : best.name,
         best.language,
       ]),
     );
   }
+
+  /// Subtitle files this player fetched, by the core's address. mpv is handed
+  /// the file, never the address: while it waits on one, every command after
+  /// it waits too, the next episode's loadfile included, and a provider that
+  /// keeps silent held the switch for as long as the core waited on it.
+  final _subtitleFiles = <String, Future<String?>>{};
+  Future<Directory>? _subtitleDir;
+  int _subtitleCount = 0;
+
+  Future<String?> _subtitleFile(Subtitle found) =>
+      _subtitleFiles[found.url] ??= () async {
+        try {
+          final bytes = await widget.api.subtitleFile(found.url);
+          final dir = await (_subtitleDir ??= Directory.systemTemp.createTemp(
+            'lumeo-subtitles-',
+          ));
+          final file = File('${dir.path}/${_subtitleCount++}');
+          await file.writeAsBytes(bytes);
+          return file.path;
+        } on Object catch (error) {
+          debugPrint('subtitle fetch failed: $error');
+          // Asked again on the next pick: the provider may answer by then.
+          _subtitleFiles.remove(found.url);
+          return null;
+        }
+      }();
 
   void _pickSubtitle(MpvTrack? track) {
     _closeMenu();
@@ -1565,7 +1599,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// because mpv retains every external track added.
   void _pickFound(Subtitle found) {
     _closeMenu();
-    final url = widget.api.url(found.url);
+    unawaited(_loadFound(found));
+  }
+
+  Future<void> _loadFound(Subtitle found) async {
+    final url = await _subtitleFile(found);
+    if (url == null || !mounted) return;
     final loaded = _subtitleTracks
         .where((t) => t.external && t.externalFilename == url)
         .firstOrNull;

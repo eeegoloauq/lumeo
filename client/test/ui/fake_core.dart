@@ -54,6 +54,14 @@ LumeoApi fakeCore({
   /// The core refuses the file, as it does one that is not a video.
   bool openFails = false,
 
+  /// What /api/v1/subtitles lists.
+  List<Map<String, dynamic>> subtitles = const [],
+
+  /// Every subtitle file asked for; with [subtitlesSilent] none is answered,
+  /// as a provider that keeps silent.
+  List<String>? subtitleCalls,
+  bool subtitlesSilent = false,
+
   /// How long the source list takes, as a provider does on a real network.
   Duration sourcesDelay = Duration.zero,
 
@@ -293,6 +301,11 @@ LumeoApi fakeCore({
         final limit = int.tryParse(query['limit'] ?? '') ?? 30;
         return _json(continueWatching.take(limit).toList());
       }
+      if (path.startsWith('/api/v1/subtitles/')) {
+        subtitleCalls?.add(path);
+        if (subtitlesSilent) return Completer<http.Response>().future;
+        return http.Response('1\n00:00:00,000 --> 00:00:30,000\nFound\n', 200);
+      }
       if (path.startsWith('/api/v1/progress/')) {
         final id = path.split('/').last;
         if (request.method == 'GET') {
@@ -511,7 +524,7 @@ LumeoApi fakeCore({
                 .length,
           });
         case '/api/v1/subtitles':
-          return _json({'subtitles': const []});
+          return _json({'subtitles': subtitles});
         case '/api/v1/downloads':
           return _json({'downloads': downloads});
       }

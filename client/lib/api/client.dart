@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -232,6 +233,10 @@ class LumeoApi {
         .map((e) => Subtitle.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// The file behind a [Subtitle.url], as the core converted it.
+  Future<Uint8List> subtitleFile(String path) async =>
+      (await _request('GET', baseUri.resolve(path))).bodyBytes;
 
   /// Turns a path the core handed back into an address a player can open.
   String url(String path) => baseUri.resolve(path).toString();

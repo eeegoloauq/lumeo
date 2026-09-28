@@ -378,6 +378,88 @@ void playerTests() {
     );
   });
 
+  for (final silent in [false, true]) {
+    testWidgets(
+      silent
+          ? 'a subtitle the provider keeps back never reaches mpv'
+          : 'a subtitle from the database reaches mpv as a file',
+      (tester) async {
+        // mpv waits on an address it was handed, and every command after it
+        // waits too: the next episode sat behind a silent provider.
+        final server = await serveFilm();
+        final subtitleCalls = <String>[];
+        await tester.pumpWidget(
+          testApp(
+            api: fakeCore(
+              downloads: [fakeDownload()],
+              baseUrl: 'http://127.0.0.1:${server.port}',
+              preferences: {
+                'subtitleLanguages': ['en'],
+              },
+              subtitles: [
+                {
+                  'id': 's1',
+                  'language': 'en',
+                  'name': 'Film',
+                  'url': '/api/v1/subtitles/s1',
+                },
+              ],
+              subtitleCalls: subtitleCalls,
+              subtitlesSilent: silent,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Play'));
+        await playerKeysReady(tester);
+        final mpv = mpvOnScreen(tester);
+        await waitFor(
+          tester,
+          () async => subtitleCalls.isNotEmpty,
+          what: 'the subtitle was asked for',
+        );
+        Future<List<Object?>> external() async =>
+            (jsonDecode(await mpv.getProperty('track-list')) as List)
+                .where((t) => t['type'] == 'sub' && t['external'] == true)
+                .map((t) => t['external-filename'])
+                .toList();
+        if (silent) {
+          // What switching to the next episode does: a new file for mpv.
+          Future<double> position() async =>
+              double.tryParse(await mpv.getProperty('time-pos')) ?? 0;
+          await mpv.command(['seek', '5', 'absolute']);
+          await waitFor(
+            tester,
+            () async => await position() >= 5,
+            what: 'the film past five seconds',
+          );
+          await mpv.command([
+            'loadfile',
+            await mpv.getProperty('path'),
+            'replace',
+          ]);
+          await waitFor(
+            tester,
+            () async => await position() < 5,
+            what: 'the next file opened while the subtitle is still silent',
+          );
+          expect(await external(), isEmpty);
+          return;
+        }
+        await waitFor(
+          tester,
+          () async => (await external()).isNotEmpty,
+          what: 'mpv loaded the subtitle',
+        );
+        expect(
+          (await external()).single,
+          isNot(startsWith('http')),
+          reason: 'mpv reads a file this client fetched, not the address',
+        );
+      },
+    );
+  }
+
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
     // mpv silently ignores unknown option names, so read properties back to
     // catch misspellings.
