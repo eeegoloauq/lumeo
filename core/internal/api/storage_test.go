@@ -218,7 +218,9 @@ func TestKeepPolicyFreesBeforeItAnswers(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 	prefs := preferences.New(db, preferences.Preferences{Keep: "forever"})
 	watched := true
-	if _, err := progress.New(db, nil).Put(context.Background(), "series", progress.Update{Season: 1, Episode: 1, Watched: &watched}); err != nil {
+	// Finished an hour ago: one finished just now still settles.
+	finished := progress.Entry{ItemID: "series", Season: 1, Episode: 1, Watched: true, UpdatedAt: time.Now().Add(-time.Hour)}
+	if _, err := db.UpsertProgress(context.Background(), "series", finished, &watched); err != nil {
 		t.Fatalf("mark watched: %v", err)
 	}
 	lib := library.New(manager, db, prefs, log)

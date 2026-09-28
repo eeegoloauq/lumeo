@@ -197,6 +197,12 @@ func (s *Service) Clean(ctx context.Context) error {
 	own, used := Usage(rows, s.downloads.Dirs)
 
 	for _, c := range candidates {
+		// The settle time again, from the progress row: a core started again
+		// has no memory of the stream, and an episode finished just before
+		// the app was closed would otherwise go on the very first pass.
+		if now.Sub(c.watched) < settle {
+			continue
+		}
 		expired := prefs.Keep == "watched" ||
 			prefs.Keep == "days" && now.Sub(c.watched) >= time.Duration(prefs.KeepDays)*day
 		over := prefs.DiskLimit > 0 && used > prefs.DiskLimit

@@ -260,6 +260,21 @@ func TestPlayingIsNotFreedUntilItSettles(t *testing.T) {
 	}
 }
 
+// A core started again knows no stream: the episode finished just before the
+// app closed settles from its progress row.
+func TestJustFinishedIsNotFreedAfterARestart(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "watched"})
+	s.progress = fakeProgress{{ItemID: "show", Season: 1, Episode: 3, Watched: true, UpdatedAt: now.Add(-time.Minute)}}
+	if removed := clean(t, s, downloads); len(removed) != 0 {
+		t.Fatalf("freed %v a minute after it was finished", removed)
+	}
+	now = now.Add(settle)
+	defer func() { now = now.Add(-settle) }()
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e3"}) {
+		t.Fatalf("freed %v, want e3 once it settled", removed)
+	}
+}
+
 // Episode five has a finished copy and two half ones. A request for the new
 // half copy whose stream never opened chooses nothing; once one opens, the old
 // half copy goes and the finished one stays. Waiting for the old one to settle

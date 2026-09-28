@@ -128,8 +128,9 @@ surprise.
 
 Watched is the progress entry's latch with no position: a rewatch under way
 is not finished. The days count from when it was finished. A download
-that is playing, or stopped playing less than ten minutes ago, is left for
-the next pass: a player reconnects on every seek, and the credits of an
+that is playing, or stopped playing or was finished less than ten minutes
+ago, is left for the next pass (the finishing time is the progress row's, so
+a core started again right after still waits it out): a player reconnects on every seek, and the credits of an
 episode that already counts as watched are still on screen. Passes run at
 start, every ten minutes, and when something they look at changes; a change
 of the policy itself is cleaned before the core answers it, so the Storage
