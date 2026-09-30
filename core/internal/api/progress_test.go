@@ -145,6 +145,13 @@ func TestProgressWatchedLatchRewatchAndExplicitReset(t *testing.T) {
 	if next := continuing(); next.Episode != 2 {
 		t.Fatalf("after finishing, continue = %+v", next)
 	}
+	// Opened by mistake and closed: still watched, still finished.
+	if e := put(`{"season":1,"episode":1,"position":3,"duration":100}`); !e.Watched || e.Position != 0 {
+		t.Fatalf("a glance at a watched episode = %+v", e)
+	}
+	if next := continuing(); next.Episode != 2 {
+		t.Fatalf("after a glance, continue = %+v", next)
+	}
 	if e := put(`{"season":1,"episode":1,"position":40,"duration":100}`); !e.Watched || e.Position != 40 {
 		t.Fatalf("rewatch entry = %+v", e)
 	}

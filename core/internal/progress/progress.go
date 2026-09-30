@@ -113,6 +113,13 @@ func (s *Service) Put(ctx context.Context, itemID string, update Update) (Entry,
 	if update.Watched != nil {
 		finished = *update.Watched
 	}
+	if !finished && update.Watched == nil && update.Position < update.Duration*rewatchFrom {
+		if kept, ok, err := s.watchedAt(ctx, itemID, update.Season, update.Episode); err != nil {
+			return Entry{}, err
+		} else if ok {
+			return kept, nil
+		}
+	}
 	// Finishing and starting over both leave no position: the watched mark
 	// stays, and a position on a watched entry is a rewatch under way.
 	if finished || update.Watched != nil {
@@ -128,6 +135,26 @@ func (s *Service) Put(ctx context.Context, itemID string, update Update) (Entry,
 		UpdatedAt: s.now().UTC(),
 	}
 	return s.store.UpsertProgress(ctx, itemID, entry, update.Watched)
+}
+
+// rewatchFrom is how far into a watched episode or film a rewatch starts to
+// count. Opened by mistake and closed, it stays watched, and stays out of
+// "Continue watching".
+const rewatchFrom = 0.05
+
+// watchedAt is the entry for an episode that is watched and not being
+// watched again.
+func (s *Service) watchedAt(ctx context.Context, itemID string, season, episode int) (Entry, bool, error) {
+	entries, err := s.store.Progress(ctx, itemID)
+	if err != nil {
+		return Entry{}, false, err
+	}
+	for _, e := range entries {
+		if e.Season == season && e.Episode == episode {
+			return e, e.Watched && e.Position == 0, nil
+		}
+	}
+	return Entry{}, false, nil
 }
 
 func (s *Service) Get(ctx context.Context, itemID string) ([]Entry, *Entry, error) {
