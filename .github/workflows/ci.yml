@@ -68,6 +68,9 @@ jobs:
         area: [playback, player]
     name: ui (${{ matrix.area }})
     runs-on: ubuntu-latest
+    # A run takes about five minutes; a hung test would otherwise hold the
+    # runner for GitHub's default six hours.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: client
@@ -86,6 +89,8 @@ jobs:
       # renders through EGL and mpv's render thread is the one under test
       # (tool/ui-test.sh says why Xvfb was not).
       - name: build dependencies
+        # Seconds when the runner's apt mirror answers; a stalled one hangs.
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config \

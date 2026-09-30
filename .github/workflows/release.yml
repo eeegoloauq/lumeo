@@ -42,6 +42,7 @@ jobs:
       # CMake generate step. The RPM still names mpv-libs by hand — see the
       # note in packaging/lumeo.spec.
       - name: build dependencies
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config \
