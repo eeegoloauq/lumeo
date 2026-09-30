@@ -48,7 +48,7 @@ Every example needs the token as a header; with the core run as above, from `cor
     curl -X PUT -H 'content-type: application/json' \
          -d '{"season":2,"episode":3,"position":734.5,"duration":2580}' \
          "localhost:7666/api/v1/progress/<id>"
-    curl "localhost:7666/api/v1/progress/<id>"              # entries, and what to play next
+    curl "localhost:7666/api/v1/progress/<id>"              # entries, what to play next, and an unaired one after
     curl "localhost:7666/api/v1/continue"                   # titles part-way through, latest first
     curl "localhost:7666/api/v1/searches"                   # what was searched for, latest first
 

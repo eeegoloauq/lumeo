@@ -21,24 +21,29 @@ import '../widgets/loading.dart';
 import '../widgets/play_block.dart';
 
 /// Which episode the page opens on: the one to play next when there is one,
-/// and otherwise the last one watched.
+/// the one a caught-up series goes on with when it has not aired, and
+/// otherwise the last one watched.
 ///
-/// "No next episode" is not "start from the beginning". A series that has
-/// been caught up with has nothing to play until the next episode airs, and
-/// reading that as nothing-at-all opened a title four seasons in at the
-/// pilot, with Play pointed at it. With no progress at all there is genuinely
-/// nothing to go on, and the page opens at the first episode as it always
-/// did.
-WatchEntry? openingEpisode(WatchProgress progress) {
-  final next = progress.next;
-  if (next != null) return next;
+/// "No next episode" is not "start from the beginning": reading it as
+/// nothing-at-all opened a title four seasons in at the pilot, with Play
+/// pointed at it. With no progress at all there is genuinely nothing to go
+/// on, and the page opens at the first episode as it always did.
+({int season, int episode})? openingEpisode(WatchProgress progress) {
+  if (progress.next case final next?) {
+    return (season: next.season, episode: next.episode);
+  }
+  if (progress.upcoming case final up?) {
+    return (season: up.season, episode: up.number);
+  }
   WatchEntry? latest;
   for (final entry in progress.entries) {
     if (latest == null || entry.updatedAt.isAfter(latest.updatedAt)) {
       latest = entry;
     }
   }
-  return latest;
+  return latest == null
+      ? null
+      : (season: latest.season, episode: latest.episode);
 }
 
 /// The episode the page points Play and the source list at, with [season]'s
@@ -238,12 +243,7 @@ class _ItemScreenState extends State<ItemScreen> {
         final progress = data.progress;
         _lastTitle = item.title;
         final seasons = _seasonsOf(item);
-        final opensAt =
-            widget.episode ??
-            switch (openingEpisode(progress)) {
-              final e? => (season: e.season, episode: e.episode),
-              null => null,
-            };
+        final opensAt = widget.episode ?? openingEpisode(progress);
         final resumed = opensAt == null
             ? null
             : item.episodes

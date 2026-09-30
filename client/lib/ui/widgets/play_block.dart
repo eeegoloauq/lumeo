@@ -82,7 +82,16 @@ class SourceChoice extends ChangeNotifier {
   /// than one that says it cannot be pressed.
   bool get playable => loading || picked != null;
 
+  /// Not out yet: nobody has a copy, so nobody is asked.
+  bool get upcoming =>
+      released != null && released!.isAfter(DateTime.now().toUtc());
+
   Future<void> load() async {
+    if (upcoming) {
+      startWhenReady = false;
+      _ping();
+      return;
+    }
     loading = true;
     _ping();
     // After the caller is done building: starting opens the player.
@@ -360,6 +369,17 @@ class _SummaryState extends State<_Summary> {
   }
 
   Widget _settled(BuildContext context, SourceChoice choice) {
+    if (choice.upcoming) {
+      return Text(
+        emptySources(
+          failed: const [],
+          released: choice.released,
+          now: DateTime.now(),
+          l10n: context.l10n,
+        ).text,
+        style: Typo.data,
+      );
+    }
     // A press is answered at once.
     if (choice.loading) {
       return Text(context.l10n.playerWaitingForSource, style: Typo.data);

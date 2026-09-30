@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:lumeo/api/client.dart';
+import 'package:lumeo/api/downloads_store.dart';
 import 'package:lumeo/api/models.dart';
 import 'package:lumeo/l10n/app_localizations.dart';
 import 'package:lumeo/ui/widgets/play_block.dart';
@@ -118,4 +122,35 @@ void main() {
     expect(failure.status, 403);
     expect(failure.reason, '403 Forbidden');
   });
+
+  test(
+    'an episode not out yet asks nobody for copies and cannot play',
+    () async {
+      final asked = <String>[];
+      final api = LumeoApi(
+        baseUrl: 'http://127.0.0.1:7666',
+        client: MockClient((request) async {
+          asked.add(request.url.path);
+          return http.Response('{"downloads": [], "sources": []}', 200);
+        }),
+      );
+      final downloads = DownloadsStore(api);
+      addTearDown(downloads.dispose);
+      await pumpEventQueue();
+      asked.clear();
+      final choice = SourceChoice(
+        api: api,
+        downloads: downloads,
+        itemId: 'tt1',
+        season: 2,
+        episode: 1,
+        released: DateTime.now().toUtc().add(const Duration(days: 5)),
+      );
+      addTearDown(choice.dispose);
+      await choice.load();
+      expect(asked, isEmpty);
+      expect(choice.upcoming, isTrue);
+      expect(choice.playable, isFalse);
+    },
+  );
 }

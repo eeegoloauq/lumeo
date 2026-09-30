@@ -24,7 +24,7 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("id")
-	before, _, err := s.progress.Get(r.Context(), id)
+	before, err := s.progress.Get(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -45,7 +45,7 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	// What someone starts watching belongs in their list. Only the first time:
 	// a title taken out of the list stays out while it is being finished.
-	if len(before) == 0 && s.watchlist != nil {
+	if len(before.Entries) == 0 && s.watchlist != nil {
 		if _, err := s.watchlist.Add(r.Context(), id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
 			s.log.Warn("adding to the list failed", "item", id, "err", err)
 		}
@@ -94,12 +94,12 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 	if !s.haveProgress(w) {
 		return
 	}
-	entries, next, err := s.progress.Get(r.Context(), r.PathValue("id"))
+	watching, err := s.progress.Get(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "next": next})
+	writeJSON(w, http.StatusOK, watching)
 }
 
 func (s *Server) handleDeleteProgress(w http.ResponseWriter, r *http.Request) {

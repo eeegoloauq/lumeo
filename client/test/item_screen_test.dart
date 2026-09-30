@@ -42,6 +42,20 @@ void main() {
     expect(opensAt?.episode, 12);
   });
 
+  test('a series caught up with opens on the episode it goes on with', () {
+    // Seen 2026-09-30: it opened on the last one watched, which read as
+    // being put back an episode.
+    final progress = WatchProgress(
+      entries: [entry(4, 12, '2026-09-20T22:00:00Z', watched: true)],
+      upcoming: Episode(
+        season: 4,
+        number: 13,
+        released: DateTime.now().toUtc().add(const Duration(days: 5)),
+      ),
+    );
+    expect(openingEpisode(progress), (season: 4, episode: 13));
+  });
+
   test('a title nobody has watched opens at the beginning', () {
     expect(openingEpisode(const WatchProgress(entries: [])), isNull);
   });

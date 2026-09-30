@@ -14,14 +14,18 @@ rows: the most recently touched entry if it is unfinished, otherwise the
 episode after it in the catalogue's order, otherwise nothing. Not "the oldest
 unfinished episode" — a half-watched pilot from a month ago must not outrank
 the episode finished yesterday. Deciding it once in the core keeps every
-client's item page, home shelf and player agreeing on what "next" is.
+client's item page, home shelf and player agreeing on what "next" is. An
+episode after it that has not aired is not next, since nothing can play it;
+the core names it as `upcoming`, and the title page opens on it with its date.
 
-"Watched" is a latch at ninety per cent, and it does not come off by itself:
-starting an episode again from the beginning is a rewatch, not an unwatching.
-The client can clear it explicitly. Finishing (ninety per cent, the credits
-skipped, a mark by hand) leaves no position, so a position on a watched entry
+"Watched" is a latch at ninety per cent, or where the ending the file names
+starts, whichever comes first: an anime ending and its preview begin before
+ninety. It does not come off by itself: starting an episode again from the beginning is a rewatch, not an unwatching.
+The client can clear it explicitly. Finishing (ninety per cent, the ending,
+the credits skipped, a mark by hand) leaves no position, so a position on a watched entry
 is a rewatch under way: it resumes, shows its own bar and is what Continue
-watching opens.
+watching opens. Under five per cent it is not one: a watched episode opened by
+mistake and closed stays finished.
 
 ## The library: My list and History, not a third tab for what is on disk
 

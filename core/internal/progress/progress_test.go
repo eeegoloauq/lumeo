@@ -44,7 +44,8 @@ func TestNextUsesMostRecentlyUpdatedEntryWhenUnwatched(t *testing.T) {
 		{Season: 1, Episode: 2, Position: 20, UpdatedAt: latest},
 	}}
 	service := New(store, nil)
-	_, got, err := service.Get(context.Background(), "series")
+	watching, err := service.Get(context.Background(), "series")
+	got := watching.Next
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -92,7 +93,8 @@ func TestNextAfterMostRecentlyUpdatedWatchedEpisode(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := &memoryStore{entries: test.entries}
 			cat := memoryCatalog{item: catalog.MediaItem{ID: "series", Kind: catalog.KindSeries, Episodes: episodes}}
-			_, got, err := New(store, cat).Get(context.Background(), "series")
+			watching, err := New(store, cat).Get(context.Background(), "series")
+			got := watching.Next
 			if err != nil {
 				t.Fatalf("get: %v", err)
 			}
@@ -105,7 +107,8 @@ func TestNextAfterMostRecentlyUpdatedWatchedEpisode(t *testing.T) {
 
 func TestNextIsNilForFinishedFilm(t *testing.T) {
 	store := &memoryStore{entries: []Entry{{Season: 0, Episode: 0, Watched: true, UpdatedAt: time.Now()}}}
-	_, got, err := New(store, memoryCatalog{item: catalog.MediaItem{Kind: catalog.KindMovie}}).Get(context.Background(), "movie")
+	watching, err := New(store, memoryCatalog{item: catalog.MediaItem{Kind: catalog.KindMovie}}).Get(context.Background(), "movie")
+	got := watching.Next
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -216,12 +219,17 @@ func TestACaughtUpSeriesHasNoNextUntilTheEpisodeIsOut(t *testing.T) {
 	service := New(store, cat)
 	service.now = func() time.Time { return now }
 
-	_, next, err := service.Get(context.Background(), "series")
+	watching, err := service.Get(context.Background(), "series")
+	next := watching.Next
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if next != nil {
 		t.Fatalf("next = %+v, want none while episode 2 is unaired", next)
+	}
+	// The page opens on it all the same, with its date.
+	if up := watching.Upcoming; up == nil || up.Number != 2 {
+		t.Fatalf("upcoming = %+v, want episode 2", up)
 	}
 	rows, err := service.Continue(context.Background(), 10)
 	if err != nil {
@@ -240,5 +248,8 @@ func TestACaughtUpSeriesHasNoNextUntilTheEpisodeIsOut(t *testing.T) {
 	}
 	if len(rows) != 1 || rows[0].Next.Episode != 2 {
 		t.Fatalf("continue = %+v, want S1E2 on its release day", rows)
+	}
+	if watching, err = service.Get(context.Background(), "series"); err != nil || watching.Upcoming != nil {
+		t.Fatalf("upcoming once out = %+v, %v", watching.Upcoming, err)
 	}
 }

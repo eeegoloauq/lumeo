@@ -982,10 +982,13 @@ class WatchEntry {
 /// Everything the core knows about one item's watching, and what it thinks
 /// the Play button should open: [next] is null when there is nothing left.
 class WatchProgress {
-  const WatchProgress({required this.entries, this.next});
+  const WatchProgress({required this.entries, this.next, this.upcoming});
 
   final List<WatchEntry> entries;
   final WatchEntry? next;
+
+  /// For a series caught up with, the episode it goes on with once that airs.
+  final Episode? upcoming;
 
   WatchEntry? entry(int season, int episode) {
     for (final e in entries) {
@@ -1000,6 +1003,9 @@ class WatchProgress {
         .toList(),
     next: json['next'] is Map<String, dynamic>
         ? WatchEntry.fromJson(json['next'] as Map<String, dynamic>)
+        : null,
+    upcoming: json['upcoming'] is Map<String, dynamic>
+        ? Episode.fromJson(json['upcoming'] as Map<String, dynamic>)
         : null,
   );
 }

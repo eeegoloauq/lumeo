@@ -154,17 +154,17 @@ func (s *Server) markScored(ctx context.Context, id string, season, episode int)
 	if s.progress == nil {
 		return
 	}
-	entries, _, err := s.progress.Get(ctx, id)
+	watching, err := s.progress.Get(ctx, id)
 	if err != nil {
 		s.log.Warn("reading progress for a score failed", "item", id, "err", err)
 		return
 	}
-	if len(entries) == 0 && s.watchlist != nil {
+	if len(watching.Entries) == 0 && s.watchlist != nil {
 		if _, err := s.watchlist.Add(ctx, id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
 			s.log.Warn("adding to the list failed", "item", id, "err", err)
 		}
 	}
-	for _, e := range entries {
+	for _, e := range watching.Entries {
 		if e.Season == season && e.Episode == episode {
 			return
 		}

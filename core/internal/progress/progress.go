@@ -157,10 +157,18 @@ func (s *Service) watchedAt(ctx context.Context, itemID string, season, episode 
 	return Entry{}, false, nil
 }
 
-func (s *Service) Get(ctx context.Context, itemID string) ([]Entry, *Entry, error) {
+// Watching is where a title stands: every entry, what plays next, and for a
+// series caught up with, the episode it goes on with once that airs.
+type Watching struct {
+	Entries  []Entry          `json:"entries"`
+	Next     *Entry           `json:"next"`
+	Upcoming *catalog.Episode `json:"upcoming"`
+}
+
+func (s *Service) Get(ctx context.Context, itemID string) (Watching, error) {
 	entries, err := s.store.Progress(ctx, itemID)
 	if err != nil {
-		return nil, nil, err
+		return Watching{}, err
 	}
 	var item *catalog.MediaItem
 	if s.catalog != nil {
@@ -168,7 +176,8 @@ func (s *Service) Get(ctx context.Context, itemID string) ([]Entry, *Entry, erro
 			item = &found
 		}
 	}
-	return entries, next(entries, item, s.now()), nil
+	now := s.now()
+	return Watching{entries, next(entries, item, now), upcoming(entries, item, now)}, nil
 }
 
 // After is what follows the episode the caller names, straight out of the
@@ -387,6 +396,15 @@ func (s *Service) History(ctx context.Context, limit, offset int) (viewings []Vi
 // missing date is not a claim that it is unaired — the client's
 // Episode.isUpcoming reads it the same way.
 func NextEpisode(item *catalog.MediaItem, season, episode int, now time.Time) *catalog.Episode {
+	following := followingEpisode(item, season, episode)
+	if following == nil || !following.Released.IsZero() && following.Released.After(now) {
+		return nil
+	}
+	return following
+}
+
+// followingEpisode is the episode after the named one, aired or not.
+func followingEpisode(item *catalog.MediaItem, season, episode int) *catalog.Episode {
 	if item == nil || item.Kind != catalog.KindSeries {
 		return nil
 	}
@@ -426,13 +444,10 @@ func NextEpisode(item *catalog.MediaItem, season, episode int, now time.Time) *c
 	if following.Season == 0 && season != 0 {
 		return nil
 	}
-	if !following.Released.IsZero() && following.Released.After(now) {
-		return nil
-	}
 	return &following
 }
 
-func next(entries []Entry, item *catalog.MediaItem, now time.Time) *Entry {
+func latestEntry(entries []Entry) *Entry {
 	var latest *Entry
 	for i := range entries {
 		entry := &entries[i]
@@ -440,6 +455,25 @@ func next(entries []Entry, item *catalog.MediaItem, now time.Time) *Entry {
 			latest = entry
 		}
 	}
+	return latest
+}
+
+// upcoming is the episode a caught-up series goes on with while it has not
+// aired: there is no next to play, and the title page opens on it, dated.
+func upcoming(entries []Entry, item *catalog.MediaItem, now time.Time) *catalog.Episode {
+	latest := latestEntry(entries)
+	if latest == nil || !latest.Watched || latest.Position > 0 {
+		return nil
+	}
+	following := followingEpisode(item, latest.Season, latest.Episode)
+	if following == nil || following.Released.IsZero() || !following.Released.After(now) {
+		return nil
+	}
+	return following
+}
+
+func next(entries []Entry, item *catalog.MediaItem, now time.Time) *Entry {
+	latest := latestEntry(entries)
 	if latest == nil {
 		return nil
 	}
