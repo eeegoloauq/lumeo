@@ -39,6 +39,34 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.76" date="2026-09-30">
+      <description>
+        <ul>
+          <li>Picking another copy of an episode that is already on disk no longer pauses the new one while it looks for peers, and the title page offers the copy picked last.</li>
+          <li xml:lang="ru">Выбор другой копии уже скачанной серии больше не ставит новую на паузу, пока она ищет пиров, а страница сериала предлагает копию, выбранную последней.</li>
+          <li>The subtitle track that is on is checked in the menu again.</li>
+          <li xml:lang="ru">Включённые субтитры снова отмечены галочкой в меню.</li>
+          <li>Subtitles kept with a download are chosen over the file's own when their language is higher in Settings, and a language picked for the series holds.</li>
+          <li xml:lang="ru">Скачанные субтитры выбираются вместо встроенных, если их язык стоит выше в настройках, и язык, выбранный для сериала, больше не сбрасывается.</li>
+          <li>Subtitle rows say where each track comes from: in the file, downloaded or OpenSubtitles; two of one language show their format or SDH.</li>
+          <li xml:lang="ru">У субтитров подписано, откуда дорожка: в файле, скачаны или OpenSubtitles; у двух дорожек одного языка виден формат или SDH.</li>
+          <li>An episode counts as watched once the ending its file names starts, and a watched episode opened by mistake stays out of Continue watching.</li>
+          <li xml:lang="ru">Серия считается просмотренной с начала эндинга, если он размечен в файле, а случайно открытая просмотренная серия не попадает в «Продолжить просмотр».</li>
+          <li>New episodes no longer lists an episode before the last one watched.</li>
+          <li xml:lang="ru">В «Новых сериях» больше нет серий раньше последней просмотренной.</li>
+          <li>A series caught up with opens on its next episode, with the day it airs.</li>
+          <li xml:lang="ru">Сериал, в котором всё вышедшее просмотрено, открывается на следующей серии с датой выхода.</li>
+          <li>The subtitle delay set for an episode is there again when you come back to it.</li>
+          <li xml:lang="ru">Задержка субтитров, выставленная для серии, сохраняется, когда вы к ней возвращаетесь.</li>
+          <li>Posters show a ring only while something is downloading, and Continue watching marks the episode it plays.</li>
+          <li xml:lang="ru">На постерах кольцо показывается только во время загрузки, а в «Продолжить просмотр» значок относится к серии, которую запустит карточка.</li>
+          <li>A waiting download keeps its percent in sight and says No network when there is none.</li>
+          <li xml:lang="ru">У ожидающей загрузки виден процент, а без сети она пишет «Нет сети».</li>
+          <li>The source list is asked again after 15 minutes at most, so copies of an episode out today show up.</li>
+          <li xml:lang="ru">Список источников обновляется не реже раза в 15 минут, так что копии вышедшей сегодня серии появляются.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.75" date="2026-09-28">
       <description>
         <ul>
