@@ -7,6 +7,7 @@ import 'package:lumeo/ui/player/chrome.dart';
 import 'package:lumeo/ui/player/player_screen.dart';
 import 'package:lumeo/ui/theme.dart';
 import 'package:lumeo/ui/widgets/loading.dart';
+import 'package:lumeo/ui/widgets/download_mark.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 import 'package:lumeo/ui/widgets/shelf.dart';
 import 'package:lumeo/ui/widgets/window_controls.dart';
@@ -366,8 +367,9 @@ void main() {
             child: PosterTile(
               item: const MediaItem(id: 'a', kind: 'series', title: 'Re:Zero'),
               onOpen: _noop,
-              progress: const Progress(completed: 40, total: 100),
-              acquired: acquired,
+              mark: acquired
+                  ? const DownloadMark.done()
+                  : const DownloadMark.progress(0.4),
               watchFraction: 0.3,
             ),
           ),

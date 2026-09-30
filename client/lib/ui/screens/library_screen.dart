@@ -16,6 +16,7 @@ import '../widgets/episode_card.dart' show EpisodePicture;
 import '../widgets/horizontal_strip.dart';
 import '../widgets/library_text.dart';
 import '../widgets/loading.dart';
+import '../widgets/download_mark.dart';
 import '../widgets/poster_tile.dart';
 import '../widgets/rating_button.dart';
 import '../widgets/shelf.dart';
@@ -218,8 +219,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           builder: (context, _) => PosterTile(
             key: ValueKey('listed:${t.item.id}'),
             item: t.item,
-            progress: widget.downloads.progressFor(t.item.id),
-            acquired: widget.downloads.isDoneFor(t.item.id),
+            mark: DownloadMark.of(widget.downloads, t.item.id),
             captioned: true,
             caption: listedCaption(t, context.l10n),
             score: t.rating,
@@ -641,8 +641,14 @@ class _NewEpisodesShelf extends StatelessWidget {
               listenable: downloads,
               builder: (context, _) => PosterTile(
                 item: n.item,
-                progress: downloads.progressFor(n.item.id),
-                acquired: downloads.isDoneFor(n.item.id),
+                mark: DownloadMark.of(
+                  downloads,
+                  n.item.id,
+                  episode: (
+                    season: n.episode.season,
+                    episode: n.episode.number,
+                  ),
+                ),
                 captioned: true,
                 caption: newEpisodeCaption(n, now, context.l10n),
                 // Onto the new episode itself: the page otherwise opens

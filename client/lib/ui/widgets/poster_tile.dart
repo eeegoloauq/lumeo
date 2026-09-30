@@ -19,9 +19,8 @@ class PosterTile extends StatefulWidget {
     super.key,
     required this.item,
     required this.onOpen,
-    this.progress,
+    this.mark,
     this.watchFraction,
-    this.acquired = false,
     this.captioned = false,
     this.caption,
     this.score = 0,
@@ -31,11 +30,9 @@ class PosterTile extends StatefulWidget {
   final MediaItem item;
   final VoidCallback onOpen;
 
-  /// How much of this title is on disk, summed over everything downloaded for
-  /// it. Null when none of it has been asked for.
-  final Progress? progress;
+  /// On disk or arriving, in the corner; see [DownloadMark.of].
+  final DownloadMark? mark;
   final double? watchFraction;
-  final bool acquired;
 
   /// The name and year printed under the artwork.
   ///
@@ -144,15 +141,11 @@ class _PosterTileState extends State<PosterTile> {
                                 ),
                               ),
                             ),
-                            if (widget.progress != null)
+                            if (widget.mark != null)
                               Positioned(
                                 top: WatchStatus.badgeInset,
                                 right: WatchStatus.badgeInset,
-                                child: widget.acquired
-                                    ? const DownloadMark.done()
-                                    : DownloadMark.progress(
-                                        widget.progress!.fraction,
-                                      ),
+                                child: widget.mark!,
                               ),
                             if (widget.watchFraction != null)
                               Align(

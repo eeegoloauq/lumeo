@@ -6,6 +6,7 @@ import '../../api/models.dart';
 import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'horizontal_strip.dart';
+import 'download_mark.dart';
 import 'poster_tile.dart';
 
 /// The measurements of a shelf, in one place.
@@ -135,8 +136,14 @@ class ContinueShelf extends StatelessWidget {
               listenable: downloads,
               builder: (context, _) => PosterTile(
                 item: item.item,
-                progress: downloads.progressFor(item.item.id),
-                acquired: downloads.isDoneFor(item.item.id),
+                mark: DownloadMark.of(
+                  downloads,
+                  item.item.id,
+                  episode: (
+                    season: item.next.season,
+                    episode: item.next.episode,
+                  ),
+                ),
                 watchFraction: item.next.fraction,
                 onOpen: () => onOpen(item.item),
               ),
@@ -247,8 +254,7 @@ class _ShelfState extends State<Shelf> with AutomaticKeepAliveClientMixin {
                 listenable: widget.downloads,
                 builder: (context, _) => PosterTile(
                   item: item,
-                  progress: widget.downloads.progressFor(item.id),
-                  acquired: widget.downloads.isDoneFor(item.id),
+                  mark: DownloadMark.of(widget.downloads, item.id),
                   onOpen: () => widget.onOpen(item),
                 ),
               );

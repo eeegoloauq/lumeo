@@ -41,22 +41,6 @@ class DownloadsStore extends ChangeNotifier {
   List<Download> get running =>
       _downloads.where((d) => d.isActive).toList(growable: false);
 
-  /// The download of a given catalog item, if there is one. This is what puts
-  /// a fill bar under a poster the user already started acquiring.
-  /// How much of a title is on disk, across every download that belongs to
-  /// it. A series is many downloads, and the bar under its poster is about
-  /// the title, not about whichever episode happens to be first in the list.
-  Progress? progressFor(String itemId) {
-    var completed = 0, total = 0, count = 0;
-    for (final d in _downloads) {
-      if (d.itemId != itemId) continue;
-      completed += d.progress.completed;
-      total += d.progress.total;
-      count++;
-    }
-    return count == 0 ? null : Progress(completed: completed, total: total);
-  }
-
   /// The download of a film, or of one episode: the copy on disk when there
   /// is one among several.
   Download? of(String itemId, {int season = 0, int episode = 0}) {
@@ -69,16 +53,6 @@ class DownloadsStore extends ChangeNotifier {
       found ??= d;
     }
     return found;
-  }
-
-  bool isDoneFor(String itemId) {
-    var any = false;
-    for (final d in _downloads) {
-      if (d.itemId != itemId) continue;
-      if (!d.isDone) return false;
-      any = true;
-    }
-    return any;
   }
 
   /// Drop a download from the list now, without waiting to be told.

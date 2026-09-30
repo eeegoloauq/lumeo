@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:lumeo/api/client.dart';
 import 'package:lumeo/api/downloads_store.dart';
 import 'package:lumeo/api/models.dart';
+import 'package:lumeo/ui/widgets/download_mark.dart';
 
 Map<String, Object?> _download(String id) => {
   'id': id,
@@ -146,5 +147,47 @@ void main() {
 
     await store.pause(store.all.single);
     expect(store.all.single.isActive, isTrue);
+  });
+
+  test('a poster marks what is arriving, else what is on disk', () async {
+    // Seen 2026-09-30: a ring nearly full sat on a series whose episode was
+    // on disk, summed with a copy left paused half way.
+    Map<String, Object?> row(String id, String state, int episode, int got) => {
+      'id': id,
+      'itemId': 'tt1',
+      'season': 1,
+      'episode': episode,
+      'name': 'Show',
+      'state': state,
+      'progress': {'completed': got, 'total': 100},
+    };
+    var rows = [row('e1', 'done', 1, 100), row('e2', 'paused', 2, 50)];
+    final api = LumeoApi(
+      baseUrl: 'http://127.0.0.1:7666',
+      client: MockClient(
+        (request) async => http.Response(jsonEncode({'downloads': rows}), 200),
+      ),
+    );
+    final store = DownloadsStore(api);
+    addTearDown(store.dispose);
+    await pumpEventQueue();
+
+    expect(DownloadMark.of(store, 'tt1')?.fraction, isNull);
+    expect(DownloadMark.of(store, 'tt1'), isNotNull, reason: 'on disk');
+    expect(
+      DownloadMark.of(store, 'tt1', episode: (season: 1, episode: 2)),
+      isNull,
+      reason: 'paused half way is not a state of the episode',
+    );
+    expect(DownloadMark.of(store, 'tt2'), isNull);
+
+    rows = [row('e1', 'done', 1, 100), row('e2', 'active', 2, 50)];
+    await store.refresh();
+    expect(DownloadMark.of(store, 'tt1')?.fraction, 0.5);
+    expect(
+      DownloadMark.of(store, 'tt1', episode: (season: 1, episode: 1))?.fraction,
+      isNull,
+      reason: 'the episode a card plays is on disk',
+    );
   });
 }

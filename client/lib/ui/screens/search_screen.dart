@@ -6,6 +6,7 @@ import '../../api/models.dart';
 import '../../l10n/l10n.dart';
 import '../theme.dart';
 import '../widgets/buttons.dart';
+import '../widgets/download_mark.dart';
 import '../widgets/poster_tile.dart';
 import '../widgets/search_box.dart' show rankSearchResults;
 import '../widgets/shelf.dart';
@@ -152,8 +153,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   listenable: widget.downloads,
                   builder: (context, _) => PosterTile(
                     item: items[i],
-                    progress: widget.downloads.progressFor(items[i].id),
-                    acquired: widget.downloads.isDoneFor(items[i].id),
+                    mark: DownloadMark.of(widget.downloads, items[i].id),
                     captioned: true,
                     onOpen: () => widget.onOpen(items[i]),
                   ),
