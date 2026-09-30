@@ -220,6 +220,52 @@ void main() {
     await tester.pump(const Duration(minutes: 1));
   });
 
+  uiTest('a copy picked after the one on disk is not passed over for it', (
+    tester,
+  ) async {
+    // Seen 2026-09-30: Play started the finished copy while the one the
+    // viewer had picked since was still arriving.
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          sourcesUnanswered: true,
+          downloads: [
+            fakeDownload(
+              id: 'bb-s1e1',
+              itemId: 'tt0903747',
+              season: 1,
+              episode: 1,
+              state: 'done',
+            ),
+            fakeDownload(
+              id: 'bb-s1e1-picked',
+              itemId: 'tt0903747',
+              season: 1,
+              episode: 1,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await pressCtrlF(tester);
+    await tester.enterText(find.byType(TextField), 'breaking bad');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (w) => w is PosterTile && w.item.id == 'tt0903747',
+      ),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(find.text('Play S1 E1'));
+    await tester.pump();
+    expect(playing(tester), isNull);
+    await tester.pump(const Duration(minutes: 1));
+  });
+
   uiTest('a film downloads without opening the player', (tester) async {
     final started = <String>[];
     await tester.pumpWidget(testApp(api: fakeCore(started: started)));

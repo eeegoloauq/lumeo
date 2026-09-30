@@ -168,7 +168,18 @@ class SourceChoice extends ChangeNotifier {
 
   Download? get _onDisk {
     final d = downloads.of(itemId, season: season, episode: episode);
-    return d != null && d.isDone ? d : null;
+    if (d == null || !d.isDone) return null;
+    // A copy of the episode still arriving was picked after this one: the
+    // core pauses the copy a pick replaces. Play waits for the list, which
+    // puts the pick first.
+    final arriving = downloads.all.any(
+      (o) =>
+          o.itemId == itemId &&
+          o.season == season &&
+          o.episode == episode &&
+          o.isActive,
+    );
+    return arriving ? null : d;
   }
 
   String label(AppLocalizations l10n) =>

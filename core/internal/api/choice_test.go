@@ -112,7 +112,7 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 		torrentSource("best", "best", 900, "other"),
 		torrentSource("failed", "failed", 800, ""),
 		torrentSource("pack", "pack", 10, "group|1080p"),
-		torrentSource("half", "half", 20, ""),
+		torrentSource("half", "half", 20, "half|720p"),
 		torrentSource("disk", "disk", 5, ""),
 	})
 
@@ -128,6 +128,14 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("order = %v, want %v", got, want)
 		}
+	}
+	// Seen 2026-09-30: another copy picked after the one on disk went back
+	// behind it on the next visit, although it was what the viewer chose last.
+	if err := watch.RememberSource(context.Background(), "abc123", "half|720p"); err != nil {
+		t.Fatalf("remember: %v", err)
+	}
+	if got := sourceNames(t, h); got[0] != "half partial true" || got[1] != "disk done false" {
+		t.Fatalf("after picking the half copy: %v", got)
 	}
 }
 

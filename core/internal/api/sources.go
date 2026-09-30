@@ -212,10 +212,12 @@ type listedSource struct {
 }
 
 // preferKnown moves ahead of the ranking what this library already chose: a
-// copy already on disk first — finished before one still arriving — then a
-// copy from the pack started last time for this title. The ranking only
-// decides among strangers; a finished download passed over for a fresh one
-// was the ranking deciding for a viewer who had already decided.
+// copy of the pack started last time that is already on disk or on its way,
+// then any copy on disk — finished before one still arriving — then a copy
+// from that pack. The ranking only decides among strangers; a finished
+// download passed over for a fresh one was the ranking deciding for a viewer
+// who had already decided, and so was a finished copy put back ahead of the
+// one picked after it.
 func (s *Server) preferKnown(ctx context.Context, itemID string, all []sources.MediaSource) []listedSource {
 	var binge string
 	if s.progress != nil && itemID != "" {
@@ -242,15 +244,22 @@ func (s *Server) preferKnown(ctx context.Context, itemID string, all []sources.M
 }
 
 func (l listedSource) known() int {
-	switch {
-	case l.Local == "done":
-		return 0
-	case l.Local == "partial":
-		return 1
-	case l.LastUsed:
-		return 2
+	local := 2
+	switch l.Local {
+	case "done":
+		local = 0
+	case "partial":
+		local = 1
 	}
-	return 3
+	switch {
+	case l.LastUsed && local < 2:
+		return local
+	case local < 2:
+		return 2 + local
+	case l.LastUsed:
+		return 4
+	}
+	return 5
 }
 
 func resolutionRank(res string) int {

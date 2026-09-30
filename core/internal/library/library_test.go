@@ -327,6 +327,33 @@ func TestPlayingAnotherCopyPausesTheUnfinishedOneAtOnce(t *testing.T) {
 	}
 }
 
+// Play pressed on another copy chooses it before it has peers: the copy played
+// before is the one paused, and it keeps its bytes until the new one opens.
+func TestPickedCopyIsNotPausedWhileItWaits(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever"})
+	for _, id := range []string{"e5-old", "e5-new"} {
+		downloads.rows = append(downloads.rows, acquire.Download{ID: id, ItemID: "show", Season: 1, Episode: 5, Locator: sources.Locator{Scheme: "torrent"}, State: acquire.StateActive})
+	}
+	start := now
+	defer func() { now = start }()
+	s.Opened("e5-old")
+	now = now.Add(settle)
+	s.Picked("e5-new")
+	if removed := clean(t, s, downloads); len(removed) != 0 {
+		t.Fatalf("freed %v before the picked copy opened", removed)
+	}
+	if got := downloads.state("e5-new"); got != acquire.StateActive {
+		t.Fatalf("picked copy is %q, want active", got)
+	}
+	if got := downloads.state("e5-old"); got != acquire.StatePaused {
+		t.Fatalf("replaced copy is %q, want paused", got)
+	}
+	s.Opened("e5-new")
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e5-old"}) {
+		t.Fatalf("freed %v, want e5-old", removed)
+	}
+}
+
 // Play on a watched episode starts its download again before the player opens
 // the stream, which waits for the file to be ready.
 func TestStartedIsNotFreedBeforeItPlays(t *testing.T) {

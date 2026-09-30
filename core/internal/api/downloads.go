@@ -73,6 +73,9 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if s.library != nil && !req.Prefetch {
+		s.library.Picked(d.ID)
+	}
 	// A copy listed from disk carries no pack name; replaying it is not a new pick.
 	if s.progress != nil && req.Source.ProviderID != "local" {
 		if err := s.progress.RememberSource(r.Context(), req.ItemID, req.Source.BingeGroup); err != nil {

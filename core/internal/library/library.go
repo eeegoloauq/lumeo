@@ -57,9 +57,11 @@ type Service struct {
 	mu      sync.Mutex
 	streams map[string]int
 	stopped map[string]time.Time
-	// played is when each download last opened a stream, which tells the
-	// copy of an episode the viewer chose last.
+	// played is when each download last opened a stream, picked when Play
+	// was last pressed on it; the later of the two is the copy of an
+	// episode the viewer chose last.
 	played map[string]time.Time
+	picked map[string]time.Time
 }
 
 type episode struct {
@@ -82,6 +84,7 @@ func New(downloads Downloads, progress Progress, prefs Preferences, log *slog.Lo
 		streams:   make(map[string]int),
 		stopped:   make(map[string]time.Time),
 		played:    make(map[string]time.Time),
+		picked:    make(map[string]time.Time),
 	}
 }
 
@@ -133,8 +136,9 @@ func (s *Service) Play(id string) (done func()) {
 }
 
 // Opened records that a stream of a download has opened, which makes it the
-// copy of its episode the viewer chose. Play is earlier than that: it holds
-// the file before the lookup that may still fail.
+// copy of its episode the viewer chose and lets the copies it replaced go.
+// Play is earlier than that: it holds the file before the lookup that may
+// still fail.
 func (s *Service) Opened(id string) {
 	s.mu.Lock()
 	_, known := s.played[id]
@@ -144,6 +148,15 @@ func (s *Service) Opened(id string) {
 	if !known {
 		s.Kick()
 	}
+}
+
+// Picked records Play pressed on a download. It chooses the copy at once, so
+// the copy played before does not pause it while it waits for peers; the one
+// it replaces is freed only once it opens (see dropReplaced).
+func (s *Service) Picked(id string) {
+	s.mu.Lock()
+	s.picked[id] = s.now()
+	s.mu.Unlock()
 }
 
 // Start runs start with passes held off and counts what it started as just
@@ -222,31 +235,42 @@ func (s *Service) Clean(ctx context.Context) error {
 	return nil
 }
 
-// dropReplaced frees the unfinished copies of an episode once another copy of
-// it has played since: picking another copy is leaving this one, and half a
-// download nobody plays again only takes disk. A finished copy stays, as does
-// the user's own file. free leaves a copy until it has not played for a while,
-// so switching back soon after finds it where it was; it is paused meanwhile,
-// so it takes no bandwidth from the copy playing, and playing it resumes it.
+// dropReplaced pauses the unfinished copies of an episode once another copy
+// of it is picked, and frees them once that copy has opened since: half a
+// download nobody plays again only takes disk, but a pick whose swarm turns
+// out dead leaves the viewer going back to the old copy, which still has its
+// bytes. A finished copy stays, as does the user's own file. free leaves a
+// copy until it has not played for a while, so switching back soon after
+// finds it where it was; paused meanwhile, it takes no bandwidth from the
+// copy playing, and playing it resumes it.
 func (s *Service) dropReplaced(ctx context.Context) {
 	rows := s.downloads.List(ctx)
 	chosen := make(map[episode]string)
+	opened := make(map[episode]bool)
 	s.mu.Lock()
 	known := make(map[string]bool, len(rows))
 	for _, row := range rows {
 		known[row.ID] = true
 	}
-	for id := range s.played {
-		if !known[id] {
-			delete(s.played, id)
+	for _, seen := range []map[string]time.Time{s.played, s.picked} {
+		for id := range seen {
+			if !known[id] {
+				delete(seen, id)
+			}
 		}
 	}
 	latest := make(map[episode]time.Time)
 	for _, row := range rows {
-		at, ok := s.played[row.ID]
-		if ok && row.ItemID != "" && at.After(latest[episodeOf(row)]) {
+		played, wasPlayed := s.played[row.ID]
+		picked, wasPicked := s.picked[row.ID]
+		at := played
+		if picked.After(at) {
+			at = picked
+		}
+		if (wasPlayed || wasPicked) && row.ItemID != "" && at.After(latest[episodeOf(row)]) {
 			latest[episodeOf(row)] = at
 			chosen[episodeOf(row)] = row.ID
+			opened[episodeOf(row)] = wasPlayed && !played.Before(picked)
 		}
 	}
 	s.mu.Unlock()
@@ -261,6 +285,9 @@ func (s *Service) dropReplaced(ctx context.Context) {
 			if _, err := s.downloads.SetPaused(ctx, row.ID, true); err != nil && !errors.Is(err, acquire.ErrNotFound) && !errors.Is(err, acquire.ErrNothingToFetch) {
 				s.log.Warn("pausing a replaced copy failed", "download", row.ID, "err", err)
 			}
+		}
+		if !opened[episodeOf(row)] {
+			continue
 		}
 		freed, err := s.free(ctx, row, now)
 		if err != nil {
