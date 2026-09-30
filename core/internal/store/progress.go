@@ -14,26 +14,27 @@ var _ progress.Store = (*DB)(nil)
 func (d *DB) UpsertProgress(ctx context.Context, itemID string, entry progress.Entry, watchedOverride *bool) (progress.Entry, error) {
 	override := watchedOverride != nil
 	_, err := d.db.ExecContext(ctx, `
-		INSERT INTO progress(item_id, season, episode, position, duration, watched, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO progress(item_id, season, episode, position, duration, watched, updated_at, subtitle_delay)
+		VALUES (?, ?, ?, ?, ?, ?, ?, coalesce(?, 0))
 		ON CONFLICT(item_id, season, episode) DO UPDATE SET
 			position = excluded.position,
 			duration = excluded.duration,
 			watched = CASE WHEN ? THEN excluded.watched ELSE max(progress.watched, excluded.watched) END,
-			updated_at = excluded.updated_at`,
-		itemID, entry.Season, entry.Episode, entry.Position, entry.Duration, entry.Watched, entry.UpdatedAt.Unix(), override)
+			updated_at = excluded.updated_at,
+			subtitle_delay = CASE WHEN ? IS NULL THEN progress.subtitle_delay ELSE excluded.subtitle_delay END`,
+		itemID, entry.Season, entry.Episode, entry.Position, entry.Duration, entry.Watched, entry.UpdatedAt.Unix(), entry.SubtitleDelay, override, entry.SubtitleDelay)
 	if err != nil {
 		return progress.Entry{}, fmt.Errorf("save progress for %q: %w", itemID, err)
 	}
 	row := d.db.QueryRowContext(ctx, `
-		SELECT item_id, season, episode, position, duration, watched, updated_at
+		SELECT item_id, season, episode, position, duration, watched, updated_at, subtitle_delay
 		FROM progress WHERE item_id = ? AND season = ? AND episode = ?`, itemID, entry.Season, entry.Episode)
 	return scanProgress(row.Scan)
 }
 
 func (d *DB) Progress(ctx context.Context, itemID string) ([]progress.Entry, error) {
 	rows, err := d.db.QueryContext(ctx, `
-		SELECT item_id, season, episode, position, duration, watched, updated_at
+		SELECT item_id, season, episode, position, duration, watched, updated_at, subtitle_delay
 		FROM progress WHERE item_id = ? ORDER BY season, episode`, itemID)
 	if err != nil {
 		return nil, fmt.Errorf("read progress for %q: %w", itemID, err)
@@ -44,7 +45,7 @@ func (d *DB) Progress(ctx context.Context, itemID string) ([]progress.Entry, err
 
 func (d *DB) AllProgress(ctx context.Context) ([]progress.Entry, error) {
 	rows, err := d.db.QueryContext(ctx, `
-		SELECT item_id, season, episode, position, duration, watched, updated_at
+		SELECT item_id, season, episode, position, duration, watched, updated_at, subtitle_delay
 		FROM progress ORDER BY updated_at DESC, item_id, season, episode`)
 	if err != nil {
 		return nil, fmt.Errorf("read progress: %w", err)
@@ -61,7 +62,7 @@ func (d *DB) AllProgress(ctx context.Context) ([]progress.Entry, error) {
 // after the page is cut, or a page would come back short of its limit.
 func (d *DB) History(ctx context.Context, limit, offset int) ([]progress.Entry, error) {
 	rows, err := d.db.QueryContext(ctx, `
-		SELECT item_id, season, episode, position, duration, watched, updated_at
+		SELECT item_id, season, episode, position, duration, watched, updated_at, subtitle_delay
 		FROM progress
 		WHERE (watched = 1 OR position > 0)
 			AND EXISTS (SELECT 1 FROM items WHERE items.id = progress.item_id)
@@ -105,9 +106,11 @@ func scanProgressRows(rows *sql.Rows) ([]progress.Entry, error) {
 func scanProgress(scan func(...any) error) (progress.Entry, error) {
 	var entry progress.Entry
 	var updatedAt int64
-	if err := scan(&entry.ItemID, &entry.Season, &entry.Episode, &entry.Position, &entry.Duration, &entry.Watched, &updatedAt); err != nil {
+	var delay float64
+	if err := scan(&entry.ItemID, &entry.Season, &entry.Episode, &entry.Position, &entry.Duration, &entry.Watched, &updatedAt, &delay); err != nil {
 		return progress.Entry{}, err
 	}
 	entry.UpdatedAt = time.Unix(updatedAt, 0).UTC()
+	entry.SubtitleDelay = &delay
 	return entry, nil
 }

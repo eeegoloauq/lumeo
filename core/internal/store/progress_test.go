@@ -58,6 +58,36 @@ func TestProgressUpsertLatchesWatchedAndDeletes(t *testing.T) {
 	}
 }
 
+// The delay a viewer set stays with the episode until they set another: the
+// reports that do not carry one leave it.
+func TestProgressKeepsTheSubtitleDelay(t *testing.T) {
+	db := openTestDB(t, filepath.Join(t.TempDir(), "lumeo.db"))
+	defer db.Close()
+	ctx := context.Background()
+	at := time.Unix(1_700_000_000, 0).UTC()
+	put := func(delay *float64) progress.Entry {
+		t.Helper()
+		at = at.Add(time.Second)
+		entry, err := db.UpsertProgress(ctx, "series", progress.Entry{
+			Season: 1, Episode: 2, Position: 30, Duration: 100, UpdatedAt: at, SubtitleDelay: delay,
+		}, nil)
+		if err != nil {
+			t.Fatalf("upsert: %v", err)
+		}
+		return entry
+	}
+	if e := put(nil); e.SubtitleDelay == nil || *e.SubtitleDelay != 0 {
+		t.Fatalf("first = %+v", e.SubtitleDelay)
+	}
+	late := 1.5
+	if e := put(&late); *e.SubtitleDelay != 1.5 {
+		t.Fatalf("set = %v", *e.SubtitleDelay)
+	}
+	if e := put(nil); *e.SubtitleDelay != 1.5 {
+		t.Fatalf("after a report without one = %v", *e.SubtitleDelay)
+	}
+}
+
 func TestProgressDeleteWholeItem(t *testing.T) {
 	db := openTestDB(t, filepath.Join(t.TempDir(), "lumeo.db"))
 	defer db.Close()

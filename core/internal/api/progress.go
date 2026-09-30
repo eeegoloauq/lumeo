@@ -19,6 +19,8 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 		Position float64 `json:"position"`
 		Duration float64 `json:"duration"`
 		Watched  *bool   `json:"watched"`
+
+		SubtitleDelay *float64 `json:"subtitleDelay"`
 	}
 	if !readJSON(w, r, &body) {
 		return
@@ -31,6 +33,7 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	entry, err := s.progress.Put(r.Context(), id, progress.Update{
 		Season: body.Season, Episode: body.Episode, Position: body.Position, Duration: body.Duration, Watched: body.Watched,
+		SubtitleDelay: body.SubtitleDelay,
 	})
 	if errors.Is(err, progress.ErrInvalid) {
 		writeError(w, http.StatusBadRequest, err.Error())

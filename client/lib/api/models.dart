@@ -944,12 +944,16 @@ class WatchEntry {
     required this.duration,
     required this.watched,
     required this.updatedAt,
+    this.subtitleDelay = 0,
   });
 
   final int season;
   final int episode;
   final Duration position;
   final Duration duration;
+
+  /// Seconds the viewer moved this episode's subtitles by.
+  final double subtitleDelay;
 
   /// Latched by the core once ~90% has been seen. Finishing leaves no
   /// position, so a position on a watched entry is a rewatch under way.
@@ -973,6 +977,7 @@ class WatchEntry {
     updatedAt:
         DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0),
+    subtitleDelay: (json['subtitleDelay'] as num?)?.toDouble() ?? 0,
   );
 
   static Duration _seconds(Object? value) =>

@@ -190,6 +190,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _progressPending = false;
   bool _resumeAsked = false;
   Duration _lastReported = Duration.zero;
+  double? _lastReportedDelay;
 
   bool _buffering = false;
   bool _opened = false;
@@ -969,10 +970,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
           entry.position < _duration * 0.95) {
         _seekTo(entry.position);
       }
+      if (entry != null && entry.subtitleDelay != 0) {
+        unawaited(_setSubtitleDelay(entry.subtitleDelay));
+      }
+      _delayKnown = true;
     } on Object catch (error) {
       debugPrint('progress lookup failed: $error');
     }
   }
+
+  /// The stored subtitle delay has been read: until then a report carries
+  /// none, or the first would wipe it.
+  bool _delayKnown = false;
 
   /// Keep the active report future: replacing it with a completed future
   /// makes flush spin microtasks and starves its HTTP response.
@@ -994,9 +1003,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
         download.itemId.isEmpty) {
       return;
     }
-    if (watched == null && position == _lastReported) return;
+    final delay = _delayKnown ? _subtitleDelay : null;
+    if (watched == null &&
+        position == _lastReported &&
+        delay == _lastReportedDelay) {
+      return;
+    }
     _progressInFlight = true;
     _lastReported = position;
+    _lastReportedDelay = delay;
     try {
       await widget.api.putProgress(
         download.itemId,
@@ -1005,6 +1020,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         position: position,
         duration: _duration,
         watched: watched ?? (inCredits(_chapters, position) ? true : null),
+        subtitleDelay: delay,
       );
     } on Object catch (error) {
       debugPrint('progress report failed: $error');

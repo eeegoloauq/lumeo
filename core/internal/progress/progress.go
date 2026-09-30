@@ -20,6 +20,9 @@ type Entry struct {
 	Duration  float64   `json:"duration"`
 	Watched   bool      `json:"watched"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	// SubtitleDelay is the retiming the viewer gave this episode's
+	// subtitles, in seconds. Nil in a write leaves it as it was.
+	SubtitleDelay *float64 `json:"subtitleDelay,omitempty"`
 }
 
 type Update struct {
@@ -28,6 +31,8 @@ type Update struct {
 	Position float64
 	Duration float64
 	Watched  *bool
+	// SubtitleDelay nil leaves the stored one.
+	SubtitleDelay *float64
 }
 
 type Store interface {
@@ -133,6 +138,8 @@ func (s *Service) Put(ctx context.Context, itemID string, update Update) (Entry,
 		Duration:  update.Duration,
 		Watched:   finished,
 		UpdatedAt: s.now().UTC(),
+
+		SubtitleDelay: update.SubtitleDelay,
 	}
 	return s.store.UpsertProgress(ctx, itemID, entry, update.Watched)
 }

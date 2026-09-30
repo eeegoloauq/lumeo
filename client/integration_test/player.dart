@@ -492,6 +492,55 @@ void playerTests() {
     );
   }
 
+  testWidgets('a subtitle delay comes back with the episode it was set for', (
+    tester,
+  ) async {
+    final server = await serveFilm();
+    final progressCalls = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          progressCalls: progressCalls,
+          progress: {
+            'tt0063350': {
+              'entries': [
+                {
+                  'season': 0,
+                  'episode': 0,
+                  'position': 0,
+                  'duration': 30,
+                  'watched': false,
+                  'updatedAt': '2026-09-29T20:00:00Z',
+                  'subtitleDelay': 1.5,
+                },
+              ],
+            },
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => double.tryParse(await mpv.getProperty('sub-delay')) == 1.5,
+      what: 'the stored delay reached mpv',
+    );
+    await mpv.command(['set', 'sub-delay', '-0.5']);
+    await mpv.command(['set', 'pause', 'yes']);
+    await waitFor(
+      tester,
+      () async => progressCalls.any(
+        (body) => (jsonDecode(body) as Map)['subtitleDelay'] == -0.5,
+      ),
+      what: 'the new delay was stored',
+    );
+  });
+
   for (final languages in [
     ['ru', 'en'],
     ['en', 'ru'],

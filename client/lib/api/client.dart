@@ -357,6 +357,7 @@ class LumeoApi {
     required Duration position,
     required Duration duration,
     bool? watched,
+    double? subtitleDelay,
   }) async => WatchEntry.fromJson(
     await _send('PUT', '/api/v1/progress/${_seg(itemId)}', {
       'season': season,
@@ -364,6 +365,7 @@ class LumeoApi {
       'position': position.inMilliseconds / 1000,
       'duration': duration.inMilliseconds / 1000,
       'watched': ?watched,
+      'subtitleDelay': ?subtitleDelay,
     }),
   );
 

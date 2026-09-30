@@ -103,7 +103,9 @@ while a subtitle was on screen; and its track model drops `external`,
 
 Size and height are preferences the core keeps, with the languages: a line
 that had to be made bigger for this screen has to be bigger for the next film
-too. Timing stays with the film — a delay is a fact about one copy.
+too. Timing stays with the episode, in its progress: a delay is a fact about
+one copy, so it does not follow to the next episode, and coming back to this
+one finds it in sync again.
 
 ## Subtitles are drawn by mpv, and they move for the bar
 
