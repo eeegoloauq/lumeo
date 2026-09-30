@@ -78,7 +78,10 @@ first) zero-filled everything before it: disk and system stalls on a large
 film. Ours keeps anacrolix's layout on disk (the `.part` name until a file is
 whole, the same completion database), so earlier downloads carry on, makes new
 files sparse on Windows, keeps one handle per file and closes them when the
-torrent goes.
+torrent goes. A file is renamed whole when its count of missing pieces reaches
+zero, and only a piece that flips between complete and not moves that count:
+a piece failing its hash before it was ever recorded once counted as missing
+twice, and a whole season stayed under `.part` until it was opened again.
 
 The reader is not responsive: it hands over a piece only once its hash is
 checked. A responsive reader passes chunks on as

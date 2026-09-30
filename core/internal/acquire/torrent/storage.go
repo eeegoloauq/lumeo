@@ -102,8 +102,11 @@ type torrentStorage struct {
 	index      segments.Index
 	files      []*storedFile
 
-	// markMu makes checking whether a piece is freed and recording it
-	// complete one step, against free doing the opposite.
+	// markMu makes checking whether a piece is freed, recording it and
+	// counting it against its files one step, against free doing the
+	// opposite: hashes finish on several goroutines, and a count first taken
+	// from the record between another piece's record and its count took that
+	// piece off twice.
 	markMu sync.Mutex
 }
 
@@ -279,41 +282,23 @@ func (p *storedPiece) MarkComplete() error {
 			return err
 		}
 	}
-	p.t.markMu.Lock()
-	if p.freed() {
-		p.t.markMu.Unlock()
-		return nil
-	}
-	changed, err := p.set(true)
-	p.t.markMu.Unlock()
-	if err != nil || !changed {
-		return err
-	}
-	for f := range p.files() {
-		whole, err := p.t.count(f, -1)
-		if err != nil {
-			return err
-		}
-		if whole {
-			if err := f.rename(f.partPath(), f.path); err != nil {
-				return fmt.Errorf("torrent: promote %q: %w", f.path, err)
-			}
+	_, whole, err := p.mark(true)
+	for _, f := range whole {
+		if err := f.rename(f.partPath(), f.path); err != nil {
+			return fmt.Errorf("torrent: promote %q: %w", f.path, err)
 		}
 	}
-	return nil
+	return err
 }
 
 // MarkNotComplete takes a file with a piece gone bad back to its .part name:
 // a file under its own name is one the library treats as whole.
 func (p *storedPiece) MarkNotComplete() error {
-	changed, err := p.set(false)
-	if err != nil || !changed {
+	flipped, _, err := p.mark(false)
+	if err != nil || !flipped {
 		return err
 	}
 	for f := range p.files() {
-		if _, err := p.t.count(f, +1); err != nil {
-			return err
-		}
 		if err := f.rename(f.path, f.partPath()); err != nil {
 			return fmt.Errorf("torrent: demote %q: %w", f.path, err)
 		}
@@ -321,7 +306,36 @@ func (p *storedPiece) MarkNotComplete() error {
 	return nil
 }
 
-// set records the piece and says whether that changed the record.
+// mark records the piece and, when that flipped it between complete and
+// not, counts it for each of its files, returning the files it made whole.
+func (p *storedPiece) mark(complete bool) (flipped bool, whole []*storedFile, err error) {
+	p.t.markMu.Lock()
+	defer p.t.markMu.Unlock()
+	if complete && p.freed() {
+		return false, nil, nil
+	}
+	if flipped, err = p.set(complete); err != nil || !flipped {
+		return false, nil, err
+	}
+	delta := +1
+	if complete {
+		delta = -1
+	}
+	for f := range p.files() {
+		done, err := p.t.count(f, delta)
+		if err != nil {
+			return true, whole, err
+		}
+		if done {
+			whole = append(whole, f)
+		}
+	}
+	return true, whole, nil
+}
+
+// set records the piece and says whether that flipped it between complete
+// and not. A piece with no record is not complete: recording it so is no
+// flip, and counting it as newly missing would count it twice.
 func (p *storedPiece) set(complete bool) (bool, error) {
 	c, err := p.t.completion.Get(p.key())
 	if err != nil {
@@ -330,7 +344,7 @@ func (p *storedPiece) set(complete bool) (bool, error) {
 	if c.Ok && c.Complete == complete {
 		return false, nil
 	}
-	return true, p.t.completion.Set(p.key(), complete)
+	return c.Complete != complete, p.t.completion.Set(p.key(), complete)
 }
 
 // Completion is the record, checked against the files: a piece recorded as

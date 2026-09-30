@@ -447,9 +447,13 @@ func (m *Manager) localFile(ctx context.Context, row Download) (File, error) {
 // it says "not yet". What finished is a file, so the file is what answers — and
 // when the file is gone or no longer its full size, deleted or cut short outside
 // the app, the download is not done any more: it goes back to paused, which
-// stops it being offered as on disk and lets the next Play fetch it again.
+// stops it being offered as on disk and lets the next Play fetch it again. The
+// same goes the other way for a row the core paused, not the viewer: whole on
+// disk again, it is done. A torrent storage that named a file late left rows
+// like that.
 func settled(row Download) Download {
-	if row.State != StateDone {
+	// Whole is its known size: a file of no known size proves nothing.
+	if row.State != StateDone && (row.State != StatePaused || row.PausedByUser || row.Size <= 0) {
 		return row
 	}
 	info, err := os.Stat(row.FilePath)
@@ -458,6 +462,7 @@ func settled(row Download) Download {
 		row.Ready, row.Resolved = false, false
 		return row
 	}
+	row.State = StateDone
 	row.Ready, row.Resolved = true, true
 	row.Size = info.Size()
 	row.Progress = Progress{Completed: info.Size(), Total: info.Size()}

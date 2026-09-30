@@ -778,6 +778,43 @@ func TestFinishedDownloadWithoutItsWholeFileIsPaused(t *testing.T) {
 	}
 }
 
+// A download the core paused for a file it could not find is done once the
+// file is there whole; one the viewer paused stays paused.
+func TestPausedDownloadWithItsWholeFileIsDone(t *testing.T) {
+	for name, byUser := range map[string]bool{"by the core": false, "by the viewer": true} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "episode.mkv")
+			if err := os.WriteFile(path, []byte("finished"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			st := newMemStore()
+			row := Download{
+				ID: "a", Locator: sources.Locator{Scheme: "torrent", InfoHash: "aa"},
+				State: StatePaused, PausedByUser: byUser, Dir: dir, FilePath: path, Size: 8,
+			}
+			if err := st.SaveDownload(context.Background(), row); err != nil {
+				t.Fatal(err)
+			}
+			m := NewManager(t.TempDir(), []Backend{&fakeBackend{scheme: "torrent"}}, st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			if err := m.Resume(context.Background()); err != nil {
+				t.Fatalf("resume: %v", err)
+			}
+			got, err := m.Get(context.Background(), "a")
+			if err != nil {
+				t.Fatalf("get: %v", err)
+			}
+			want := StateDone
+			if byUser {
+				want = StatePaused
+			}
+			if got.State != want {
+				t.Errorf("state %q, want %q", got.State, want)
+			}
+		})
+	}
+}
+
 // Play on a copy that is known but not running starts it again, in the same
 // directory, so what is still on disk is kept.
 func TestStartRestartsAStoppedDownload(t *testing.T) {

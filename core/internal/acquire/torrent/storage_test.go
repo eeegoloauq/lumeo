@@ -95,6 +95,28 @@ func TestStorageKeepsAFileUnderPartUntilEveryPieceIsIn(t *testing.T) {
 	}
 }
 
+// A piece that failed its hash before it was ever recorded was counted as
+// missing a second time: the file stayed under .part with every piece in, the
+// download said done, and the library took it for gone (seen 2026-09-30, a
+// season pack with eleven such episodes).
+func TestStorageNamesAFileWholeAfterAPieceFailedItsHash(t *testing.T) {
+	dir := t.TempDir()
+	tor, info, fs := openTestTorrent(t, dir)
+	defer fs.Close()
+	defer tor.Close()
+	first := filepath.Join(dir, "Show", "e01.mkv")
+
+	writePiece(t, tor, info, 0)
+	if err := tor.Piece(info.Piece(1)).MarkNotComplete(); err != nil {
+		t.Fatalf("a failed hash: %v", err)
+	}
+	writePiece(t, tor, info, 1)
+	writePiece(t, tor, info, 2)
+	if _, err := os.Stat(first); err != nil {
+		t.Fatalf("a complete file is not under its own name: %v", err)
+	}
+}
+
 func TestStorageLetsGoOfItsFilesWhenTheTorrentCloses(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("reads the open files from /proc")
