@@ -305,8 +305,9 @@ the address a provider names is fetched only if it is public (see Egress).
 
 Each download keeps the best match for each wanted language beside its bytes
 (`subtitles.Keeper`, a pass a minute): `/api/v1/subtitles` lists those first
-with `kept: true` and serves them at `/api/v1/downloads/{id}/subtitles/{file}`,
-so they play offline. Removing the download removes them.
+with `kept: true`, `/api/v1/downloads/{id}/subtitles` lists them alone, and
+`/api/v1/downloads/{id}/subtitles/{file}` serves them, so they play offline.
+Removing the download removes them.
 
 Preferences live in the core because the desktop client is only one of several
 clients that can use it. Environment values supply defaults, stored values win,

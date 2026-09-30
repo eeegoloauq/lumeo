@@ -57,6 +57,9 @@ LumeoApi fakeCore({
   /// What /api/v1/subtitles lists.
   List<Map<String, dynamic>> subtitles = const [],
 
+  /// What every download keeps beside it, each file saying its own name.
+  List<Map<String, dynamic>> keptSubtitles = const [],
+
   /// Every subtitle file asked for; with [subtitlesSilent] none is answered,
   /// as a provider that keeps silent, and with [subtitlesFail] each is a 502,
   /// as the core answers when the provider stopped sending.
@@ -590,6 +593,15 @@ LumeoApi fakeCore({
             searches.removeWhere((q) => one == null || q.toLowerCase() == one);
             return http.Response('', 204);
         }
+      }
+      if (RegExp(r'^/api/v1/downloads/[^/]+/subtitles$').hasMatch(path)) {
+        return _json({'subtitles': keptSubtitles});
+      }
+      if (RegExp(r'^/api/v1/downloads/[^/]+/subtitles/').hasMatch(path)) {
+        return http.Response(
+          '1\n00:00:00,000 --> 00:00:30,000\n${path.split('/').last}\n',
+          200,
+        );
       }
       if (path.startsWith('/api/v1/downloads/')) {
         // Separate ids must yield separate files; an unknown id falls back for

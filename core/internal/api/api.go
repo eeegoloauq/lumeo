@@ -161,6 +161,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/sources", s.handleSources)
 	mux.HandleFunc("GET /api/v1/subtitles", s.handleSubtitles)
 	mux.HandleFunc("GET /api/v1/subtitles/{token}", s.handleSubtitleFile)
+	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles", s.handleKeptSubtitles)
 	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles/{file}", s.handleKeptSubtitle)
 	mux.HandleFunc("GET /api/v1/preferences", s.handlePreferences)
 	mux.HandleFunc("PATCH /api/v1/preferences", s.handlePatchPreferences)

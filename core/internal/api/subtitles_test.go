@@ -257,7 +257,15 @@ func TestSubtitlesKeptWithTheDownloadAnswerOffline(t *testing.T) {
 		}
 	}
 
+	// The list the player opens a file with names the same file and nobody
+	// is asked: the provider is still failing.
 	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/downloads/"+d.ID+"/subtitles", nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"url":"/api/v1/downloads/`+d.ID+`/subtitles/1.srt"`) {
+		t.Fatalf("kept list: %d %s", rec.Code, rec.Body)
+	}
+
+	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/downloads/"+d.ID+"/subtitles/1.srt", nil))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Play it, Sam.") ||
 		!strings.HasPrefix(rec.Header().Get("Content-Type"), "application/x-subrip") {

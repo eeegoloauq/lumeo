@@ -58,8 +58,13 @@ The files are the same UTF-8 text as a fetched one, under names the core makes
 up and an extension from a fixed list, never executable, and served only by
 the names their index lists. `/api/v1/subtitles` lists them first, marked as
 kept, and they are the whole answer when the catalog or every provider fails;
-the picker says "on disk" beside them. The player's rule does not change: a
-kept track is added only when mpv chose no embedded one in a wanted language.
+the picker says "on disk" beside them. The player lists them from disk
+(`/api/v1/downloads/{id}/subtitles`, no provider asked) when it opens the file,
+and once mpv has chosen, adds the kept track whose language the viewer ranks
+above mpv's choice, if one is. They are not handed to mpv with the file for it
+to choose: mpv ranks any external track above the file's own whatever its
+language, so a kept Russian would beat the file's English for a viewer who
+put English first.
 
 ## Audio and subtitles are one panel, and mpv does the choosing
 

@@ -358,7 +358,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           // Start the hide timer after the first picture appears.
           if (!had) {
             _restartIdle();
-            unawaited(_subtitleFromDatabase());
+            _subtitleOnceChosen();
           }
           // A later failure needs a fresh retry budget.
           _attempts = 0;
@@ -497,6 +497,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
     });
     _matchTitles();
+    _subtitleOnceChosen();
     final loaded = _subtitleTracks
         .where((t) => t.external && t.externalFilename == _ownFound)
         .firstOrNull;
@@ -739,6 +740,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _subtitleScale = prefs.subtitleScale;
         _subtitlePosition = prefs.subtitlePosition.toDouble();
         _subtitleBackground = prefs.subtitleBackground;
+        _kept = await _keptSubtitles(fresh);
         await _hostReady;
         for (final property in _trackProperties().entries) {
           if (property.key == 'sid') _trackChanges.own('sid', property.value);
@@ -1509,15 +1511,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  /// Add a database subtitle only when mpv selected none and the mode wants one.
-  /// Run once per film so a manual off choice sticks.
+  /// After mpv's choice: a subtitle kept with the download in a language the
+  /// viewer ranks above the one mpv chose, or, when mpv chose none and the
+  /// mode wants one, the database's best. Kept files are not handed to mpv
+  /// with the file because mpv ranks any external track above the file's own,
+  /// whatever its language. Run once per film so a manual off choice sticks.
   bool _subtitleFromDatabaseAsked = false;
+
+  /// Once the picture is up and mpv has said which tracks the file has, and
+  /// so which subtitle it chose.
+  void _subtitleOnceChosen() {
+    if (_hasPicture && _tracks.any((t) => t.type == 'video')) {
+      unawaited(_subtitleFromDatabase());
+    }
+  }
 
   Future<void> _subtitleFromDatabase() async {
     if (_subtitleFromDatabaseAsked) return;
     _subtitleFromDatabaseAsked = true;
     final prefs = widget.preferences.current;
-    if (prefs == null || _selectedSubtitle != null) return;
+    if (prefs == null) return;
     final languages = widget.preferences.languages;
     // A title-specific subtitle choice overrides the general mode.
     final picked = _choice?.subtitle;
@@ -1534,18 +1547,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
         languages.rank(audio, prefs.subtitleLanguages) >= 0) {
       return;
     }
-    if (!_lookedUp) await _lookUp();
-    if (!mounted || _selectedSubtitle != null) return;
-    final best = _found
-        .where((f) => languages.rank(f.language, wanted) >= 0)
-        .firstOrNull;
-    if (best == null) return;
+    int rank(String language) {
+      final r = languages.rank(language, wanted);
+      return r < 0 ? wanted.length : r;
+    }
+
+    final chosen = _selectedSubtitle;
+    final beats = chosen == null ? wanted.length : rank(chosen.language);
+    Subtitle? best;
+    for (final kept in _kept) {
+      if (rank(kept.language) < (best == null ? beats : rank(best.language))) {
+        best = kept;
+      }
+    }
+    if (best == null) {
+      if (chosen != null) return;
+      if (!_lookedUp) await _lookUp();
+      if (!mounted || _selectedSubtitle != null) return;
+      best = _found.where((f) => rank(f.language) < wanted.length).firstOrNull;
+      if (best == null) return;
+    }
     final download = _download;
     final path = await _subtitleFile(best);
+    final now = _selectedSubtitle;
     if (path == null ||
         !mounted ||
         _download?.id != download?.id ||
-        _selectedSubtitle != null) {
+        now != null && rank(now.language) <= rank(best.language)) {
       return;
     }
     _ownFound = path;
@@ -1558,6 +1586,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
         best.language,
       ]),
     );
+  }
+
+  /// Subtitles kept with the download, listed from disk when it opens.
+  List<Subtitle> _kept = const [];
+
+  Future<List<Subtitle>> _keptSubtitles(Download download) async {
+    try {
+      return await widget.api.keptSubtitles(download.id);
+    } on Object catch (error) {
+      debugPrint('kept subtitles lookup failed: $error');
+      return const [];
+    }
   }
 
   /// Subtitle files this player fetched, by the core's address. mpv is handed

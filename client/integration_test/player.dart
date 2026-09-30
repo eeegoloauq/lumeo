@@ -492,6 +492,65 @@ void playerTests() {
     );
   }
 
+  for (final languages in [
+    ['ru', 'en'],
+    ['en', 'ru'],
+  ]) {
+    testWidgets(
+      'a subtitle kept on disk is chosen against the file\'s by language '
+      'order: $languages',
+      (tester) async {
+        // Seen 2026-09-30: Russian first in the settings and kept with the
+        // download, and the file's English played, because a kept track was
+        // added only when mpv had chosen none.
+        final server = await serveFilm(tracksFilm());
+        await tester.pumpWidget(
+          testApp(
+            api: fakeCore(
+              downloads: [fakeDownload()],
+              baseUrl: 'http://127.0.0.1:${server.port}',
+              preferences: {'subtitleLanguages': languages},
+              keptSubtitles: [
+                {
+                  'id': 'k1',
+                  'language': 'ru',
+                  'url': '/api/v1/downloads/d1/subtitles/1.srt',
+                  'kept': true,
+                },
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Play'));
+        await playerKeysReady(tester);
+        final mpv = mpvOnScreen(tester);
+        Future<Map<String, dynamic>?> selected() async =>
+            (jsonDecode(await mpv.getProperty('track-list')) as List)
+                .cast<Map<String, dynamic>>()
+                .where((t) => t['type'] == 'sub' && t['selected'] == true)
+                .firstOrNull;
+        if (languages.first == 'ru') {
+          await waitFor(
+            tester,
+            () async => (await selected())?['external'] == true,
+            what: 'the kept subtitle took over from the file\'s',
+          );
+          expect((await selected())!['lang'], 'ru');
+          return;
+        }
+        await waitFor(
+          tester,
+          () async =>
+              (double.tryParse(await mpv.getProperty('time-pos')) ?? 0) > 0.5,
+          what: 'the film playing',
+        );
+        await pumpFor(tester, const Duration(milliseconds: 500));
+        expect((await selected())?['lang'], 'eng');
+      },
+    );
+  }
+
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
     // mpv silently ignores unknown option names, so read properties back to
     // catch misspellings.

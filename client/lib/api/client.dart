@@ -235,6 +235,17 @@ class LumeoApi {
   }
 
   /// The file behind a [Subtitle.url], as the core converted it.
+  /// The subtitles kept with a download, from disk: no provider is asked.
+  Future<List<Subtitle>> keptSubtitles(String downloadId) async {
+    final json = await _get(
+      '/api/v1/downloads/${_seg(downloadId)}/subtitles',
+      const {},
+    );
+    return ((json['subtitles'] as List<dynamic>?) ?? [])
+        .map((e) => Subtitle.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<Uint8List> subtitleFile(String path) async =>
       (await _request('GET', baseUri.resolve(path))).bodyBytes;
 

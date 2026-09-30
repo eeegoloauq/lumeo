@@ -93,6 +93,25 @@ func (s *Server) handleSubtitles(w http.ResponseWriter, r *http.Request) {
 
 // handleKeptSubtitle serves a subtitle file kept with a download, by the name
 // the core gave it.
+// handleKeptSubtitles lists the files kept with a download and asks nobody
+// else: the player hands them to mpv before the file opens, so that mpv
+// chooses among them and the file's own tracks by the language order.
+func (s *Server) handleKeptSubtitles(w http.ResponseWriter, r *http.Request) {
+	if !s.haveDownloads(w) {
+		return
+	}
+	d, err := s.downloads.Get(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "unknown download")
+		return
+	}
+	kept := subtitles.Kept(d.ExtrasDir(), "/api/v1/downloads/"+d.ID+"/subtitles/")
+	if kept == nil {
+		kept = []subtitles.Subtitle{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"subtitles": kept})
+}
+
 func (s *Server) handleKeptSubtitle(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
