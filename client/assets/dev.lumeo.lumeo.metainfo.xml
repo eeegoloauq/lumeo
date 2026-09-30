@@ -39,6 +39,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.77" date="2026-09-30">
+      <description>
+        <ul>
+          <li>Episodes of a season downloaded whole show as downloaded as soon as they finish; before, a piece that failed its check left an episode looking missing until it was opened. Episodes caught by it show as downloaded again after the update.</li>
+          <li xml:lang="ru">Серии сезона, скачанного целиком, отмечаются скачанными сразу после загрузки; раньше из-за куска, не прошедшего проверку, серия выглядела недоступной, пока её не откроешь. Затронутые серии снова станут скачанными после обновления.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.76" date="2026-09-30">
       <description>
         <ul>
