@@ -302,7 +302,7 @@ class TracksMenu extends StatefulWidget {
     required this.delay,
     required this.scale,
     required this.position,
-    required this.url,
+    required this.file,
     required this.onAudio,
     required this.onSubtitle,
     required this.onFound,
@@ -331,7 +331,9 @@ class TracksMenu extends StatefulWidget {
   final double delay;
   final double scale;
   final double position;
-  final String Function(String) url;
+
+  /// The file mpv was handed for a subtitle's address, null before it was.
+  final String? Function(String address) file;
   final void Function(MpvTrack) onAudio;
   final void Function(MpvTrack?) onSubtitle;
   final void Function(api.Subtitle) onFound;
@@ -386,7 +388,7 @@ class _TracksMenuState extends State<TracksMenu> {
     return selected != null &&
         selected.external &&
         sub.url.isNotEmpty &&
-        selected.externalFilename == widget.url(sub.url);
+        selected.externalFilename == widget.file(sub.url);
   }
 
   String get _expandedAtStart {

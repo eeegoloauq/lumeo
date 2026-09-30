@@ -1565,6 +1565,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// it waits too, the next episode's loadfile included, and a provider that
   /// keeps silent held the switch for as long as the core waited on it.
   final _subtitleFiles = <String, Future<String?>>{};
+  final _subtitlePaths = <String, String>{};
   Future<Directory>? _subtitleDir;
   int _subtitleCount = 0;
 
@@ -1577,7 +1578,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ));
           final file = File('${dir.path}/${_subtitleCount++}');
           await file.writeAsBytes(bytes);
-          return file.path;
+          return _subtitlePaths[found.url] = file.path;
         } on Object catch (error) {
           debugPrint('subtitle fetch failed: $error');
           // Asked again on the next pick: the provider may answer by then.
@@ -1870,7 +1871,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           delay: _subtitleDelay,
           scale: _subtitleScale,
           position: _subtitlePosition,
-          url: widget.api.url,
+          file: (address) => _subtitlePaths[address],
           onAudio: _pickAudio,
           onSubtitle: _pickSubtitle,
           onFound: _pickFound,

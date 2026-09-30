@@ -477,6 +477,17 @@ void playerTests() {
           isNot(startsWith('http')),
           reason: 'mpv reads a file this client fetched, not the address',
         );
+        // Since mpv got a file, the menu matched it against the address and
+        // marked nothing on.
+        await tester.tap(find.byTooltip('Subtitles (C)'));
+        await pumpFor(tester, const Duration(milliseconds: 500));
+        expect(
+          [
+            for (final row in tester.widgetList<MenuRow>(find.byType(MenuRow)))
+              if (row.current) row.label,
+          ],
+          ['EN'],
+        );
       },
     );
   }
