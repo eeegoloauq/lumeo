@@ -20,8 +20,10 @@ Download _d(
   int peers = 5,
   bool resolved = true,
   String locatorScheme = '',
+  bool offline = false,
 }) => Download(
   id: id,
+  offline: offline,
   itemId: itemId,
   name: id,
   state: state,
@@ -223,6 +225,23 @@ void main() {
 
   group('waitingLine', () {
     DownloadRow one(Download d) => arrangeDownloads([d]).single.rows.single;
+
+    test('with no network at all it says so rather than blame the peers', () {
+      expect(
+        waitingLine(
+          one(
+            _d(
+              'a',
+              offline: true,
+              waitingSince: now.subtract(const Duration(minutes: 2)),
+            ),
+          ),
+          now,
+          l10n,
+        ),
+        'No network · 2 min',
+      );
+    });
 
     test('says what it waits on, and for how long in whole minutes', () {
       expect(

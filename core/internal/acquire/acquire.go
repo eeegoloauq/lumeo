@@ -73,8 +73,11 @@ type Download struct {
 	// that have sent nothing for a while. A client says how long it has been
 	// looking instead of showing a rate of zero.
 	WaitingSince time.Time `json:"waitingSince,omitzero"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	// Offline is a download waiting while the machine has no address beyond
+	// its own: it waits for the network, not for peers.
+	Offline   bool      `json:"offline,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // ExtrasDir is where files that go with the download but are not its bytes,

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/release"
@@ -67,6 +68,9 @@ type Manager struct {
 	rows  map[string]Download
 	tasks map[string]Task
 	flows map[string]*flow
+
+	// offline is kept by WatchNetwork.
+	offline atomic.Bool
 }
 
 func NewManager(dir string, backends []Backend, store Store, log *slog.Logger) *Manager {
@@ -732,6 +736,7 @@ func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 		now := m.now()
 		f.sample(now, updated.Progress.Received)
 		updated.WaitingSince, updated.Progress.ETA = f.report(now, updated)
+		updated.Offline = !updated.WaitingSince.IsZero() && m.offline.Load()
 	}
 	m.mu.Unlock()
 	return updated

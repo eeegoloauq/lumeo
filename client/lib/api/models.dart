@@ -502,6 +502,7 @@ class Download {
     this.resolved = false,
     this.updatedAt,
     this.waitingSince,
+    this.offline = false,
     this.pausedByUser = false,
     this.seeding = false,
     this.error = '',
@@ -535,6 +536,9 @@ class Download {
   /// Since when an active download has been receiving nothing: resolving,
   /// no peers, or peers that send nothing. Null while bytes flow.
   final DateTime? waitingSince;
+
+  /// Waiting because the machine has no network, rather than for peers.
+  final bool offline;
 
   /// Paused because somebody pressed Pause, rather than because the core
   /// stopped. Only this kind is the viewer's to resume.
@@ -570,6 +574,7 @@ class Download {
     resolved: json['resolved'] as bool? ?? false,
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
     waitingSince: DateTime.tryParse(json['waitingSince'] as String? ?? ''),
+    offline: json['offline'] as bool? ?? false,
     pausedByUser: json['pausedByUser'] as bool? ?? false,
     seeding: json['seeding'] as bool? ?? false,
     error: json['error'] as String? ?? '',

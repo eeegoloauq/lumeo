@@ -224,7 +224,9 @@ String waitingLine(DownloadRow row, DateTime now, AppLocalizations l10n) {
       return row.error.isEmpty ? l10n.downloadsFailed : row.error;
     case DownloadKind.stalled:
       final d = row.first;
-      final what = d.progress.peers == 0
+      final what = d.offline
+          ? l10n.downloadsOffline
+          : d.progress.peers == 0
           ? l10n.downloadsFindingPeers
           : !d.resolved
           ? l10n.downloadsFetchingMetadata

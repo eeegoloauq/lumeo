@@ -178,11 +178,12 @@ void main() {
     expect(find.text('S2 E3–E4'), findsOneWidget);
     expect(find.text('E4 next · 4.0 GB'), findsOneWidget);
     expect(find.text('S2 E5–E6'), findsOneWidget);
-    expect(find.text('5.0 MB/s · 12 min left'), findsOneWidget);
+    expect(find.text('50% · 5.0 MB/s · 12 min left'), findsOneWidget);
     expect(find.text('about 12 min'), findsOneWidget);
-    expect(find.text('Finding peers · 4 min'), findsOneWidget);
-    expect(find.text('Paused'), findsOneWidget);
-    expect(find.text('no space left on device'), findsOneWidget);
+    expect(find.text('50% · Finding peers · 4 min'), findsOneWidget);
+    // How much is here stays in sight while it waits.
+    expect(find.text('50% · Paused'), findsOneWidget);
+    expect(find.text('50% · no space left on device'), findsOneWidget);
     expect(find.byKey(const ValueKey('download:quiet')), findsNothing);
     expect(find.text('43.0 GB · 90.0 GB free'), findsOneWidget);
 
@@ -202,7 +203,7 @@ void main() {
     await tester.tap(find.byTooltip('Pause'));
     await tester.pumpAndSettle();
     expect(calls, ['PATCH /api/v1/downloads/a {"paused":true}']);
-    expect(find.text('Paused'), findsOneWidget, reason: 'at once');
+    expect(find.text('50% · Paused'), findsOneWidget, reason: 'at once');
     expect(find.text('ARRIVING'), findsNothing);
 
     await tester.tap(find.byTooltip('Resume'));

@@ -307,6 +307,7 @@
   "downloadsFindingPeers": "Поиск пиров",
   "downloadsFetchingMetadata": "Получение метаданных",
   "downloadsPeersNotSending": "Пиры не отдают",
+  "downloadsOffline": "Нет сети",
   "downloadsSeasonRun": "S{season} {episodes}",
   "downloadsEpisode": "E{episode}",
   "downloadsEpisodeRange": "E{start}–E{end}",

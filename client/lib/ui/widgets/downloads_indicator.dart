@@ -414,10 +414,11 @@ class _PanelState extends State<_Panel> {
         waiting: row.kind.section == DownloadSection.waiting,
         line: switch (row.kind) {
           DownloadKind.ready => formatBytes(e.progress.total, context.l10n),
-          DownloadKind.arriving => context.l10n.downloadsPercent(
-            (e.progress.fraction * 100).round(),
-          ),
-          _ => waitingLine(one, now, context.l10n),
+          DownloadKind.arriving => _percent(one),
+          _ => [
+            if (e.progress.total > 0) _percent(one),
+            waitingLine(one, now, context.l10n),
+          ].join(' · '),
         },
         onTap: () => widget.onPick(e),
         // Play is the row itself here; the rest act on this episode alone.
@@ -434,7 +435,8 @@ class _PanelState extends State<_Panel> {
           formatBytes(row.size, context.l10n),
         ].join(' · ');
       case DownloadKind.arriving:
-        final parts = [
+        return [
+          _percent(row),
           if (row.rate > 0)
             context.l10n.downloadsRate(formatBytes(row.rate, context.l10n)),
           if (row.upload > 0)
@@ -442,14 +444,19 @@ class _PanelState extends State<_Panel> {
               formatBytes(row.upload, context.l10n),
             ),
           if (row.eta case final eta?) formatTimeLeft(eta, context.l10n),
-        ];
-        return parts.isEmpty
-            ? context.l10n.downloadsPercent((row.fraction * 100).round())
-            : parts.join(' · ');
+        ].join(' · ');
       case DownloadKind.stalled || DownloadKind.paused || DownloadKind.failed:
-        return waitingLine(row, now, context.l10n);
+        // How much is here stays in sight while it waits: it is what says
+        // whether waiting is worth it.
+        return [
+          if (row.size > 0) _percent(row),
+          waitingLine(row, now, context.l10n),
+        ].join(' · ');
     }
   }
+
+  String _percent(DownloadRow row) =>
+      context.l10n.downloadsPercent((row.fraction * 100).floor());
 
   /// The one thing a row's state lets you do, and Stop for what is waiting.
   List<Widget> _actions(
@@ -703,13 +710,14 @@ class _Row extends StatelessWidget {
                         ),
                     ],
                   ),
-                  if (row.kind == DownloadKind.arriving) ...[
+                  if (row.kind == DownloadKind.arriving ||
+                      waiting && row.size > 0) ...[
                     const SizedBox(height: 6),
                     LinearProgressIndicator(
                       value: row.fraction,
                       minHeight: 3,
                       borderRadius: BorderRadius.circular(2),
-                      color: Palette.text,
+                      color: waiting ? Palette.dim : Palette.text,
                       backgroundColor: const Color(0x24FFFFFF),
                       semanticsLabel: context.l10n.downloadsDownloaded,
                     ),

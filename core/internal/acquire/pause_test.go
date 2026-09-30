@@ -225,6 +225,19 @@ func TestWaitingSinceAndETA(t *testing.T) {
 		}
 	}
 
+	// With no route off the machine, the wait is for the network; a transfer
+	// that is getting bytes is not said to wait at all.
+	m.offline.Store(true)
+	if got, _ := m.Get(ctx, d.ID); !got.Offline {
+		t.Fatalf("stalled with no network = %+v", got)
+	}
+	clock = clock.Add(time.Second)
+	set(Progress{Peers: 3, Completed: 300, Total: 2000, Received: 400}, true)
+	if got, _ := m.Get(ctx, d.ID); got.Offline {
+		t.Fatalf("arriving = %+v", got)
+	}
+	m.offline.Store(false)
+
 	// Paused, it is neither.
 	paused, err := m.SetPaused(ctx, d.ID, true)
 	if err != nil {

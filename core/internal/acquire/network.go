@@ -37,6 +37,7 @@ type netWatch struct {
 // transfer still getting bytes is left alone.
 func (m *Manager) WatchNetwork(ctx context.Context) {
 	w := netWatch{addrs: localAddrs()}
+	m.offline.Store(!routed())
 	tick := time.NewTicker(networkPoll)
 	defer tick.Stop()
 	// Wall clock: the monotonic one stops while the machine is suspended.
@@ -49,6 +50,7 @@ func (m *Manager) WatchNetwork(ctx context.Context) {
 			now := time.Now().Round(0)
 			woke := now.Sub(last) > asleepAfter
 			last = now
+			m.offline.Store(!routed())
 			if addrs := localAddrs(); addrs != "" {
 				m.checkNetwork(ctx, &w, addrs, woke)
 			}
@@ -122,4 +124,19 @@ func localAddrs() string {
 	}
 	slices.Sort(out)
 	return strings.Join(out, ",")
+}
+
+// routed says whether the machine has a route off it. A UDP dial sends
+// nothing: the kernel only picks the way to the address, and with no route
+// there is none. Addresses alone cannot say it, since a bridge for virtual
+// machines or containers has one with no network behind it. The targets are
+// documentation addresses nobody answers on.
+func routed() bool {
+	for _, to := range []string{"192.0.2.1:9", "[2001:db8::1]:9"} {
+		if c, err := net.Dial("udp", to); err == nil {
+			_ = c.Close()
+			return true
+		}
+	}
+	return false
 }

@@ -1420,6 +1420,10 @@
   "@downloadsPeersNotSending": {
     "description": "Download panel section or row status."
   },
+  "downloadsOffline": "No network",
+  "@downloadsOffline": {
+    "description": "Download row status while the computer has no network connection at all."
+  },
   "downloadsSeasonRun": "S{season} {episodes}",
   "@downloadsSeasonRun": {
     "description": "Downloaded season and episode range.",
