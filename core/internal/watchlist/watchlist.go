@@ -185,6 +185,9 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 		follow(e.ItemID)
 	}
 	watched := make(map[string]map[[2]int]bool)
+	// furthest is the last episode of the story watched: one before it that
+	// is not watched was skipped or seen elsewhere, not something to wait for.
+	furthest := make(map[string][2]int)
 	for _, p := range all {
 		follow(p.ItemID)
 		if p.Watched {
@@ -192,6 +195,9 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 				watched[p.ItemID] = make(map[[2]int]bool)
 			}
 			watched[p.ItemID][[2]int{p.Season, p.Episode}] = true
+			if at := [2]int{p.Season, p.Episode}; p.Season > 0 && after(at, furthest[p.ItemID]) {
+				furthest[p.ItemID] = at
+			}
 		}
 	}
 	items, err := s.catalog.Cached(ctx, ids)
@@ -213,7 +219,8 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 			if e.Season == 0 || e.Released.IsZero() || e.Released.After(now) || now.Sub(e.Released) > recent {
 				continue
 			}
-			if watched[item.ID][[2]int{e.Season, e.Number}] {
+			at := [2]int{e.Season, e.Number}
+			if watched[item.ID][at] || !after(at, furthest[item.ID]) {
 				continue
 			}
 			count++
@@ -230,6 +237,14 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 	}
 	sort.SliceStable(out, func(i, j int) bool { return later(out[i].Episode, out[j].Episode) })
 	return out, nil
+}
+
+// after says whether episode a comes after b in the story.
+func after(a, b [2]int) bool {
+	if a[0] != b[0] {
+		return a[0] > b[0]
+	}
+	return a[1] > b[1]
 }
 
 // later orders episodes by release, then by place in the series: two

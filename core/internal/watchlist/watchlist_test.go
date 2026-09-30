@@ -136,6 +136,12 @@ func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 				{Season: 1, Number: 9, Released: day(-1)},
 				{Season: 0, Number: 1, Released: day(-1)}, // a special
 			}},
+			// E13 unwatched behind the watched E14: skipped or seen
+			// elsewhere, not new (seen 2026-09-30).
+			"skipped": {ID: "skipped", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 13, Released: day(-10)},
+				{Season: 1, Number: 14, Released: day(-3)},
+			}},
 			// Caught up: nothing new.
 			"caught": {ID: "caught", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
 				{Season: 1, Number: 1, Released: day(-2)},
@@ -150,6 +156,7 @@ func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 		progress: []progress.Entry{
 			{ItemID: "watching", Season: 1, Episode: 8, Watched: true},
 			{ItemID: "caught", Season: 1, Episode: 1, Watched: true},
+			{ItemID: "skipped", Season: 1, Episode: 14, Watched: true},
 		},
 	}
 	got, err := service(m).NewEpisodes(context.Background())
