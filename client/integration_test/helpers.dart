@@ -19,6 +19,8 @@ void deleteTestFilms() {
   _film = null;
   _tracksFilm?.parent.deleteSync(recursive: true);
   _tracksFilm = null;
+  _chapteredFilm?.parent.deleteSync(recursive: true);
+  _chapteredFilm = null;
 }
 
 Future<void> playerKeysReady(WidgetTester tester) => waitFor(
@@ -79,6 +81,38 @@ NativePlayer mpvOnScreen(WidgetTester tester) =>
 File? _film;
 
 File testFilm() => _film ??= writeTestFilm();
+
+File? _chapteredFilm;
+
+/// Generates a thirty-second film whose last ten seconds are a chapter named
+/// "Ending", as an anime release marks its credits.
+File chapteredFilm() => _chapteredFilm ??= () {
+  final dir = Directory.systemTemp.createTempSync('lumeo-chapters-');
+  File('${dir.path}/chapters.txt').writeAsStringSync(
+    ';FFMETADATA1\n'
+    '[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=20000\ntitle=Episode\n'
+    '[CHAPTER]\nTIMEBASE=1/1000\nSTART=20000\nEND=30000\ntitle=Ending\n',
+  );
+  final film = File('${dir.path}/chapters.mkv');
+  final result = Process.runSync('ffmpeg', [
+    '-v',
+    'error',
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc=size=160x120:rate=25:duration=30',
+    '-i',
+    '${dir.path}/chapters.txt',
+    '-map_chapters',
+    '1',
+    '-c:v',
+    'mpeg4',
+    film.path,
+  ]);
+  if (result.exitCode != 0) throw StateError('ffmpeg: ${result.stderr}');
+  return film;
+}();
 
 File? _tracksFilm;
 

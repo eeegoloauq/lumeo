@@ -107,6 +107,25 @@ void main() {
     });
   });
 
+  test('the credits start where the named ending does', () {
+    const chapters = [
+      MpvChapter(time: Duration.zero, title: 'Part A'),
+      MpvChapter(time: Duration(minutes: 20), title: 'Ending'),
+      MpvChapter(time: Duration(minutes: 22), title: 'Preview'),
+    ];
+    expect(inCredits(chapters, const Duration(minutes: 19)), isFalse);
+    expect(inCredits(chapters, const Duration(minutes: 20)), isTrue);
+    expect(inCredits(chapters, const Duration(minutes: 23)), isTrue);
+    expect(
+      inCredits(const [
+        MpvChapter(time: Duration.zero, title: 'Chapter 1'),
+        MpvChapter(time: Duration(minutes: 20), title: 'Chapter 2'),
+      ], const Duration(minutes: 23)),
+      isFalse,
+      reason: 'unnamed chapters leave it to the 90%',
+    );
+  });
+
   group('what the button is offering', () {
     const opening = [
       MpvChapter(time: Duration.zero, title: 'Teaser'),

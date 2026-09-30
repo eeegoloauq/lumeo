@@ -77,6 +77,13 @@ int? endingChapter(List<MpvChapter> chapters) {
   return start < 0 ? null : start;
 }
 
+/// Whether [position] is past the start of the ending the file names. An
+/// anime ending and its preview can start at 87%, before the core's 90%.
+bool inCredits(List<MpvChapter> chapters, Duration position) {
+  final ending = endingChapter(chapters);
+  return ending != null && position >= chapters[ending].time;
+}
+
 /// The first chapter after the ending run from [start], or null when the run
 /// lasts to the end of the file.
 int? afterEnding(List<MpvChapter> chapters, int start) {

@@ -453,6 +453,51 @@ void playbackTests() {
     );
   });
 
+  testWidgets('an episode is watched once its named ending starts', (
+    tester,
+  ) async {
+    // Anime endings and previews start before the core's 90%: closed at the
+    // ending, the episode stayed unwatched.
+    final server = await serveFilm(chapteredFilm());
+    final progressCalls = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          progressCalls: progressCalls,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    Future<double> position() async =>
+        double.tryParse(await mpv.getProperty('time-pos')) ?? 0;
+    await waitFor(
+      tester,
+      () async => await position() > 0.5,
+      what: 'the film playing',
+    );
+    bool watched() => progressCalls.any(
+      (body) => (jsonDecode(body) as Map<String, dynamic>)['watched'] == true,
+    );
+    expect(watched(), isFalse);
+    await mpv.command(['seek', '21', 'absolute']);
+    await waitFor(
+      tester,
+      () async => await position() >= 21,
+      what: 'the film inside its ending',
+    );
+    await mpv.command(['set', 'pause', 'yes']);
+    await waitFor(
+      tester,
+      () async => watched(),
+      what: 'the episode reported as watched at 70%',
+    );
+  });
+
   testWidgets('the player episodes panel starts a released episode', (
     tester,
   ) async {

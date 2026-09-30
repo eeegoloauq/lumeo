@@ -1004,7 +1004,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         episode: download.episode,
         position: position,
         duration: _duration,
-        watched: watched,
+        watched: watched ?? (inCredits(_chapters, position) ? true : null),
       );
     } on Object catch (error) {
       debugPrint('progress report failed: $error');
