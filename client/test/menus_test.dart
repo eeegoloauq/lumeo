@@ -136,11 +136,11 @@ void main() {
       reason: 'both embedded subtitle tracks retain their language',
     );
     expect(find.text('English · Commentary'), findsOneWidget);
-    expect(find.text('Full'), findsOneWidget);
-    expect(find.text('Signs & Songs'), findsOneWidget);
+    expect(find.text('Full · in the file'), findsOneWidget);
+    expect(find.text('Signs & Songs · in the file'), findsOneWidget);
     // Japanese is in the file too, so it is listed — after the English
     // tracks, because English is the viewer's first language.
-    final english = tester.getTopLeft(find.text('Full'));
+    final english = tester.getTopLeft(find.text('Full · in the file'));
     final japanese = tester.getTopLeft(find.text('Japanese').last);
     expect(japanese.dy, greaterThan(english.dy));
     // A language the file already carries is not offered again from the
@@ -155,10 +155,35 @@ void main() {
     expect(find.text('1 more'), findsOneWidget);
     expect(find.text('Thai'), findsOneWidget);
     // A copy kept with the download says so: it plays offline.
-    expect(find.text('on disk'), findsOneWidget);
+    expect(find.text('downloaded'), findsOneWidget);
     // The soundtrack, with what a viewer compares two of them by.
     expect(find.text('2.0'), findsOneWidget);
     expect(find.text('5.1'), findsOneWidget);
+  });
+
+  testWidgets('two tracks of one language in the file are told apart', (
+    tester,
+  ) async {
+    // Seen 2026-09-30: two rows of "English", nothing to choose between them
+    // by, nor to tell they were the file's own.
+    await tester.pumpWidget(
+      menu(
+        subs: const [
+          MpvTrack(id: '1', type: 'sub', language: 'eng', codec: 'subrip'),
+          MpvTrack(id: '2', type: 'sub', language: 'eng', codec: 'ass'),
+          MpvTrack(
+            id: '3',
+            type: 'sub',
+            language: 'rus',
+            codec: 'subrip',
+            hearingImpaired: true,
+          ),
+        ],
+      ),
+    );
+    expect(find.text('SRT · in the file'), findsOneWidget);
+    expect(find.text('ASS · in the file'), findsOneWidget);
+    expect(find.text('SDH · in the file'), findsOneWidget);
   });
 
   testWidgets('the count opens the other copies, and the row still picks', (
@@ -180,7 +205,7 @@ void main() {
 
     await pick('ReZero.17.PL');
     await pick('Polish');
-    await pick('Signs & Songs');
+    await pick('Signs & Songs · in the file');
     await pick('Off');
     await pick('English · Commentary');
     expect(picked, ['found:d', 'found:c', 'sub:3', 'sub:off', 'audio:2']);

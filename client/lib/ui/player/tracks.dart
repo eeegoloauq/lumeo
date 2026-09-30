@@ -14,6 +14,7 @@ class MpvTrack {
     this.selected = false,
     this.isDefault = false,
     this.forced = false,
+    this.hearingImpaired = false,
     this.external = false,
     this.externalFilename = '',
   });
@@ -29,6 +30,9 @@ class MpvTrack {
   final bool selected;
   final bool isDefault;
   final bool forced;
+
+  /// SDH: the dialogue and the sounds, for viewers who cannot hear them.
+  final bool hearingImpaired;
   final bool external;
 
   /// The external track URL identifies a selected database subtitle.
@@ -59,6 +63,7 @@ class MpvTrack {
             selected: entry['selected'] == true,
             isDefault: entry['default'] == true,
             forced: entry['forced'] == true,
+            hearingImpaired: entry['hearing-impaired'] == true,
             external: entry['external'] == true,
             externalFilename: _string(entry['external-filename']),
           ),

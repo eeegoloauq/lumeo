@@ -554,7 +554,7 @@ class _TracksMenuState extends State<TracksMenu> {
   ];
 
   String _origin(api.Subtitle sub) => sub.kept
-      ? context.l10n.downloadsOnDiskLower
+      ? context.l10n.playerSubtitleKept
       : context.l10n.playerSubtitleOpenSubtitles;
 
   Widget _more(String language, int count) {
@@ -585,14 +585,39 @@ class _TracksMenuState extends State<TracksMenu> {
         : context.l10n.playerTrack(track.id);
   }
 
+  /// What tells a track of the file apart, then that it is the file's own:
+  /// "Full · in the file", or the format when two share a language and
+  /// nothing else differs.
   String _subtitleDetail(MpvTrack track) {
     final title = track.title;
-    if (title.isNotEmpty &&
-        title.toLowerCase() != _trackLabel(track).toLowerCase()) {
-      return title;
-    }
-    return track.forced ? context.l10n.playerForced : '';
+    final base = _base(track.language);
+    final what =
+        title.isNotEmpty &&
+            title.toLowerCase() != _trackLabel(track).toLowerCase()
+        ? title
+        : track.forced
+        ? context.l10n.playerForced
+        : track.hearingImpaired
+        ? 'SDH'
+        : _embedded.where((t) => _base(t.language) == base).length > 1
+        ? _format(track.codec)
+        : '';
+    return [
+      if (what.isNotEmpty) what,
+      context.l10n.playerSubtitleInFile,
+    ].join(' · ');
   }
+
+  static String _format(String codec) => switch (codec) {
+    'subrip' => 'SRT',
+    'ass' => 'ASS',
+    'ssa' => 'SSA',
+    'hdmv_pgs_subtitle' => 'PGS',
+    'dvd_subtitle' => 'VobSub',
+    'webvtt' => 'WebVTT',
+    'mov_text' => 'Text',
+    _ => codec.toUpperCase(),
+  };
 
   static String _channels(int count, AppLocalizations l10n) => switch (count) {
     1 => '1.0',
