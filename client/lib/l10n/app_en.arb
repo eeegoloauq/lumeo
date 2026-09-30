@@ -2441,10 +2441,6 @@
   "@playerSubtitleOpenSubtitles": {
     "description": "Subtitle search provider name."
   },
-  "playerSubtitleInFile": "in the file",
-  "@playerSubtitleInFile": {
-    "description": "Beside a subtitle track that is part of the video file itself."
-  },
   "playerSubtitleKept": "downloaded",
   "@playerSubtitleKept": {
     "description": "Beside a subtitle file fetched from a subtitle database and kept with the download, so it plays offline."

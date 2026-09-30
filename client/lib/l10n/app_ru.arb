@@ -472,7 +472,6 @@
   "playerDownloading": "Скачивается",
   "playerOnDisk": "На диске",
   "playerSubtitleOpenSubtitles": "OpenSubtitles",
-  "playerSubtitleInFile": "в файле",
   "playerSubtitleKept": "скачаны",
   "playerPercent": "{percent}%",
   "playerShortcutLeaveFullscreen": "Выйти из полноэкранного режима, иначе назад к тайтлу",

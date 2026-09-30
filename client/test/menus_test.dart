@@ -136,11 +136,11 @@ void main() {
       reason: 'both embedded subtitle tracks retain their language',
     );
     expect(find.text('English · Commentary'), findsOneWidget);
-    expect(find.text('Full · in the file'), findsOneWidget);
-    expect(find.text('Signs & Songs · in the file'), findsOneWidget);
+    expect(find.text('Full'), findsOneWidget);
+    expect(find.text('Signs & Songs'), findsOneWidget);
     // Japanese is in the file too, so it is listed — after the English
     // tracks, because English is the viewer's first language.
-    final english = tester.getTopLeft(find.text('Full · in the file'));
+    final english = tester.getTopLeft(find.text('Full'));
     final japanese = tester.getTopLeft(find.text('Japanese').last);
     expect(japanese.dy, greaterThan(english.dy));
     // A language the file already carries is not offered again from the
@@ -165,7 +165,7 @@ void main() {
     tester,
   ) async {
     // Seen 2026-09-30: two rows of "English", nothing to choose between them
-    // by, nor to tell they were the file's own.
+    // by.
     await tester.pumpWidget(
       menu(
         subs: const [
@@ -181,9 +181,24 @@ void main() {
         ],
       ),
     );
-    expect(find.text('SRT · in the file'), findsOneWidget);
-    expect(find.text('ASS · in the file'), findsOneWidget);
-    expect(find.text('SDH · in the file'), findsOneWidget);
+    expect(find.text('SRT'), findsOneWidget);
+    expect(find.text('ASS'), findsOneWidget);
+    expect(find.text('SDH'), findsOneWidget);
+  });
+
+  testWidgets('a format both tracks share is not shown as a difference', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      menu(
+        subs: const [
+          MpvTrack(id: '1', type: 'sub', language: 'eng', codec: 'mov_text'),
+          MpvTrack(id: '2', type: 'sub', language: 'eng', codec: 'mov_text'),
+        ],
+      ),
+    );
+    expect(find.text('English'), findsNWidgets(2));
+    expect(find.text('Text'), findsNothing);
   });
 
   testWidgets('the count opens the other copies, and the row still picks', (
@@ -205,7 +220,7 @@ void main() {
 
     await pick('ReZero.17.PL');
     await pick('Polish');
-    await pick('Signs & Songs · in the file');
+    await pick('Signs & Songs');
     await pick('Off');
     await pick('English · Commentary');
     expect(picked, ['found:d', 'found:c', 'sub:3', 'sub:off', 'audio:2']);

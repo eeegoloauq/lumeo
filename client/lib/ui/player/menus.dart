@@ -585,27 +585,25 @@ class _TracksMenuState extends State<TracksMenu> {
         : context.l10n.playerTrack(track.id);
   }
 
-  /// What tells a track of the file apart, then that it is the file's own:
-  /// "Full · in the file", or the format when two share a language and
-  /// nothing else differs.
+  /// What tells a track of the file apart: its title, forced or SDH, or the
+  /// format when two share a language and differ in nothing else. The file's
+  /// own tracks carry no source note; the fetched copies are the ones marked.
   String _subtitleDetail(MpvTrack track) {
-    final title = track.title;
     final base = _base(track.language);
-    final what =
-        title.isNotEmpty &&
-            title.toLowerCase() != _trackLabel(track).toLowerCase()
-        ? title
+    final formats = {
+      for (final t in _embedded)
+        if (_base(t.language) == base) t.codec,
+    };
+    return track.title.isNotEmpty &&
+            track.title.toLowerCase() != _trackLabel(track).toLowerCase()
+        ? track.title
         : track.forced
         ? context.l10n.playerForced
         : track.hearingImpaired
         ? 'SDH'
-        : _embedded.where((t) => _base(t.language) == base).length > 1
+        : formats.length > 1
         ? _format(track.codec)
         : '';
-    return [
-      if (what.isNotEmpty) what,
-      context.l10n.playerSubtitleInFile,
-    ].join(' · ');
   }
 
   static String _format(String codec) => switch (codec) {
