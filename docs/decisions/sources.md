@@ -25,8 +25,9 @@ Six rows show by default. Enough to see there is a choice, few enough that the
 list stays a detail of the page rather than the page itself.
 
 Each addon's answer for a film or episode is kept in the core's memory for as
-long as the addon's `cacheMaxAge` says, fifteen minutes without one, an hour at
-most: seeders and new copies move within the hour. Going to the next episode
+long as the addon's `cacheMaxAge` says, and fifteen minutes at most: the copies
+of an episode out today arrive over its first hour, and a list kept an hour hid
+them from whoever looked again. Going to the next episode
 and back asks nothing again. An empty answer and a failure are not kept, so a
 copy released since, or an addon back from an outage, is found by the next
 look. Memory, not the database: a restart asking once more costs one request.

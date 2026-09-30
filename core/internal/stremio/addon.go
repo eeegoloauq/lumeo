@@ -59,9 +59,10 @@ type cachedStreams struct {
 const (
 	// streamsFresh is how long an answer without cacheMaxAge is kept.
 	streamsFresh = 15 * time.Minute
-	// streamsMax bounds what an addon may ask for: seeders and new copies
-	// move within the hour, whatever the addon's own cache does.
-	streamsMax = time.Hour
+	// streamsMax bounds what an addon may ask for: the copies of an episode
+	// out today arrive over its first hour, and a list kept that long hid
+	// them from a viewer who looked again.
+	streamsMax = 15 * time.Minute
 )
 
 // New builds a provider for one addon. baseURL is the configured addon root,
