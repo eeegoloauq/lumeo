@@ -135,11 +135,6 @@ language, or more than one backdrop. Waiting on it:
   where that mapping fails. Kitsu keeps each part a title of its own and
   Torrentio answers `kitsu:<id>:<episode>`; the core looks up by IMDb id only
   today.
-- A season of such a franchise, downloaded whole (2026-09-30), was in neither
-  the downloads panel nor on the title page, and opening an episode found it
-  on disk. Read the rows' `item_id`, season, episode and state first: a
-  download is known by its file, and a sequel can be both a title of its own
-  and season 2 of the first.
 - `[?]` Proxy per addon, beyond `HTTP_PROXY`.
 - `[?]` Whether ranking by language flags holds for live action, where the
   flags are mostly dubs. Fresh anime episodes can have only raw copies for
