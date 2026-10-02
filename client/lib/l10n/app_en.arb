@@ -2650,6 +2650,8 @@
   "@releaseWhatsNew": {"description": "Release notes in the application."},
   "releaseMore": "{count, plural, one{And 1 more} other{And {count} more}}",
   "@releaseMore": {"description": "Release notes in the application: items past the first few.", "placeholders": {"count": {"type": "int"}}},
+  "releaseChanges": "{count, plural, one{What’s new: 1 change} other{What’s new: {count} changes}}",
+  "@releaseChanges": {"description": "Release notes in the application: opens the list of an update whose notes were already shown when it was offered.", "placeholders": {"count": {"type": "int"}}},
   "releaseAvailable": "Lumeo {version} is out",
   "@releaseAvailable": {"description": "Title of the notice that a newer release is published.", "placeholders": {"version": {"type": "String"}}},
   "releaseDownload": "Download",

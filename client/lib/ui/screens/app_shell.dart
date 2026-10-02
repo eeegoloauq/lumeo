@@ -176,6 +176,8 @@ class _AppShellState extends State<AppShell> {
       return ReleaseNotesCard(
         title: l10n.releaseUpdatedTo(appVersion),
         items: _news,
+        // Offered before it was installed: the list was read then.
+        collapsed: widget.settings.dismissedUpdate == appVersion,
         action: l10n.releaseGotIt,
         onAction: () => setState(seen),
         onClose: () => setState(seen),

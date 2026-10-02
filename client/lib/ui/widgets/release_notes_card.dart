@@ -6,7 +6,8 @@ import '../theme.dart';
 
 /// Release notes in a corner: what an update brought, or what a newer
 /// release would bring. A long list stops at [shown] until its count is
-/// clicked, and scrolls when it is taller than the room the card has.
+/// clicked, and scrolls when it is taller than the room the card has. A
+/// [collapsed] card shows only the count: its notes were told before.
 class ReleaseNotesCard extends StatefulWidget {
   const ReleaseNotesCard({
     super.key,
@@ -15,6 +16,7 @@ class ReleaseNotesCard extends StatefulWidget {
     required this.action,
     required this.onAction,
     required this.onClose,
+    this.collapsed = false,
   });
 
   static const shown = 6;
@@ -24,6 +26,7 @@ class ReleaseNotesCard extends StatefulWidget {
   final String action;
   final VoidCallback onAction;
   final VoidCallback onClose;
+  final bool collapsed;
 
   @override
   State<ReleaseNotesCard> createState() => _ReleaseNotesCardState();
@@ -35,7 +38,9 @@ class _ReleaseNotesCardState extends State<ReleaseNotesCard> {
   @override
   Widget build(BuildContext context) {
     final items = widget.items;
-    final shown = _all ? items : items.take(ReleaseNotesCard.shown);
+    final shown = _all
+        ? items
+        : items.take(widget.collapsed ? 0 : ReleaseNotesCard.shown);
     final hidden = items.length - shown.length;
     return Container(
       width: 360,
@@ -106,7 +111,11 @@ class _ReleaseNotesCardState extends State<ReleaseNotesCard> {
                   if (hidden > 0)
                     TextButton(
                       onPressed: () => setState(() => _all = true),
-                      child: Text(context.l10n.releaseMore(hidden)),
+                      child: Text(
+                        widget.collapsed
+                            ? context.l10n.releaseChanges(hidden)
+                            : context.l10n.releaseMore(hidden),
+                      ),
                     ),
                 ],
               ),

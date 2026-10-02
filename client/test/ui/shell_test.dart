@@ -102,6 +102,26 @@ void main() {
     expect(tester.getRect(find.byType(ReleaseNotesCard)).top, greaterThan(0));
   });
 
+  uiTest('an update that was offered first tells only that it is in', (
+    tester,
+  ) async {
+    bundleNotes(tester, ['Subtitles stay put.']);
+    await tester.pumpWidget(
+      testApp(
+        settings: temporarySettings()
+          ..lastSeenVersion = '0.0.1'
+          ..dismissedUpdate = appVersion,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Updated to $appVersion'), findsOneWidget);
+    expect(find.text('Subtitles stay put.'), findsNothing);
+
+    await tester.tap(find.text('What’s new: 1 change'));
+    await tester.pumpAndSettle();
+    expect(find.text('Subtitles stay put.'), findsOneWidget);
+  });
+
   uiTest('a newer release comes before the notes of this one', (tester) async {
     bundleNotes(tester, ['Subtitles stay put.']);
     final settings = temporarySettings()..lastSeenVersion = '0.0.1';

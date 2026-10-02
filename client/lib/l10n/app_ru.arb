@@ -502,6 +502,7 @@
   "releaseAllChanges": "Все изменения",
   "releaseWhatsNew": "Что нового",
   "releaseMore": "И ещё {count}",
+  "releaseChanges": "{count, plural, one{Что нового: {count} изменение} few{Что нового: {count} изменения} many{Что нового: {count} изменений} other{Что нового: {count} изменения}}",
   "releaseAvailable": "Вышла Lumeo {version}",
   "releaseDownload": "Скачать",
   "settingsCheckUpdates": "Проверять обновления",
