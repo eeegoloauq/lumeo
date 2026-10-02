@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -44,6 +46,31 @@ class AppWindow extends ChangeNotifier {
   /// on top.
   Future<void> showWindowMenu() => _invoke('showWindowMenu');
 
+  /// Quits even where closing would only send the window to the background.
+  Future<void> quit() => _invoke('quit');
+
+  /// Hands the runner the background settings and the words it shows for them
+  /// (the tray's menu, the notification), which only the client can translate.
+  Future<void> configureBackground({
+    required bool enabled,
+    required bool autostart,
+    required String open,
+    required String quit,
+    required String running,
+    required String runningBody,
+  }) => _invoke('configureBackground', {
+    'enabled': enabled,
+    'autostart': autostart,
+    'open': open,
+    'quit': quit,
+    'running': running,
+    'runningBody': runningBody,
+  });
+
+  /// The window was closed into the background.
+  Stream<void> get hidden => _hidden.stream;
+  final _hidden = StreamController<void>.broadcast(sync: true);
+
   Future<void> setFullscreen(bool on) async {
     if (on == _fullscreen) return;
     // Moved here rather than waiting for the window-state event, so the chrome
@@ -62,6 +89,8 @@ class AppWindow extends ChangeNotifier {
   Future<void> _onPush(MethodCall call) async {
     if (call.method == 'state' && call.arguments is Map) {
       _apply(call.arguments as Map);
+    } else if (call.method == 'hidden') {
+      _hidden.add(null);
     }
   }
 

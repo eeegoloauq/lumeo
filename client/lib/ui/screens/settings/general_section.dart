@@ -23,6 +23,24 @@ class GeneralSection extends StatelessWidget {
               onSelected: (code) => settings.language = code,
             ),
           ),
+          SettingRow(
+            label: l10n.settingsBackground,
+            hint: l10n.settingsBackgroundHint,
+            value: SettingSwitch(
+              label: l10n.settingsBackground,
+              value: settings.background,
+              onChanged: (on) => settings.background = on,
+            ),
+          ),
+          SettingRow(
+            label: l10n.settingsAutostart,
+            hint: l10n.settingsAutostartHint,
+            value: SettingSwitch(
+              label: l10n.settingsAutostart,
+              value: settings.autostart,
+              onChanged: (on) => settings.autostart = on,
+            ),
+          ),
         ]),
       ],
     );

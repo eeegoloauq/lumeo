@@ -122,6 +122,7 @@ class _AppShellState extends State<AppShell> {
     // this file goes quiet with nothing on screen to say why — which is how
     // Ctrl+F came to work only after the first click somewhere in the page.
     FocusManager.instance.addListener(_keyboardOnTheFloor);
+    widget.settings.addListener(_configureBackground);
     if (widget.open case final path?) unawaited(_openFile(path));
     unawaited(_checkForUpdate());
     _stopOpening = onFileOpened((path) => unawaited(_openFile(path)));
@@ -130,6 +131,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _configureBackground();
     final language = Localizations.localeOf(context).languageCode;
     if (_notesLanguage == language) return;
     _notesLanguage = language;
@@ -238,9 +240,33 @@ class _AppShellState extends State<AppShell> {
     if (focus == null || focus is FocusScopeNode) _shellFocus.requestFocus();
   }
 
+  (bool, bool, String)? _backgroundSent;
+
+  /// The runner keeps the settings and the words for the tray and the
+  /// notification; sent again only when one of them changed, since the
+  /// settings notify on every volume step.
+  void _configureBackground() {
+    final settings = widget.settings;
+    final l10n = context.l10n;
+    final sent = (settings.background, settings.autostart, l10n.localeName);
+    if (sent == _backgroundSent) return;
+    _backgroundSent = sent;
+    unawaited(
+      AppWindow.instance.configureBackground(
+        enabled: settings.background,
+        autostart: settings.autostart,
+        open: l10n.backgroundOpen,
+        quit: l10n.backgroundQuit,
+        running: l10n.backgroundRunning,
+        runningBody: l10n.backgroundRunningBody,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     FocusManager.instance.removeListener(_keyboardOnTheFloor);
+    widget.settings.removeListener(_configureBackground);
     _stopOpening();
     _scroll.dispose();
     _search.dispose();
@@ -479,6 +505,8 @@ class _AppShellState extends State<AppShell> {
         SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _FocusSearchIntent(),
         SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
+        // Quit, which closing is not while the app runs in the background.
+        SingleActivator(LogicalKeyboardKey.keyQ, control: true): _QuitIntent(),
         SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _BackIntent(),
         SingleActivator(LogicalKeyboardKey.browserBack): _BackIntent(),
       },
@@ -492,6 +520,9 @@ class _AppShellState extends State<AppShell> {
               if (!_search.isOpen) _search.openView();
               return null;
             },
+          ),
+          _QuitIntent: CallbackAction<_QuitIntent>(
+            onInvoke: (_) => AppWindow.instance.quit(),
           ),
           _BackIntent: CallbackAction<_BackIntent>(
             onInvoke: (_) {
@@ -668,6 +699,10 @@ class _AppShellState extends State<AppShell> {
 
 class _ToggleFullscreenIntent extends Intent {
   const _ToggleFullscreenIntent();
+}
+
+class _QuitIntent extends Intent {
+  const _QuitIntent();
 }
 
 class _BackIntent extends Intent {

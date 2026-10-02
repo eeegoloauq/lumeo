@@ -24,6 +24,8 @@ class LocalSettings extends ChangeNotifier {
   String _textScale = textScaleChoices[1];
   String _language = '';
   bool _timelinePreviews = true;
+  bool _background = false;
+  bool _autostart = false;
   String _screenshotsDir = '';
   String? _lastSeenVersion;
   String _dismissedUpdate = '';
@@ -58,6 +60,13 @@ class LocalSettings extends ChangeNotifier {
         }
         if (decoded['timelinePreviews'] is bool) {
           settings._timelinePreviews = decoded['timelinePreviews'] as bool;
+        }
+        if (decoded['background'] is bool) {
+          settings._background = decoded['background'] as bool;
+        }
+        if (decoded['autostart'] is bool) {
+          settings._autostart =
+              settings._background && decoded['autostart'] as bool;
         }
         if (decoded['screenshotsDir'] is String) {
           settings._screenshotsDir = decoded['screenshotsDir'] as String;
@@ -188,6 +197,30 @@ class LocalSettings extends ChangeNotifier {
     _scheduleSave();
   }
 
+  /// Whether closing the window leaves the app running. Off by default: a
+  /// player that goes on after its window is closed is a surprise to most.
+  bool get background => _background;
+
+  set background(bool value) {
+    if (value == _background) return;
+    _background = value;
+    // A login launch has no window to close, so it needs the background.
+    if (!value) _autostart = false;
+    notifyListeners();
+    _scheduleSave();
+  }
+
+  /// Whether the app starts at login, in the background.
+  bool get autostart => _autostart;
+
+  set autostart(bool value) {
+    if (value == _autostart) return;
+    _autostart = value;
+    if (value) _background = true;
+    notifyListeners();
+    _scheduleSave();
+  }
+
   /// Where the player saves frames; empty for Pictures/Lumeo.
   String get screenshotsDir => _screenshotsDir;
 
@@ -205,6 +238,8 @@ class LocalSettings extends ChangeNotifier {
     _textScale = textScaleChoices[1];
     _language = '';
     _timelinePreviews = true;
+    _background = false;
+    _autostart = false;
     _screenshotsDir = '';
     notifyListeners();
     _scheduleSave();
@@ -250,6 +285,8 @@ class LocalSettings extends ChangeNotifier {
       'textScale': _textScale,
       if (_language.isNotEmpty) 'language': _language,
       'timelinePreviews': _timelinePreviews,
+      'background': _background,
+      'autostart': _autostart,
       'screenshotsDir': _screenshotsDir,
       if (_dismissedUpdate.isNotEmpty) 'dismissedUpdate': _dismissedUpdate,
       if (_clearedAt != null)

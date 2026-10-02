@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "background.h"
+
 static constexpr char kChannelName[] = "dev.lumeo/window";
 
 // One window, one channel, for the life of the process: the channel has to
@@ -134,6 +136,12 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* method_call,
   } else if (strcmp(method, "startDrag") == 0) {
     begin_move(window);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (strcmp(method, "configureBackground") == 0) {
+    lumeo_background_configure(args);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (strcmp(method, "quit") == 0) {
+    lumeo_background_quit();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (strcmp(method, "showWindowMenu") == 0) {
     show_window_menu(window);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
@@ -157,4 +165,11 @@ void lumeo_window_channel_init(FlBinaryMessenger* messenger,
                                             nullptr);
   g_signal_connect(window, "window-state-event", G_CALLBACK(window_state_cb),
                    nullptr);
+}
+
+void lumeo_window_channel_hidden() {
+  if (channel != nullptr) {
+    fl_method_channel_invoke_method(channel, "hidden", nullptr, nullptr,
+                                    nullptr, nullptr);
+  }
 }

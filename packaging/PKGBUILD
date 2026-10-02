@@ -16,6 +16,8 @@ depends=(
   at-spi2-core cairo fontconfig gcc-libs gdk-pixbuf2 glib2 glibc gtk3
   harfbuzz libepoxy mpv pango zlib
 )
+# Opened with dlopen() when "Keep running when closed" is on.
+optdepends=('libayatana-appindicator: tray icon while running in the background')
 # The files go in as the tarball has them, so the package ships the same
 # bytes as every other release file. The Go core is built stripped, and
 # nothing here carries debug information to split off.

@@ -60,10 +60,10 @@ absolute build-tree path to `flutter/ephemeral` that CMake gives a build
 RUNPATH. `client/linux/CMakeLists.txt` builds them with their install RUNPATH,
 so no package has to rewrite the copies with `patchelf`.
 
-No systemd unit yet. It would only earn its place once "keep seeding with the
-window closed" is a thing the product promises, and then as a *user* unit, not
-a system one: the core opens outbound BitTorrent connections and a loopback
-HTTP port, and neither wants root.
+No systemd unit. Starting at login is the desktop's autostart entry for the
+app itself (interface.md), which keeps the one rule that the app owns its
+core: a separate service would be a second owner, and the core opens outbound
+BitTorrent connections and a loopback HTTP port, neither of which wants root.
 
 Flathub is not the near-term target even though a media app belongs there: its
 rules forbid prebuilt binaries, so libmpv and ffmpeg would have to be built

@@ -11,8 +11,6 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
    `item_screen.dart`): many narrate how a value was arrived at, which is
    history git already holds. Duplication and dead code found on the way go
    in the same pass.
-2. A "keep running in the background" setting (tray or systemd user unit),
-   off by default so nothing seeds forever. Needs a design first.
 
 ## From the user's notes of 2026-09-27, in order
 
@@ -83,8 +81,7 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   in hand. Draw the page from the row and fill episodes and cast in when they
   arrive. A poster that failed (the core's 502) stays blank until the page is
   rebuilt; retry it with a backoff instead.
-- Settings still to add. General: what opens at startup, closing to a tray
-  (no tray exists; ties in with "keep running in the background" above), and pausing when minimised — GTK 3 on
+- Settings still to add. General: what opens at startup, and pausing when minimised — GTK 3 on
   Wayland is never told the window was minimised (xdg-shell has no such
   state), so only our own minimise button could see it; on X11 and Windows
   Flutter's `AppLifecycleState.hidden` does. Playback: an external player for

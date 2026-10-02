@@ -2,6 +2,7 @@
 
 #include <flutter_linux/flutter_linux.h>
 
+#include "background.h"
 #include "flutter/generated_plugin_registrant.h"
 #include "window_channel.h"
 #include "window_state.h"
@@ -15,6 +16,8 @@ struct _MyApplication {
   // stops it, and the process ending is what closes it.
   GSubprocess* core;
   GtkWindow* window;
+  // Launched with --background: the window waits to be asked for.
+  gboolean start_hidden;
   FlMethodChannel* open_channel;
   // Set once the last window has closed: an activation still queued from
   // before the name was released must not open a window in a process that is
@@ -26,6 +29,9 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
+  if (self->start_hidden) {
+    return;
+  }
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
   // And again here, on a window that is finally on screen. The grab at the
   // end of activate() happens while the toplevel is still unmapped — it is
@@ -89,7 +95,7 @@ static void my_application_activate(GApplication* application) {
   // A second launch lands here in the running instance, which has its one
   // window come forward instead of opening another.
   if (self->window != nullptr) {
-    gtk_window_present(self->window);
+    lumeo_background_show();
     return;
   }
   GtkWindow* window =
@@ -128,6 +134,10 @@ static void my_application_activate(GApplication* application) {
   // and one full row of posters under it.
   gtk_window_set_default_size(window, 1440, 900);
   lumeo_window_state_init(window);
+  // Before the view is realized, which is when Flutter connects its own
+  // delete-event handler: ours has to run first to keep the window.
+  lumeo_background_init(GTK_APPLICATION(application), window,
+                        self->start_hidden, self->core_path != nullptr);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
@@ -183,7 +193,7 @@ static void my_application_open(GApplication* application, GFile** files,
     return;
   }
   // A later one, forwarded here by the launch that found us running.
-  gtk_window_present(self->window);
+  lumeo_background_show();
   if (path != nullptr) {
     g_autoptr(FlValue) value = fl_value_new_string(path);
     fl_method_channel_invoke_method(self->open_channel, "open", value, nullptr,
@@ -238,6 +248,26 @@ static void my_application_startup(GApplication* application) {
   }
 }
 
+// Implements GApplication::handle_local_options. --background is the login
+// entry's launch: it starts without a window, or does nothing at all when the
+// app is already running.
+static gint my_application_handle_local_options(GApplication* application,
+                                                GVariantDict* options) {
+  if (!g_variant_dict_contains(options, "background")) {
+    return -1;
+  }
+  g_autoptr(GError) error = nullptr;
+  if (!g_application_register(application, nullptr, &error)) {
+    g_warning("could not register: %s", error->message);
+    return 1;
+  }
+  if (g_application_get_is_remote(application)) {
+    return 0;
+  }
+  MY_APPLICATION(application)->start_hidden = TRUE;
+  return -1;
+}
+
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
   lumeo_window_state_save();
@@ -259,6 +289,8 @@ static void my_application_class_init(MyApplicationClass* klass) {
   G_APPLICATION_CLASS(klass)->open = my_application_open;
   G_APPLICATION_CLASS(klass)->startup = my_application_startup;
   G_APPLICATION_CLASS(klass)->shutdown = my_application_shutdown;
+  G_APPLICATION_CLASS(klass)->handle_local_options =
+      my_application_handle_local_options;
   GTK_APPLICATION_CLASS(klass)->window_removed = my_application_window_removed;
   G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
 }
@@ -288,5 +320,8 @@ MyApplication* my_application_new() {
       my_application_get_type(), "application-id", APPLICATION_ID, "flags",
       flags, nullptr));
   self->core_path = core_path;
+  g_application_add_main_option(G_APPLICATION(self), "background", 0,
+                                G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
+                                "Start without a window", nullptr);
   return self;
 }

@@ -2,6 +2,7 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -132,12 +133,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // second core. A build without a core stays non-unique, so flutter run
   // starts beside an installed copy instead of waking it.
   const std::wstring core = BundledCorePath();
+  std::vector<std::string> command_line_arguments =
+      GetCommandLineArguments();
+  // The login entry's launch: no window until one is asked for.
+  const bool background =
+      std::find(command_line_arguments.begin(), command_line_arguments.end(),
+                "--background") != command_line_arguments.end();
   HANDLE mutex = nullptr;
   if (!core.empty()) {
     // Held by the window, which closes it when it goes.
     mutex = CreateMutexW(nullptr, FALSE, L"Local\\dev.lumeo.lumeo");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-      ForwardToRunningInstance();
+      // A login launch finding the app running has nothing to hand over.
+      if (!background) {
+        ForwardToRunningInstance();
+      }
       return EXIT_SUCCESS;
     }
     StartCore(core);
@@ -151,12 +161,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   flutter::DartProject project(L"data");
 
-  std::vector<std::string> command_line_arguments =
-      GetCommandLineArguments();
-
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
+  window.SetLaunch(background, !core.empty());
   // A media app opens on artwork: wide enough for a hero and one full row of
   // posters under it. Centred, and shrunk to fit a smaller screen, on the
   // first launch; after that it opens where it was left.

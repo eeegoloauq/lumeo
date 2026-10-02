@@ -378,6 +378,54 @@ void playerTests() {
     );
   });
 
+  testWidgets('a window closed into the background takes the film with it', (
+    tester,
+  ) async {
+    final server = await serveFilm();
+    final progressCalls = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          progressCalls: progressCalls,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => (double.tryParse(await mpv.getProperty('time-pos')) ?? 0) > 0,
+      what: 'the film playing',
+    );
+    progressCalls.clear();
+
+    // What the runner sends once it has hidden the window.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'dev.lumeo/window',
+      const StandardMethodCodec().encodeMethodCall(const MethodCall('hidden')),
+      (_) {},
+    );
+    await waitFor(
+      tester,
+      () async => find.byType(PlayerScreen).evaluate().isEmpty,
+      what: 'the player closed',
+    );
+    await waitFor(
+      tester,
+      () async => progressCalls.isNotEmpty,
+      what: 'the position saved',
+    );
+    expect(
+      windowCalls.lastWhere((c) => c.method == 'setFullscreen').arguments,
+      isFalse,
+      reason: 'the window comes back as the film found it',
+    );
+  });
+
   for (final (silent, fails) in [
     (false, false),
     (true, false),

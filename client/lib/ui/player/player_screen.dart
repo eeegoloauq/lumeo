@@ -314,6 +314,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _volume = widget.settings.volume;
     _player.setVolume(_volume);
     _subscriptions.addAll([
+      // A window closed into the background takes the film with it: playing
+      // on behind no window is nobody's wish, and an open stream would keep
+      // its torrent sharing.
+      AppWindow.instance.hidden.listen((_) {
+        if (mounted) _close();
+      }),
       _player.stream.position.listen((p) {
         if (!mounted) return;
         setState(() => _position = p);

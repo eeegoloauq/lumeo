@@ -286,9 +286,32 @@ screenshots go (a folder on this machine), and how long a finished download
 stays in the panel, and the interface's language. Reset puts back both
 kinds; downloads, the list and history are not settings.
 
-A row that does nothing is not shown. General has the language; its other
-designed rows (closing to a tray, pausing when minimised) need a tray and a
-minimised state GTK on Wayland does not report (roadmap, Application).
+A row that does nothing is not shown. General has the language, and the
+background: "Keep running when closed" and, under it, "Start at login", both
+off by default and both this machine's (`client.json`). Login needs the
+background, so turning one on or the other off carries the other with it.
+Pausing when minimised waits for a minimised state GTK on Wayland does not
+report (roadmap, Application).
+
+Running in the background is the window hidden, not the app minimised: the
+process and its core stay, closing the window takes a film with it (playing on
+behind no window is nobody's wish, and an open stream keeps its torrent
+sharing), and launching the app again shows the same window. Sharing follows
+the same rule as with the window open (downloads.md), so the background never
+turns the player into a seedbox. The runner keeps the window and is told the
+settings and the words it needs over `dev.lumeo/window`:
+
+- A tray icon (Open, Quit) where the desktop shows one: Windows, KDE and most
+  others. On Linux it is libayatana-appindicator, opened with dlopen like
+  libmpv, so a machine without it still runs; the packages recommend it.
+- Stock GNOME has no tray, so a notification stands in for it while the window
+  is hidden: clicking it opens the window, its button quits.
+- Ctrl+Q quits from the window, and quitting goes through the same close as
+  before, so the player saves its position first.
+- Login starts the app with `--background`, from an XDG autostart entry on
+  Linux and the per-user Run key on Windows, both rewritten at every start so
+  they follow a copy that moved. A login launch that finds the app running,
+  or whose setting has since been turned off, shows nothing extra.
 
 The Shortcuts section is read, not written: mpv's own bindings, asked of an
 mpv started for the page, with ours (`ownBindings`) over them — the arrows at

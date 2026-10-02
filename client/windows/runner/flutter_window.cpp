@@ -9,9 +9,24 @@
 #include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "resource.h"
 #include "utils.h"
 
 namespace {
+
+constexpr UINT kTrayMessage = WM_APP + 1;
+constexpr UINT kTrayOpen = 1;
+constexpr UINT kTrayQuit = 2;
+constexpr wchar_t kRunKey[] =
+    L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+constexpr wchar_t kRunValue[] = L"Lumeo";
+
+// Sent to every top-level window when Explorer starts again, which takes the
+// tray's icons with it.
+UINT TaskbarCreated() {
+  static const UINT message = RegisterWindowMessageW(L"TaskbarCreated");
+  return message;
+}
 
 bool IsWindows11OrGreater() {
   OSVERSIONINFOEXW version{sizeof(version)};
@@ -76,7 +91,11 @@ bool FlutterWindow::OnCreate() {
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    ShowWindow(GetHandle(), open_maximized_ ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
+    if (!start_hidden_) {
+      ShowWindow(GetHandle(),
+                 open_maximized_ ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
+      shown_ = true;
+    }
   });
 
   // Flutter can complete the first frame before the "show window" callback is
@@ -102,7 +121,54 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // Also the first chance when the icon could not be added: a login launch
+  // can start before Explorer does.
+  if (message == TaskbarCreated() && background_) {
+    tray_ = false;
+    SetTray(true);
+  }
   switch (message) {
+    // Ahead of Flutter, which would ask the client and quit.
+    case WM_CLOSE:
+      if (background_ && !quitting_) {
+        // Left first, while the window is still shown: leaving it later puts
+        // back a placement that would show the window again.
+        SetFullscreen(false);
+        ShowWindow(hwnd, SW_HIDE);
+        if (window_channel_) {
+          window_channel_->InvokeMethod("hidden", nullptr);
+        }
+        return 0;
+      }
+      break;
+
+    // Logging off, or an installer's Restart Manager asking the app to make
+    // way: the close that follows is a real one.
+    case WM_QUERYENDSESSION:
+      quitting_ = true;
+      break;
+
+    // Another application refused, and the session goes on.
+    case WM_ENDSESSION:
+      if (!wparam) {
+        quitting_ = false;
+      }
+      break;
+
+    case kTrayMessage:
+      switch (LOWORD(lparam)) {
+        case NIN_SELECT:
+        case NIN_KEYSELECT:
+          Reveal();
+          break;
+        case WM_CONTEXTMENU:
+          // Version 4 puts the anchor in wparam, as signed screen coordinates.
+          ShowTrayMenu(static_cast<short>(LOWORD(wparam)),
+                       static_cast<short>(HIWORD(wparam)));
+          break;
+      }
+      return 0;
+
     // No title bar of the system's making, for the reason the Linux runner
     // hides GTK's: the client draws its own at the top of the artwork. The
     // side and bottom borders stay the system's, so resizing, the shadow and
@@ -133,6 +199,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       break;
 
     case WM_DESTROY:
+      SetTray(false);
       SavePlacement();
       // The window gone is this instance ending, though the process has the
       // engine to tear down yet. A launch that found the mutex until then
@@ -150,10 +217,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       if (data->dwData != kOpenFileCopyData) {
         break;
       }
-      if (IsIconic(hwnd)) {
-        ShowWindow(hwnd, SW_RESTORE);
-      }
-      SetForegroundWindow(hwnd);
+      Reveal();
       std::wstring path;
       if (data->lpData != nullptr) {
         path.assign(static_cast<const wchar_t*>(data->lpData),
@@ -206,6 +270,12 @@ void FlutterWindow::OnWindowCall(const Call& call, Result result) {
     const auto* on = std::get_if<bool>(call.arguments());
     SetFullscreen(on != nullptr && *on);
     result->Success();
+  } else if (method == "configureBackground") {
+    ConfigureBackground(call.arguments());
+    result->Success();
+  } else if (method == "quit") {
+    result->Success();
+    Quit();
   } else if (method == "startDrag") {
     // Answered first: the move below is a modal loop that returns only when
     // the button is let go. From here Windows owns the pointer, which is what
@@ -232,6 +302,133 @@ void FlutterWindow::OnShellCall(const Call& call, Result result) {
   } else {
     result->NotImplemented();
   }
+}
+
+void FlutterWindow::ConfigureBackground(
+    const flutter::EncodableValue* settings) {
+  const auto* map =
+      settings == nullptr ? nullptr
+                          : std::get_if<flutter::EncodableMap>(settings);
+  if (map == nullptr) {
+    return;
+  }
+  auto flag = [map](const char* key) {
+    const auto found = map->find(flutter::EncodableValue(key));
+    const bool* value = found == map->end()
+                            ? nullptr
+                            : std::get_if<bool>(&found->second);
+    return value != nullptr && *value;
+  };
+  auto text = [map](const char* key) {
+    const auto found = map->find(flutter::EncodableValue(key));
+    const std::string* value = found == map->end()
+                                   ? nullptr
+                                   : std::get_if<std::string>(&found->second);
+    return value == nullptr ? std::wstring() : Utf16FromUtf8(*value);
+  };
+  background_ = flag("enabled");
+  open_label_ = text("open");
+  quit_label_ = text("quit");
+  if (owns_core_) {
+    SetAutostart(flag("autostart"));
+  }
+  SetTray(background_);
+  if (awaiting_settings_) {
+    awaiting_settings_ = false;
+    // A login entry left behind by a setting since turned off.
+    if (!background_) {
+      Reveal();
+    }
+  }
+}
+
+// Shows the window wherever it is: hidden in the background, never shown
+// after a --background launch, or minimised.
+void FlutterWindow::Reveal() {
+  HWND hwnd = GetHandle();
+  if (!IsWindowVisible(hwnd)) {
+    ShowWindow(hwnd, shown_ ? SW_SHOW
+                            : (open_maximized_ ? SW_SHOWMAXIMIZED
+                                               : SW_SHOWNORMAL));
+    shown_ = true;
+  } else if (IsIconic(hwnd)) {
+    ShowWindow(hwnd, SW_RESTORE);
+  }
+  SetForegroundWindow(hwnd);
+}
+
+// The close goes on to Flutter, which lets the client save what it has.
+void FlutterWindow::Quit() {
+  quitting_ = true;
+  PostMessage(GetHandle(), WM_CLOSE, 0, 0);
+}
+
+void FlutterWindow::SetTray(bool on) {
+  NOTIFYICONDATAW icon{sizeof(icon)};
+  icon.hWnd = GetHandle();
+  icon.uID = 1;
+  if (!on) {
+    if (tray_) {
+      Shell_NotifyIconW(NIM_DELETE, &icon);
+      tray_ = false;
+    }
+    return;
+  }
+  if (tray_) {
+    return;
+  }
+  icon.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
+  icon.uCallbackMessage = kTrayMessage;
+  icon.hIcon = static_cast<HICON>(LoadImageW(
+      GetModuleHandle(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
+      GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
+      LR_SHARED));
+  wcscpy_s(icon.szTip, L"Lumeo");
+  tray_ = Shell_NotifyIconW(NIM_ADD, &icon) != FALSE;
+  if (tray_) {
+    // Version 4 sends NIN_SELECT and WM_CONTEXTMENU with the click's place.
+    icon.uVersion = NOTIFYICON_VERSION_4;
+    Shell_NotifyIconW(NIM_SETVERSION, &icon);
+  }
+}
+
+void FlutterWindow::ShowTrayMenu(int x, int y) {
+  HWND hwnd = GetHandle();
+  HMENU menu = CreatePopupMenu();
+  AppendMenuW(menu, MF_STRING, kTrayOpen, open_label_.c_str());
+  AppendMenuW(menu, MF_STRING, kTrayQuit, quit_label_.c_str());
+  // Without the window in front, a click elsewhere does not close the menu;
+  // the WM_NULL after it is the documented other half of that.
+  SetForegroundWindow(hwnd);
+  const UINT chosen = static_cast<UINT>(TrackPopupMenu(
+      menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, x, y, 0, hwnd,
+      nullptr));
+  PostMessage(hwnd, WM_NULL, 0, 0);
+  DestroyMenu(menu);
+  if (chosen == kTrayOpen) {
+    Reveal();
+  } else if (chosen == kTrayQuit) {
+    Quit();
+  }
+}
+
+// The per-user Run key, written on every start so it follows a copy that has
+// moved. The uninstaller removes it.
+void FlutterWindow::SetAutostart(bool on) {
+  if (!on) {
+    RegDeleteKeyValueW(HKEY_CURRENT_USER, kRunKey, kRunValue);
+    return;
+  }
+  wchar_t self[MAX_PATH];
+  const DWORD length = GetModuleFileNameW(nullptr, self, MAX_PATH);
+  if (length == 0 || length == MAX_PATH) {
+    return;
+  }
+  const std::wstring command =
+      L"\"" + std::wstring(self, length) + L"\" --background";
+  RegSetKeyValueW(HKEY_CURRENT_USER, kRunKey, kRunValue, REG_SZ,
+                  command.c_str(),
+                  static_cast<DWORD>((command.size() + 1) * sizeof(wchar_t)));
 }
 
 flutter::EncodableValue FlutterWindow::State() {

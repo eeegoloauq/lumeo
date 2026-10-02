@@ -146,6 +146,34 @@ void main() {
   );
 
   test(
+    'starting at login needs the background, and survives a reload',
+    () async {
+      final settings = await LocalSettings.load(path: path);
+      expect(settings.background, isFalse);
+      expect(settings.autostart, isFalse);
+
+      settings.autostart = true;
+      expect(
+        settings.background,
+        isTrue,
+        reason: 'a login launch has no window',
+      );
+      await settings.flush();
+      final reloaded = await LocalSettings.load(path: path);
+      expect(reloaded.autostart, isTrue);
+      expect(reloaded.background, isTrue);
+
+      reloaded.background = false;
+      expect(reloaded.autostart, isFalse);
+      reloaded.autostart = true;
+      reloaded.resetChoices();
+      expect(reloaded.background, isFalse);
+      expect(reloaded.autostart, isFalse);
+      await reloaded.flush();
+    },
+  );
+
+  test(
     'the language is one that ships, and reset follows the desktop',
     () async {
       final settings = await LocalSettings.load(path: path);

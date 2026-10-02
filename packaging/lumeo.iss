@@ -65,3 +65,12 @@ Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; Val
 
 [Run]
 Filename: "{app}\lumeo.exe"; Description: "{cm:LaunchProgram,Lumeo}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+// The app writes its own login entry (Settings, General); it goes with the app.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+    RegDeleteValue(HKEY_CURRENT_USER,
+      'Software\Microsoft\Windows\CurrentVersion\Run', 'Lumeo');
+end;

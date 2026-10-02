@@ -1,5 +1,6 @@
 // The shell: the bar, the window, the keyboard and Escape.
 import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
@@ -210,6 +211,17 @@ void main() {
     await tester.tapAt(Offset(20, y), buttons: kSecondaryButton);
     await tester.pumpAndSettle();
     expect(windowCalls.map((c) => c.method), contains('showWindowMenu'));
+  });
+
+  uiTest('Ctrl+Q quits, which closing does not in the background', (
+    tester,
+  ) async {
+    await openHome(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(windowCalls.map((c) => c.method), contains('quit'));
   });
 
   uiTest('F11 reaches the window from a screen nobody has clicked', (

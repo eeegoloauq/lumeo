@@ -13,4 +13,7 @@
 // needs it without rebuilding the tree underneath a running mpv.
 void lumeo_window_channel_init(FlBinaryMessenger* messenger, GtkWindow* window);
 
+// Tells the client its window went to the background, for the player to stop.
+void lumeo_window_channel_hidden();
+
 #endif  // LUMEO_WINDOW_CHANNEL_H_

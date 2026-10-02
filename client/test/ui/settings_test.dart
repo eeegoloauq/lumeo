@@ -268,6 +268,39 @@ void main() {
     expect(settings.timelinePreviews, isTrue);
   });
 
+  uiTest('the background settings reach the runner, words and all', (
+    tester,
+  ) async {
+    final settings = temporarySettings();
+    await tester.pumpWidget(testApp(settings: settings));
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, SettingsSection.general);
+    Map<Object?, Object?> sent() =>
+        windowCalls
+                .lastWhere((c) => c.method == 'configureBackground')
+                .arguments
+            as Map;
+    expect(sent()['enabled'], isFalse);
+
+    await tester.tap(
+      find.descendant(
+        of: find.widgetWithText(SettingRow, 'Start at login'),
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(sent(), {
+      'enabled': true,
+      'autostart': true,
+      'open': 'Open Lumeo',
+      'quit': 'Quit',
+      'running': 'Lumeo is running in the background',
+      'runningBody':
+          'Downloads go on. Open it again from the applications menu.',
+    });
+    expect(settings.background, isTrue);
+  });
+
   uiTest('Sources lists the addons and what each one serves', (tester) async {
     await tester.pumpWidget(testApp());
     await tester.pumpAndSettle();

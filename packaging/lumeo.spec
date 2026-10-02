@@ -37,6 +37,10 @@ Requires:       gtk3
 # anyway for anyone who does not. The player says which decoder is missing, or
 # which one is going to lose the sound, and how to get it.
 Recommends:     libavcodec-freeworld
+# The tray icon of "Keep running when closed", opened with dlopen() like
+# libmpv. Without it the app runs the same and says so in a notification;
+# stock GNOME shows no tray icons anyway.
+Recommends:     libayatana-appindicator-gtk3
 
 %description
 Lumeo is a media library, acquisition and playback platform: one Go binary

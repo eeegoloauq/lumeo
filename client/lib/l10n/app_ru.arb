@@ -529,5 +529,13 @@
   "playerCommandChapterNext": "Следующая глава",
   "playerCommandChapterPrevious": "Предыдущая глава",
   "playerCommandAbLoop": "Установить или убрать повтор отрезка",
-  "playerCommandProgress": "Показать ход воспроизведения"
+  "playerCommandProgress": "Показать ход воспроизведения",
+  "settingsBackground": "Работать в фоне после закрытия",
+  "settingsBackgroundHint": "Закрытое окно оставляет Lumeo работать, загрузки идут. Выйти — из трея или по Ctrl+Q.",
+  "settingsAutostart": "Запускать при входе в систему",
+  "settingsAutostartHint": "В фоне, без окна.",
+  "backgroundOpen": "Открыть Lumeo",
+  "backgroundQuit": "Выйти",
+  "backgroundRunning": "Lumeo работает в фоне",
+  "backgroundRunningBody": "Загрузки идут. Открыть снова — из меню приложений."
 }

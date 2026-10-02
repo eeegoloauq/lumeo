@@ -2705,5 +2705,21 @@
   "playerCommandAbLoop": "Set or clear A–B loop",
   "@playerCommandAbLoop": {"description": "Description of a player shortcut."},
   "playerCommandProgress": "Show playback progress",
-  "@playerCommandProgress": {"description": "Description of a player shortcut."}
+  "@playerCommandProgress": {"description": "Description of a player shortcut."},
+  "settingsBackground": "Keep running when closed",
+  "@settingsBackground": {"description": "Background setting in ui/screens/settings/general_section.dart"},
+  "settingsBackgroundHint": "Closing the window leaves Lumeo running and downloads going. Quit from the tray or with Ctrl+Q.",
+  "@settingsBackgroundHint": {"description": "Hint under the background setting."},
+  "settingsAutostart": "Start at login",
+  "@settingsAutostart": {"description": "Autostart setting in ui/screens/settings/general_section.dart"},
+  "settingsAutostartHint": "In the background, without a window.",
+  "@settingsAutostartHint": {"description": "Hint under the autostart setting."},
+  "backgroundOpen": "Open Lumeo",
+  "@backgroundOpen": {"description": "Tray menu item that shows the window."},
+  "backgroundQuit": "Quit",
+  "@backgroundQuit": {"description": "Tray menu item and notification button that quit the app."},
+  "backgroundRunning": "Lumeo is running in the background",
+  "@backgroundRunning": {"description": "Notification title when the window is closed into the background."},
+  "backgroundRunningBody": "Downloads go on. Open it again from the applications menu.",
+  "@backgroundRunningBody": {"description": "Notification body when the window is closed into the background."}
 }
