@@ -1,6 +1,7 @@
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
+#include <glib/gstdio.h>
 
 #include "background.h"
 #include "flutter/generated_plugin_registrant.h"
@@ -23,6 +24,14 @@ struct _MyApplication {
   // before the name was released must not open a window in a process that is
   // shutting down.
   gboolean ending;
+  // This binary as started. A package upgrade renames a new one over it, and
+  // the instance running in the background goes on as the old version.
+  gchar* exe_path;
+  GStatBuf exe_stat;
+  // Set when a launch found this binary replaced: once the name is released,
+  // the new version starts in this one's place, with the launch's file.
+  gboolean relaunch;
+  gchar* relaunch_file;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -86,6 +95,41 @@ static void start_core(MyApplication* self) {
   g_subprocess_wait_async(self->core, nullptr, core_exited_cb, nullptr);
 }
 
+// Whether the binary on disk is no longer the one running.
+static gboolean replaced(MyApplication* self) {
+  if (self->exe_path == nullptr) {
+    return FALSE;
+  }
+  GStatBuf now;
+  return g_stat(self->exe_path, &now) != 0 ||
+         now.st_ino != self->exe_stat.st_ino ||
+         now.st_dev != self->exe_stat.st_dev;
+}
+
+// A launch that reached an instance older than the installed version: it
+// quits, and window_removed starts the new one, which is what the person
+// launching asked for. Downloads go on in the new core.
+static gboolean relaunch_if_replaced(MyApplication* self, const gchar* path) {
+  if (!replaced(self)) {
+    return FALSE;
+  }
+  self->relaunch = TRUE;
+  self->relaunch_file = g_strdup(path);
+  lumeo_background_quit();
+  return TRUE;
+}
+
+static void relaunch(MyApplication* self) {
+  const gchar* argv[] = {self->exe_path, self->relaunch_file, nullptr};
+  g_autoptr(GError) error = nullptr;
+  // Without LEAVE_DESCRIPTORS_OPEN only stdio is inherited: not the core's
+  // pipe, nor the session bus connection.
+  if (!g_spawn_async(nullptr, const_cast<gchar**>(argv), nullptr,
+                     G_SPAWN_DEFAULT, nullptr, nullptr, nullptr, &error)) {
+    g_warning("could not start the new version: %s", error->message);
+  }
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -95,7 +139,9 @@ static void my_application_activate(GApplication* application) {
   // A second launch lands here in the running instance, which has its one
   // window come forward instead of opening another.
   if (self->window != nullptr) {
-    lumeo_background_show();
+    if (!relaunch_if_replaced(self, nullptr)) {
+      lumeo_background_show();
+    }
     return;
   }
   GtkWindow* window =
@@ -193,6 +239,9 @@ static void my_application_open(GApplication* application, GFile** files,
     return;
   }
   // A later one, forwarded here by the launch that found us running.
+  if (relaunch_if_replaced(self, path)) {
+    return;
+  }
   lumeo_background_show();
   if (path != nullptr) {
     g_autoptr(FlValue) value = fl_value_new_string(path);
@@ -237,6 +286,9 @@ static void my_application_window_removed(GtkApplication* application,
   if (reply == nullptr) {
     g_warning("could not release the application id: %s", error->message);
   }
+  if (self->relaunch) {
+    relaunch(self);
+  }
 }
 
 // Implements GApplication::startup, which runs in the primary instance only.
@@ -279,6 +331,8 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_pointer(&self->core_path, g_free);
+  g_clear_pointer(&self->exe_path, g_free);
+  g_clear_pointer(&self->relaunch_file, g_free);
   g_clear_object(&self->core);
   g_clear_object(&self->open_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
@@ -320,6 +374,15 @@ MyApplication* my_application_new() {
       my_application_get_type(), "application-id", APPLICATION_ID, "flags",
       flags, nullptr));
   self->core_path = core_path;
+  // Only a single instance can be asked to open by a newer launch.
+  if (core_path != nullptr) {
+    gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+    if (exe != nullptr && g_stat(exe, &self->exe_stat) == 0) {
+      self->exe_path = exe;
+    } else {
+      g_free(exe);
+    }
+  }
   g_application_add_main_option(G_APPLICATION(self), "background", 0,
                                 G_OPTION_FLAG_NONE, G_OPTION_ARG_NONE,
                                 "Start without a window", nullptr);
