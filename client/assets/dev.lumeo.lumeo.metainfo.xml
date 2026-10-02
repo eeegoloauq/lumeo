@@ -42,6 +42,10 @@
     <release version="0.1.79" date="2026-10-02">
       <description>
         <ul>
+          <li>Offer betas: a switch in Settings → About also tells when a beta is out.</li>
+          <li xml:lang="ru">Предлагать беты: переключатель в Настройки → О программе сообщает и о выходе бет.</li>
+          <li>Linux: opening Lumeo after a package upgrade restarts the copy running in the background as the new version.</li>
+          <li xml:lang="ru">Linux: если после обновления пакета открыть Lumeo, работающая в фоне копия перезапускается новой версией.</li>
           <li>Release notes fit the window, and "And N more" opens the rest.</li>
           <li xml:lang="ru">Заметки о версии помещаются в окно, а «И ещё N» раскрывает остальное.</li>
           <li>A newer release is offered before the notes of the one installed; after closing the offer, the next one waits a week.</li>
