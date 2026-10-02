@@ -75,8 +75,10 @@ void StartCore(const std::wstring& core) {
     SetEnvironmentVariableW(L"LUMEO_EXIT_ON_STDIN_EOF", L"1");
     std::wstring command = L"\"" + core + L"\"";
     PROCESS_INFORMATION process{};
+    // Detached rather than windowless: the core gets no console at all, so
+    // Windows starts no conhost.exe beside it; its stdio is the handles above.
     if (CreateProcessW(core.c_str(), command.data(), nullptr, nullptr, TRUE,
-                       CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT,
+                       DETACHED_PROCESS | EXTENDED_STARTUPINFO_PRESENT,
                        nullptr, nullptr, &startup.StartupInfo, &process)) {
       CloseHandle(process.hThread);
       CloseHandle(process.hProcess);
