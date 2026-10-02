@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"io/fs"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -86,5 +88,55 @@ func TestSetPreferencesEmptyMapIsNoOp(t *testing.T) {
 	}
 	if string(got["subtitleScale"]) != "1.5" || len(got) != 1 {
 		t.Fatalf("preferences = %v, want unchanged subtitleScale", got)
+	}
+}
+
+func TestMigrationRewritesThirtyDays(t *testing.T) {
+	for _, stored := range []map[string]string{
+		{"keep": `"30days"`},
+		{"keep": `"30days"`, "keepDays": `7`},
+	} {
+		path := filepath.Join(t.TempDir(), "catalog.db")
+		old, err := sql.Open("sqlite", "file:"+path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries, err := fs.ReadDir(migrationFiles, "migrations")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range entries {
+			if entry.Name() >= "0016" {
+				break
+			}
+			body, err := migrationFiles.ReadFile("migrations/" + entry.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := old.Exec(string(body)); err != nil {
+				t.Fatalf("%s: %v", entry.Name(), err)
+			}
+		}
+		for key, value := range stored {
+			if _, err := old.Exec(`INSERT INTO preferences(key, value, updated_at) VALUES (?, ?, 0)`, key, value); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := old.Exec("PRAGMA user_version = 15"); err != nil {
+			t.Fatal(err)
+		}
+		if err := old.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		db := openTestDB(t, path)
+		got, err := db.Preferences(context.Background())
+		db.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got["keep"]) != `"days"` || string(got["keepDays"]) != `30` {
+			t.Fatalf("from %v: keep = %s, keepDays = %s; want \"days\" and 30", stored, got["keep"], got["keepDays"])
+		}
 	}
 }

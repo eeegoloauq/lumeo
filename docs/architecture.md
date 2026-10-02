@@ -171,9 +171,7 @@ apply it applies itself, before the change is answered: `keep`, `keepDays` and
 spot (absolute, made if missing, a probe file written and removed) and moves
 where new downloads go; `uploadLimit` and `downloadLimit` change the running
 torrent client; `checkUpdates` gates `GET /api/v1/update`. Whatever applies a preference subscribes to the
-service (`preferences.Service.Subscribe`); nothing reads a global copy. An
-earlier `keep: "30days"` reads back, and is still taken, as `keep: "days"`
-with `keepDays: 30`.
+service (`preferences.Service.Subscribe`); nothing reads a global copy.
 
 `GET /api/v1/about` is what a settings page cannot learn from its own side:
 `version`, `addr` (where the core listens), `dataDir`, `downloadDir` (in

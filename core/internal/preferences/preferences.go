@@ -99,11 +99,6 @@ var SubtitleColors = []string{"white", "yellow", "cream", "cyan"}
 // The policies Keep accepts, in the order a client offers them.
 var Keeps = []string{"watched", "days", "forever"}
 
-// legacyKeep is what Keep said before the number of days was a preference of
-// its own. It is still read, and still taken from a client that knows no
-// other way to say it, as "days" with KeepDays at thirty.
-const legacyKeep = "30days"
-
 // maxRate bounds the rate limits: a terabyte a second is no limit at all.
 const maxRate = 1 << 40
 
@@ -170,9 +165,6 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "downloadDir", &effective.DownloadDir)
 	overlay(stored, "uploadLimit", &effective.UploadLimit)
 	overlay(stored, "downloadLimit", &effective.DownloadLimit)
-	if effective.Keep == legacyKeep {
-		effective.Keep, effective.KeepDays = "days", 30
-	}
 	return effective, nil
 }
 
@@ -277,10 +269,6 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 		case "accent":
 			changes[key], err = oneOf(key, raw, Accents)
 		case "keep":
-			if legacy(raw) {
-				changes[key] = json.RawMessage(`"days"`)
-				continue
-			}
 			changes[key], err = oneOf(key, raw, Keeps)
 		case "keepDays":
 			changes[key], err = integer(key, raw, 1, 365)
@@ -305,15 +293,6 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			return Preferences{}, err
 		}
 	}
-	if legacy(document["keep"]) {
-		if raw, ok := document["keepDays"]; ok {
-			var days int
-			if json.Unmarshal(raw, &days) != nil || days != 30 {
-				return Preferences{}, invalidf("keep %q is keepDays 30, not %s", legacyKeep, raw)
-			}
-		}
-		changes["keepDays"] = json.RawMessage(`30`)
-	}
 	if raw, ok := document["downloadDir"]; ok && string(raw) != "null" {
 		var err error
 		if changes["downloadDir"], err = directory("downloadDir", raw); err != nil {
@@ -323,17 +302,6 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, days := changes["keepDays"]; days && document["keep"] == nil {
-		// A stored "30days" outranks keepDays when read, so a number of days
-		// chosen on its own also has to retire it.
-		stored, err := s.store.Preferences(ctx)
-		if err != nil {
-			return Preferences{}, err
-		}
-		if legacy(stored["keep"]) {
-			changes["keep"] = json.RawMessage(`"days"`)
-		}
-	}
 	return s.commit(ctx, changes)
 }
 
@@ -347,12 +315,6 @@ func known(key string) bool {
 		return true
 	}
 	return false
-}
-
-// legacy says whether a value of keep is the old "30days".
-func legacy(raw json.RawMessage) bool {
-	var value string
-	return json.Unmarshal(raw, &value) == nil && value == legacyKeep
 }
 
 // directory is an absolute path to download into, or "" for the core's own

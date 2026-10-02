@@ -103,9 +103,6 @@ class Preferences {
   final int downloadLimit;
 
   factory Preferences.fromJson(Map<String, dynamic> json) {
-    // A core from before `keepDays` stored thirty days as a keep of its own.
-    final keep = json['keep'] as String? ?? 'forever';
-    final legacyDays = keep == '30days';
     return Preferences(
       subtitleLanguages: (json['subtitleLanguages'] as List<dynamic>? ?? [])
           .cast<String>(),
@@ -117,7 +114,7 @@ class Preferences {
       subtitleBackground: json['subtitleBackground'] as String? ?? 'none',
       episodeArtwork: json['episodeArtwork'] as String? ?? 'show',
       accent: json['accent'] as String? ?? 'white',
-      keep: legacyDays ? 'days' : keep,
+      keep: json['keep'] as String? ?? 'forever',
       diskLimit: (json['diskLimit'] as num?)?.toInt() ?? 0,
       prefetch: json['prefetch'] as bool? ?? true,
       checkUpdates: json['checkUpdates'] as bool? ?? true,
@@ -126,7 +123,7 @@ class Preferences {
       subtitleKeepStyling: json['subtitleKeepStyling'] as bool? ?? true,
       nextNotice: (json['nextNotice'] as num?)?.toInt() ?? 0,
       seekStep: (json['seekStep'] as num?)?.toInt() ?? 5,
-      keepDays: legacyDays ? 30 : (json['keepDays'] as num?)?.toInt() ?? 30,
+      keepDays: (json['keepDays'] as num?)?.toInt() ?? 30,
       downloadDir: json['downloadDir'] as String? ?? '',
       uploadLimit: (json['uploadLimit'] as num?)?.toInt() ?? 0,
       downloadLimit: (json['downloadLimit'] as num?)?.toInt() ?? 0,
@@ -190,7 +187,7 @@ class CoreAbout {
     this.logPath = '',
   });
 
-  /// Empty from a core older than 0.1.42, which did not say.
+  /// Empty when the core does not say.
   final String version;
   final String dataDir;
 

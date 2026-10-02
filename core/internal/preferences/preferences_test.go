@@ -245,7 +245,7 @@ func TestPatchRejectsInvalidDocumentsWithoutWriting(t *testing.T) {
 		{name: "keep unknown", body: `{"keep":"week"}`, message: `keep must be "watched", "days", or "forever"`},
 		{name: "keep days zero", body: `{"keepDays":0}`, message: "keepDays must be between 1 and 365"},
 		{name: "keep days over a year", body: `{"keepDays":366}`, message: "keepDays must be between 1 and 365"},
-		{name: "legacy keep with other days", body: `{"keep":"30days","keepDays":7}`, message: `keep "30days" is keepDays 30, not 7`},
+		{name: "keep thirty days", body: `{"keep":"30days"}`, message: `keep must be "watched", "days", or "forever"`},
 		{name: "subtitle colour unknown", body: `{"subtitleColor":"green"}`, message: `subtitleColor must be "white", "yellow", "cream", or "cyan"`},
 		{name: "keep styling not boolean", body: `{"subtitleKeepStyling":1}`, message: "subtitleKeepStyling must be true or false"},
 		{name: "next notice before the end", body: `{"nextNotice":-1}`, message: "nextNotice must be between 0 and 120"},
@@ -307,77 +307,6 @@ func testDefaults() Preferences {
 		SubtitleMode: "always", SubtitleScale: 1, SubtitlePosition: 100, SubtitleBackground: "none",
 		SubtitleColor: "white", SubtitleKeepStyling: true, Accent: "white", Keep: "forever", KeepDays: 30,
 		Prefetch: true, CheckUpdates: true, NextCountdown: 5, NextNotice: 0, SeekStep: 5,
-	}
-}
-
-// "30days" was the only number of days before it was a preference of its own:
-// stored, it reads back as the pair, and a client that still sends it gets
-// the pair stored.
-func TestLegacyThirtyDays(t *testing.T) {
-	tests := []struct {
-		name   string
-		stored map[string]json.RawMessage
-		patch  string
-		want   map[string]string
-	}{
-		{
-			name:   "stored",
-			stored: map[string]json.RawMessage{"keep": json.RawMessage(`"30days"`)},
-		},
-		{
-			name:   "stored beside a number of days",
-			stored: map[string]json.RawMessage{"keep": json.RawMessage(`"30days"`), "keepDays": json.RawMessage(`7`)},
-		},
-		{
-			name:  "patched",
-			patch: `{"keep":"30days"}`,
-			want:  map[string]string{"keep": `"days"`, "keepDays": `30`},
-		},
-		{
-			name:  "patched with the same days",
-			patch: `{"keep":"30days","keepDays":30}`,
-			want:  map[string]string{"keep": `"days"`, "keepDays": `30`},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &fakeStore{values: tt.stored}
-			service := New(store, testDefaults())
-			var got Preferences
-			var err error
-			if tt.patch != "" {
-				got, err = service.Patch(context.Background(), []byte(tt.patch))
-			} else {
-				got, err = service.Get(context.Background())
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got.Keep != "days" || got.KeepDays != 30 {
-				t.Fatalf("keep = %q, keepDays = %d, want days and 30", got.Keep, got.KeepDays)
-			}
-			for key, value := range tt.want {
-				if string(store.values[key]) != value {
-					t.Fatalf("stored %s = %s, want %s", key, store.values[key], value)
-				}
-			}
-		})
-	}
-}
-
-// A number of days patched alone over a stored "30days" is the one that holds.
-func TestDaysPatchedOverLegacyKeep(t *testing.T) {
-	store := &fakeStore{values: map[string]json.RawMessage{"keep": json.RawMessage(`"30days"`)}}
-	service := New(store, testDefaults())
-	got, err := service.Patch(context.Background(), []byte(`{"keepDays":7}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Keep != "days" || got.KeepDays != 7 {
-		t.Fatalf("keep = %q, keepDays = %d, want days and 7", got.Keep, got.KeepDays)
-	}
-	if string(store.values["keep"]) != `"days"` {
-		t.Fatalf("stored keep = %s, want \"days\"", store.values["keep"])
 	}
 }
 

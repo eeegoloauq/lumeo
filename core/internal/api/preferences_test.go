@@ -228,7 +228,7 @@ func TestResetPreferences(t *testing.T) {
 	defaults := preferences.Preferences{SubtitleLanguages: []string{"en"}, SubtitleScale: 1, Accent: "white", Keep: "forever", KeepDays: 30, SeekStep: 5}
 	h := preferenceServer(t, defaults)
 	if rec := requestJSON(t, h, http.MethodPatch, "/api/v1/preferences",
-		`{"accent":"violet","keep":"30days","seekStep":10,"downloadLimit":1000}`); rec.Code != http.StatusOK {
+		`{"accent":"violet","keep":"days","keepDays":7,"seekStep":10,"downloadLimit":1000}`); rec.Code != http.StatusOK {
 		t.Fatalf("patch: status %d: %s", rec.Code, rec.Body)
 	}
 	rec := requestJSON(t, h, http.MethodDelete, "/api/v1/preferences", "")

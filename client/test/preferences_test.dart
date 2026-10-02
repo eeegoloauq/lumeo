@@ -10,23 +10,6 @@ import 'package:lumeo/api/preferences_store.dart';
 import 'package:lumeo/ui/player/subtitle_style.dart';
 
 void main() {
-  test('a core from before keepDays reads as thirty days', () {
-    final legacy = Preferences.fromJson({
-      'subtitleLanguages': ['en'],
-      'keep': '30days',
-    });
-    expect(legacy.keep, 'days');
-    expect(legacy.keepDays, 30);
-
-    final days = Preferences.fromJson({
-      'subtitleLanguages': ['en'],
-      'keep': 'days',
-      'keepDays': 12,
-    });
-    expect(days.keep, 'days');
-    expect(days.keepDays, 12);
-  });
-
   test('the new preferences are read, and missing ones have defaults', () {
     final read = Preferences.fromJson({
       'subtitleLanguages': ['en'],
@@ -37,7 +20,11 @@ void main() {
       'downloadDir': '/srv/films',
       'uploadLimit': 1048576,
       'downloadLimit': 5242880,
+      'keep': 'days',
+      'keepDays': 12,
     });
+    expect(read.keep, 'days');
+    expect(read.keepDays, 12);
     expect(read.subtitleColor, 'yellow');
     expect(read.subtitleKeepStyling, isFalse);
     expect(read.nextNotice, 45);
