@@ -507,6 +507,8 @@
   "releaseDownload": "Скачать",
   "settingsCheckUpdates": "Проверять обновления",
   "settingsCheckUpdatesHint": "Раз в день спрашивает GitHub и сообщает, когда выйдет новая версия. Само ничего не устанавливается.",
+  "settingsBetaUpdates": "Предлагать беты",
+  "settingsBetaUpdatesHint": "Сообщает и о бетах — следующей версии до её выхода, чтобы попробовать новое раньше.",
   "playerCommandPause": "Пауза или воспроизведение",
   "playerCommandExactForward": "Вперёд ровно на 1 секунду",
   "playerCommandExactBackward": "Назад ровно на 1 секунду",

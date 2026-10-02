@@ -64,6 +64,9 @@ type Preferences struct {
 	// CheckUpdates lets the core ask GitHub whether a newer release is out.
 	// Off, it never asks.
 	CheckUpdates bool `json:"checkUpdates"`
+	// BetaUpdates offers betas too: the newest published version, a beta or
+	// not, instead of the latest release alone.
+	BetaUpdates bool `json:"betaUpdates"`
 	// NextCountdown is how many seconds the last frame of an episode is held,
 	// counting down, before the next one starts by itself; 0 means it waits
 	// for a press. Credits the file marks as a chapter are the countdown
@@ -159,6 +162,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "diskLimit", &effective.DiskLimit)
 	overlay(stored, "prefetch", &effective.Prefetch)
 	overlay(stored, "checkUpdates", &effective.CheckUpdates)
+	overlay(stored, "betaUpdates", &effective.BetaUpdates)
 	overlay(stored, "nextCountdown", &effective.NextCountdown)
 	overlay(stored, "nextNotice", &effective.NextNotice)
 	overlay(stored, "seekStep", &effective.SeekStep)
@@ -262,7 +266,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			changes[key], err = oneOf(key, raw, SubtitleBackgrounds)
 		case "subtitleColor":
 			changes[key], err = oneOf(key, raw, SubtitleColors)
-		case "subtitleKeepStyling", "prefetch", "checkUpdates":
+		case "subtitleKeepStyling", "prefetch", "checkUpdates", "betaUpdates":
 			changes[key], err = boolean(key, raw)
 		case "episodeArtwork":
 			changes[key], err = oneOf(key, raw, []string{"show", "blur", "hide"})
@@ -310,7 +314,7 @@ func known(key string) bool {
 	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
 		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "checkUpdates",
-		"nextCountdown", "nextNotice", "seekStep", "downloadDir",
+		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
 		"uploadLimit", "downloadLimit":
 		return true
 	}

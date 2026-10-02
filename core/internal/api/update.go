@@ -25,7 +25,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	release, err := s.updates.Newer(r.Context(), time.Now())
+	release, err := s.updates.Newer(r.Context(), time.Now(), prefs.BetaUpdates)
 	if err != nil {
 		s.log.Warn("checking for a newer release failed", "err", err)
 	}

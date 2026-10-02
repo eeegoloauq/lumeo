@@ -511,15 +511,22 @@ void main() {
     );
   });
 
-  uiTest('About sends the update check switched off', (tester) async {
+  uiTest('About sends betas on, and the update check off hides them', (
+    tester,
+  ) async {
     final patched = <String>[];
     await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
     await tester.pumpAndSettle();
     await openSettingsAt(tester, SettingsSection.about);
-    await reveal(tester, switchOf('Check for updates'));
+    await reveal(tester, switchOf('Offer betas'));
+    await tester.tap(switchOf('Offer betas'));
+    await tester.pumpAndSettle();
+    expect(jsonDecode(patched.last), {'betaUpdates': true});
+
     await tester.tap(switchOf('Check for updates'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patched.last), {'checkUpdates': false});
+    expect(find.text('Offer betas'), findsNothing);
   });
 
   uiTest('Downloads sends the upload limit', (tester) async {

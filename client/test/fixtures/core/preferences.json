@@ -9,6 +9,7 @@
   "diskLimit": 0,
   "prefetch": true,
   "checkUpdates": true,
+  "betaUpdates": false,
   "subtitleMode": "always",
   "audioLanguages": [],
   "subtitleScale": 1.0,

@@ -21,6 +21,7 @@ class Preferences {
     this.diskLimit = 0,
     this.prefetch = true,
     this.checkUpdates = true,
+    this.betaUpdates = false,
     this.nextCountdown = 5,
     this.subtitleColor = 'white',
     this.subtitleKeepStyling = true,
@@ -74,6 +75,9 @@ class Preferences {
   /// Whether the core asks GitHub for a newer release.
   final bool checkUpdates;
 
+  /// Whether betas are offered too, not only releases.
+  final bool betaUpdates;
+
   /// Seconds the last frame of an episode counts down before the next one
   /// starts by itself; 0 waits for a press. Credits marked as a chapter are
   /// the countdown themselves.
@@ -118,6 +122,7 @@ class Preferences {
       diskLimit: (json['diskLimit'] as num?)?.toInt() ?? 0,
       prefetch: json['prefetch'] as bool? ?? true,
       checkUpdates: json['checkUpdates'] as bool? ?? true,
+      betaUpdates: json['betaUpdates'] as bool? ?? false,
       nextCountdown: (json['nextCountdown'] as num?)?.toInt() ?? 5,
       subtitleColor: json['subtitleColor'] as String? ?? 'white',
       subtitleKeepStyling: json['subtitleKeepStyling'] as bool? ?? true,

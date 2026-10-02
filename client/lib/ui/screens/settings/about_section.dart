@@ -205,6 +205,17 @@ class _AboutSectionState extends State<AboutSection> {
             onChanged: (on) => widget.patch({'checkUpdates': on}),
           ),
         ),
+      if (widget.preferences.current case final current?
+          when current.checkUpdates)
+        SettingRow(
+          label: context.l10n.settingsBetaUpdates,
+          hint: context.l10n.settingsBetaUpdatesHint,
+          value: SettingSwitch(
+            label: context.l10n.settingsBetaUpdates,
+            value: current.betaUpdates,
+            onChanged: (on) => widget.patch({'betaUpdates': on}),
+          ),
+        ),
       SettingRow(
         label: context.l10n.settingsCore,
         hint: providers == null
