@@ -4,14 +4,6 @@ The MVP workflow is search → select → acquire → play while acquiring → k
 resume later, and all of it runs end to end. Done work is in git and, where it
 set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle before code.
 
-## Next, in order
-
-1. Comments cut to the why, in a line or two, starting with the largest
-   client files (`player_screen.dart`, `menus.dart`, `models.dart`,
-   `item_screen.dart`): many narrate how a value was arrived at, which is
-   history git already holds. Duplication and dead code found on the way go
-   in the same pass.
-
 ## From the user's notes of 2026-09-27, in order
 
 1. mpv renders at the view's size and owns fit, fill and stretch (`panscan`,

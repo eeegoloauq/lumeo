@@ -15,8 +15,8 @@ import '../widgets/loading.dart';
 import '../widgets/shelf.dart';
 
 /// The shelves worth a home screen, in order, named by us in
-/// [ShelfSpec.label]: a provider calls its rows "Popular" and "New", which
-/// says nothing once five of them are stacked.
+/// [ShelfSpec.label]: five provider rows called "Popular" and "New" say
+/// nothing.
 const _shelves = [
   'movie/top',
   'series/top',
@@ -38,10 +38,8 @@ class HomeScreen extends StatefulWidget {
   final DownloadsStore downloads;
   final void Function(MediaItem) onOpen;
 
-  /// The banner's Play. It opens the title too — the sources and the episodes
-  /// are there, and so is anything that can go wrong — but it also means it,
-  /// which the button did not: both buttons under the banner did the same
-  /// thing, so the one labelled Play started nothing.
+  /// The banner's Play: opens the title, where the sources and episodes are,
+  /// and starts it.
   final void Function(MediaItem) onPlay;
 
   @override
@@ -70,9 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final row = rows[key];
       if (row != null) shelves.add(ShelfSpec(row: row));
     }
-    // Depth comes from genres. The provider lists which ones its catalogue
-    // accepts, so the page is as long as the catalogue actually is instead of
-    // as long as we guessed.
+    // Depth comes from the genres the provider's catalogue accepts.
     shelves.addAll(_genreShelves(rows['movie/top'], 14));
     shelves.addAll(_genreShelves(rows['series/top'], 8));
 
@@ -91,9 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
     // Never the title that opens the shelf underneath: the same poster twice
     // in a row reads as a bug even when it is not one.
     final choices = leadItems.length > 1 ? leadItems.sublist(1) : leadItems;
-    // The catalogue row carries everything the banner shows. The title's
-    // details would wait on the provider for one never opened, and without a
-    // network that is its whole timeout with the home screen behind it.
+    // The catalogue row carries everything the banner shows; asking for the
+    // title's details would wait on the provider, without a network for its whole
+    // timeout.
     final hero = choices[Random().nextInt(min(10, choices.length))];
     // The title in the banner does not also open the shelf underneath it.
     final rest = leadItems
@@ -137,14 +133,12 @@ class _HomeScreenState extends State<HomeScreen> {
         return CustomScrollView(
           slivers: [
             if (hasHero)
-              // The viewport, asked of the viewport rather than of the window:
-              // the hero is as tall as the screen can spare above the shelf
-              // that has to be under it.
+              // The viewport, not the window: the hero takes what is left above the
+              // shelf under it.
               SliverLayoutBuilder(
                 builder: (context, constraints) => SliverToBoxAdapter(
-                  // The first shelf lands over the bottom of the artwork,
-                  // so the page reads as one surface rather than a banner
-                  // with a list bolted underneath.
+                  // The first shelf lands over the bottom of the artwork, so the page reads as
+                  // one surface.
                   child: _HeroSlot(
                     screen: constraints.viewportMainAxisExtent,
                     item: data.hero!,
@@ -217,11 +211,9 @@ class _HomeData {
   final List<ContinueItem> continueItems;
 }
 
-/// The hero and the shelf that sits over the bottom of it.
-///
-/// They share one box because a viewport paints its first sliver last: a shelf
-/// in a later sliver would go under the artwork, not over it. The rest of the
-/// shelves follow in a lazy list, where they belong.
+/// The hero and the shelf that sits over the bottom of it, in one box: a
+/// viewport paints its first sliver last, so a shelf in a later sliver would
+/// go under the artwork.
 class _HeroSlot extends StatelessWidget {
   const _HeroSlot({
     required this.item,
@@ -235,9 +227,8 @@ class _HeroSlot extends StatelessWidget {
   /// the two rows under the hero sit tighter than the rest.
   static const _overlap = 84.0;
 
-  /// What a home screen owes whoever opens it: one whole shelf, posters and
-  /// label, under the hero. The shelf lies over the bottom of the artwork, so
-  /// the part of it the hero has to make room for is that much shorter.
+  /// What the hero leaves room for: one whole shelf, posters and label, less
+  /// the part that lies over the artwork.
   static double get _reveal =>
       ShelfMetrics.height + ShelfMetrics.gap - _overlap;
 
@@ -355,8 +346,8 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// The title card the provider drew, if there is one. Set type is the fallback,
-/// not the intent: artwork says the name better than any face we could pick.
+/// The title card the provider drew, if there is one; set type is the
+/// fallback.
 class _Title extends StatelessWidget {
   const _Title({required this.item});
 

@@ -4,18 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
-/// The toplevel window, for a client that draws its own title bar.
-///
-/// The runner hides the one the system would have drawn
-/// (linux/runner/my_application.cc, windows/runner/flutter_window.cpp), so
-/// moving, maximising, minimising and closing have to come back over a
-/// channel. Fullscreen lives here for a different reason: it belongs to the
-/// window either way, and asking for it this way keeps the widget tree — and a
-/// running mpv inside it — exactly where it is.
-///
-/// A [ChangeNotifier] rather than a set of futures, because two places draw
-/// from the same state: the bar's maximise button, and every piece of chrome
-/// that has to get out of the way in fullscreen.
+/// The toplevel window, for a client that draws its own title bar: the
+/// runner hides the system's (linux/runner/my_application.cc,
+/// windows/runner/flutter_window.cpp), so moving, maximising, minimising and
+/// closing come back over a channel. Fullscreen too, which keeps the widget
+/// tree, and a running mpv in it, where it is.
 class AppWindow extends ChangeNotifier {
   AppWindow._() {
     _channel.setMethodCallHandler(_onPush);
@@ -36,14 +29,13 @@ class AppWindow extends ChangeNotifier {
   Future<void> toggleMaximize() => _invoke('toggleMaximize');
   Future<void> close() => _invoke('close');
 
-  /// Called once a press on the bar has turned into a drag: from here the
-  /// window manager owns the pointer, which is what makes edge snapping and
-  /// drag-to-maximise work like they do for every other window.
+  /// Called once a press on the bar has turned into a drag: the window manager
+  /// owns the pointer from here, which gives edge snapping and
+  /// drag-to-maximise.
   Future<void> startDrag() => _invoke('startDrag');
 
-  /// The window manager's menu for the window, which a right click on a title
-  /// bar opens everywhere else; on Wayland it is the only way to keep a window
-  /// on top.
+  /// The window manager's menu for the window; on Wayland the only way to keep
+  /// a window on top.
   Future<void> showWindowMenu() => _invoke('showWindowMenu');
 
   /// Quits even where closing would only send the window to the background.
@@ -106,13 +98,10 @@ class AppWindow extends ChangeNotifier {
     _announce();
   }
 
-  /// Every listener here is a widget, and the two calls that matter arrive from
-  /// inside a frame: a film asks for the screen while its screen is being
-  /// built, and hands it back while that screen is being unmounted. Notifying
-  /// there is a setState against a locked tree, which the framework rejects
-  /// outright — so a change made during a frame is announced at the end of it.
-  /// One guard here rather than a post-frame callback at every call site: the
-  /// next caller would not know it needed one.
+  /// A film asks for fullscreen while its screen is built and hands it back
+  /// while it is unmounted; notifying listeners then is a setState on a locked
+  /// tree. So a change made during a frame is announced at its end, guarded
+  /// here rather than at every call site.
   void _announce() {
     final phase = SchedulerBinding.instance.schedulerPhase;
     if (phase == SchedulerPhase.idle ||
@@ -123,9 +112,8 @@ class AppWindow extends ChangeNotifier {
     SchedulerBinding.instance.addPostFrameCallback((_) => notifyListeners());
   }
 
-  /// The channel is the runner's, so it is missing under `flutter test` and
-  /// under any host that is not one of our runners. A window that cannot be
-  /// asked is not an error worth showing anybody.
+  /// The channel is the runner's, missing under `flutter test`; a window that
+  /// cannot be asked is not an error.
   Future<Object?> _invoke(String method, [Object? argument]) async {
     try {
       return await _channel.invokeMethod<Object?>(method, argument);

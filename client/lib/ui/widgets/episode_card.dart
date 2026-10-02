@@ -11,17 +11,9 @@ import '../theme.dart';
 import 'artwork_image.dart';
 import 'download_mark.dart';
 
-/// One episode as a card in a strip.
-///
-/// A season is a row, not a page: fourteen full-width rows meant scrolling
-/// past everything else to reach episode nine, and the strip puts the whole
-/// season within one gesture — the same gesture the shelves on the home screen
-/// already use.
-///
-/// There is no synopsis on a card. An episode synopsis is a spoiler for the
-/// thing about to be pressed play on, the still and the title identify it
-/// already, and printing it fourteen times in a row was the noisiest part of
-/// the strip.
+/// One episode as a card in a strip: the whole season within one gesture,
+/// as on the home screen's shelves. No synopsis: it spoils the episode about
+/// to be played, and the still and title identify it.
 class EpisodeCard extends StatefulWidget {
   const EpisodeCard({
     super.key,
@@ -117,9 +109,8 @@ class _EpisodeCardState extends State<EpisodeCard> {
           focusNode: widget.focusNode,
           skipTraversal: !widget.tabStop,
           onFocusChange: (focused) {
-            // Flutter also calls this when the node's traversal flags change,
-            // which the tab stop moving to the played card does; treating that
-            // as focus arriving re-selected this card over the one played.
+            // Flutter also calls this when the node's traversal flags change, as when
+            // the tab stop moves to the played card; that is not focus arriving.
             if (focused == _focused) return;
             setState(() => _focused = focused);
             if (focused && !upcoming) widget.onSelect();
@@ -278,8 +269,7 @@ class _Still extends StatelessWidget {
                   right: WatchStatus.badgeInset,
                   child: mark,
                 ),
-              // Watched is a full bar, not a check: the same mark as a
-              // bar half way, read the same way.
+              // Watched is a full bar, not a check, read the same as a half one.
               if ((progress?.bar ?? 0) > 0)
                 Align(
                   alignment: Alignment.bottomCenter,
@@ -327,11 +317,8 @@ class EpisodePicture extends StatelessWidget {
     if (preference == 'hide') return noStill;
     final cacheWidth = (width * MediaQuery.devicePixelRatioOf(context) * 1.1)
         .round();
-    // Only a real still is a spoiler; the placeholder has nothing to hide and
-    // its episode number should stay readable. So the blur goes on the frame
-    // the image decoded and nowhere else: a still that failed to load is
-    // built by the error builder, outside the frame builder, and is not
-    // blurred.
+    // Only a real still is a spoiler: the blur goes on the decoded frame, so the
+    // placeholder's number, built by the error builder, stays readable.
     final blur = preference == 'blur' && !watched;
     Widget picture(ImageProvider provider, Widget fallback) => Image(
       image: ResizeImage.resizeIfNeeded(cacheWidth, null, provider),
@@ -354,9 +341,8 @@ class EpisodePicture extends StatelessWidget {
   }
 }
 
-/// No still to show: the number the picture would have been used for anyway,
-/// on the ground. Not the title's artwork: a season of the same picture reads
-/// as every card being the same episode.
+/// No still to show: the episode number on the ground. Not the title's
+/// artwork, or every card reads as the same episode.
 class _NoStill extends StatelessWidget {
   const _NoStill({required this.number, required this.width});
 

@@ -22,11 +22,8 @@ import '../widgets/rating_button.dart';
 import '../widgets/shelf.dart';
 import '../widgets/top_bar.dart' show PillTab;
 
-/// The two places in the library.
-///
-/// What is on disk is not a third: a title on disk carries the mark on its
-/// poster wherever it is shown, and Settings › Storage lists them with their
-/// sizes, which is the question somebody looking for what is on disk has.
+/// The two places in the library. What is on disk is not a third: posters
+/// carry the mark everywhere, and Settings › Storage lists them with sizes.
 enum LibrarySection {
   myList,
   history;
@@ -37,13 +34,9 @@ enum LibrarySection {
   };
 }
 
-/// What the viewer keeps, has watched and thinks of it.
-///
-/// My list is a grid, as the search results are, because it is one list to
-/// look through rather than rows to browse; with the new episodes of the
-/// series being followed as a shelf above it, since those are the reason to
-/// open the library on a Friday. History is lines rather than posters: it
-/// is about episodes and evenings, and the place to score what was watched.
+/// What the viewer keeps, has watched and thinks of it. My list is a grid,
+/// one list to look through, under a shelf of new episodes of followed
+/// series. History is lines, about episodes, and where to score them.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
     super.key,
@@ -651,9 +644,7 @@ class _NewEpisodesShelf extends StatelessWidget {
                 ),
                 captioned: true,
                 caption: newEpisodeCaption(n, now, context.l10n),
-                // Onto the new episode itself: the page otherwise opens
-                // where watching goes on, which for somebody behind is an
-                // older one.
+                // Onto the new episode itself, not where watching goes on.
                 onOpen: () => onOpen(
                   n.item,
                   season: n.episode.season,

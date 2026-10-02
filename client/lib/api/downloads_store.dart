@@ -5,11 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'client.dart';
 import 'models.dart';
 
-/// Live download state, polled from the core.
-///
-/// The core deliberately does not persist progress, so the client asks for it
-/// rather than being told — a poll every couple of seconds is honest for a
-/// number that only ever moves while someone is looking at it.
+/// Live download state, polled from the core: the core does not push
+/// progress, and it only matters while someone is looking.
 class DownloadsStore extends ChangeNotifier {
   DownloadsStore(this._api) {
     _started = _api.started.listen(_adopt);
@@ -17,9 +14,7 @@ class DownloadsStore extends ChangeNotifier {
     _schedule();
   }
 
-  /// Fast while something is moving, slow when nothing is: a poll that keeps
-  /// firing every two seconds at an idle core is a wasted wake-up, and there
-  /// is nothing to see between two zeroes.
+  /// Fast while something is moving, slow when nothing is.
   static const _activeInterval = Duration(seconds: 2);
   static const _idleInterval = Duration(seconds: 15);
 
@@ -55,13 +50,9 @@ class DownloadsStore extends ChangeNotifier {
     return found;
   }
 
-  /// Drop a download from the list now, without waiting to be told.
-  ///
-  /// Stopping one is a request over HTTP and the list is a poll: between them
-  /// sat up to two seconds in which the row somebody had just discarded was
-  /// still sitting there, which reads as the click having missed. If the stop
-  /// actually failed, the next poll puts the row back — the poll replaces this
-  /// list wholesale, so nothing here can drift.
+  /// Drops a download from the list now, so the click visibly lands. If the
+  /// stop failed, the next poll puts the row back: it replaces the list
+  /// wholesale.
   void forget(String id) {
     final before = _downloads.length;
     _downloads = _downloads.where((d) => d.id != id).toList(growable: false);
@@ -76,10 +67,8 @@ class DownloadsStore extends ChangeNotifier {
   Future<void> resume(Download download) =>
       _patch(() => _api.resumeDownload(download.id));
 
-  /// Puts the core's answer in the list at once, for the same reason [forget]
-  /// does: the button pressed should change the row now, not on the next poll.
-  /// A request that failed changes nothing here, and the next poll shows the
-  /// state the core really has.
+  /// Puts the core's answer in the list at once, as [forget] does; a failed
+  /// request changes nothing, and the next poll shows the core's state.
   Future<void> _patch(Future<Download> Function() request) async {
     final Download answer;
     try {
@@ -96,11 +85,9 @@ class DownloadsStore extends ChangeNotifier {
     _schedule();
   }
 
-  /// A download just started, in the list at once: the poll behind the list
-  /// is slow while nothing moves, and a download is at its least visible
-  /// exactly when it has just begun. One the core already had (Play on a
-  /// copy on disk) is updated where it is. The next poll replaces the list
-  /// wholesale, so nothing here can drift.
+  /// A download just started, in the list at once rather than after the idle
+  /// poll. One the core already had (Play on a copy on disk) is updated in
+  /// place. The next poll replaces the list wholesale.
   void _adopt(Download download) {
     if (_disposed) return;
     _adopted++;
@@ -116,9 +103,8 @@ class DownloadsStore extends ChangeNotifier {
     _schedule();
   }
 
-  /// The catalogue title behind a download, once it is known. A download row
-  /// carries the release name, which is provenance rather than a name anyone
-  /// asked for; the title comes from the item it belongs to.
+  /// The catalogue title behind a download, once known: the row carries the
+  /// release name.
   String? titleOf(Download download) => _items[download.itemId]?.title;
 
   /// The catalogue item behind a download, for its poster and artwork.
@@ -161,9 +147,8 @@ class DownloadsStore extends ChangeNotifier {
       if (changed) notifyListeners();
       unawaited(_resolveTitles());
     } on Object catch (_) {
-      // A failed poll is not worth clearing the screen over: keep the last
-      // known state and try again on the next tick. A core that is gone is
-      // said by the screens, whose own requests fail too.
+      // A failed poll keeps the last known state; the screens report a core
+      // that is gone, since their own requests fail too.
     }
   }
 

@@ -6,11 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'dirs.dart';
 
-/// Shows a directory in whatever the desktop uses for that.
-///
-/// Through url_launcher rather than xdg-open: on Wayland only the focused
-/// app can hand focus on, and GTK passes that on where a bare process
-/// cannot, so the browser comes to the front instead of opening behind us.
+/// Shows a directory in whatever the desktop uses for that. Through
+/// url_launcher rather than xdg-open: on Wayland GTK hands on the focus, so
+/// the file manager comes to the front.
 Future<void> openFolder(String path) => _open(Uri.directory(path));
 
 Future<void> openUrl(String url) => _open(Uri.parse(url));
@@ -27,11 +25,9 @@ Future<void> _open(Uri target) async {
 /// The Windows runner's shell calls (windows/runner/flutter_window.cpp).
 const _shell = MethodChannel('dev.lumeo/shell');
 
-/// mpv's log for the player being opened, with the previous one kept beside it.
-///
-/// mpv truncates its log on open and every player screen is a new mpv, while
-/// the film a report is about is usually the one just closed: so the last log
-/// moves aside first, and two files bound the size. Logs are state.
+/// mpv's log for the player being opened, with the previous one kept beside
+/// it: mpv truncates its log on open, and a report is usually about the film
+/// just closed. Two files bound the size.
 String mpvLogFile({Map<String, String>? environment}) {
   final dir = stateDir(environment);
   final path = '$dir/mpv.log';
@@ -45,24 +41,12 @@ String mpvLogFile({Map<String, String>? environment}) {
   return path;
 }
 
-/// Where a frame grabbed out of a film goes.
+/// Where a frame grabbed out of a film goes. mpv's default is the process's
+/// working directory, often `/` for an app started from the menu, where the
+/// screenshot fails. `xdg-user-dir` prints the configured Pictures folder.
 ///
-/// mpv's own answer is the working directory of the process, which for an
-/// application started from the desktop menu is wherever the session happened
-/// to be standing — often `/`, which nobody can write to, and then `s` fails
-/// with "Error writing screenshot!" and the frame is simply lost. The desktop
-/// already answers this question for every application that produces images,
-/// so it is asked rather than guessed: `xdg-user-dir` prints the configured
-/// Pictures folder, under whatever name the account keeps it in.
-///
-/// Asked once. The answer is a process launch, and it does not change while
-/// the application is running — but it is a process launch, so it is also
-/// given a moment and no more, and it must never be waited for on the way to
-/// playing something.
-///
-/// [environment] and [run] are the seam the tests use. A caller that brings
-/// either is answered without the cache: the cached answer belongs to this
-/// machine, and a test's does not.
+/// Asked once, with a short timeout, and never waited for on the way to
+/// playing. [environment] and [run] are for tests, which bypass the cache.
 Future<String> picturesFolder({
   Map<String, String>? environment,
   Future<ProcessResult> Function(String, List<String>)? run,
@@ -80,8 +64,7 @@ Future<String> picturesFolder({
 
 Future<String>? _pictures;
 
-/// Puts this machine's answer in place of asking, as a test that builds a
-/// screen showing the folder must: the real answer launches a program. Null
+/// Puts an answer in place of asking, for tests that show the folder; null
 /// asks again.
 @visibleForTesting
 set picturesFolderAnswer(String? answer) =>
@@ -96,21 +79,17 @@ Future<String> _findPictures(
   Map<String, String> environment,
   Future<ProcessResult> Function(String, List<String>) run,
 ) async {
-  // A trailing slash is a path to the filesystem and a different string to
-  // the comparison below, and HOME=/home/me/ against an answer of /home/me
-  // would put frames in the home directory itself.
+  // A trailing slash would defeat the comparison with HOME below.
   final home = _withoutTrailingSlash(environment['HOME'] ?? '');
   try {
     final found = await run('xdg-user-dir', [
       'PICTURES',
     ]).timeout(picturesAskTimeout);
     final path = _withoutTrailingSlash((found.stdout as String).trim());
-    // With no Pictures folder configured, xdg-user-dir answers with the home
-    // directory itself. That is not a place to drop frames into.
+    // With no Pictures folder configured, xdg-user-dir answers with home.
     if (path.isNotEmpty && path != home) return path;
   } on Object catch (_) {
-    // xdg-user-dirs is not installed on this machine, or did not answer in
-    // time. The conventional path is still the conventional path.
+    // xdg-user-dirs missing or too slow: the conventional path.
   }
   return home.isEmpty ? '' : '$home/Pictures';
 }

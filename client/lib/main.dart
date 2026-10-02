@@ -19,10 +19,8 @@ Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   // libmpv has to be set up before anything asks for a player.
   MediaKit.ensureInitialized();
-  // And asked what it can decode, now rather than when a film fails to play:
-  // the answer belongs to the table where a copy is chosen. Nothing waits for
-  // it — it is one property read on a handle with no file, and it is done
-  // long before a catalogue has arrived over the network.
+  // Asked what it can decode now, for the table where a copy is chosen.
+  // Nothing waits for it.
   unawaited(DeviceDecoders.instance.load());
   final settings = await LocalSettings.load();
   runApp(LumeoApp(settings: settings, open: fileToOpen(args)));
@@ -37,9 +35,7 @@ class LumeoApp extends StatefulWidget {
     this.open,
   });
 
-  /// The core to talk to. Left null in the application, where there is exactly
-  /// one; given by the UI tests, which stand a fake core in its place so a
-  /// screen can be driven without a network or a running binary behind it.
+  /// The core to talk to. Null in the app; the UI tests pass a fake core.
   final LumeoApi? api;
 
   /// Facts kept by this installation. Tests provide a temporary file so they
@@ -104,19 +100,12 @@ class _LumeoAppState extends State<LumeoApp> {
         locale: _settings.language.isEmpty ? null : Locale(_settings.language),
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
-        // Down and Up walk the screen rather than the caret, and this is the one
-        // place in the application that can say so.
-        //
-        // Two things make it that place. The search panel is a route of its own,
-        // pushed over this Navigator, so nothing inside the application is an
-        // ancestor of the field in it and a binding down there never sees the
-        // key; `builder` wraps the Navigator, which puts this above every route
-        // and below the text editing shortcuts MaterialApp installs, and the
-        // nearer binding wins. And `ignoreTextFields: false` is the whole point:
-        // a text field registers `DirectionalFocusAction.forTextField`, which
-        // exists to swallow exactly this intent so that arrows in a paragraph
-        // move the caret instead of leaving the field. This field is one line
-        // with a list under it, where down means the first answer.
+        // Down and Up walk the screen rather than the caret, for the search field's
+        // one line with a list under it. Here because the search panel is a route of
+        // its own: `builder` wraps the Navigator, above every route and below
+        // MaterialApp's text editing shortcuts, and the nearer binding wins.
+        // `ignoreTextFields: false` overrides the text field's
+        // `DirectionalFocusAction.forTextField`, which swallows this intent.
         builder: (context, child) => Shortcuts(
           shortcuts: const <ShortcutActivator, Intent>{
             SingleActivator(

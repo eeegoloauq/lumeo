@@ -9,12 +9,8 @@ import 'horizontal_strip.dart';
 import 'download_mark.dart';
 import 'poster_tile.dart';
 
-/// The measurements of a shelf, in one place.
-///
-/// The hero has to know how tall the shelf that overlaps it will be, and a
-/// number copied into that calculation would drift the first time a padding
-/// changes here. Everything derives from the poster and the label, so it
-/// cannot.
+/// The measurements of a shelf, in one place: the hero sizes itself from
+/// them, and everything derives from the poster and the label.
 class ShelfMetrics {
   const ShelfMetrics._();
 
@@ -35,9 +31,8 @@ class ShelfMetrics {
   /// The space between one shelf and the next.
   static const gap = 28.0;
 
-  /// What a captioned tile costs below the artwork: the gap, the title and the
-  /// year. Stated here rather than measured, because the grid that lays those
-  /// tiles out has to know the cell's height before any of them is built.
+  /// What a captioned tile costs below the artwork: the gap, the title and
+  /// the year. Stated, not measured: the grid needs the cell height first.
   static const captionGap = 8.0;
   static const captionHeight = captionGap + 17 + 16;
 
@@ -70,12 +65,9 @@ class ShelfSpec {
   }
 }
 
-/// One horizontal shelf, which loads itself and keeps going.
-///
-/// It fetches nothing until it is built, so a page of twenty-five shelves
-/// costs one request on open rather than twenty-five. Horizontally, the next
-/// catalogue page arrives while there is still a screen of posters left, so a
-/// row never visibly runs out at fifty.
+/// One horizontal shelf, which loads itself and keeps going. It fetches
+/// nothing until built, and asks for the next page while a screen of
+/// posters is still left.
 class Shelf extends StatefulWidget {
   const Shelf({
     super.key,
@@ -88,8 +80,7 @@ class Shelf extends StatefulWidget {
 
   final ShelfSpec spec;
 
-  /// A first page somebody already fetched — the shelf the hero was picked
-  /// from has one, and asking the core for it twice would be silly.
+  /// A first page already fetched, for the shelf the hero was picked from.
   final List<MediaItem> initial;
   final LumeoApi api;
   final DownloadsStore downloads;
@@ -99,9 +90,8 @@ class Shelf extends StatefulWidget {
   State<Shelf> createState() => _ShelfState();
 }
 
-/// Watch progress is already a complete, ordered list from the core, so this
-/// shelf shares the catalogue shelf's row and tiles without inventing paging
-/// for a list that cannot have another page.
+/// Watch progress is a complete, ordered list from the core: the catalogue
+/// shelf's row and tiles, without paging.
 class ContinueShelf extends StatelessWidget {
   const ContinueShelf({
     super.key,
@@ -209,9 +199,9 @@ class _ShelfState extends State<Shelf> with AutomaticKeepAliveClientMixin {
         _loading = false;
       });
     } catch (_) {
-      // A failed request is not the end of the shelf. The next scroll tries
-      // again; only a shelf that has nothing at all steps aside, so one dead
-      // genre does not leave a skeleton pulsing forever.
+      // A failed request is not the end of the shelf: the next scroll tries again.
+      // Only a shelf with nothing at all steps aside, so a dead genre does not
+      // pulse forever.
       if (mounted) {
         setState(() {
           _empty = _items.isEmpty;
@@ -224,8 +214,7 @@ class _ShelfState extends State<Shelf> with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    // A genre nobody has titles for is not a shelf; it leaves rather than
-    // pretending to load.
+    // A genre nobody has titles for is not a shelf.
     if (_empty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,9 +236,7 @@ class _ShelfState extends State<Shelf> with AutomaticKeepAliveClientMixin {
             separatorWidth: ShelfMetrics.posterGap,
             itemBuilder: (context, i) {
               final item = _items[i];
-              // Only the tile listens, not the row: a poll every couple of
-              // seconds should not rebuild a list of fifty posters to move
-              // one bar.
+              // Only the tile listens, so a poll does not rebuild fifty posters.
               return ListenableBuilder(
                 listenable: widget.downloads,
                 builder: (context, _) => PosterTile(

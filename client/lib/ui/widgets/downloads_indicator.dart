@@ -15,16 +15,9 @@ import 'download_rows.dart';
 import 'poster_tile.dart' show PosterArtwork;
 import 'source_list.dart' show formatBytes, formatTimeLeft;
 
-/// Acquisition is a background operation, not content, so it lives where
-/// background operations live: a small pinned indicator that is absent when
-/// there is nothing to say, and opens into detail when there is. Giving it a
-/// block in the page would push the catalogue down and make the layout jump
-/// every time a download starts or finishes.
-///
-/// It is a ring rather than a labelled pill: the pill slid the search field
-/// across the bar every time a download started or finished. The ring is a
-/// fixed square at the end of the bar, where the only thing to its right is
-/// the window's own buttons.
+/// Downloads as a background operation: a fixed-size ring at the end of the
+/// bar, absent when there is nothing to say, opening into detail. A fixed
+/// square, so a download starting or finishing moves nothing.
 class DownloadsIndicator extends StatefulWidget {
   const DownloadsIndicator({
     super.key,
@@ -57,9 +50,8 @@ class DownloadsIndicator extends StatefulWidget {
   /// nothing. Wide enough for the ring and its hover ground.
   static const width = 40.0;
 
-  /// The panel hangs to the left of the button: this is the last control
-  /// before the window's own buttons, so there is nothing to its right to
-  /// open into.
+  /// The panel hangs to the left of the button: only the window's buttons are
+  /// to its right.
   static const _panelWidth = 400.0;
 
   @override
@@ -302,9 +294,7 @@ class _PanelState extends State<_Panel> {
     );
     final now = DateTime.now();
     return ConstrainedBox(
-      // A season being acquired is many rows, and the bar it hangs from is at
-      // the top of the window: without a ceiling the last of them are off the
-      // bottom of the screen.
+      // A season is many rows: without a ceiling the last are off screen.
       constraints: BoxConstraints(
         maxWidth: DownloadsIndicator._panelWidth,
         minWidth: DownloadsIndicator._panelWidth,
@@ -446,8 +436,8 @@ class _PanelState extends State<_Panel> {
           if (row.eta case final eta?) formatTimeLeft(eta, context.l10n),
         ].join(' · ');
       case DownloadKind.stalled || DownloadKind.paused || DownloadKind.failed:
-        // How much is here stays in sight while it waits: it is what says
-        // whether waiting is worth it.
+        // How much is here stays in sight while it waits: it says whether waiting
+        // is worth it.
         return [
           if (row.size > 0) _percent(row),
           waitingLine(row, now, context.l10n),

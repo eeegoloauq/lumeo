@@ -7,12 +7,9 @@ import '../theme.dart';
 import 'buttons.dart';
 
 /// The viewer's own score of something, 1 to 10, and the way to give one.
-///
-/// Ten numbers in a row rather than five stars: the scale is the one IMDb and
-/// Trakt keep, so a score given here means the same thing there, and a row of
-/// numbers says which one is being pressed where half a star has to be aimed
-/// at. The row fills up to the number under the pointer or the keyboard, the
-/// way a row of stars does, so the choice is seen before it is made.
+/// Ten numbers rather than five stars: a number says which one is pressed,
+/// where half a star has to be aimed at. The row fills to the number under
+/// the pointer or the keyboard, so the choice is seen before it is made.
 class RatingButton extends StatefulWidget {
   const RatingButton({
     super.key,
@@ -174,9 +171,8 @@ class _ScaleState extends State<_Scale> {
     super.dispose();
   }
 
-  /// Left and right walk the row, and the row fills to where they are. The
-  /// menu's own arrows are for a column of items and would close it on Left,
-  /// so the row answers them first.
+  /// Left and right walk the row. The menu's own arrows are for a column and
+  /// would close it on Left, so the row answers them first.
   void _step(int by) {
     final at = _nodes.indexWhere((n) => n.hasFocus);
     final next = ((at < 0 ? 4 : at) + by).clamp(0, 9);
@@ -229,11 +225,9 @@ class _ScaleState extends State<_Scale> {
                         value: n,
                         filled: n <= filled,
                         focusNode: _nodes[n - 1],
-                        // Entering a number lights the row to it; only
-                        // leaving the row, not the gap between two numbers,
-                        // puts it back. Focus alone does not: the keyboard
-                        // starts on a number when the row opens, and a row
-                        // lit before anything was chosen reads as a score.
+                        // Entering a number lights the row to it; only leaving the row puts it
+                        // back. Focus alone does not: the keyboard starts on a number when the row
+                        // opens, and a lit row would read as a score.
                         onHover: (on) {
                           if (on) setState(() => _lit = n);
                         },
