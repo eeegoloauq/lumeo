@@ -22,12 +22,8 @@ import '../widgets/play_block.dart';
 
 /// Which episode the page opens on: the one to play next when there is one,
 /// the one a caught-up series goes on with when it has not aired, and
-/// otherwise the last one watched.
-///
-/// "No next episode" is not "start from the beginning": reading it as
-/// nothing-at-all opened a title four seasons in at the pilot, with Play
-/// pointed at it. With no progress at all there is genuinely nothing to go
-/// on, and the page opens at the first episode as it always did.
+/// otherwise the last one watched. Only a title with no progress at all
+/// opens at the first episode.
 ({int season, int episode})? openingEpisode(WatchProgress progress) {
   if (progress.next case final next?) {
     return (season: next.season, episode: next.episode);
@@ -64,12 +60,9 @@ Episode? pageEpisode({
       episodes.firstOrNull;
 }
 
-/// Everything about one title, on one page.
-///
-/// No tabs: for a film the episode tab would not exist, and a page whose
-/// structure changes with what you opened is harder to learn than a page you
-/// scroll. Sources are not a section either — for a series they belong to an
-/// episode, not to the title — so they hang under whatever Play would start.
+/// Everything about one title, on one scrolling page with no tabs, so a film
+/// and a series share one structure. Sources belong to whatever Play would
+/// start, not to the title.
 class ItemScreen extends StatefulWidget {
   const ItemScreen({
     super.key,
@@ -90,10 +83,8 @@ class ItemScreen extends StatefulWidget {
   final EpisodeFrames frames;
   final PreferencesStore preferences;
 
-  /// Play was pressed somewhere else — on the banner of the home screen — and
-  /// this page is where the sources for it live. Nothing is resolved twice:
-  /// the press is carried into the first source list this page asks for, and
-  /// starts it the moment it arrives.
+  /// Play was pressed on the home screen's banner: the first source list this
+  /// page asks for starts as soon as it arrives.
   final bool autoplay;
 
   /// The episode to open on, when the page was opened for one — a line of
@@ -147,14 +138,9 @@ class _ItemScreenState extends State<ItemScreen> {
     super.dispose();
   }
 
-  /// A film's artwork is the whole window, so its source table opens below
-  /// the fold — and a list that opens where nobody can see it did not open.
-  /// The page follows the toggle: down far enough that the table is on
-  /// screen with the Play head still above it, and back up when it closes.
-  ///
   /// The page always has one current episode: the banner's Play button plays
-  /// it, and the sources drawer lists its copies. Picking a card
-  /// re-points both, which is why there is one choice and not one per row.
+  /// it, and the sources drawer lists its copies, so there is one choice and
+  /// not one per card.
   SourceChoice _choiceFor(Episode? episode) {
     final existing = _choice;
     if (existing != null &&
@@ -194,9 +180,8 @@ class _ItemScreenState extends State<ItemScreen> {
     return context.l10n.itemPlaybackTitle(title, s, e);
   }
 
-  /// The title as it was last drawn. The player needs a name and the item is
-  /// behind a future; keeping the last one avoids threading it through every
-  /// callback.
+  /// The title as it was last drawn: the player needs a name and the item is
+  /// behind a future.
   String _lastTitle = '';
 
   /// Plays an episode straight from its card. The list may still be on its
@@ -207,15 +192,13 @@ class _ItemScreenState extends State<ItemScreen> {
     _choiceFor(e).start();
   }
 
-  /// Selecting is not playing. A card points the page at its episode — the
-  /// banner's button, its source line and the table all follow — and the play
-  /// mark on the still is what actually starts it.
+  /// Selecting is not playing: the banner's button, its source line and the
+  /// table follow the card; the play mark on its still starts it.
   void _selectEpisode(Episode e) {
     if (_current?.number == e.number && _current?.season == e.season) return;
     setState(() => _current = e);
-    // Selecting is cheap, but asking a provider for a list is not: clicking
-    // along a season would fire one request per card. The list is fetched for
-    // the episode the pointer settles on.
+    // A provider is asked only for the episode the selection settles on, not
+    // for every card clicked through on the way.
     _settle?.cancel();
     _settle = Timer(const Duration(milliseconds: 400), () {
       if (mounted) setState(() => _choiceFor(e));
@@ -275,9 +258,8 @@ class _ItemScreenState extends State<ItemScreen> {
 
         return CustomScrollView(
           slivers: [
-            // The viewport rather than the window: the banner is what the
-            // screen has left over above the season block, so it is that
-            // screen it has to be measured against.
+            // The viewport rather than the window: the banner takes what is
+            // left above the season block.
             SliverLayoutBuilder(
               builder: (context, constraints) => SliverToBoxAdapter(
                 child: _Banner(
@@ -309,9 +291,8 @@ class _ItemScreenState extends State<ItemScreen> {
                   }),
                 ),
               ),
-            // Always there, even with nothing to say: a sliver that came and
-            // went with the synopsis rebuilt the strip below it, and the
-            // strip scrolled back to the season's first episode.
+            // Always there, even empty: a sliver that came and went would
+            // rebuild the strip below and scroll it back to the first episode.
             if (seasons.isNotEmpty)
               SliverToBoxAdapter(
                 child: _EpisodeSynopsis(
@@ -488,9 +469,8 @@ class _ItemScreenState extends State<ItemScreen> {
     return _cardNodes[index];
   }
 
-  /// Moves the keyboard to the card at [index], with the strip scrolled so
-  /// a neighbour stays in sight on either side: a card at the very edge of
-  /// the strip is a card nobody can see was reached.
+  /// Moves the keyboard to the card at [index], with a neighbour in sight on
+  /// either side so the move is visible.
   void _step(int index, int count) {
     if (index < 0 || index >= count || !_episodeScroll.hasClients) return;
     const stride = EpisodeCard.width + 14;
@@ -514,9 +494,8 @@ class _ItemScreenState extends State<ItemScreen> {
     _cardNode(index).requestFocus();
   }
 
-  /// Past either end of a season the arrows go on into the next one, as a
-  /// remote does on a TV: the tabs are the mouse's way between seasons.
-  /// Specials are not part of the run.
+  /// Past either end of a season the arrows go on into the next one; the tabs
+  /// are the mouse's way between seasons. Specials are not part of the run.
   void _crossSeason(MediaItem item, List<int> seasons, int season, int by) {
     final runs = seasons.where((s) => s > 0).toList();
     final at = runs.indexOf(season);
@@ -549,15 +528,13 @@ class _ItemScreenState extends State<ItemScreen> {
           _episodeScroll.position.maxScrollExtent,
         ),
       );
-      // The arrows work without a click first, and a TV has nothing to click
-      // with. Not `autofocus`: the shell takes the keyboard after every
-      // navigation, in a callback registered before this one.
+      // The arrows work without a click first. Not `autofocus`: the shell
+      // takes the keyboard after every navigation, in an earlier callback.
       _cardNode(index).requestFocus();
     });
   }
 
-  /// Specials come as season 0 and are real, so they are offered — just not
-  /// first, because nobody opens a series to watch its extras.
+  /// Specials come as season 0: offered, but not first.
   static List<int> _seasonsOf(MediaItem item) {
     final seasons = item.episodes.map((e) => e.season).toSet().toList()..sort();
     if (seasons.length > 1 && seasons.first == 0) {
@@ -575,12 +552,10 @@ class _ItemData {
   final WatchProgress progress;
 }
 
-/// What a series page owes whoever opens it, and therefore what the banner
-/// above it has to leave room for: the row of seasons, the line about the
-/// current episode, and a whole card of the strip — not the top of one, which
-/// is a strip nobody knows is there. Each part is asked of the widget that
-/// draws it, so this follows a change to any of them instead of going stale.
-/// A film has none of it, and its banner is only bounded by the ceiling.
+/// What the banner of a series page leaves room for: the row of seasons, the
+/// line about the current episode and a whole card of the strip. Each part is
+/// asked of the widget that draws it. A film's banner is bounded only by the
+/// ceiling.
 double get _seasonBlock =>
     _Seasons.height + _EpisodeSynopsis.height + _stripHeight + _breath;
 
@@ -589,12 +564,8 @@ const _stripHeight = EpisodeCard.height + 2 * EpisodeCard.ring;
 /// The card is not flush with the bottom edge of the window.
 const _breath = 16.0;
 
-/// What the selected episode is about, in one place instead of on every card.
-///
-/// A strip of cards answers "which episode"; this answers "what is it". Kept
-/// above the strip so it stays put while the cards move under the pointer, and
-/// tied to the selection rather than to hover so nothing changes without being
-/// asked.
+/// What the selected episode is about, once instead of on every card: above
+/// the strip so it stays put, and tied to the selection rather than to hover.
 class _EpisodeSynopsis extends StatelessWidget {
   const _EpisodeSynopsis({required this.episode});
 
@@ -605,9 +576,8 @@ class _EpisodeSynopsis extends StatelessWidget {
   static double _line(TextStyle style) =>
       (style.fontSize! * style.height!).ceilToDouble();
 
-  /// The same height whether or not this episode fills it: a page that
-  /// changed height with the length of a synopsis would move the strip under
-  /// the pointer every time a card was picked.
+  /// The same height for any synopsis, so picking a card never moves the
+  /// strip under the pointer.
   static double get height =>
       _line(_titleStyle) + _gap + _line(Typo.body) * _lines + _below;
 
@@ -648,10 +618,8 @@ class _EpisodeSynopsis extends StatelessWidget {
                     const SizedBox(height: _gap),
                     Text(
                       e.overview,
-                      // Two lines, not three: this is the one line of prose
-                      // between the button and the strip, and a third line is
-                      // what pushes the season off the bottom of a short
-                      // window.
+                      // A third line would push the season off the bottom
+                      // of a short window.
                       maxLines: _lines,
                       overflow: TextOverflow.ellipsis,
                       style: Typo.body.copyWith(color: Palette.dim),

@@ -8,12 +8,8 @@ import 'artwork_image.dart';
 import 'download_mark.dart';
 import 'shelf.dart';
 
-/// One title in a shelf.
-///
-/// No caption underneath: a poster is a title card already, and a row of them
-/// reads as a shelf only when nothing separates the artwork. The name and what
-/// the artwork cannot say — year, rating, how much of it is on disk — appear on
-/// hover, where they cost no layout.
+/// One title in a shelf. No caption underneath, so a row reads as a shelf;
+/// the name, year, rating and how much is on disk appear on hover.
 class PosterTile extends StatefulWidget {
   const PosterTile({
     super.key,
@@ -34,24 +30,17 @@ class PosterTile extends StatefulWidget {
   final DownloadMark? mark;
   final double? watchFraction;
 
-  /// The name and year printed under the artwork.
-  ///
-  /// Off on a shelf, where a poster is a title card already and a row reads as
-  /// a shelf only when nothing separates the artwork. On the results page it
-  /// is on, because a wall of unfamiliar titles is a different thing: some of
-  /// those posters are in another language, some are the wrong artwork for the
-  /// right film, and some do not exist at all — the placeholder card is then
-  /// the only tile on the page that says its own name.
+  /// The name and year printed under the artwork: off on a shelf, on for a
+  /// results page, where posters are unfamiliar or missing.
   final bool captioned;
 
   /// The line under the name when [captioned], in place of the year: on My
   /// list what matters is how far the viewer is, not when the film came out.
   final String? caption;
 
-  /// The viewer's own score, 1 to 10, after the caption. A star and the
-  /// number, where the catalogue's rating is only ever a bare number: the
-  /// star is what says it is theirs. An icon rather than a character, which
-  /// the type's subset does not carry.
+  /// The viewer's own score, 1 to 10, after the caption. The star says it is
+  /// theirs (the catalogue's rating is a bare number); an icon, because the
+  /// type's subset has no star.
   final int score;
 
   final double width;
@@ -87,9 +76,8 @@ class _PosterTileState extends State<PosterTile> {
           child: Semantics(
             button: true,
             label: item.title,
-            // The tile is the poster's width, caption included: a caption
-            // left to its own width widened the tile past the artwork, and
-            // a click beside the picture landed on nothing.
+            // The tile is the poster's width, caption included, so a click beside the
+            // picture does not land on nothing.
             child: SizedBox(
               width: widget.width,
               child: Column(
@@ -128,8 +116,7 @@ class _PosterTileState extends State<PosterTile> {
                               width: widget.width,
                               named: !widget.captioned,
                             ),
-                            // Fades rather than appears: a hard cut on every pointer
-                            // crossing makes a shelf feel like it is flickering.
+                            // Fades: a hard cut on every pointer crossing flickers.
                             IgnorePointer(
                               child: AnimatedOpacity(
                                 opacity: lifted ? 1 : 0,
@@ -162,9 +149,7 @@ class _PosterTileState extends State<PosterTile> {
                       ),
                     ),
                   ),
-                  // Excluded from semantics rather than merged into it: the tile
-                  // already announces itself by name, and a screen reader that reads
-                  // the caption too says the title twice.
+                  // Excluded from semantics: the tile already announces itself by name.
                   if (widget.captioned)
                     ExcludeSemantics(
                       child: Padding(
@@ -226,24 +211,14 @@ class _PosterTileState extends State<PosterTile> {
   }
 }
 
-/// What the hovered card says.
-///
-/// The title first. A poster usually prints its own, but at 160 points wide
-/// that lettering is a texture rather than a word — which is exactly when
-/// somebody is hovering to find out what they are looking at — and the ones
-/// with no artwork have nothing at all. Then the two facts, pushed to opposite
-/// edges: read as a pair in the middle they look like one value broken in
-/// half, and the rating is what the eye comes back for, so it gets a corner of
-/// its own.
-///
-/// Deliberately not an expansion: growing a card to half again
-/// its size shoves its neighbours aside, and a shelf that rearranges under the
-/// pointer is harder to aim at, not easier to read.
 /// Type over artwork we do not control needs its own contrast.
 const _overArt = [
   Shadow(color: Color(0xE6000000), blurRadius: 10, offset: Offset(0, 1)),
 ];
 
+/// What the hovered card says: the title first, since a poster's lettering
+/// is a texture at this size, then the year and rating at opposite edges.
+/// Not an expansion: a card that grows shoves its neighbours aside.
 class _HoverFacts extends StatelessWidget {
   const _HoverFacts({required this.item, this.captioned = false});
 
@@ -259,9 +234,7 @@ class _HoverFacts extends StatelessWidget {
         ? NumberFormat('0.0', context.l10n.localeName).format(item.imdbRating)
         : '';
     return DecoratedBox(
-      // Dark enough at the foot that type sits on a ground rather than on
-      // whatever the poster happens to have there, and gone by half way up, so
-      // the hovered card is still the brightest thing in the row.
+      // Dark at the foot so type has a ground, gone by half way up.
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -280,9 +253,7 @@ class _HoverFacts extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Unless the tile is already the title: a card with no artwork
-            // prints the name itself, and saying it again ten points lower is
-            // the same word twice.
+            // Unless a card with no artwork already prints the name.
             if (item.poster.isNotEmpty && !captioned)
               Text(
                 item.title,
@@ -318,12 +289,9 @@ class _HoverFacts extends StatelessWidget {
   }
 }
 
-/// Artwork that never leaves a hole in the shelf: until it arrives the tile is
-/// a card with the title on it, and if it never arrives that is what stays.
-///
-/// Public because the search panel shows the same posters at thumbnail size,
-/// and two widgets loading one URL two ways is how one of them ends up without
-/// [cacheWidth] and holds a panel of full-size bitmaps.
+/// Artwork that never leaves a hole in the shelf: until it arrives, and if
+/// it never does, the tile is a card with the title on it. Public so the
+/// search panel loads posters the same way, with [cacheWidth].
 class PosterArtwork extends StatelessWidget {
   const PosterArtwork({
     super.key,
@@ -332,9 +300,8 @@ class PosterArtwork extends StatelessWidget {
     this.named = true,
   });
 
-  /// Whether the card that stands in for missing artwork carries the title.
-  /// False where the title is already printed under the tile: the same name
-  /// twice in two type sizes reads as a fault rather than as emphasis.
+  /// Whether the card that stands in for missing artwork carries the title;
+  /// false where the title is already printed under the tile.
   final bool named;
 
   final MediaItem item;
@@ -347,9 +314,8 @@ class PosterArtwork extends StatelessWidget {
     }
     final blank = _Blank(title: named ? item.title : '', width: width);
     return Image(
-      // Posters arrive around 660px wide and are shown at 160. Without the
-      // resize every one of them is decoded and held at full size, which a
-      // page of twenty-seven shelves turns into hundreds of megabytes.
+      // Posters arrive around 660px wide and are shown at 160; decoded at full
+      // size, a page of shelves holds hundreds of megabytes.
       image: ResizeImage.resizeIfNeeded(
         (width * MediaQuery.devicePixelRatioOf(context) * 1.1).round(),
         null,
@@ -367,12 +333,8 @@ class PosterArtwork extends StatelessWidget {
   }
 }
 
-/// A tile with no artwork behind it.
-///
-/// It has to look like a card and not like a hole in the row, which the page
-/// ground alone does not manage — a surface two steps off the background reads
-/// as nothing at all on a dim screen. So: a lighter ground, an edge, and the
-/// title, which is the whole reason anybody was looking at that rectangle.
+/// A tile with no artwork behind it, looking like a card rather than a hole:
+/// a lighter ground, an edge, and the title.
 class _Blank extends StatelessWidget {
   const _Blank({required this.title, required this.width});
 
@@ -383,9 +345,7 @@ class _Blank extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(color: Palette.raised),
-      // At thumbnail size the name does not fit and is not the point: the row
-      // beside it carries the title already, and four lines of clipped type in
-      // a 36 point box reads as a rendering fault.
+      // At thumbnail size the row beside it carries the title.
       child: title.isEmpty || width < 80
           ? const Center(
               child: Icon(Icons.movie_outlined, size: 15, color: Palette.muted),

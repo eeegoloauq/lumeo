@@ -395,9 +395,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<MpvHost?> _attachHost() async {
-    // Before the file, not with it: the bindings below are mpv defaults, and
-    // media_kit starts mpv with them off, so until then keys (Esc too) did
-    // nothing while the swarm was still being found.
+    // Before the file, not with it: media_kit starts mpv with its default
+    // bindings off, and keys must work while the swarm is still being found.
     for (final property in playerProperties.entries) {
       await _mpvSet(property.key, property.value);
     }
@@ -419,8 +418,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _subscriptions.add(
       host.messages.listen((args) {
         if (!mounted || args.length != 2 || args[0] != 'lumeo') return;
-        // Esc undoes one thing at a time, as mpv and the browsers do, so a
-        // stray press in fullscreen no longer ends the film; q always leaves.
+        // Esc undoes one thing at a time, so a stray press in fullscreen does
+        // not end the film; q always leaves.
         if (args[1] == 'escape') {
           if (_menu != PlayerMenu.none) {
             _closeMenu();
@@ -702,10 +701,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }();
 
   /// Closing the window ends the process, and the GPU driver's exit handlers
-  /// tear down what a decoder or the render thread still uses: every close
-  /// during playback crashed there. So mpv stops first, and the position is
-  /// saved while the core still answers. Bounded, so a stuck teardown cannot
-  /// keep the window open.
+  /// would tear down what a decoder or the render thread still uses. So mpv
+  /// stops first, and the position is saved while the core still answers.
+  /// Bounded, so a stuck teardown cannot keep the window open.
   Future<AppExitResponse> _beforeExit() async {
     await Future.wait([_reportProgress(afterCurrent: true), _teardown()])
         .timeout(const Duration(seconds: 3), onTimeout: () => const []);
@@ -1193,7 +1191,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  // Rounded progress can reach one before mpv signals end.
   void _onEndOfFile() {
     if (_advancing || _endedAt != null || !_opened) return;
     _endedPosition = _position;
@@ -1248,7 +1245,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     await _startEpisode(next, finished: true);
   }
 
-  // Credit skips count as watched before the core's 90% threshold.
   Future<void> _startEpisode(Episode episode, {bool finished = false}) async {
     final download = _download;
     // One copy at a time: a second pick while one is starting would start
@@ -1453,7 +1449,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             if (mounted) setState(() {});
           });
     }
-    // Restart chrome timeout when a menu closes.
     if (_menu == PlayerMenu.none) _restartIdle();
   }
 
@@ -1623,9 +1618,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   /// Subtitle files this player fetched, by the core's address. mpv is handed
-  /// the file, never the address: while it waits on one, every command after
-  /// it waits too, the next episode's loadfile included, and a provider that
-  /// keeps silent held the switch for as long as the core waited on it.
+  /// the file, never the address: while it waits on a silent provider, every
+  /// command after it waits too, the next episode's loadfile included.
   final _subtitleFiles = <String, Future<String?>>{};
   final _subtitlePaths = <String, String>{};
   Future<Directory>? _subtitleDir;
@@ -1796,8 +1790,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _checkDecoder() async {
     if (_decoderChecked) return;
     _decoderChecked = true;
-    final platform = _player.platform;
-    if (platform is! NativePlayer) return;
     try {
       await DeviceDecoders.instance.load();
       final format = await (await _hostReady)?.get('video-format');
@@ -1819,16 +1811,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// A failed audio decoder remains identifiable in mpv's track list;
   /// fall back to media_kit when mpv has no matching track.
   Future<bool> _isSoundTrack(String codec) async {
-    final platform = _player.platform;
-    if (platform is NativePlayer) {
-      try {
-        final type = trackTypeFor(
-          await (await _hostReady)?.get('track-list') ?? '',
-          codec,
-        );
-        if (type != null) return type == 'audio';
-      } on Object catch (_) {}
-    }
+    try {
+      final type = trackTypeFor(
+        await (await _hostReady)?.get('track-list') ?? '',
+        codec,
+      );
+      if (type != null) return type == 'audio';
+    } on Object catch (_) {}
     final wanted = codec.toLowerCase();
     final tracks = _player.state.tracks;
     if (tracks.video.any((t) => t.codec?.toLowerCase() == wanted)) return false;
@@ -2113,7 +2102,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   duration: const Duration(milliseconds: 200),
                   child: IgnorePointer(
                     ignoring: !_chrome,
-                    // Keep chrome up while the pointer is on the bar itself.
                     child: PlayerChrome(
                       model: model,
                       actions: actions,

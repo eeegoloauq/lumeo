@@ -63,13 +63,9 @@ class SourceChoice extends ChangeNotifier {
   bool loading = false;
   bool starting = false;
 
-  /// Play was pressed before there was anything to play.
-  ///
-  /// It used to be dropped: start() found no source and returned, so the first
-  /// press of the only button on the page did nothing and had to be repeated.
-  /// The press is a decision, not a request for the current state, so it is
-  /// kept and honoured as soon as the list arrives. It is also how a Play
-  /// pressed in the banner on the home screen carries over to this page.
+  /// Play was pressed before there was anything to play: kept and honoured as
+  /// soon as the list arrives. Also how a Play pressed on the home screen's
+  /// banner carries over to this page.
   bool startWhenReady;
   bool _disposed = false;
 
@@ -77,9 +73,8 @@ class SourceChoice extends ChangeNotifier {
   /// sources are still coming or because the download is being created.
   bool get pending => starting || startWhenReady;
 
-  /// Play has something to start, or will once the list arrives. After an
-  /// empty list it is off: a button that does nothing when pressed is worse
-  /// than one that says it cannot be pressed.
+  /// Play has something to start, or will once the list arrives; after an
+  /// empty list it is off rather than doing nothing.
   bool get playable => loading || picked != null;
 
   /// Not out yet: nobody has a copy, so nobody is asked.
@@ -98,10 +93,8 @@ class SourceChoice extends ChangeNotifier {
     if (startWhenReady && _onDisk != null) scheduleMicrotask(start);
     try {
       final found = await api.sources(itemId, season: season, episode: episode);
-      // What this machine can decode decides which of them Play starts, so the
-      // list waits for that answer rather than choosing without it. It was
-      // asked for when the application started and is a memory read by now;
-      // the await is here because "usually already there" is not a guarantee.
+      // What this machine can decode decides which copy Play starts, so the list
+      // waits for that answer; it is usually already in memory.
       await DeviceDecoders.instance.load();
       if (_disposed) return;
       sources = found.sources;
@@ -136,9 +129,8 @@ class SourceChoice extends ChangeNotifier {
   Future<void> _start({required bool play}) async {
     if (starting) return;
     final source = picked;
-    // A copy on disk needs no provider to play, and without a network the
-    // list would keep Play waiting for as long as they take to fail. The list
-    // still arrives, for the table and for a copy picked from it.
+    // A copy on disk needs no provider, and without a network the list would
+    // keep Play waiting until they fail. The list still arrives for the table.
     final local = source == null && play ? _onDisk : null;
     if (local != null) {
       startWhenReady = false;
@@ -146,8 +138,8 @@ class SourceChoice extends ChangeNotifier {
       return;
     }
     if (source == null) {
-      // Still looking. Hold the press instead of losing it; if the look is
-      // already over and found nothing, there is genuinely nothing to hold.
+      // Still looking: hold the press. A finished look that found nothing has
+      // nothing to hold.
       if (play && loading && !startWhenReady) {
         startWhenReady = true;
         _ping();
@@ -163,8 +155,8 @@ class SourceChoice extends ChangeNotifier {
         season: season,
         episode: episode,
       );
-      // The page may be gone by now — a slow core and a viewer who went back.
-      // Calling this anyway opens the player over whatever they went back to.
+      // The page may be gone by now; opening the player then would cover
+      // whatever the viewer went back to.
       if (_disposed || !play) return;
       onStarted?.call(download);
     } on Object catch (e) {
@@ -207,13 +199,9 @@ class SourceChoice extends ChangeNotifier {
 
 /// Which copy Play starts, out of the ranked list the core sent.
 ///
-/// The core ranks by the swarm and by what the copy is, and puts ahead of
-/// that what the library already chose: a copy on disk, then the pack used
-/// last time for this title. What it cannot rank by is this machine, because
-/// the same list is served to every client. So the one thing decided here is
-/// the one thing only this end knows: a copy whose codec nothing here decodes
-/// is a black screen, not the best copy. It stays in the table, marked; it is
-/// not what a press of Play, or a download of the season, means.
+/// The core ranks for every client; only this end knows what it decodes. A
+/// copy whose codec nothing here decodes stays in the table, marked, but is
+/// not what Play or a season download picks.
 MediaSource? preferredSource(List<MediaSource> found) {
   if (found.isEmpty) return null;
   bool playable(MediaSource s) =>
@@ -350,10 +338,8 @@ class _Summary extends StatefulWidget {
 }
 
 class _SummaryState extends State<_Summary> {
-  /// What the line said before the list now on its way: choosing another
-  /// episode keeps it while [Loading] would still hold back, rather than
-  /// blanking the line, since most lists arrive from the core's cache within
-  /// a frame or two.
+  /// What the line said before the list now on its way, kept instead of
+  /// blanking it: most lists arrive from the core's cache within a frame.
   Widget? _before;
 
   @override

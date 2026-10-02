@@ -33,13 +33,9 @@ Widget Function(PlayerScreen screen) playerLayer = (screen) => screen;
 
 /// Everything the window holds: one bar that stays, and a page under it.
 ///
-/// Navigation is a stack of our own rather than a Navigator with routes,
-/// because the bar is not part of any page — it floats over the artwork, and
-/// pushing a route over it would either cover it or make every screen redraw
-/// its own copy. A stack of our own still has to be a stack: it was one page
-/// replacing another for a while, which meant a search was gone the moment you
-/// opened anything in it, and the only way out of a title was the wordmark —
-/// which goes home, not back.
+/// Navigation is a stack of our own rather than a Navigator with routes: the
+/// bar floats over every page, and a route pushed over it would cover it or
+/// make every screen draw its own copy.
 class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
@@ -67,32 +63,20 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   final _scroll = ScrollController();
 
-  /// Ctrl+F lands here. Owned by the shell rather than by the bar, because the
-  /// key is pressed while a page has the keyboard, and the bar is rebuilt
-  /// under it as pages come and go. It is a controller rather than a focus
-  /// node now that the field is not always there to be focused: search opens
-  /// as a panel over the tabs, and opening it is what the key has to do.
+  /// Ctrl+F lands here. Owned by the shell, not the bar: the bar is rebuilt as
+  /// pages come and go, and search opens as a panel the key has to open.
   final _search = SearchController();
 
-  /// Where the keyboard lives when nothing else has asked for it.
-  ///
-  /// Keys are delivered by climbing from whatever holds the focus, and this
-  /// node is the bottom of that climb — the reason the shell's own shortcuts
-  /// are reachable at all. Its `autofocus` fires once, and after that the
-  /// focus goes wherever the page sends it: into the search field, into a
-  /// player, into a widget that is then unmounted by the very navigation it
-  /// caused. When that happens the focus lands nowhere, and back, fullscreen
-  /// and search all stop answering with nothing on screen to say why. So the
-  /// shell takes the keyboard back whenever the page changes under it.
+  /// Where the keyboard lives when nothing else has asked for it: the bottom
+  /// of the climb key events make, so the shell's shortcuts are reachable.
   final _shellFocus = FocusNode(debugLabel: 'shell');
 
   /// Stops "Open with Lumeo" from a later launch reaching this shell.
   late final void Function() _stopOpening;
 
   final _history = <_Page>[const _Page.home()];
-  // A notifier rather than state: crossing the threshold changes the bar's
-  // ground and nothing else, and a setState here rebuilt the whole page under
-  // it the moment a scroll began.
+  // A notifier rather than state: crossing the threshold changes only the
+  // bar's ground, and a setState would rebuild the whole page under it.
   final _scrolled = ValueNotifier(false);
   _Playing? _playing;
   // This release's notes, and what the viewer has not been told since the
@@ -112,15 +96,9 @@ class _AppShellState extends State<AppShell> {
     // A first run has nothing to compare with: its notes are not news.
     widget.settings.lastSeenVersion ??= appVersion;
     // Whenever the keyboard ends up on the floor, the shell picks it up.
-    //
-    // autofocus below fires exactly once, and only if nothing holds the focus
-    // in that frame. Everything else that empties it happens later: a desktop
-    // that focuses the window a beat after it opens (Flutter drops the focus
-    // when the view is not focused and does not put it back), a widget
-    // unmounted by the navigation it caused, a menu that closed. With nothing
-    // focused there is nothing for a key to climb from, so every shortcut in
-    // this file goes quiet with nothing on screen to say why — which is how
-    // Ctrl+F came to work only after the first click somewhere in the page.
+    // autofocus below fires once; later the focus can empty when the desktop
+    // focuses the window a beat after it opens, or the focused widget is
+    // unmounted by the navigation it caused, and then no shortcut answers.
     FocusManager.instance.addListener(_keyboardOnTheFloor);
     widget.settings.addListener(_configureBackground);
     if (widget.open case final path?) unawaited(_openFile(path));
@@ -275,14 +253,10 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  /// Whether the page has moved under the bar, which is what gives the bar its
-  /// ground. Read from the scroll itself rather than from our controller: a
-  /// controller with two positions attached — which is every frame where one
-  /// page replaces another — refuses to say what its offset is, and this only
-  /// ever needs to know that the page is not at the top.
-  ///
-  /// The horizontal rows send these too, and a shelf being dragged sideways is
-  /// not the page scrolling.
+  /// Whether the page has moved under the bar, which gives the bar its
+  /// ground. Read from the scroll itself: our controller refuses its offset
+  /// while two pages are attached during a page change. A shelf dragged
+  /// sideways is not the page scrolling.
   bool _onScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
     _scrolled.value = notification.metrics.pixels > 12;
@@ -306,9 +280,7 @@ class _AppShellState extends State<AppShell> {
     _takeKeyboard();
   }
 
-  /// The wordmark. Home is not the bottom of the stack, it is the whole stack:
-  /// clicking it means "start again", and leaving five titles behind it to walk
-  /// back through would be the opposite of what it says.
+  /// The wordmark: Home is the whole stack, not the bottom of it.
   void _home() {
     if (_history.length == 1) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -324,12 +296,9 @@ class _AppShellState extends State<AppShell> {
     _takeKeyboard();
   }
 
-  /// A tab is a place, and there is one of each: Home clears the stack the way
-  /// the wordmark does, and Library and Settings are pushed onto it so that
-  /// Escape and the mouse's back button return to whatever was being looked
-  /// at. A tab already in the stack is gone back to rather than pushed again:
-  /// Library pressed on a title opened from the library is the library that
-  /// title came from, not a second one to walk back through.
+  /// Home clears the stack the way the wordmark does; Library and Settings
+  /// are pushed so back returns to whatever was being looked at. A tab already
+  /// in the stack is gone back to rather than pushed again.
   void _tab(AppTab tab) {
     switch (tab) {
       case AppTab.home:
@@ -344,9 +313,8 @@ class _AppShellState extends State<AppShell> {
   /// Bumped to scroll a settings page that is already open to a section.
   int _settingsRequest = 0;
 
-  /// Settings, scrolled to [section] — from the downloads panel's Storage
-  /// link, say. Like the tab, a Settings already in the history is gone back
-  /// to rather than opened twice.
+  /// Settings, scrolled to [section]; a Settings already in the history is
+  /// gone back to rather than opened twice.
   void openSettings({SettingsSection? section}) {
     final at = _history.lastIndexWhere((p) => p.kind == _PageKind.settings);
     if (at < 0) {
@@ -397,12 +365,8 @@ class _AppShellState extends State<AppShell> {
     return AppTab.home;
   }
 
-  /// Back lands at the top of the page it returns to, not where that page was
-  /// left. Remembering the offset would be pointless while every page is built
-  /// from scratch on the way back — they share one ScrollController, so only
-  /// one of them can be mounted at a time, and the one coming back has no
-  /// content yet to scroll through. Keeping them mounted is a controller each,
-  /// which is a change to this whole file rather than a line here.
+  /// Back lands at the top of the page it returns to: the pages share one
+  /// ScrollController, so the one coming back is built from scratch.
   void _back() {
     if (_history.length < 2) return;
     setState(() {
@@ -415,9 +379,8 @@ class _AppShellState extends State<AppShell> {
 
   void _play(String downloadId, String title) {
     setState(() {
-      // Play from the banner is a one-off. Left set on the page it opened,
-      // coming back out of the film landed on a page that started it again —
-      // a loop you had to outrun with the Escape key.
+      // Play from the banner is a one-off, or coming back out of the film would
+      // start it again.
       if (_page.kind == _PageKind.item && _page.autoplay) {
         _history[_history.length - 1] = _Page.item(
           _page.value,
@@ -453,26 +416,18 @@ class _AppShellState extends State<AppShell> {
             onClose: () {
               final playing = _playing!;
               setState(() => _playing = null);
-              // The window goes back the way the film found it. Held here and
-              // not in the screen: the screen is torn down and built again for
-              // every episode, and one that handed the window back on its way
-              // out dropped somebody out of fullscreen between two episodes.
+              // The window goes back the way the film found it. Held here, not in the
+              // screen, which is rebuilt for every episode.
               AppWindow.instance.setFullscreen(playing.wasFullscreen);
               _takeKeyboard();
             },
             // Runs after onClose, which the player calls first.
             onStorage: () => openSettings(section: SettingsSection.downloads),
-            // The next episode is another film in the same sitting: a screen of
-            // its own, keyed to its own download, over the same window. The
-            // player cannot keep the one it has — media_kit's open() stops and
-            // resets the player underneath anyway, and everything the old
-            // screen had learned about the old file, down to the position it
-            // was about to report, would be applied to the new one.
+            // The next episode is a screen of its own, keyed to its own download:
+            // media_kit's open() resets the player anyway, and the old screen's state
+            // (down to the position it was about to report) belongs to the old file.
             onNext: (downloadId, title) {
-              // The film may already have been left: Escape while the next
-              // episode was being found, and the core's answer lands in the
-              // frame between the sitting ending and the screen going. There
-              // is nothing to carry it into then.
+              // The film may already have been left while the next episode was found.
               final playing = _playing;
               if (playing == null) return;
               setState(() => _playing = playing.then(downloadId, title));
@@ -481,27 +436,12 @@ class _AppShellState extends State<AppShell> {
         ),
       );
     }
-    // F11 is the shortcut every desktop application has for this, and the one
-    // the player already answers to under another name. Escape gives the
-    // window back rather than doing nothing, which is what somebody who is
-    // stuck in fullscreen will press first.
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.f11): _ToggleFullscreenIntent(),
-        // Escape means back, and only back. It used to give the window back
-        // from fullscreen first and go back a page on the second press, which
-        // made it depend on a piece of state it could not see: the moment that
-        // state was stale, Escape did nothing visible at all. Fullscreen has
-        // F11, which is a key nobody presses by accident.
-        // Not bare Backspace, however much of a browser habit it is:
-        // DefaultTextEditingShortcuts is installed by MaterialApp, which is
-        // above this, so a binding here is *closer* to the focus and wins —
-        // and the search field silently stops deleting characters. Measured,
-        // not guessed.
-        // Ctrl+F is what every desktop application means by "find", and what
-        // this window has to find with is search. The pointer was the only way
-        // to the field, and the field slides along the bar as the downloads
-        // indicator beside it grows and goes.
+        // Escape means back, and only back: fullscreen has F11. Not bare
+        // Backspace: a binding here is closer to the focus than MaterialApp's
+        // DefaultTextEditingShortcuts, so the search field would stop deleting.
         SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _FocusSearchIntent(),
         SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
@@ -531,20 +471,14 @@ class _AppShellState extends State<AppShell> {
             },
           ),
         },
-        // Something inside has to hold the focus or the shortcuts above never
-        // see a key: Flutter walks key events up from whatever is focused, and
-        // this application has no Navigator to seed that. Nothing had it until
-        // the first click, so F11 did nothing on a window nobody had touched
-        // yet. Never a tab stop of its own — it exists to be the bottom of
-        // that walk, not somewhere to arrive.
+        // Something inside has to hold the focus or the shortcuts above never see a
+        // key; there is no Navigator to seed it. Not a tab stop of its own.
         child: Focus(
           focusNode: _shellFocus,
           autofocus: true,
           skipTraversal: true,
           child: Listener(
-            // The side button on a mouse. It means back everywhere else on the
-            // desktop, and a media library is exactly the kind of page somebody
-            // walks back out of with their thumb.
+            // The mouse's back button.
             onPointerDown: (event) {
               if (event.buttons & kBackMouseButton != 0) _back();
             },
@@ -556,13 +490,8 @@ class _AppShellState extends State<AppShell> {
                     Positioned.fill(
                       child: PrimaryScrollController(
                         controller: _scroll,
-                        // Every platform, not the default. A vertical ScrollView
-                        // adopts the primary controller by itself on phones only, so
-                        // on this desktop the pages scrolled a controller of their
-                        // own: ours had no positions attached at all, and the two
-                        // things it exists for — the wordmark returning a scrolled
-                        // page to the top, and the bar knowing it is no longer over
-                        // artwork — silently did nothing.
+                        // Every platform: a vertical ScrollView adopts the primary controller by
+                        // itself only on phones.
                         automaticallyInheritForPlatforms: TargetPlatform.values
                             .toSet(),
                         child: switch (_page.kind) {
@@ -634,11 +563,8 @@ class _AppShellState extends State<AppShell> {
                         searchController: _search,
                         tab: _lit,
                         onTab: _tab,
-                        // Every page starts under artwork or under its own top
-                        // margin, so the bar is transparent at the top of all of
-                        // them. It used to take its ground the moment a title page
-                        // opened, which put a panel with a line under it across the
-                        // top of a full-bleed banner.
+                        // Every page starts under artwork or its own top margin, so the bar is
+                        // transparent at the top of all of them.
                         scrolled: _scrolled,
                         downloads: DownloadsIndicator(
                           api: widget.api,
@@ -686,8 +612,8 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _stop(Download download) async {
-    // Gone from the list before the request is even sent: waiting for the next
-    // poll to notice made a discarded download look like a click that missed.
+    // Gone from the list before the request is sent, so the click visibly
+    // lands.
     widget.downloads.forget(download.id);
     try {
       await widget.api.stopDownload(download.id);

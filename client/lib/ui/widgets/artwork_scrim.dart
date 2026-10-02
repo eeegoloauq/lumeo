@@ -7,32 +7,21 @@ import 'package:flutter/rendering.dart';
 import '../theme.dart';
 import 'artwork_image.dart';
 
-/// The washes that turn a frame we do not control into a page.
+/// The washes that turn a frame we do not control into a page: a horizontal
+/// one gives the type a ground, a light one on the right dims the frame's
+/// brightest half, and a vertical one hands the page an edge. Both banners
+/// draw this one.
 ///
-/// One horizontal, which gives the type a ground to sit on; a light one on
-/// the right, because the frame is brightest where nothing has darkened it and
-/// a bright half that ends is more of an edge than a dim half that ends; one
-/// vertical, which hands the page an edge to start from. The home banner and
-/// the title banner both draw this one, so they cannot drift apart again.
+/// The vertical wash is a smoothstep, because a linear ramp's knee reads as
+/// a line on black. It reaches the page's colour at the banner's own edge,
+/// under the first shelf.
 ///
-/// The vertical wash is a smoothstep, not a straight line. A linear ramp to
-/// opaque has a knee where the alpha stops climbing, and on black the eye reads
-/// that corner as a line across the picture. It starts falling at about half
-/// the banner and reaches the page's colour at the banner's own edge, where the
-/// first shelf already overlaps it: a ramp that finished short left a flat
-/// black band with the picture stopping above it, which read as a cut.
+/// Eight bits cannot express a fall this long on black, so the wash carries
+/// a grain of one part in forty that turns the bands into texture. It is
+/// additive, and only where the bands are, so solid black stays black.
 ///
-/// Eight bits per channel cannot express a fall this long on black, so the
-/// wash carries a grain of one part in forty: noise pushes each band's edge
-/// above or below the threshold at random, and an eye that was reading a step
-/// reads a texture instead. It is additive, so it can only lift a value, and it
-/// lives only in the stretch where the bands are — over solid page colour it
-/// lifted black into a faintly lighter rectangle ending at the banner's edge.
-///
-/// All of it is one fragment shader (`shaders/scrim.frag`), drawn in a single
-/// pass. As stacked gradients and a masked grain layer it was four full-banner
-/// draws and an offscreen pass each frame, which stuttered scrolling on laptop
-/// GPUs.
+/// One fragment shader (`shaders/scrim.frag`) in a single pass: stacked
+/// gradients and a grain layer stuttered scrolling on laptop GPUs.
 class ArtworkScrim extends StatefulWidget {
   const ArtworkScrim({super.key});
 
@@ -88,48 +77,23 @@ class _ScrimPainter extends CustomPainter {
   bool shouldRepaint(_ScrimPainter old) => false;
 }
 
-/// How tall a banner is.
+/// How tall a banner is: what the screen has left above the block that must
+/// stay visible under it, each part measured from the widget that draws it.
+/// Only a floor and a ceiling are chosen. A page with nothing under the
+/// banner (a film) ignores the ceiling: the artwork is the window.
 ///
-/// Not a share of the window. A fraction picked by eye is a number that
-/// happens to look right on the screen it was picked on, and the promise this
-/// page makes is not about a fraction — it is that opening a title lands you
-/// on something to choose from rather than on a poster and a scrollbar. So the
-/// banner is what the screen has left over above the block that has to stay
-/// visible under it, and every number in that block belongs to the widget that
-/// draws it: change the episode card and the banner follows without anyone
-/// editing this.
-///
-/// Two numbers are still chosen, and they are the two that cannot be derived
-/// from anything: a floor, below which a banner stops being a picture, and a
-/// ceiling, above which the page it heads becomes a screen with nothing on it
-/// to pick. Every hero in every design system has both.
-///
-/// A page with nothing under the banner is the exception to the ceiling. A
-/// film has no strip to show, so there is nothing for a shorter banner to
-/// reveal — only page under the picture, and a band of page under a picture
-/// that stopped is the one thing this arithmetic exists to avoid. The
-/// artwork is the window, and the source table, when it is asked for, is the
-/// thing the page scrolls to.
-///
-/// The result is rounded to whole device pixels. A height that lands inside a
-/// physical pixel is drawn with that row antialiased, and the scrim over the
-/// artwork gets the same treatment: both end up a little short of opaque, and
-/// what shows through the gap is the picture — one warm line straight across
-/// the page, exactly where the banner ends. That is the seam this class
-/// exists to make impossible; the gradient's stops, twice suspected, never
-/// had anything to do with it.
+/// Rounded to whole device pixels: a height inside a pixel antialiases that
+/// row and the scrim's, and the picture shows through as a line where the
+/// banner ends.
 class BannerMetrics {
   const BannerMetrics._();
 
   static const floor = 420.0;
 
-  /// Past this the artwork stops being the head of a page and becomes the
-  /// page — which is what a film's page is meant to be, and what a page with
-  /// a list under it must not become.
+  /// Past this the artwork becomes the page, which only a film's page may.
   static const ceiling = 720.0;
 
-  /// [screen] is the scroll viewport, not the window — they are the same today
-  /// and stop being the same the first time anything else shares the page.
+  /// [screen] is the scroll viewport, not the window.
   static double height(
     BuildContext context, {
     required double screen,
@@ -143,12 +107,9 @@ class BannerMetrics {
   }
 }
 
-/// A banner's box: [height] tall, or taller when what it holds needs more.
-///
-/// A fixed height let a short window push the text and buttons out of the
-/// bottom of the banner and over the row under it. The page scrolls, so a
-/// banner that grows costs a scroll, not a control. It stays a whole number of
-/// device pixels whichever height wins, for the seam [BannerMetrics] is about.
+/// A banner's box: [height] tall, or taller when what it holds needs more,
+/// so a short window scrolls rather than pushing the controls out. Whole
+/// device pixels either way (see [BannerMetrics]).
 class BannerBox extends StatelessWidget {
   const BannerBox({
     super.key,
@@ -231,11 +192,8 @@ class _RenderWholePixels extends RenderProxyBox {
   }
 }
 
-/// The artwork behind a banner, at the size it will actually be drawn.
-///
-/// Both banners loaded it the same way and both wrote the same cacheWidth
-/// arithmetic; a full-size decode of a 4K still is a hundred megabytes held
-/// for a picture shown at a fraction of it.
+/// The artwork behind a banner, decoded at the size it is drawn: a 4K still
+/// at full size is a hundred megabytes.
 class BannerArtwork extends StatelessWidget {
   const BannerArtwork({super.key, required this.url});
 

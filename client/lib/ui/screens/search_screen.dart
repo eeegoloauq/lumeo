@@ -8,7 +8,7 @@ import '../theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/download_mark.dart';
 import '../widgets/poster_tile.dart';
-import '../widgets/search_box.dart' show rankSearchResults;
+import '../widgets/search_box.dart' show searchBoth;
 import '../widgets/shelf.dart';
 
 /// Search results as a grid rather than shelves: there is one list here, and
@@ -36,45 +36,11 @@ class _SearchScreenState extends State<SearchScreen> {
   late Future<List<MediaItem>> _results = _search();
 
   Future<List<MediaItem>> _search() async {
-    // Both kinds, because nobody searching for a name knows or cares whether
-    // it turned out to be a film or a series — and both at once, because asking
-    // in turn makes the page wait for two round trips instead of one.
-    //
-    // Answered separately, though, not through `Future.wait`: one provider
-    // timing out used to take the other one's answers down with it, so a word
-    // with six series behind it came out as "nothing found".
-    // Both handlers attached before either is awaited: attaching the second
-    // after awaiting the first leaves a window where series can fail with
-    // nobody listening, which Dart reports as an unhandled asynchronous error.
-    var failed = 0;
-    final films = widget.api.search(widget.query, kind: 'movie').onError((
-      error,
-      _,
-    ) {
-      failed++;
-      return const [];
-    });
-    final series = widget.api.search(widget.query, kind: 'series').onError((
-      error,
-      _,
-    ) {
-      failed++;
-      return const [];
-    });
-    final answers = [await films, await series];
-    // Only both failing is the core being unreachable; one is a gap in the
-    // catalogue, and the other list is still worth the page.
-    if (failed == 2) {
-      throw Exception('the catalogue did not answer');
-    }
-    // The same order the panel used, rather than one list after the other.
-    // They are the same search: seeing the series first in the panel and last
-    // on the page reads as the page having lost it.
-    return rankSearchResults(
-      widget.query,
-      films: answers[0],
-      series: answers[1],
-    );
+    final (:items, :failed) = await searchBoth(widget.api, widget.query);
+    // One kind failing is a gap in the catalogue; the other list still fills
+    // the page.
+    if (failed == 2) throw Exception('the catalogue did not answer');
+    return items;
   }
 
   @override

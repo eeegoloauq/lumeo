@@ -347,12 +347,8 @@ class MediaItem {
 
   bool get isSeries => kind == 'series';
 
-  /// "2022", or "2015–2019" for a series that has ended.
-  ///
-  /// An en dash and no spaces around it, because this is a range rather than
-  /// an aside: "2015 — 2019" is the punctuation of a parenthesis, and set in a
-  /// caption under a poster it reads as two separate years. A series still
-  /// running ends on the dash, which is what the dash already means.
+  /// "2022", or "2015–2019" for a series that has ended: an unspaced en dash,
+  /// a range; a spaced dash under a poster reads as two separate years.
   String get years {
     if (year == 0) return '';
     if (!isSeries) return '$year';
@@ -402,9 +398,8 @@ class Episode {
   /// none, so zero means "not stated" and the row simply omits it.
   final double rating;
 
-  /// Not out yet. Providers list a whole season as soon as the dates are
-  /// known, so half a season page can be episodes nobody can watch — and
-  /// offering to play them would be a lie.
+  /// Not out yet: providers list a whole season as soon as its dates are
+  /// known, so it must not be offered to play.
   bool get isUpcoming =>
       released != null && released!.isAfter(DateTime.now().toUtc());
 
@@ -415,9 +410,8 @@ class Episode {
   String fullLabel(AppLocalizations l10n) => episodeName(number, title, l10n);
   String get _named => realTitle(number, title);
 
-  /// Out in the last couple of weeks. An air date is worth the space when it
-  /// says "this one is new" or "this one is not out yet"; on an episode from
-  /// 2008 it is trivia in the place where something useful could be.
+  /// Out in the last couple of weeks: only then, or before it is out, is the
+  /// air date worth showing.
   bool get isRecent {
     if (released == null || isUpcoming) return false;
     return DateTime.now().toUtc().difference(released!).inDays <= 14;
@@ -700,15 +694,15 @@ class MediaSource {
   final int seeders;
   final String filename;
 
-  /// Where the provider found this copy, and which languages it says it
-  /// carries, audio and subtitles alike. Both come from the provider rather than from the release name,
-  /// which is why they are on the source and not on the parsed release.
+  /// Where the provider found this copy, and the languages it says it
+  /// carries, audio and subtitles alike: the provider's, not the release
+  /// name's, so they are on the source rather than the parsed release.
   final String tracker;
   final List<String> languages;
 
-  /// The provider's hint that this copy is the same one that holds the next
-  /// episode — a season pack, in practice. Remembering it is what stops the
-  /// second episode of an evening downloading a second copy of the season.
+  /// The provider's hint that this copy also holds the next episode (a
+  /// season pack, in practice), so the next episode does not download the
+  /// season again.
   final String bingeGroup;
 
   /// What this library knows of the copy: 'done' on disk, 'partial' started,
@@ -777,15 +771,10 @@ class Release {
   final bool atmos;
   final bool remux;
 
-  /// The one line that says what this copy is. Ordered the way someone scans
-  /// it: how it looks, where it came from, how it sounds.
-  /// A copy that names a season and no episode is the whole season. Nearly
-  /// every source for a series is one, and knowing it is the difference
-  /// between downloading a season once and downloading it per episode.
+  /// A copy that names a season and no episode is the whole season.
   bool get isSeasonPack => season > 0 && episode == 0;
 
-  /// What the copy is, without the resolution: that has a column of its own,
-  /// and saying it twice is what made the old row unreadable.
+  /// What the copy is, without the resolution, which has a column of its own.
   String kind(AppLocalizations l10n) => [
     if (isSeasonPack)
       l10n.downloadsSeasonPack(

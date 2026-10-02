@@ -13,9 +13,8 @@ import 'models.dart';
 /// the things that are configurable here.
 class LumeoApi {
   /// [token] defaults to the one the core on this machine wrote, but only for
-  /// the default address, and only on loopback: a core named by hand, or
-  /// built in as somewhere else, is a different core, and the local one's
-  /// secret is not sent to it.
+  /// the default loopback address: another core is not sent the local one's
+  /// secret.
   LumeoApi({String? baseUrl, http.Client? client, CoreToken? token})
     : this._(
         Uri.parse(baseUrl ?? defaultBaseUrl),
@@ -234,7 +233,6 @@ class LumeoApi {
         .toList();
   }
 
-  /// The file behind a [Subtitle.url], as the core converted it.
   /// The subtitles kept with a download, from disk: no provider is asked.
   Future<List<Subtitle>> keptSubtitles(String downloadId) async {
     final json = await _get(
@@ -246,6 +244,7 @@ class LumeoApi {
         .toList();
   }
 
+  /// The file behind a [Subtitle.url], as the core converted it.
   Future<Uint8List> subtitleFile(String path) async =>
       (await _request('GET', baseUri.resolve(path))).bodyBytes;
 
@@ -370,12 +369,8 @@ class LumeoApi {
   );
 
   /// The episode after the one named, or null when that was the last one out.
-  ///
-  /// Asked of the catalogue rather than read off [progress]: `next` there is
-  /// "what Play should open", counted from the last position reported and from
-  /// an episode that latches as watched at 90% — so the player, which is still
-  /// reporting the episode it is playing, would be told about the one after
-  /// the one it wants.
+  /// Not [progress]'s `next`: that counts from the last reported position, so
+  /// near the end of an episode it already names the one after the next.
   Future<Episode?> episodeAfter(
     String itemId, {
     required int season,
@@ -482,9 +477,8 @@ class LumeoApi {
         .toList();
   }
 
-  /// Releases the connections the client is holding. Called when the app
-  /// shuts down; a desktop app that leaves sockets open on exit is a process
-  /// that takes a while to die.
+  /// Releases the connections the client is holding, so the process exits
+  /// promptly.
   void close() {
     unawaited(_started.close());
     _client.close();

@@ -6,20 +6,10 @@ import 'package:media_kit/media_kit.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 
-/// What this machine can actually play, asked of the thing that will have to
-/// play it.
-///
-/// Fedora ships an ffmpeg without the patent-encumbered decoders, so a copy
-/// that is hevc, or whose sound is dts, opens into a black screen or silence
-/// on a machine where every other copy of the same film works. That is not a
-/// property of the film, of the swarm or of the distribution we can guess at:
-/// it is one list, and mpv publishes it as `decoder-list`. So the question is
-/// asked once, before anything is chosen, and the answer is what the source
-/// table marks its rows with.
-///
-/// Deliberately not a rule about distributions. The only distribution-shaped
-/// thing here is the sentence that says how to install what is missing, and
-/// that is a hint under an answer we already have.
+/// What this machine can actually play, asked of mpv's `decoder-list`
+/// once, before anything is chosen: Fedora's ffmpeg lacks hevc and dts, and
+/// a copy in them opens to a black screen or silence. The source table marks
+/// its rows with the answer. Distributions appear only in the install hint.
 class DeviceDecoders {
   DeviceDecoders({
     Future<String> Function()? ask,
@@ -27,12 +17,8 @@ class DeviceDecoders {
   }) : _ask = ask ?? _askMpv,
        _osRelease = osRelease ?? readOsRelease;
 
-  /// The one every screen reads. A capability of the machine, not of a widget.
-  ///
-  /// Replaceable for the same reason the core is: a test about a table that
-  /// marks what this machine cannot play must be able to say what this machine
-  /// cannot play, and the answer on the machine running the test is "all of
-  /// it".
+  /// The one every screen reads. Replaceable, so a test can say what the
+  /// machine cannot play.
   static DeviceDecoders instance = DeviceDecoders();
 
   final Future<String> Function() _ask;
@@ -61,9 +47,7 @@ class DeviceDecoders {
       _osReleaseContents = os;
       _installCommands = codecInstallCommands(os);
     } on Object catch (_) {
-      // Nothing is claimed when the question could not be put. Every caller
-      // treats "we do not know" as "say nothing", which is what a diagnostic
-      // that failed is worth.
+      // Nothing is claimed when the question could not be put.
     }
   }
 
@@ -74,19 +58,13 @@ class DeviceDecoders {
   /// A codec this machine plays with a decoder that is known not to survive a
   /// seek, when there is one.
   ///
-  /// Fedora's libavcodec-free is built without h264 and the hole is filled by
-  /// Cisco's libopenh264. It plays, which is exactly why nothing here ever
-  /// noticed: h264 is in mpv's list and [has] answers yes. What it does not do
-  /// is come back from a backward seek — mpv's own tracker closes those
-  /// reports with "openh264 is a known broken decoder, enable Fedora's
-  /// multimedia stuff" — and what a viewer sees is the sound landing seconds
-  /// away from the picture, which looks like a bug in whatever asked for the
-  /// seek. It is not, and the player must say so rather than wear it.
+  /// Fedora's libavcodec-free has no h264 and Cisco's libopenh264 fills the
+  /// hole: it plays, so [has] answers yes, but after a backward seek the sound
+  /// lands seconds away from the picture, and the player must say why.
   ///
-  /// lavc picks the driver named after the codec. The hardware wrappers
-  /// (h264_qsv, h264_cuvid, h264_v4l2m2m) are in the list on every machine and
-  /// are only used when named, so their presence says nothing; the question is
-  /// whether the driver named after the codec is there at all.
+  /// The hardware wrappers (h264_qsv, h264_cuvid, ...) are listed everywhere
+  /// and used only when named; what matters is whether the driver named after
+  /// the codec is there.
   BrokenDecoder? unreliable(String codec) {
     final name = codec.toLowerCase();
     final drivers = _drivers?[name];
@@ -100,8 +78,7 @@ class DeviceDecoders {
     );
   }
 
-  /// The one entry there is evidence for. Not a list of everything that could
-  /// go wrong: a decoder belongs here once it has cost somebody an evening.
+  /// Only decoders with evidence of breaking, not everything that could.
   static const _knownBroken = <String, String>{'h264': 'libopenh264'};
 
   /// How to install what is missing, on the distributions that ship their
@@ -114,10 +91,8 @@ class DeviceDecoders {
   List<String> get installCommands => _installCommands;
 
   /// What this copy would lose here, going by the codecs its name states.
-  ///
-  /// Null when it plays, when nothing in the name says what it is, or when mpv
-  /// never answered. The picture is reported before the sound: a copy with
-  /// neither is one problem, and the first line of it is the one on screen.
+  /// Null when it plays, when the name says nothing, or when mpv never
+  /// answered. The picture is reported before the sound.
   DecodeGap? gapIn(Release release) {
     final video = mpvVideoCodec(release.videoCodec);
     if (video != null && has(video) == false) {
@@ -139,11 +114,9 @@ class DeviceDecoders {
   }
 }
 
-/// A codec this machine plays with the wrong decoder.
-///
-/// Not a [DecodeGap]: the picture is there and the film is watchable, so this
-/// never marks a copy as unplayable. It is a sentence said once, when the
-/// thing it warns about is about to be blamed on the player.
+/// A codec this machine plays with the wrong decoder. Not a [DecodeGap]:
+/// the film is watchable, so it never marks a copy unplayable; it is said
+/// once, before the player gets blamed.
 class BrokenDecoder {
   const BrokenDecoder({
     required this.codec,
@@ -157,8 +130,8 @@ class BrokenDecoder {
   final String driver;
   final String? osReleaseContents;
 
-  /// What is wrong, without what to do about it — which is what a page that
-  /// prints the commands underneath needs.
+  /// What is wrong, without what to do about it, for a page that prints the
+  /// commands underneath.
   String fact(AppLocalizations l10n) => l10n.playerDecoderBroken(codec, driver);
 
   String sentence(AppLocalizations l10n) => [
@@ -182,8 +155,8 @@ class DecodeGap {
   final bool sound;
   final String? osReleaseContents;
 
-  /// Short enough for a table row, and about this machine rather than about
-  /// the copy: the copy is fine, it is this machine that cannot open it.
+  /// Short enough for a table row, and about this machine rather than the
+  /// copy.
   String mark(AppLocalizations l10n) => sound
       ? l10n.playerDecoderNoSoundMark(codec)
       : l10n.playerDecoderMissingMark(codec);
@@ -200,12 +173,8 @@ class DecodeGap {
   ].join(' ');
 }
 
-/// The codec names our release parser prints, in mpv's spelling.
-///
-/// The two vocabularies are not the same and neither is wrong: a release calls
-/// it x265, mpv calls it hevc, and the table between them is the only place
-/// that has to know both. Anything not listed is left alone — an unknown name
-/// is not a missing decoder.
+/// The codec names our release parser prints, in mpv's spelling (x265 is
+/// hevc). An unknown name is not a missing decoder.
 const _videoCodecs = <String, String>{
   'AVC': 'h264',
   'HEVC': 'hevc',
@@ -216,9 +185,8 @@ const _videoCodecs = <String, String>{
   'MPEG-2': 'mpeg2video',
 };
 
-/// DTS-HD and DTS-X are dts with more in the stream: one decoder, and the
-/// core of the track plays wherever it exists. PCM is deliberately absent —
-/// it is a family of a dozen codec names and nothing ships without it.
+/// DTS-HD and DTS-X are dts with more in the stream: one decoder. PCM is
+/// absent: a dozen codec names, and nothing ships without it.
 const _audioCodecs = <String, String>{
   'AAC': 'aac',
   'AC3': 'ac3',
@@ -236,16 +204,10 @@ String? mpvVideoCodec(String releaseCodec) => _videoCodecs[releaseCodec];
 
 String? mpvAudioCodec(String releaseCodec) => _audioCodecs[releaseCodec];
 
-/// Which kind of track in mpv's track list is in [codec] — "audio", "video",
-/// or null when the list says nothing about it.
-///
-/// mpv words a decoder it could not initialise identically whether the track
-/// was the picture or the sound, and the difference decides between covering
-/// the screen with a message and saying one line over a film that is playing
-/// perfectly well apart from being silent. The file's own track list is what
-/// answers it: a track whose decoder failed is still in the list, still with
-/// the codec it is in — which is why this is not a list of audio codec names
-/// kept by hand.
+/// Which kind of track in mpv's track list is in [codec]: "audio", "video",
+/// or null. mpv words a failed decoder the same for picture and sound, and
+/// the difference decides between a full-screen message and one line over a
+/// playing film; a failed track stays in the list with its codec.
 String? trackTypeFor(String json, String codec) {
   if (json.trim().isEmpty) return null;
   try {
@@ -266,14 +228,10 @@ String? trackTypeFor(String json, String codec) {
   return null;
 }
 
-/// mpv's decoder list, as codec names against the drivers offered for each.
-///
-/// The driver matters and not only the codec: a codec whose own driver is
-/// missing is still listed, decoded by whatever substitute the distribution
-/// put there. See [DeviceDecoders.unreliable].
-///
-/// Null means the value was not a decoder list, so callers do not confuse a
-/// failed query with a machine that decodes nothing.
+/// mpv's decoder list, as codec names against the drivers offered for each:
+/// a codec whose own driver is missing is still listed under a substitute
+/// (see [DeviceDecoders.unreliable]). Null when the value was not a decoder
+/// list, so a failed query is not a machine that decodes nothing.
 Map<String, Set<String>>? decoderDrivers(String json) {
   if (json.trim().isEmpty) return null;
 
@@ -302,8 +260,7 @@ Set<String>? decoderCodecs(String json) => decoderDrivers(json)?.keys.toSet();
 bool? decoderListHas(String json, String codec) =>
     decoderCodecs(json)?.contains(codec.toLowerCase());
 
-/// An actionable way to add a missing decoder on distributions where they are
-/// packaged separately. Which decoder it is does not change the answer: these
+/// How to add a missing decoder where they are packaged separately; the
 /// repositories ship the whole set as one package.
 String? codecInstallHint(String osReleaseContents, AppLocalizations l10n) {
   final ids = _distributions(osReleaseContents);
@@ -316,23 +273,14 @@ String? codecInstallHint(String osReleaseContents, AppLocalizations l10n) {
   return null;
 }
 
-/// The same advice as a shell can take it, in the order it has to be run.
-///
-/// Two commands on Fedora and not one. The package is in RPM Fusion, which
-/// Fedora does not enable and does not intend to, so a machine without that
-/// repository answers the install with "no match" — which is exactly what the
-/// one-command version of this hint produced for the first person to follow
-/// it. Where the repository is already there the first line is a no-op.
-///
-/// Empty where there is nothing verified to say. openSUSE gets the sentence
-/// above and no commands: adding Packman differs between Leap and Tumbleweed,
-/// and a command printed on a guess is worse than none.
+/// The same advice as shell commands, in the order they run. Two on Fedora:
+/// the package is in RPM Fusion, which Fedora does not enable; where it is
+/// enabled, the first is a no-op. None for openSUSE: adding Packman differs
+/// between Leap and Tumbleweed.
 List<String> codecInstallCommands(String osReleaseContents) {
   if (!_distributions(osReleaseContents).contains('fedora')) return const [];
   return const [
-    // The release number comes from rpm rather than from us: os-release has
-    // it, but a number baked into a string here is a number that is wrong the
-    // day after the next release.
+    // The release number from rpm, so it never goes stale here.
     r'sudo dnf install https://mirrors.rpmfusion.org/free/fedora/'
         r'rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm',
     'sudo dnf install libavcodec-freeworld',
@@ -377,12 +325,9 @@ Future<String?> readOsRelease() async {
   }
 }
 
-/// mpv, asked before it has been given anything to play.
-///
-/// A player of its own rather than the one on the player screen: the answer is
-/// needed while a title is being chosen, which is before any film has been
-/// opened. It costs one libmpv handle with no window, no video output and no
-/// file, and it is disposed the moment it has answered.
+/// mpv, asked before it has been given anything to play: the answer is
+/// needed while a title is chosen. One libmpv handle with no window, video
+/// output or file, disposed once it has answered.
 Future<String> _askMpv() async {
   final player = Player();
   try {

@@ -11,35 +11,18 @@ import 'poster_tile.dart';
 
 /// Search, and the tabs it shares the middle of the bar with.
 ///
-/// One [SearchAnchor] holds both, and that is deliberate: the panel a
-/// SearchAnchor opens takes the position and the width of whatever the anchor
-/// is. Anchored on the magnifier alone, a five hundred point panel would drop
-/// out of a thirty point button and hang off to one side of the window;
-/// anchored on the whole group, it opens exactly where the group was — the
-/// tabs turn into a field with the answers under it, which is the one place
-/// somebody who just typed is already looking.
+/// One [SearchAnchor] holds both: its panel takes the anchor's position and
+/// width, so it opens exactly where the group was. The anchor is a box of
+/// [fieldHeight] because the panel's top edge is the anchor's: left to fill
+/// the bar, the field would open flush against the window's top.
 ///
-/// Which is why the anchor is a box of [fieldHeight] and not whatever the bar
-/// gives it. The panel's top edge is the anchor's top edge, and the anchor
-/// left to fill the bar was sixty-eight points tall starting at the window's
-/// frame: the field opened flush against the top of the window, higher than
-/// the tabs it replaced and detached from them, and closing collapsed it into
-/// that same edge. Bounded to the height of the field, the panel starts where
-/// the tabs stand and grows downwards — the bar widens into a field in place,
-/// the way every search field in a header does.
+/// The overlay, its animation, the click outside, Escape and the field's
+/// focus come with the component. It has no highlighted suggestion, so Down
+/// and Up only move the caret; rows are reached with Tab, and Enter submits.
 ///
-/// Nothing here is ours except the appearance: the overlay and where it sits,
-/// the animation out of the anchor, the click outside, Escape, and a field
-/// that keeps its own focus all come with the component. Not the keyboard
-/// through the list — SearchAnchor has no notion of a highlighted suggestion,
-/// and while a row can be reached with Tab, Down and Up in the field move the
-/// caret and nothing else. Enter submits the word, which is the one keyboard
-/// path that exists here.
-///
-/// What we add is a wait before asking — a keystroke is two HTTP requests to
-/// the core, and nobody types one letter — and the height of the list, which
-/// the component does not animate because it does not expect the answers to
-/// arrive after the panel has (see [_Answers]).
+/// Ours: a wait before asking (a keystroke is two requests to the core), and
+/// the height of the list, which the component does not animate (see
+/// [_Answers]).
 class SearchNav extends StatefulWidget {
   const SearchNav({
     super.key,
@@ -53,9 +36,7 @@ class SearchNav extends StatefulWidget {
 
   final LumeoApi api;
 
-  /// Held by the shell: Ctrl+F is pressed while a page has the keyboard, and
-  /// opening the panel is something the shell has to be able to do to a widget
-  /// it does not own.
+  /// Held by the shell, which opens the panel on Ctrl+F.
   final SearchController controller;
 
   /// The width of the group at rest, which is also the width of the panel.
@@ -70,10 +51,9 @@ class SearchNav extends StatefulWidget {
   /// What the middle of the bar is when nobody is searching.
   final Widget child;
 
-  /// The field, and so the box the bar has to give this widget: the panel
-  /// unfolds from exactly that rectangle. A little taller than the 34 points
-  /// the tabs stand in, and centred on the same line, so that opening search
-  /// widens the middle of the bar instead of moving it.
+  /// The field, and so the box the bar gives this widget: the panel unfolds
+  /// from it. A little taller than the tabs and centred on their line, so
+  /// opening search widens the middle of the bar instead of moving it.
   static const fieldHeight = 42.0;
 
   @override
@@ -82,36 +62,32 @@ class SearchNav extends StatefulWidget {
 
 class _SearchNavState extends State<SearchNav> {
   /// Long enough that a typed word is one search rather than nine, short
-  /// enough that the list feels like it is answering the keyboard.
+  /// enough that the list answers the keyboard.
   static const _wait = Duration(milliseconds: 220);
 
-  /// Five titles and the line that opens the rest — what the catalogues this
-  /// is modelled on show, and as many as fit over the page rather than instead
-  /// of it. A panel that fills the window is a page, and there is already a
-  /// page for that.
+  /// Five titles and the line that opens the rest: as many as fit over the
+  /// page rather than instead of it.
   static const _shown = 5;
 
-  /// Answers already paid for, keyed by the lowercased word. Bounded, because
-  /// this lives as long as the window does and somebody deleting a word one
-  /// letter at a time leaves an entry behind for every prefix.
+  /// Answers already fetched, keyed by the lowercased word. Bounded: deleting
+  /// a word letter by letter leaves an entry for every prefix.
   final _cache = <String, List<MediaItem>>{};
   static const _cacheLimit = 40;
 
-  /// The word the field holds now. A search that comes back for anything else
-  /// is answering a question nobody is asking any more.
+  /// The word the field holds now; an answer for any other is dropped.
   String _wanted = '';
 
-  /// What is on screen. Kept so a superseded search can leave it there instead
-  /// of blanking the panel between two keystrokes.
+  /// What is on screen, kept so a superseded search does not blank the panel
+  /// between two keystrokes.
   List<Widget> _showing = const [];
 
-  /// Set when neither kind answered at all. The difference matters on screen:
-  /// "nothing found" is about the word, and this is about the core.
+  /// Set when neither kind answered at all: that is about the core, not the
+  /// word.
   bool _unreachable = false;
 
   /// What was searched for before, offered under the empty field. Its own
-  /// listenable, so forgetting one redraws the rows without asking the
-  /// component for new suggestions, which it does only when the text moves.
+  /// listenable, so forgetting one redraws the rows: the component asks for
+  /// suggestions only when the text moves.
   final _recent = ValueNotifier<List<String>>(const []);
 
   @override
@@ -125,8 +101,7 @@ class _SearchNavState extends State<SearchNav> {
       final recent = await widget.api.recentSearches();
       if (mounted) _recent.value = recent;
     } on Object catch (_) {
-      // No history is an empty field, which is what it was before there was
-      // any: not worth a word in the panel.
+      // No history: an empty field, not worth a word.
     }
   }
 
@@ -169,9 +144,7 @@ class _SearchNavState extends State<SearchNav> {
     return SearchAnchor(
       searchController: widget.controller,
       isFullScreen: false,
-      // The panel is as tall as its contents and no taller. Without this the
-      // view is two thirds of the screen whatever is in it, so a word with one
-      // answer opens a wall of empty surface.
+      // As tall as its contents; the default is two thirds of the screen.
       shrinkWrap: true,
       viewConstraints: BoxConstraints(
         minWidth: widget.width,
@@ -181,17 +154,13 @@ class _SearchNavState extends State<SearchNav> {
       viewBackgroundColor: Palette.floating,
       viewSurfaceTintColor: Colors.transparent,
       viewElevation: 12,
-      // The answers arrive above the page, so they are shaped like it: the
-      // floating radius, and a lit edge instead of an outline. A square panel
-      // outlined in grey reads as a hole cut in the page rather than as
-      // something laid on top of it.
+      // Laid over the page, so shaped like the other floating surfaces.
       viewShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Shape.floating),
         side: const BorderSide(color: Palette.rim),
       ),
-      // Ours, and inside the list rather than above it: see [_Answers]. The
-      // component's own would be a hairline under an empty field, because the
-      // list it belongs to has to be there before there is anything in it.
+      // Ours, inside the list (see [_Answers]): the component's would be a
+      // hairline under an empty field.
       dividerColor: Colors.transparent,
       headerHeight: SearchNav.fieldHeight,
       headerTextStyle: Typo.cardTitle.copyWith(
@@ -204,9 +173,8 @@ class _SearchNavState extends State<SearchNav> {
         padding: EdgeInsets.only(left: 14, right: 4),
         child: Icon(Icons.search, size: 18, color: Palette.muted),
       ),
-      // Material's own is a 24 point cross in a 48 point button, which in a
-      // field this size reads as the loudest thing in the panel. And it is
-      // there even with nothing typed, offering to clear an empty field.
+      // Material's is a 24 point cross in a 48 point button, loud in a field this
+      // size, and shown even with nothing typed.
       viewTrailing: [
         ListenableBuilder(
           listenable: widget.controller,
@@ -223,12 +191,8 @@ class _SearchNavState extends State<SearchNav> {
       ],
       textInputAction: TextInputAction.search,
       viewOnSubmitted: _submit,
-      // The panel opens empty. It is the same rule as clearing it on the way
-      // out — nobody wants the last search sitting in the field of a window
-      // that is showing something else — but done here, because emptying the
-      // field on the way out empties the list with it: the answers were gone
-      // in the frame the panel began to close, and what closed was an empty
-      // box. Left alone, the panel rolls up with the titles still in it.
+      // Cleared on the way in, not out: emptying the field on the way out empties
+      // the list in the frame the panel begins to close.
       viewOnOpen: () {
         _wanted = '';
         _showing = const [];
@@ -262,127 +226,106 @@ class _SearchNavState extends State<SearchNav> {
     final query = controller.text.trim();
     _wanted = query;
     if (query.isEmpty) {
-      // Not an empty list: an empty list takes the whole list away, and with
-      // it the box that gives the answers something to unroll out of. This is
-      // that box, with the searches from before in it, or nothing. See
-      // [_Answers].
+      // Not an empty list, which removes the box the answers unroll out of (see
+      // [_Answers]).
       _showing = [
         _RecentSearches(recent: _recent, onPick: _repeat, onForget: _forget),
       ];
       return _showing;
     }
     final items = await _lookup(query);
-    // Null means a later keystroke owns the field now: its own call is already
-    // on its way, and blanking the panel until it lands is a flicker.
+    // Null: a later keystroke's call is on its way; blanking now would flicker.
     if (items == null) return _showing;
     if (_unreachable) {
       _showing = const [_Rule(), _Unreachable()];
       return _showing;
     }
     _showing = [
-      // The line under the field, which the component would otherwise draw
-      // for us — see the divider above.
+      // The line under the field; see the divider above.
       const _Rule(),
       for (final item in items) ...[
         if (item != items.first) const _Rule(),
         _Result(
-          // The rows are what a test taps and what it looks inside: the same
-          // title is printed on posters in the shelf behind the panel.
+          // What a test taps: the same title is on posters behind the panel.
           key: ValueKey('result:${item.id}'),
           item: item,
           onOpen: () => _open(item),
         ),
       ],
-      // The line over the last row is the one that carries meaning: everything
-      // above it is an answer, and the line under it is a way out of the panel.
+      // The line over the last row separates the answers from the way out.
       const _Rule(),
       _AllResults(query: query, onTap: () => _submit(query)),
-      // The list ends at the panel's edge without this, which reads as a page
-      // cut off rather than a panel that ends.
+      // Without it the list reads as cut off at the panel's edge.
       const SizedBox(height: 8),
     ];
     return _showing;
   }
 
   /// The titles for one word, or null if that word is no longer the question.
-  ///
-  /// The two kinds are asked at once and answered separately. Separately
-  /// matters: through `Future.wait` one provider timing out took the other
-  /// one's answers with it, so a catalogue that could name six series looked
-  /// like it had nothing at all.
   Future<List<MediaItem>?> _lookup(String query) async {
     final key = query.toLowerCase();
     final cached = _cache[key];
     if (cached != null) {
       // Cleared here as well as below: a word that failed leaves the flag set,
-      // and the next word answering out of the cache would wear that failure.
+      // and the next word answered from the cache would wear that failure.
       _unreachable = false;
       return cached;
     }
     await Future<void>.delayed(_wait);
     if (_wanted != query) return null;
 
-    // Both handlers are attached before either is awaited. Attaching the
-    // second one after awaiting the first is a window in which series can fail
-    // with nobody listening, which Dart reports as an unhandled asynchronous
-    // error rather than as an empty list.
-    var failed = 0;
-    final films = widget.api.search(query, kind: 'movie').onError((_, _) {
-      failed++;
-      return const [];
-    });
-    final series = widget.api.search(query, kind: 'series').onError((_, _) {
-      failed++;
-      return const [];
-    });
-    final gotFilms = await films;
-    final gotSeries = await series;
-    if (_wanted != query) return null;
-
-    // Only when neither kind answered is this the core being unreachable
-    // rather than a word with no films behind it.
-    _unreachable = failed == 2;
-    if (_unreachable) return const <MediaItem>[];
-
-    final ranked = rankSearchResults(
+    final (:items, :failed) = await searchBoth(
+      widget.api,
       query,
-      films: gotFilms,
-      series: gotSeries,
       limit: _shown,
     );
-    // Half an answer is not worth remembering: cached, it would keep the
-    // provider that failed from ever being asked again for this word.
+    if (_wanted != query) return null;
+    _unreachable = failed == 2;
+    // A half answer is not cached, or the provider that failed would never be
+    // asked again for this word.
     if (failed == 0) {
       if (_cache.length >= _cacheLimit) _cache.remove(_cache.keys.first);
-      _cache[key] = ranked;
+      _cache[key] = items;
     }
-    return ranked;
+    return items;
   }
+}
+
+/// Films and series for [query], ranked together. Both are asked at once and
+/// answered separately, so one provider timing out does not take the other
+/// one's answers with it; [failed] counts the kinds that did not answer, and
+/// two means the core is unreachable.
+Future<({List<MediaItem> items, int failed})> searchBoth(
+  LumeoApi api,
+  String query, {
+  int? limit,
+}) async {
+  var failed = 0;
+  List<MediaItem> none(Object _, StackTrace _) {
+    failed++;
+    return const [];
+  }
+
+  // Both handlers are attached before either is awaited, or a series failure
+  // in between is an unhandled asynchronous error.
+  final films = api.search(query, kind: 'movie').onError(none);
+  final series = api.search(query, kind: 'series').onError(none);
+  final items = rankSearchResults(
+    query,
+    films: await films,
+    series: await series,
+    limit: limit,
+  );
+  return (items: items, failed: failed);
 }
 
 /// The order six lines are worth showing in.
 ///
-/// Two lists come back, one for each kind, and each is in the provider's own
-/// order of relevance — which knows what people actually opened, and is a
-/// better judgement of what "matrix" means than anything computable here.
-/// What it cannot know is which of the two to take the next line from: the
-/// answers carry no rating, no popularity and no score of any kind. A search
-/// result from this catalogue is a name, a year and a poster.
-///
-/// Taking the two in step is what this replaces, and it is exactly what the
-/// panel looked like — film, series, film, series, all the way down, whatever
-/// the word was. Two answers are not equally good just because each is first
-/// in its own list, and a word with three films behind it and one bad series
-/// showed two of the films. (Concatenating is worse, and came before that: the
-/// series that was the exact title went under every film the provider had.)
-///
-/// So the one judgement made here is the only one that can be made from the
-/// row itself: how much of the title the typed word actually is. The exact
-/// name first, then the titles that begin with it, then the titles that carry
-/// it as a word, and last the ones that merely contain it somewhere. Inside a
-/// tier the provider's order decides, because inside a tier it knows better.
-/// The kind decides nothing at all except which of two otherwise identical
-/// rows is printed first — there is no penalty for being a series.
+/// Each kind comes back in the provider's order of relevance, with no score
+/// to merge the two by. So the one judgement made here is how much of the
+/// title the typed word is: the exact name, then titles that begin with it,
+/// then those that carry it as a word, then those that contain it. Inside a
+/// tier the provider's order decides; the kind only breaks a tie.
 List<MediaItem> rankSearchResults(
   String query, {
   required List<MediaItem> films,
@@ -395,9 +338,8 @@ List<MediaItem> rankSearchResults(
     if (title == wanted) return 0;
     if (title.startsWith(wanted)) return 1;
     if (title.contains(' $wanted')) return 2;
-    // Kept rather than dropped: the provider matched this on something that is
-    // not on the row — an original title, another language's name — and
-    // throwing it away is the client second-guessing a search it did not run.
+    // Kept: the provider matched it on something not on the row, such as an
+    // original title.
     return 3;
   }
 
@@ -409,19 +351,14 @@ List<MediaItem> rankSearchResults(
         final byTier = a.$1.compareTo(b.$1);
         if (byTier != 0) return byTier;
         final byRank = a.$2.compareTo(b.$2);
-        // A film and a series the provider rates the same, with the same claim
-        // on the word, are shown film first because that is the more common
-        // answer — not the better one, and not a rule about series.
+        // A tie goes to the film, the more common answer.
         return byRank != 0 ? byRank : a.$3.compareTo(b.$3);
       });
   return [for (final row in ranked.take(limit ?? ranked.length)) row.$4];
 }
 
-/// A title reduced to the word somebody would say it by.
-///
-/// The leading article goes: "The Matrix" is what a person means when they
-/// type "matrix", and a catalogue filing it under T is no reason to rank it
-/// below a 1993 series that happens to be filed under M.
+/// A title reduced to the word somebody would say it by: without the
+/// leading article.
 String _plain(String text) {
   final trimmed = text.trim().toLowerCase();
   for (final article in const ['the ', 'a ', 'an ']) {
@@ -432,17 +369,10 @@ String _plain(String text) {
 
 /// The answers, and how they arrive.
 ///
-/// Everything else about this panel is animated by the component: it unfolds
-/// out of the anchor and folds back into it. The list inside it is not — it is
-/// rebuilt, so the one movement anybody actually watches was the one that
-/// jumped. A word typed into an empty field went from forty points of field to
-/// five rows and a footer between two frames, which is not a panel opening,
-/// it is a panel being replaced by a different one.
-///
-/// So the list is always there, empty until there is something to say, and its
-/// height is what changes. [AnimatedSize] clips to the height it is at, which
-/// is why the rows are revealed downwards rather than squashed: the answers
-/// are already the right size behind the edge that is moving.
+/// The component animates the panel but rebuilds the list inside it, so
+/// answers would jump in between two frames. The list is always there, empty
+/// until there is something to say, and its height animates; [AnimatedSize]
+/// clips, so rows are revealed downwards rather than squashed.
 class _Answers extends StatelessWidget {
   const _Answers({required this.rows});
 
@@ -463,37 +393,20 @@ class _Answers extends StatelessWidget {
   }
 }
 
-/// One answer: the poster first, because that is what a title is recognised by
-/// long before its name is read — and at its own proportions, which is the
-/// whole reason this row is laid out by hand.
+/// One answer, poster first and at its own proportions. [ListTile] cannot
+/// draw it: it caps the leading widget at the text's height, cropping the
+/// poster. [InkWell] brings the pointer, hover, focus ring and keys.
 ///
-/// [ListTile] cannot draw it. It sizes the row from the text and then gives
-/// the leading widget that height as a ceiling, so a poster asking for 56 by
-/// 84 is handed 56 by 49 and `BoxFit.cover` crops a square out of the middle
-/// of the artwork. Every attempt to make the covers bigger only made them
-/// wider, and the reason was not in the number. What ListTile brought
-/// otherwise — the pointer, the hover ground, the focus ring, Enter and Space
-/// — is [InkWell]'s to begin with; what is ours here is the arithmetic of the
-/// row, which is the part that had to change.
-///
-/// The text is centred against the artwork rather than pinned to its top.
-/// Both exist: IMDb has three lines that fill the thumbnail's height and pins
-/// them, Kinopoisk has two and centres them. Ours is two, and two lines
-/// against an 84 point poster leave a hole under themselves.
-///
-/// The second line is words in their own order — "1996 Film" — rather than
-/// facts strung on separators: a middle dot between two of them is a habit of
-/// interfaces with nothing to say about either.
+/// The two lines are centred against the poster. The second is words in
+/// their own order, "1996 Film", not facts strung on separators.
 class _Result extends StatelessWidget {
   const _Result({super.key, required this.item, required this.onOpen});
 
   final MediaItem item;
   final VoidCallback onOpen;
 
-  /// As wide as IMDb's thumbnail and half again as tall, because theirs is a
-  /// 3:4 crop of the poster and this is the poster itself: cropping takes the
-  /// top off, which is where a poster puts its name. Fifty-six was tried and
-  /// made five rows six hundred points tall — a panel that is a page.
+  /// A whole poster, not a crop: cropping takes the top off, where a poster
+  /// puts its name. Any taller and five rows make a panel the size of a page.
   static const _poster = 48.0;
   static const _pad = 9.0;
 
@@ -502,8 +415,7 @@ class _Result extends StatelessWidget {
     return InkWell(
       onTap: onOpen,
       hoverColor: Palette.raised,
-      // The row the keyboard is on has to look like it. Arrow keys walk this
-      // list, and a walk with nothing lit is a walk in the dark.
+      // The row Tab is on has to look like it.
       focusColor: Palette.raised,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, _pad, 14, _pad),
@@ -549,14 +461,9 @@ class _Result extends StatelessWidget {
     );
   }
 
-  /// What the name does not say, in the order it would be said out loud. No
-  /// rating: the provider does not send one with a search result, and a column
-  /// that is empty in every row but two is worse than no column.
+  /// What the name does not say. No rating: a search result carries none.
   String _said(BuildContext context) {
-    // The year first, as IMDb has it, and for the reason a search list exists
-    // at all: the rows repeat one name — three of them here are called Fargo —
-    // and what tells them apart is the year, not the word Film or Series. The
-    // discriminating fact goes where the eye lands.
+    // The year first: rows often share a name, and the year tells them apart.
     final kind = item.kind == 'series'
         ? context.l10n.commonSeries
         : context.l10n.commonFilm;
@@ -566,9 +473,8 @@ class _Result extends StatelessWidget {
   }
 }
 
-/// The hairline between two answers. Full width rather than inset: the poster
-/// column is not a margin, and a line that starts after it reads as a list
-/// inside a list.
+/// The hairline between two answers, full width: inset after the poster it
+/// reads as a list inside a list.
 class _Rule extends StatelessWidget {
   const _Rule();
 
@@ -577,9 +483,8 @@ class _Rule extends StatelessWidget {
       const Divider(height: 1, thickness: 1, color: Palette.line);
 }
 
-/// Neither kind answered, so there is nothing to say about the word itself.
-/// Offering "All results" here would open a page that is about to fail the
-/// same way.
+/// Neither kind answered. No "All results": that page would fail the same
+/// way.
 class _Unreachable extends StatelessWidget {
   const _Unreachable();
 
