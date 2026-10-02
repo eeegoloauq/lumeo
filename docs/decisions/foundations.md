@@ -7,6 +7,17 @@ is `single binary + SQLite + a media directory + optional FFmpeg`. Silo is the
 cautionary example: a good Go media server whose infrastructure is heavier than
 what a home user should have to run.
 
+## Schema migrations are kept, so any version upgrades to any later one
+
+Every package channel (Flatpak, Arch, the Windows build) installs only the
+latest release, so the core has to migrate a database from any earlier one.
+That is why `core/internal/store/migrations/` keeps every file: one change per
+file, never edited once released. A new preference is a new key with a default
+and needs no migration. Rejected for now: squashing into a baseline with a
+minimum version, which refuses a database that skipped the baseline release.
+Revisit only if the files get in the way, at a 0.x step, and then refuse such
+a database with a clear message rather than lose its data.
+
 ## The client always speaks HTTP to the core
 
 Even in local mode, where both live in the same process tree. This is what makes

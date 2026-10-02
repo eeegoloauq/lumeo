@@ -8,7 +8,7 @@ rejected option is usually the tempting one. How the code is laid out is in
 
 | File | What it settles |
 | --- | --- |
-| [foundations.md](foundations.md) | Go core with SQLite, HTTP between client and core, Flutter with libmpv, no browser playback, the Stremio addon protocol, Cinemeta |
+| [foundations.md](foundations.md) | Go core with SQLite and its migrations, HTTP between client and core, Flutter with libmpv, no browser playback, the Stremio addon protocol, Cinemeta |
 | [security.md](security.md) | What the core trusts, the API token, confinement, behaviour on a throttled network |
 | [downloads.md](downloads.md) | Seeding and limits, season packs, what is freed and when, the storage page |
 | [sources.md](sources.md) | The source table, how Play picks a copy, decoders asked of mpv |
