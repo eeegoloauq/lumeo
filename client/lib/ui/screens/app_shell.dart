@@ -60,6 +60,9 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
+/// How long closing a newer release's notice keeps the next ones away.
+const updateQuiet = Duration(days: 7);
+
 class _AppShellState extends State<AppShell> {
   final _scroll = ScrollController();
 
@@ -131,7 +134,14 @@ class _AppShellState extends State<AppShell> {
     try {
       final update = await widget.api.update();
       if (!mounted || update == null) return;
-      if (update.version == widget.settings.dismissedUpdate) return;
+      final settings = widget.settings;
+      if (update.version == settings.dismissedUpdate) return;
+      // A closed notice keeps the next ones quiet for a while: releases can
+      // come several a day, and one reminder a week is enough.
+      if (settings.updateDismissedAt case final at?
+          when DateTime.now().difference(at) < updateQuiet) {
+        return;
+      }
       setState(() {
         _update = update;
         _updateNotes = _notesOf(update);
@@ -157,7 +167,9 @@ class _AppShellState extends State<AppShell> {
 
     if (_update case final update?) {
       void dismiss() => setState(() {
-        widget.settings.dismissedUpdate = update.version;
+        widget.settings
+          ..dismissedUpdate = update.version
+          ..updateDismissedAt = DateTime.now();
         _update = null;
         seen();
       });

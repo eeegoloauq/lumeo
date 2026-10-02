@@ -13,7 +13,9 @@ rm -rf dist
 mkdir -p dist
 
 echo "==> client"
-(cd client && flutter build windows --release --build-name="$version" --dart-define="LUMEO_VERSION=$version")
+# The bundle's own version is numbers only: a beta's suffix travels in
+# LUMEO_VERSION alone.
+(cd client && flutter build windows --release --build-name="${version%%-*}" --dart-define="LUMEO_VERSION=$version")
 
 # Into the bundle, beside lumeo.exe: that is where the app looks for the core
 # it starts (client/windows/runner/main.cpp).
@@ -23,5 +25,5 @@ echo "==> core"
 
 echo "==> installer"
 # Git Bash would take /DVersion for a path and rewrite it.
-MSYS_NO_PATHCONV=1 iscc "/DVersion=$version" packaging/lumeo.iss
+MSYS_NO_PATHCONV=1 iscc "/DVersion=$version" "/DFileVersion=${version%%-*}" packaging/lumeo.iss
 echo "==> dist/lumeo-$version-windows-x86_64-setup.exe"

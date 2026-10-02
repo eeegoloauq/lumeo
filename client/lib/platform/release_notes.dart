@@ -54,8 +54,9 @@ class ReleaseNotes {
     ];
   }
 
+  /// A beta (0.1.79-beta.1) reads as its release: its notes are that one's.
   static List<int>? _version(String text) {
-    final parts = text.split('.').map(int.tryParse).toList();
+    final parts = text.split('-').first.split('.').map(int.tryParse).toList();
     if (parts.length != 3 || parts.contains(null)) return null;
     return parts.cast<int>();
   }

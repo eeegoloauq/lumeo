@@ -3,6 +3,8 @@
 # packaging/build-arch.sh, which sets the version and the checksum.
 pkgname=lumeo
 pkgver=0.1.0
+# The tarball's version: a beta's keeps the dash pkgver cannot have.
+_tarver=$pkgver
 pkgrel=1
 pkgdesc='Find, acquire and watch films and series'
 arch=(x86_64)
@@ -22,10 +24,10 @@ optdepends=('libayatana-appindicator: tray icon while running in the background'
 # bytes as every other release file. The Go core is built stripped, and
 # nothing here carries debug information to split off.
 options=(!strip !debug)
-source=("$pkgname-$pkgver-linux-x86_64.tar.gz")
+source=("$pkgname-$_tarver-linux-x86_64.tar.gz")
 
 package() {
-  cd "$pkgname-$pkgver-linux-x86_64"
+  cd "$pkgname-$_tarver-linux-x86_64"
   # The bundle stays in one piece: the binary finds its libraries at
   # $ORIGIN/lib and the core beside itself.
   install -d "$pkgdir/usr/lib/$pkgname"

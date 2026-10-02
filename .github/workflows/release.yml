@@ -156,9 +156,13 @@ jobs:
           git config --global --add safe.directory "$PWD"
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
           { git tag -l --format='%(contents)' "$TAG"; echo
-            packaging/release-notes.py markdown "${TAG#v}"; } > "$RUNNER_TEMP/notes.md"
+            version=${TAG#v}
+            packaging/release-notes.py markdown "${version%%-*}"; } > "$RUNNER_TEMP/notes.md"
       - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           body_path: ${{ runner.temp }}/notes.md
           generate_release_notes: true
+          # A beta (v0.1.79-beta.1) is a pre-release: downloadable, but not the
+          # latest, which is the only release the app's update check sees.
+          prerelease: ${{ contains(github.ref_name, '-') }}

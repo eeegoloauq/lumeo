@@ -29,6 +29,7 @@ class LocalSettings extends ChangeNotifier {
   String _screenshotsDir = '';
   String? _lastSeenVersion;
   String _dismissedUpdate = '';
+  DateTime? _dismissedAt;
   DateTime? _clearedAt;
   Timer? _saveTimer;
   Completer<void>? _scheduled;
@@ -79,6 +80,11 @@ class LocalSettings extends ChangeNotifier {
         if (decoded['dismissedUpdate'] is String) {
           settings._dismissedUpdate = decoded['dismissedUpdate'] as String;
         }
+        if (decoded['updateDismissedAt'] is String) {
+          settings._dismissedAt = DateTime.tryParse(
+            decoded['updateDismissedAt'] as String,
+          );
+        }
         if (decoded['downloadsClearedAt'] is String) {
           settings._clearedAt = DateTime.tryParse(
             decoded['downloadsClearedAt'] as String,
@@ -104,12 +110,20 @@ class LocalSettings extends ChangeNotifier {
   }
 
   /// The newer release whose notice was closed: it is not offered again,
-  /// the next one is.
+  /// the next one is, once [updateDismissedAt] is a week behind.
   String get dismissedUpdate => _dismissedUpdate;
 
   set dismissedUpdate(String value) {
     if (value == _dismissedUpdate) return;
     _dismissedUpdate = value;
+    _scheduleSave();
+  }
+
+  DateTime? get updateDismissedAt => _dismissedAt;
+
+  set updateDismissedAt(DateTime? value) {
+    if (value == _dismissedAt) return;
+    _dismissedAt = value?.toUtc();
     _scheduleSave();
   }
 
@@ -289,6 +303,8 @@ class LocalSettings extends ChangeNotifier {
       'autostart': _autostart,
       'screenshotsDir': _screenshotsDir,
       if (_dismissedUpdate.isNotEmpty) 'dismissedUpdate': _dismissedUpdate,
+      if (_dismissedAt != null)
+        'updateDismissedAt': _dismissedAt!.toIso8601String(),
       if (_clearedAt != null)
         'downloadsClearedAt': _clearedAt!.toIso8601String(),
     };

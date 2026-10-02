@@ -81,7 +81,7 @@ func (c *Checker) Newer(ctx context.Context, now time.Time) (*Release, error) {
 	return latest, nil
 }
 
-func (c *Checker) fetch(ctx context.Context, running [3]int) (*Release, error) {
+func (c *Checker) fetch(ctx context.Context, running [4]int) (*Release, error) {
 	var release struct {
 		Tag string `json:"tag_name"`
 		URL string `json:"html_url"`
@@ -128,10 +128,13 @@ func (c *Checker) get(ctx context.Context, url string) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
 
-// parse reads "0.1.68" or "v0.1.68".
-func parse(version string) ([3]int, bool) {
-	var parts [3]int
-	fields := strings.Split(strings.TrimPrefix(version, "v"), ".")
+// parse reads "0.1.68", "v0.1.68" or a beta, "0.1.68-beta.1". The fourth
+// number puts a beta before its release; betas are never the latest release,
+// so they are not told apart.
+func parse(version string) ([4]int, bool) {
+	var parts [4]int
+	version, _, beta := strings.Cut(strings.TrimPrefix(version, "v"), "-")
+	fields := strings.Split(version, ".")
 	if len(fields) != 3 {
 		return parts, false
 	}
@@ -142,10 +145,13 @@ func parse(version string) ([3]int, bool) {
 		}
 		parts[i] = n
 	}
+	if !beta {
+		parts[3] = 1
+	}
 	return parts, true
 }
 
-func newer(a, b [3]int) bool {
+func newer(a, b [4]int) bool {
 	for i := range a {
 		if a[i] != b[i] {
 			return a[i] > b[i]

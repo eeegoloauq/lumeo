@@ -14,7 +14,9 @@ work=dist/archbuild
 rm -rf "$work"
 mkdir -p "$work"
 cp "$tarball" "$work/"
-sed "s/^pkgver=.*/pkgver=$version/" packaging/PKGBUILD > "$work/PKGBUILD"
+# A beta drops its dash, and vercmp sorts 0.1.79beta.1 before 0.1.79.
+sed -e "s/^pkgver=.*/pkgver=${version//-/}/" -e "s/^_tarver=.*/_tarver=$version/" \
+  packaging/PKGBUILD > "$work/PKGBUILD"
 cd "$work"
 sums=$(makepkg --geninteg)
 echo "$sums" >> PKGBUILD

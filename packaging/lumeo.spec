@@ -5,12 +5,14 @@
 # the network during %build, which no distribution build system allows.
 Name:           lumeo
 Version:        %{?version}%{!?version:0.1.0}
+# The tarball's own version: a beta's is X.Y.Z-beta.N where Version has a ~.
+%{!?tarver:%global tarver %{version}}
 Release:        1%{?dist}
 Summary:        Find, acquire and watch films and series
 
 License:        MIT
 URL:            https://github.com/eeegoloauq/lumeo
-Source0:        %{name}-%{version}-linux-x86_64.tar.gz
+Source0:        %{name}-%{tarver}-linux-x86_64.tar.gz
 ExclusiveArch:  x86_64
 
 BuildRequires:  desktop-file-utils
@@ -54,7 +56,7 @@ its resolution, and plays the file while it is still arriving.
 %{!?_metainfodir: %global _metainfodir %{_datadir}/metainfo}
 
 %prep
-%setup -q -n %{name}-%{version}-linux-x86_64
+%setup -q -n %{name}-%{tarver}-linux-x86_64
 
 %build
 # Nothing to build: see the note at the top.

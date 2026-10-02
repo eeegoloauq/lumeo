@@ -7,7 +7,7 @@
 ; downloads, and a reinstall should find them.
 
 #ifndef Version
-  #error Run as: iscc /DVersion=X.Y.Z lumeo.iss
+  #error Run as: iscc /DVersion=X.Y.Z[-beta.N] /DFileVersion=X.Y.Z lumeo.iss
 #endif
 
 [Setup]
@@ -15,8 +15,9 @@
 AppId={{82158435-1197-4765-B0B6-5BC91DBFB79F}
 AppName=Lumeo
 AppVersion={#Version}
-; Without it the setup file's own version resource reads 0.0.0.0.
-VersionInfoVersion={#Version}
+; Without it the setup file's own version resource reads 0.0.0.0. Numbers
+; only, so a beta gives its release's.
+VersionInfoVersion={#FileVersion}
 AppPublisher=Lumeo
 DefaultDirName={autopf}\Lumeo
 DisableProgramGroupPage=yes

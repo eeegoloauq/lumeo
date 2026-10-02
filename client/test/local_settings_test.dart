@@ -123,6 +123,7 @@ void main() {
         ..keepFinished = '7d'
         ..lastSeenVersion = '0.1.66'
         ..dismissedUpdate = '0.1.70'
+        ..updateDismissedAt = DateTime.utc(2026, 10, 2)
         ..volume = 40;
 
       await settings.flush();
@@ -133,6 +134,7 @@ void main() {
       expect(reloaded.screenshotsDir, '/home/me/Frames');
       expect(reloaded.lastSeenVersion, '0.1.66');
       expect(reloaded.dismissedUpdate, '0.1.70');
+      expect(reloaded.updateDismissedAt, DateTime.utc(2026, 10, 2));
 
       reloaded.resetChoices();
       expect(reloaded.textScale, 'default');

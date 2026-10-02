@@ -14,7 +14,9 @@ rm -rf dist
 mkdir -p "$stage"
 
 echo "==> client"
-(cd client && flutter build linux --release --build-name="$version" --dart-define="LUMEO_VERSION=$version")
+# The bundle's own version is numbers only: a beta's suffix travels in
+# LUMEO_VERSION alone.
+(cd client && flutter build linux --release --build-name="${version%%-*}" --dart-define="LUMEO_VERSION=$version")
 cp -a client/build/linux/x64/release/bundle "$stage/bundle"
 
 # Into the bundle, beside the binary: that is where the app looks for the

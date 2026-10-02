@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 import 'package:lumeo/platform/release_notes.dart';
 import 'package:lumeo/ui/widgets/release_notes_card.dart';
+import 'package:lumeo/ui/screens/app_shell.dart' show updateQuiet;
 
 import 'fake_core.dart';
 
@@ -100,6 +101,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(items.last), findsOneWidget);
     expect(tester.getRect(find.byType(ReleaseNotesCard)).top, greaterThan(0));
+  });
+
+  uiTest('a closed notice keeps newer releases quiet for a week', (
+    tester,
+  ) async {
+    Future<void> start(DateTime closed) async {
+      await tester.pumpWidget(
+        testApp(
+          key: UniqueKey(),
+          api: fakeCore(update: fakeUpdate),
+          settings: temporarySettings()
+            ..dismissedUpdate = '0.2.0'
+            ..updateDismissedAt = closed,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await start(DateTime.now().subtract(const Duration(days: 6)));
+    expect(find.text('Lumeo 0.2.1 is out'), findsNothing);
+    await start(DateTime.now().subtract(updateQuiet));
+    expect(find.text('Lumeo 0.2.1 is out'), findsOneWidget);
   });
 
   uiTest('an update that was offered first tells only that it is in', (

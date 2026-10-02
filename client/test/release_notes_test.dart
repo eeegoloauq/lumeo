@@ -33,4 +33,16 @@ void main() {
     // Updated from a copy that kept no version: only this release is news.
     expect(ReleaseNotes.between(source, '', '0.2.1', 'en'), ['Newest']);
   });
+
+  test('a beta reads as its release', () {
+    const source = '''<component><releases>
+      <release version="0.2.0"><description><ul><li>Coming</li></ul></description></release>
+      <release version="0.1.9"><description><ul><li>Out</li></ul></description></release>
+    </releases></component>''';
+    expect(ReleaseNotes.parse(source, '0.2.0-beta.1', 'en'), ['Coming']);
+    expect(
+      ReleaseNotes.between(source, '0.2.0-beta.1', '0.2.0', 'en'),
+      isEmpty,
+    );
+  });
 }

@@ -23,6 +23,8 @@ topdir=$PWD/dist/rpmbuild
 mkdir -p "$topdir"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 cp "$tarball" "$topdir/SOURCES/"
 { cat packaging/lumeo.spec; packaging/release-notes.py rpm; } > "$topdir/SPECS/lumeo.spec"
-rpmbuild "${elsewhere[@]}" --define "_topdir $topdir" --define "version $version" \
+# A beta's dash becomes ~, which rpm sorts before the release itself.
+rpmbuild "${elsewhere[@]}" --define "_topdir $topdir" \
+         --define "version ${version/-/\~}" --define "tarver $version" \
          -bb "$topdir/SPECS/lumeo.spec"
 find "$topdir/RPMS" -name '*.rpm'

@@ -95,3 +95,17 @@ func TestCheckoutNeverAsks(t *testing.T) {
 		t.Fatalf("release = %+v, err = %v, requests = %d", got, err, *asked)
 	}
 }
+
+func TestBetaIsOfferedItsRelease(t *testing.T) {
+	c, _ := github(t, "v0.1.70")
+	c.version = "0.1.70-beta.2"
+	if got, err := c.Newer(context.Background(), time.Now()); err != nil || got == nil || got.Version != "0.1.70" {
+		t.Fatalf("release = %+v, err = %v", got, err)
+	}
+
+	c, _ = github(t, "v0.1.69")
+	c.version = "0.1.70-beta.1"
+	if got, err := c.Newer(context.Background(), time.Now()); err != nil || got != nil {
+		t.Fatalf("older release offered to a beta: %+v, err = %v", got, err)
+	}
+}
