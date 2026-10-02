@@ -146,25 +146,20 @@ class _AppShellState extends State<AppShell> {
     _notesLanguage ?? 'en',
   );
 
+  /// A newer release comes before the notes of this one: it is the news
+  /// that asks for something, and it covers the update the viewer is on.
   Widget? _releaseCard() {
     final l10n = context.l10n;
-    if (_news.isNotEmpty) {
-      void seen() => setState(() {
-        widget.settings.lastSeenVersion = appVersion;
-        _news = const [];
-      });
-      return ReleaseNotesCard(
-        title: l10n.releaseUpdatedTo(appVersion),
-        items: _news,
-        action: l10n.releaseGotIt,
-        onAction: seen,
-        onClose: seen,
-      );
+    void seen() {
+      widget.settings.lastSeenVersion = appVersion;
+      _news = const [];
     }
+
     if (_update case final update?) {
       void dismiss() => setState(() {
         widget.settings.dismissedUpdate = update.version;
         _update = null;
+        seen();
       });
       return ReleaseNotesCard(
         title: l10n.releaseAvailable(update.version),
@@ -175,6 +170,15 @@ class _AppShellState extends State<AppShell> {
           dismiss();
         },
         onClose: dismiss,
+      );
+    }
+    if (_news.isNotEmpty) {
+      return ReleaseNotesCard(
+        title: l10n.releaseUpdatedTo(appVersion),
+        items: _news,
+        action: l10n.releaseGotIt,
+        onAction: () => setState(seen),
+        onClose: () => setState(seen),
       );
     }
     return null;
@@ -586,8 +590,18 @@ class _AppShellState extends State<AppShell> {
                         onOpenItem: (item) => _go(_Page.item(item.id)),
                       ),
                     ),
+                    // Spans the height so a long card is held to the window
+                    // and scrolls, rather than running off its top.
                     if (_releaseCard() case final card?)
-                      Positioned(right: 24, bottom: 24, child: card),
+                      Positioned(
+                        top: 24,
+                        right: 24,
+                        bottom: 24,
+                        child: Align(
+                          alignment: Alignment.bottomRight,
+                          child: card,
+                        ),
+                      ),
                   ],
                 ),
               ),

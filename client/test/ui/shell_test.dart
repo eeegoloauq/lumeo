@@ -24,30 +24,7 @@ void main() {
   });
 
   uiTest('release notes show once after an update', (tester) async {
-    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
-      'flutter/assets',
-      (message) async =>
-          utf8.decode(message!.buffer.asUint8List()) !=
-              'assets/dev.lumeo.lumeo.metainfo.xml'
-          ? null
-          : utf8.encoder
-                .convert(
-                  '<component><releases><release version="$appVersion">'
-                  '<description><ul><li>Subtitles stay put.</li></ul></description>'
-                  '</release></releases></component>',
-                )
-                .buffer
-                .asByteData(),
-    );
-    addTearDown(
-      () => tester.binding.defaultBinaryMessenger.setMockMessageHandler(
-        'flutter/assets',
-        null,
-      ),
-    );
-    // rootBundle keeps what an earlier test read of the real file.
-    rootBundle.evict('assets/dev.lumeo.lumeo.metainfo.xml');
-    addTearDown(() => rootBundle.evict('assets/dev.lumeo.lumeo.metainfo.xml'));
+    bundleNotes(tester, ['Subtitles stay put.']);
     final settings = temporarySettings()..lastSeenVersion = '0.0.1';
     await tester.pumpWidget(testApp(settings: settings));
     await tester.pumpAndSettle();
@@ -98,6 +75,55 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Lumeo 0.2.1 is out'), findsNothing);
+  });
+
+  uiTest('a long notice fits a short window and opens the rest', (
+    tester,
+  ) async {
+    final items = [
+      for (var i = 1; i <= 10; i++)
+        'Change $i, told at the length a real release note runs to.',
+    ];
+    bundleNotes(tester, items);
+    await tester.binding.setSurfaceSize(const Size(1000, 420));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      testApp(settings: temporarySettings()..lastSeenVersion = '0.0.1'),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ReleaseNotesCard)).top, greaterThan(0));
+    expect(find.text(items.last), findsNothing);
+
+    // On a short window the count is reached by scrolling the card.
+    await tester.ensureVisible(find.text('And 4 more'));
+    await tester.tap(find.text('And 4 more'));
+    await tester.pumpAndSettle();
+    expect(find.text(items.last), findsOneWidget);
+    expect(tester.getRect(find.byType(ReleaseNotesCard)).top, greaterThan(0));
+  });
+
+  uiTest('a newer release comes before the notes of this one', (tester) async {
+    bundleNotes(tester, ['Subtitles stay put.']);
+    final settings = temporarySettings()..lastSeenVersion = '0.0.1';
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(update: fakeUpdate),
+        settings: settings,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Lumeo 0.2.1 is out'), findsOneWidget);
+    expect(find.text('Subtitles stay put.'), findsNothing);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ReleaseNotesCard),
+        matching: find.byTooltip('Close'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ReleaseNotesCard), findsNothing);
+    expect(settings.lastSeenVersion, appVersion);
   });
 
   uiTest('the wordmark is printed once', (tester) async {
@@ -328,4 +354,28 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+/// Serves a metainfo file whose release for this version lists [items].
+void bundleNotes(WidgetTester tester, List<String> items) {
+  const path = 'assets/dev.lumeo.lumeo.metainfo.xml';
+  final source =
+      '<component><releases><release version="$appVersion">'
+      '<description><ul>${items.map((i) => '<li>$i</li>').join()}</ul>'
+      '</description></release></releases></component>';
+  tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+    'flutter/assets',
+    (message) async => utf8.decode(message!.buffer.asUint8List()) != path
+        ? null
+        : utf8.encoder.convert(source).buffer.asByteData(),
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      'flutter/assets',
+      null,
+    ),
+  );
+  // rootBundle keeps what an earlier test read of the real file.
+  rootBundle.evict(path);
+  addTearDown(() => rootBundle.evict(path));
 }
