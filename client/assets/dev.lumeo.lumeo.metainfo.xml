@@ -39,6 +39,22 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.78" date="2026-10-02">
+      <description>
+        <ul>
+          <li>Keep running when closed: downloads go on, and the tray or a notification brings the window back (Settings → General).</li>
+          <li xml:lang="ru">Работа в фоне после закрытия окна: загрузки идут, окно возвращается из трея или уведомления (Настройки → Общие).</li>
+          <li>Start at login, in the background.</li>
+          <li xml:lang="ru">Запуск при входе в систему, в фоне.</li>
+          <li>Ctrl+Q quits.</li>
+          <li xml:lang="ru">Ctrl+Q закрывает приложение.</li>
+          <li>Linux: a right click on the top bar opens the window menu, which can keep the window on top.</li>
+          <li xml:lang="ru">Linux: правый клик по верхней панели открывает меню окна, где его можно закрепить поверх остальных.</li>
+          <li>The subtitle menu is shorter: only downloaded tracks are marked, and a format shows only when it tells two tracks apart.</li>
+          <li xml:lang="ru">Меню субтитров короче: помечены только скачанные дорожки, а формат виден, только когда отличает две дорожки.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.77" date="2026-09-30">
       <description>
         <ul>
