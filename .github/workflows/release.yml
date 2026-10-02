@@ -166,3 +166,21 @@ jobs:
           # A beta (v0.1.79-beta.1) is a pre-release: downloadable, but not the
           # latest, which is the only release the app's update check sees.
           prerelease: ${{ contains(github.ref_name, '-') }}
+      # A beta outlives nothing newer: the one just published replaces the
+      # betas before it, and a release its own. Their tags stay in git.
+      - name: remove older betas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          current=${TAG#v}; current=${current%%-*}
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
+              --json tagName,isPrerelease \
+              --jq '.[] | select(.isPrerelease) | .tagName' |
+          while read -r tag; do
+            base=${tag#v}; base=${base%%-*}
+            [ "$tag" = "$TAG" ] && continue
+            # Only betas of this version or an older one: not a newer line's.
+            [ "$(printf '%s\n' "$base" "$current" | sort -V | tail -1)" = "$current" ] || continue
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
+          done

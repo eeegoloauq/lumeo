@@ -107,7 +107,8 @@ terms.
 
 A beta is a `vX.Y.Z-beta.N` tag on the same `<release version="X.Y.Z">` entry, written before the
 first beta and dated again at the release. It is published as a GitHub pre-release: anyone can
-download it, and the app's update check, which reads only the latest release, never offers it. A
-beta is told when its release is out. Betas go out when there is something to try; the release
-follows once they are checked.
+download it, and the app offers it only to those who turned on "Offer betas" in About. A beta is
+told when its release is out. Publishing a beta or a release removes the older betas from the
+releases page; their tags stay. Betas go out when there is something to try; the release follows
+once they are checked.
 `packaging/build-dist.sh` makes the bundle and tarball; `build-rpm.sh` and `build-arch.sh` package that tarball.
