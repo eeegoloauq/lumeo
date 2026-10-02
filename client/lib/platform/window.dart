@@ -39,6 +39,11 @@ class AppWindow extends ChangeNotifier {
   /// drag-to-maximise work like they do for every other window.
   Future<void> startDrag() => _invoke('startDrag');
 
+  /// The window manager's menu for the window, which a right click on a title
+  /// bar opens everywhere else; on Wayland it is the only way to keep a window
+  /// on top.
+  Future<void> showWindowMenu() => _invoke('showWindowMenu');
+
   Future<void> setFullscreen(bool on) async {
     if (on == _fullscreen) return;
     // Moved here rather than waiting for the window-state event, so the chrome

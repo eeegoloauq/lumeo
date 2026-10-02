@@ -69,6 +69,37 @@ static void begin_move(GtkWindow* window) {
   gtk_window_begin_move_drag(window, GDK_BUTTON_PRIMARY, x, y, GDK_CURRENT_TIME);
 }
 
+// The window manager's own menu for the window, as a right click on any title
+// bar opens it: always on top, move to another workspace, and the rest. The
+// event only names the pointer and where it is: on Wayland GDK sends the
+// serial of the pointer's last press with it, which is the right click that
+// got us here.
+static void show_window_menu(GtkWindow* window) {
+  GdkWindow* gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+  if (gdk_window == nullptr) {
+    return;
+  }
+  GdkSeat* seat = gdk_display_get_default_seat(gdk_window_get_display(gdk_window));
+  GdkDevice* pointer = seat == nullptr ? nullptr : gdk_seat_get_pointer(seat);
+  if (pointer == nullptr) {
+    return;
+  }
+  gdouble x = 0, y = 0, x_root = 0, y_root = 0;
+  gdk_window_get_device_position_double(gdk_window, pointer, &x, &y, nullptr);
+  gdk_device_get_position_double(pointer, nullptr, &x_root, &y_root);
+  GdkEvent* event = gdk_event_new(GDK_BUTTON_PRESS);
+  event->button.window = GDK_WINDOW(g_object_ref(gdk_window));
+  event->button.button = GDK_BUTTON_SECONDARY;
+  event->button.time = GDK_CURRENT_TIME;
+  event->button.x = x;
+  event->button.y = y;
+  event->button.x_root = x_root;  // what X11 places the menu by
+  event->button.y_root = y_root;
+  gdk_event_set_device(event, pointer);
+  gdk_window_show_window_menu(gdk_window, event);
+  gdk_event_free(event);
+}
+
 static void method_call_cb(FlMethodChannel*, FlMethodCall* method_call,
                            gpointer user_data) {
   GtkWindow* window = GTK_WINDOW(user_data);
@@ -102,6 +133,9 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* method_call,
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else if (strcmp(method, "startDrag") == 0) {
     begin_move(window);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (strcmp(method, "showWindowMenu") == 0) {
+    show_window_menu(window);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());

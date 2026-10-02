@@ -51,8 +51,8 @@ class WindowControls extends StatelessWidget {
 ///
 /// The drag begins on [onPanStart] rather than on the press, so a press that
 /// never moves is still a click on what is underneath — which is how the
-/// wordmark keeps working as the way home. A double click is what it is on
-/// every other title bar.
+/// wordmark keeps working as the way home. A double click and a right click
+/// are what they are on every other title bar.
 class WindowDragArea extends StatelessWidget {
   const WindowDragArea({super.key, this.child});
 
@@ -64,6 +64,7 @@ class WindowDragArea extends StatelessWidget {
       behavior: HitTestBehavior.translucent,
       onPanStart: (_) => AppWindow.instance.startDrag(),
       onDoubleTap: AppWindow.instance.toggleMaximize,
+      onSecondaryTap: AppWindow.instance.showWindowMenu,
       child: child ?? const SizedBox.expand(),
     );
   }

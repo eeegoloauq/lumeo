@@ -1,5 +1,6 @@
 // The shell: the bar, the window, the keyboard and Escape.
 import 'dart:convert';
+import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -198,6 +199,17 @@ void main() {
     expect(find.byTooltip('Minimise'), findsOneWidget);
     expect(find.byTooltip('Maximise'), findsOneWidget);
     expect(find.byTooltip('Close'), findsOneWidget);
+  });
+
+  uiTest('a right click on the bar opens the window manager\'s menu', (
+    tester,
+  ) async {
+    await openHome(tester);
+    // Left of the wordmark: bar, and nothing on it.
+    final y = tester.getCenter(find.byTooltip('Minimise')).dy;
+    await tester.tapAt(Offset(20, y), buttons: kSecondaryButton);
+    await tester.pumpAndSettle();
+    expect(windowCalls.map((c) => c.method), contains('showWindowMenu'));
   });
 
   uiTest('F11 reaches the window from a screen nobody has clicked', (
