@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79" date="2026-10-02">
+      <description>
+        <ul>
+          <li>Release notes fit the window, and "And N more" opens the rest.</li>
+          <li xml:lang="ru">Заметки о версии помещаются в окно, а «И ещё N» раскрывает остальное.</li>
+          <li>A newer release is offered before the notes of the one installed; after closing the offer, the next one waits a week.</li>
+          <li xml:lang="ru">О новой версии сообщается раньше, чем о заметках установленной; после закрытия следующее напоминание — через неделю.</li>
+          <li>An update you were offered before says only that it is installed, with its changes one click away.</li>
+          <li xml:lang="ru">Если об обновлении уже сообщали, после установки показывается только что оно установлено, а изменения — по нажатию.</li>
+          <li>Windows: no console host runs beside the app.</li>
+          <li xml:lang="ru">Windows: рядом с приложением больше не запускается консольный хост.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.78" date="2026-10-02">
       <description>
         <ul>
