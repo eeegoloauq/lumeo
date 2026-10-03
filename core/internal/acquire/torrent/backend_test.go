@@ -169,8 +169,8 @@ func TestBackendStreamsFromLocalPeer(t *testing.T) {
 	}
 
 	progress := task.Progress()
-	if progress.Completed == 0 {
-		t.Fatal("completed progress is zero after reading the file")
+	if progress.Completed != contentSize {
+		t.Fatalf("progress completed = %d of a verified file of %d", progress.Completed, contentSize)
 	}
 	if progress.Total != contentSize {
 		t.Fatalf("progress total = %d, want %d", progress.Total, contentSize)

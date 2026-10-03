@@ -94,7 +94,9 @@ func (d Download) ExtrasDir() string {
 
 // Progress is what a player bar shows while the file is still arriving.
 type Progress struct {
-	Completed int64 `json:"completed"` // bytes verified on disk
+	// Completed counts the bytes of whole pieces that passed their hash
+	// check, so it never goes back when a bad piece is thrown away.
+	Completed int64 `json:"completed"`
 	Total     int64 `json:"total"`
 	Peers     int   `json:"peers,omitempty"`
 	Seeders   int   `json:"seeders,omitempty"`
@@ -108,6 +110,9 @@ type Progress struct {
 	// checked or not. It moves with every block, where Completed moves a
 	// whole piece at a time: minutes apart on a slow swarm.
 	Received int64 `json:"-"`
+	// BadPieces counts the pieces of the whole torrent that failed their
+	// hash check and are being fetched again.
+	BadPieces int64 `json:"-"`
 }
 
 // Backend acquires one Locator scheme.

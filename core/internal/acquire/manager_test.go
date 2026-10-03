@@ -1,6 +1,7 @@
 package acquire
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -971,5 +972,41 @@ func TestRemoveDeletesTheExtrasOfADownload(t *testing.T) {
 	}
 	if err := m.Extras(d.ID, func(string) error { return nil }); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("extras of a removed download: %v", err)
+	}
+}
+
+// A piece that fails its hash check leaves a line in the log, once, and the
+// count the torrent had before the download started is not counted.
+func TestBadPiecesAreLogged(t *testing.T) {
+	task := &fakeTask{
+		file:     &fakeFile{path: "f.mkv", size: 100, head: 1},
+		progress: Progress{Total: 100, Peers: 1, BadPieces: 3},
+	}
+	backend := &fakeBackend{scheme: "torrent", task: task}
+	m, _, _ := testManager(t, backend)
+	var log bytes.Buffer
+	m.log = slog.New(slog.NewTextHandler(&log, nil))
+	ctx := context.Background()
+	d, err := m.Start(ctx, torrentRequest())
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	bad := func(n int64) {
+		task.mu.Lock()
+		task.progress = Progress{Total: 100, Peers: 1, BadPieces: n}
+		task.mu.Unlock()
+		if _, err := m.Get(ctx, d.ID); err != nil {
+			t.Fatalf("get: %v", err)
+		}
+	}
+	bad(3)
+	bad(3)
+	bad(5)
+	bad(5)
+	if got := strings.Count(log.String(), "failed hash check"); got != 1 {
+		t.Fatalf("logged %d times, want once:\n%s", got, log.String())
+	}
+	if !strings.Contains(log.String(), "pieces=2") {
+		t.Fatalf("logged the wrong count:\n%s", log.String())
 	}
 }

@@ -620,11 +620,12 @@ func (t *task) Progress() acquire.Progress {
 
 	stats := t.torrent.Stats()
 	progress := acquire.Progress{
-		Peers:   stats.ActivePeers,
-		Seeders: stats.ConnectedSeeders,
+		Peers:     stats.ActivePeers,
+		Seeders:   stats.ConnectedSeeders,
+		BadPieces: stats.PiecesDirtiedBad.Int64(),
 	}
 	if file != nil {
-		progress.Completed = file.file.BytesCompleted()
+		progress.Completed = verifiedBytes(file.file)
 		progress.Total = file.file.Length()
 	}
 
@@ -649,6 +650,18 @@ func (t *task) Progress() acquire.Progress {
 	t.lastUploadBytes = bytesWritten
 	t.rateMu.Unlock()
 	return progress
+}
+
+// verifiedBytes is what of f is in pieces that passed their hash check.
+// File.BytesCompleted also counts blocks of pieces not checked yet, and drops
+// a whole piece when its check fails.
+func verifiedBytes(f *atorrent.File) (n int64) {
+	for _, piece := range f.State() {
+		if piece.Complete {
+			n += piece.Bytes
+		}
+	}
+	return n
 }
 
 func (t *task) File() (acquire.File, bool) {

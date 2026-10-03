@@ -740,6 +740,9 @@ func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	if f := m.flows[row.ID]; f != nil && m.tasks[row.ID] == task && updated.State == StateActive {
 		now := m.now()
 		f.sample(now, updated.Progress.Received)
+		if bad := f.badPieces(updated.Progress.BadPieces); bad > 0 {
+			m.log.Info("pieces failed hash check, fetching again", "download", row.ID, "name", row.Name, "pieces", bad)
+		}
 		updated.WaitingSince, updated.Progress.ETA = f.report(now, updated)
 		updated.Offline = !updated.WaitingSince.IsZero() && m.offline.Load()
 	}
@@ -754,6 +757,20 @@ type flow struct {
 	received int64
 	rate     float64   // bytes per second, smoothed
 	arrived  time.Time // when bytes last arrived, or the transfer started
+	bad      int64     // pieces that failed their hash check, as last seen
+	badSeen  bool
+}
+
+// badPieces is how many more pieces failed their hash check since the last
+// reading. The first reading is a baseline, as with received.
+func (f *flow) badPieces(total int64) int64 {
+	if !f.badSeen || total < f.bad {
+		f.badSeen, f.bad = true, total
+		return 0
+	}
+	n := total - f.bad
+	f.bad = total
+	return n
 }
 
 // sample folds in the count of bytes received so far. The first reading is
