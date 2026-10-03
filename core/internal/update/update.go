@@ -160,6 +160,13 @@ func (c *Checker) get(ctx context.Context, url string) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
 
+// IsBeta says whether version is a beta: whoever installed one is offered
+// the next by default.
+func IsBeta(version string) bool {
+	parts, ok := parse(version)
+	return ok && parts[3] != math.MaxInt
+}
+
 // parse reads "0.1.68", "v0.1.68" or a beta, "0.1.68-beta.2". The fourth
 // number is the beta's, and a release's is above every beta of it.
 func parse(version string) ([4]int, bool) {

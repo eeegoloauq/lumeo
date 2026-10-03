@@ -65,7 +65,7 @@ type Preferences struct {
 	// Off, it never asks.
 	CheckUpdates bool `json:"checkUpdates"`
 	// BetaUpdates offers betas too: the newest published version, a beta or
-	// not, instead of the latest release alone.
+	// not, instead of the latest release alone. On by default in a beta.
 	BetaUpdates bool `json:"betaUpdates"`
 	// NextCountdown is how many seconds the last frame of an episode is held,
 	// counting down, before the next one starts by itself; 0 means it waits

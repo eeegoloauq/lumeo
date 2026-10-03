@@ -156,4 +156,7 @@ func TestVersions(t *testing.T) {
 	if !newer(b, a) || !newer(r, b) {
 		t.Fatalf("order: %v %v %v", a, b, r)
 	}
+	if !IsBeta("0.1.70-beta.2") || IsBeta("v0.1.70") || IsBeta("dev") {
+		t.Fatal("IsBeta")
+	}
 }

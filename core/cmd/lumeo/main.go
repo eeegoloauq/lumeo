@@ -144,6 +144,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		DiskLimit:           50 << 30,
 		Prefetch:            true,
 		CheckUpdates:        true,
+		BetaUpdates:         update.IsBeta(version),
 		NextCountdown:       5,
 		NextNotice:          0,
 		SeekStep:            5,
