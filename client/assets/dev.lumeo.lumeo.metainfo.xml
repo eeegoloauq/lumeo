@@ -46,6 +46,10 @@
           <li xml:lang="ru">Предлагать беты: переключатель в Настройки → О программе сообщает и о выходе бет.</li>
           <li>Linux: opening Lumeo after a package upgrade restarts the copy running in the background as the new version.</li>
           <li xml:lang="ru">Linux: если после обновления пакета открыть Lumeo, работающая в фоне копия перезапускается новой версией.</li>
+          <li>The picture is drawn at full quality: gradients without bands, sharper scaling, better HDR.</li>
+          <li xml:lang="ru">Картинка рисуется в полном качестве: градиенты без полос, более чёткое масштабирование, лучше HDR.</li>
+          <li>A seek shows the time larger, without a percentage.</li>
+          <li xml:lang="ru">При перемотке время показывается крупнее и без процента.</li>
           <li>Release notes fit the window, and "And N more" opens the rest.</li>
           <li xml:lang="ru">Заметки о версии помещаются в окно, а «И ещё N» раскрывает остальное.</li>
           <li>A newer release is offered before the notes of the one installed; after closing the offer, the next one waits a week.</li>
@@ -54,6 +58,8 @@
           <li xml:lang="ru">Если об обновлении уже сообщали, после установки показывается только что оно установлено, а изменения — по нажатию.</li>
           <li>Windows: no console host runs beside the app.</li>
           <li xml:lang="ru">Windows: рядом с приложением больше не запускается консольный хост.</li>
+          <li>Download progress no longer moves back when a damaged piece is fetched again.</li>
+          <li xml:lang="ru">Прогресс загрузки больше не откатывается назад, когда повреждённый фрагмент скачивается заново.</li>
         </ul>
       </description>
     </release>
