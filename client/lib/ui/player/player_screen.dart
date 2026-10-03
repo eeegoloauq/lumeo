@@ -47,10 +47,8 @@ const playerProperties = <String, String>{
   // mpv's bar is drawn into the picture over our own; a seek shows its time.
   'osd-bar': 'no',
   'osd-on-seek': 'msg',
-  'osd-font-size': '28',
-  'osd-border-size': '1.5',
-  'osd-margin-x': '32',
-  'osd-margin-y': '28',
+  // mpv's default adds the percentage, which the progress bar already shows.
+  'osd-msg3': r'${osd-sym-cc} ${time-pos}${?duration: / ${duration}}',
   'osd-duration': '1200',
   'sub-font-size': '$subtitleFontSize',
   'sub-margin-y': '$subtitleMargin',

@@ -18,6 +18,7 @@ void main() {
   test('a seek shows mpv\'s text, never its bar', () {
     expect(playerProperties['osd-bar'], 'no');
     expect(playerProperties['osd-on-seek'], 'msg');
+    expect(playerProperties['osd-msg3'], isNot(contains('percent')));
   });
 
   test('clock has no leading zero on the first field', () {
