@@ -34,22 +34,38 @@ import 'thumbnails.dart';
 import 'tracks.dart';
 import 'waiting.dart';
 
-// Torrent pieces may arrive after media_kit's default network timeout.
+/// What media_kit sets for every platform from a phone's budget: bilinear
+/// scaling, no dithering, a 32 MiB cache, a 5 s network timeout that torrent
+/// pieces outlast, no OSD. Each goes back to the default of the mpv that runs.
+const mediaKitOverrides = [
+  'scale',
+  'dscale',
+  'dither',
+  'correct-downscaling',
+  'linear-downscaling',
+  'sigmoid-upscaling',
+  'hdr-compute-peak',
+  'hr-seek-framedrop',
+  'network-timeout',
+  'cache',
+  'cache-on-disk',
+  'demuxer-max-bytes',
+  'demuxer-max-back-bytes',
+  'audio-display',
+  'osd-level',
+];
+
 const playerProperties = <String, String>{
-  'network-timeout': '60',
   'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=30',
-  'cache-on-disk': 'no',
   'cache-pause-initial': 'yes',
   'volume-max': '${VolumeControl.max}',
   'hr-seek': 'yes',
   'input-default-bindings': 'yes',
-  'osd-level': '1',
   // mpv's bar is drawn into the picture over our own; a seek shows its time.
   'osd-bar': 'no',
   'osd-on-seek': 'msg',
   // mpv's default adds the percentage, which the progress bar already shows.
   'osd-msg3': r'${osd-sym-cc} ${time-pos}${?duration: / ${duration}}',
-  'osd-duration': '1200',
   'sub-font-size': '$subtitleFontSize',
   'sub-margin-y': '$subtitleMargin',
 };
@@ -100,6 +116,11 @@ Duration openPatience = const Duration(seconds: 30);
 /// network every provider fails, and the poll would ask every two seconds.
 @visibleForTesting
 Duration prefetchRetry = const Duration(seconds: 30);
+
+/// An mpv profile applied over the defaults. The player suite draws on
+/// llvmpipe, where mpv's default scalers cost more CPU than it has.
+@visibleForTesting
+String? mpvProfile;
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({
@@ -411,6 +432,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       return null;
     }
     _host = host;
+    for (final option in mediaKitOverrides) {
+      final value = await host.get('option-info/$option/default-value');
+      if (value != null) await _mpvSet(option, value);
+    }
+    if (mpvProfile case final profile?) {
+      await (_player.platform as NativePlayer).command([
+        'apply-profile',
+        profile,
+      ]);
+    }
     _hardware = await host.get('hwdec') ?? 'auto-safe';
     _borderStyle = await host.get('sub-border-style') != null;
     _subscriptions.add(

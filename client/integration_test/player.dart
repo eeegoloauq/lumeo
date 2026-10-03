@@ -673,6 +673,41 @@ void playerTests() {
     }
   });
 
+  testWidgets('the film plays on mpv\'s defaults, not media_kit\'s', (
+    tester,
+  ) async {
+    final profile = mpvProfile;
+    mpvProfile = null;
+    addTearDown(() => mpvProfile = profile);
+    final server = await serveFilm();
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await pumpFor(tester, const Duration(seconds: 1));
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => (await mpv.getProperty('path')).isNotEmpty,
+      what: 'mpv opened the film',
+    );
+    for (final option in mediaKitOverrides) {
+      final value = await mpv.getProperty(option);
+      expect(value, isNotEmpty, reason: 'mpv has no option called $option');
+      expect(
+        value,
+        await mpv.getProperty('option-info/$option/default-value'),
+        reason: option,
+      );
+    }
+  });
+
   testWidgets('a screenshot is taken by the GPU renderer', (tester) async {
     // mpv 0.41 cannot read nvdec frames through its software screenshot
     // fallback. The log identifies which screenshot path ran on this machine.

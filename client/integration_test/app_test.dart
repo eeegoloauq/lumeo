@@ -3,6 +3,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:lumeo/ui/player/player_screen.dart';
 
 import 'helpers.dart';
 import 'playback.dart';
@@ -14,6 +15,8 @@ void main() {
   // set up before anything asks for a Player.
   MediaKit.ensureInitialized();
 
+  // mpv's own profile for weak hardware: llvmpipe drops frames on its defaults.
+  mpvProfile = 'fast';
   setUp(fakeWindow);
   tearDownAll(deleteTestFilms);
 

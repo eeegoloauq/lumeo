@@ -120,6 +120,15 @@ seek. The bar seeks by keyframes as it is dragged and exactly on release,
 which is what mpv's own controller does and what makes the picture follow the
 thumb.
 
+mpv's own defaults rule everything else. media_kit starts every player with
+mpv's `fast` profile (bilinear scaling, no dithering, no HDR peak detection)
+plus a 32 MiB cache, a 5 s network timeout and no OSD, for phones. The player
+hands each back to the default of the mpv that runs
+(`option-info/<name>/default-value`), so no value of ours goes stale when mpv
+changes its mind. Any GPU draws the defaults; software rendering cannot, and
+the player suite, which runs on llvmpipe, applies `fast` for that reason
+(`mpvProfile`). What is set on top is a decision written here, not a taste.
+
 The chrome follows the mouse and nothing else: up when the pointer moves,
 gone half a second after it stops, as mpv's controller does. A key, a pause or
 a seek does not bring it up, and a paused film does not keep it up; a menu

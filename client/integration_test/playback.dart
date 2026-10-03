@@ -327,6 +327,11 @@ void playbackTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('download:bb-s1e1')));
     await playerOpened(tester);
+    await waitFor(
+      tester,
+      () async => find.byTooltip('On disk').evaluate().isNotEmpty,
+      what: 'the bar knows the download',
+    );
     await tester.tap(find.byTooltip('On disk'));
     await waitFor(
       tester,
