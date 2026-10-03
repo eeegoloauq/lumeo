@@ -7,6 +7,10 @@ const appVersion = String.fromEnvironment(
 );
 
 /// The AppStream file travels in both the bundle and the package metadata.
+///
+/// A beta has its own `<release version="X.Y.Z~beta.N" type="development">`
+/// with what it changed since the beta before; the release's entry sums them
+/// up when it is out. The app writes a beta as X.Y.Z-beta.N, the tag's form.
 class ReleaseNotes {
   static Future<String> bundled() =>
       rootBundle.loadString('assets/dev.lumeo.lumeo.metainfo.xml');
@@ -16,8 +20,10 @@ class ReleaseNotes {
       between(source, '', version, language);
 
   /// The items of every release after [after] up to [through], newest first:
-  /// what somebody who skipped releases has not been told. An [after] that is
-  /// not a version (a copy from before notes were kept) gives [through] alone.
+  /// what somebody who skipped releases has not been told. Betas count only
+  /// on the way to a beta: a release's own entry already sums its betas up.
+  /// An [after] that is not a version (a copy from before notes were kept)
+  /// gives [through] alone.
   static List<String> between(
     String source,
     String after,
@@ -32,12 +38,24 @@ class ReleaseNotes {
         source,
       ).findAllElements('release'))
         if (_version(release.getAttribute('version') ?? '') case final v?
-            when _compare(v, last) <= 0 &&
+            when (_isBeta(last) || !_isBeta(v)) &&
+                _compare(v, last) <= 0 &&
                 (first == null
                     ? _compare(v, last) == 0
                     : _compare(v, first) > 0))
           ..._items(release, language),
     ];
+  }
+
+  /// Whether [seen] is a beta of [version]: its betas told the viewer what
+  /// the release sums up.
+  static bool toldInBetas(String seen, String version) {
+    final (a, b) = (_version(seen), _version(version));
+    return a != null &&
+        b != null &&
+        _isBeta(a) &&
+        !_isBeta(b) &&
+        _compare(a.sublist(0, 3), b.sublist(0, 3)) == 0;
   }
 
   static List<String> _items(XmlElement release, String language) {
@@ -54,15 +72,24 @@ class ReleaseNotes {
     ];
   }
 
-  /// A beta (0.1.79-beta.1) reads as its release: its notes are that one's.
+  // A release ranks above all its betas.
+  static const _release = 1 << 30;
+
+  /// "0.1.79", "0.1.79-beta.3" or "0.1.79~beta.3" as four numbers.
   static List<int>? _version(String text) {
-    final parts = text.split('-').first.split('.').map(int.tryParse).toList();
-    if (parts.length != 3 || parts.contains(null)) return null;
-    return parts.cast<int>();
+    final match = RegExp(r'^(\d+)\.(\d+)\.(\d+)(?:[-~]beta\.(\d+))?$')
+        .firstMatch(text);
+    if (match == null) return null;
+    return [
+      for (var i = 1; i <= 3; i++) int.parse(match[i]!),
+      if (match[4] case final beta?) int.parse(beta) else _release,
+    ];
   }
 
+  static bool _isBeta(List<int> version) => version[3] != _release;
+
   static int _compare(List<int> a, List<int> b) {
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return a[i].compareTo(b[i]);
     }
     return 0;

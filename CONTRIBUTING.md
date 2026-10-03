@@ -105,8 +105,11 @@ RPM `%changelog` and the GitHub release's items from them. Then push `main` and 
 short line on what changed for the user, new things first, then fixes, without causes or internal
 terms.
 
-A beta is a `vX.Y.Z-beta.N` tag on the same `<release version="X.Y.Z">` entry, written before the
-first beta and dated again at the release. It is published as a GitHub pre-release: anyone can
+A beta is a `vX.Y.Z-beta.N` tag with its own `<release version="X.Y.Z~beta.N"
+type="development">` entry: what changed since the beta before, which the app shows to whoever
+updates from it (the `~` sorts it before X.Y.Z in AppStream and RPM). Its GitHub page lists every
+beta of X.Y.Z so far. The release's `<release version="X.Y.Z">` entry sums its betas up and goes on
+top of them; the beta entries stay. A beta is published as a GitHub pre-release: anyone can
 download it, and the app offers it only to those who turned on "Offer betas" in About. A beta is
 told when its release is out. Publishing a beta or a release removes the older betas from the
 releases page; their tags stay. Betas go out when there is something to try; the release follows

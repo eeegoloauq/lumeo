@@ -34,15 +34,27 @@ void main() {
     expect(ReleaseNotes.between(source, '', '0.2.1', 'en'), ['Newest']);
   });
 
-  test('a beta reads as its release', () {
+  test('betas tell their own changes, the release sums them up', () {
     const source = '''<component><releases>
-      <release version="0.2.0"><description><ul><li>Coming</li></ul></description></release>
+      <release version="0.2.0"><description><ul><li>Sum</li></ul></description></release>
+      <release version="0.2.0~beta.2" type="development"><description><ul><li>Second</li></ul></description></release>
+      <release version="0.2.0~beta.1" type="development"><description><ul><li>First</li></ul></description></release>
       <release version="0.1.9"><description><ul><li>Out</li></ul></description></release>
     </releases></component>''';
-    expect(ReleaseNotes.parse(source, '0.2.0-beta.1', 'en'), ['Coming']);
-    expect(
-      ReleaseNotes.between(source, '0.2.0-beta.1', '0.2.0', 'en'),
-      isEmpty,
-    );
+    expect(ReleaseNotes.parse(source, '0.2.0-beta.2', 'en'), ['Second']);
+    expect(ReleaseNotes.between(source, '0.2.0-beta.1', '0.2.0-beta.2', 'en'), [
+      'Second',
+    ]);
+    expect(ReleaseNotes.between(source, '0.1.9', '0.2.0-beta.2', 'en'), [
+      'Second',
+      'First',
+    ]);
+    expect(ReleaseNotes.between(source, '0.1.9', '0.2.0', 'en'), ['Sum']);
+    expect(ReleaseNotes.between(source, '0.2.0-beta.2', '0.2.0', 'en'), [
+      'Sum',
+    ]);
+    expect(ReleaseNotes.toldInBetas('0.2.0-beta.2', '0.2.0'), isTrue);
+    expect(ReleaseNotes.toldInBetas('0.1.9', '0.2.0'), isFalse);
+    expect(ReleaseNotes.toldInBetas('0.2.0-beta.1', '0.2.0-beta.2'), isFalse);
   });
 }

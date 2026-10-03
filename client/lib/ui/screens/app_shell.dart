@@ -86,6 +86,8 @@ class _AppShellState extends State<AppShell> {
   // version they last saw: every release they skipped.
   List<String> _notes = const [];
   List<String> _news = const [];
+  // The betas before this release told the viewer its news already.
+  bool _newsTold = false;
   String? _notesLanguage;
   // A newer release, and its notes since this one in the interface language.
   CoreUpdate? _update;
@@ -125,6 +127,7 @@ class _AppShellState extends State<AppShell> {
         _news = seen == appVersion
             ? const []
             : ReleaseNotes.between(source, seen, appVersion, language);
+        _newsTold = ReleaseNotes.toldInBetas(seen, appVersion);
       });
     });
   }
@@ -188,8 +191,9 @@ class _AppShellState extends State<AppShell> {
       return ReleaseNotesCard(
         title: l10n.releaseUpdatedTo(appVersion),
         items: _news,
-        // Offered before it was installed: the list was read then.
-        collapsed: widget.settings.dismissedUpdate == appVersion,
+        // Offered before it was installed, or told beta by beta: the list
+        // was read then.
+        collapsed: _newsTold || widget.settings.dismissedUpdate == appVersion,
         action: l10n.releaseGotIt,
         onAction: () => setState(seen),
         onClose: () => setState(seen),

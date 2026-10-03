@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Release notes from the AppStream file, the one place they are written.
 
-    release-notes.py markdown VERSION   one release's items, for GitHub
+    release-notes.py markdown VERSION   a release's items, for GitHub; a beta
+                                        (X.Y.Z-beta.N) lists every beta of
+                                        X.Y.Z up to it, as its page replaces
+                                        theirs
     release-notes.py rpm                every release, as an RPM %changelog
 """
 import sys
@@ -30,8 +33,16 @@ def items(release):
 def main(mode, version=None):
     releases = ET.parse(METAINFO).getroot().iter("release")
     if mode == "markdown":
-        release = next(r for r in releases if r.get("version") == version)
-        print("\n".join(f"- {line}" for line in items(release)))
+        base, _, beta = version.partition("-beta.")
+        chosen = [
+            r for r in releases
+            if r.get("version") == version
+            or beta and r.get("version", "").startswith(f"{base}~beta.")
+            and int(r.get("version").rpartition(".")[2]) <= int(beta)
+        ]
+        if not chosen:
+            sys.exit(f"no release {version} in {METAINFO.name}")
+        print("\n".join(f"- {line}" for r in chosen for line in items(r)))
     elif mode == "rpm":
         for release in releases:
             day = date.fromisoformat(release.get("date")).strftime("%a %b %d %Y")

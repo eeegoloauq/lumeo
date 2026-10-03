@@ -156,8 +156,7 @@ jobs:
           git config --global --add safe.directory "$PWD"
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
           { git tag -l --format='%(contents)' "$TAG"; echo
-            version=${TAG#v}
-            packaging/release-notes.py markdown "${version%%-*}"; } > "$RUNNER_TEMP/notes.md"
+            packaging/release-notes.py markdown "${TAG#v}"; } > "$RUNNER_TEMP/notes.md"
       - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
