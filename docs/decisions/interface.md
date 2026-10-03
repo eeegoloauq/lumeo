@@ -286,8 +286,15 @@ screenshots go (a folder on this machine), and how long a finished download
 stays in the panel, and the interface's language. Reset puts back both
 kinds; downloads, the list and history are not settings.
 
+A row is its name and its control. A line under the name is for a
+consequence the name cannot carry and nobody would guess, such as what Reset
+keeps; it is never a restatement of the name, how the feature works inside, or
+a tip. When a choice in a strip needs a word, the word goes in that
+segment's tooltip. Most rows have no hint, and a page of hints is unreadable:
+the eye cannot find a name among them.
+
 A row that does nothing is not shown. General has the language, and the
-background: "Keep running when closed" and, under it, "Start at login", both
+background: "Keep running when closed" and, under it, "Start with the system", both
 off by default and both this machine's (`client.json`). Login needs the
 background, so turning one on or the other off carries the other with it.
 Pausing when minimised waits for a minimised state GTK on Wayland does not

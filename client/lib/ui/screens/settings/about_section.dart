@@ -99,7 +99,6 @@ class _AboutSectionState extends State<AboutSection> {
                     const SettingsLoading(),
                   SettingRow(
                     label: context.l10n.settingsResetSettings,
-                    hint: context.l10n.settingsResetHint,
                     value: RowButton(
                       label: context.l10n.settingsResetAction,
                       onPressed: _reset,
@@ -108,7 +107,6 @@ class _AboutSectionState extends State<AboutSection> {
                   if (widget.error != null) ErrorRow(widget.error!),
                   SettingRow(
                     label: context.l10n.settingsBugReport,
-                    hint: _logHint(about.data),
                     value: _CopyButton(
                       label: context.l10n.settingsCopyDetails,
                       text: () => _details(about.data, health),
@@ -148,13 +146,6 @@ class _AboutSectionState extends State<AboutSection> {
   static bool _samePath(String a, String b) =>
       a.replaceAll('\\', '/').toLowerCase() ==
       b.replaceAll('\\', '/').toLowerCase();
-
-  String _logHint(CoreAbout? about) {
-    final player = context.l10n.settingsPlayerLogHint;
-    final path = about?.logPath ?? '';
-    if (path.isNotEmpty) return player;
-    return context.l10n.settingsJournalLogHint;
-  }
 
   List<Widget> _rows(
     AsyncSnapshot<CoreAbout> about,
@@ -198,7 +189,6 @@ class _AboutSectionState extends State<AboutSection> {
       if (widget.preferences.current case final current?)
         SettingRow(
           label: context.l10n.settingsCheckUpdates,
-          hint: context.l10n.settingsCheckUpdatesHint,
           value: SettingSwitch(
             label: context.l10n.settingsCheckUpdates,
             value: current.checkUpdates,
@@ -209,7 +199,6 @@ class _AboutSectionState extends State<AboutSection> {
           when current.checkUpdates)
         SettingRow(
           label: context.l10n.settingsBetaUpdates,
-          hint: context.l10n.settingsBetaUpdatesHint,
           value: SettingSwitch(
             label: context.l10n.settingsBetaUpdates,
             value: current.betaUpdates,
@@ -285,7 +274,7 @@ class _AboutSectionState extends State<AboutSection> {
       return [
         SettingRow(
           label: context.l10n.settingsDecoders,
-          value: Text(context.l10n.settingsNoDecoderInfo, style: Typo.data),
+          value: Text(context.l10n.settingsMpvNoAnswer, style: Typo.data),
         ),
       ];
     }

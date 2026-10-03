@@ -53,7 +53,6 @@ class AppearanceSection extends StatelessWidget {
           if (current != null)
             SettingRow(
               label: context.l10n.settingsEpisodeStills,
-              hint: context.l10n.settingsEpisodeStillsBlurHint,
               value: Segments<String>(
                 choices: [
                   ('show', context.l10n.settingsShow),

@@ -204,7 +204,6 @@ class _DownloadsSectionState extends State<DownloadsSection> {
     return [
       SettingRow(
         label: context.l10n.settingsDiskLimit,
-        hint: context.l10n.settingsDiskLimitHint,
         value: PresetChoice(
           presets: [
             (50 * _gib, context.l10n.settingsGigabytes(50)),
@@ -233,7 +232,6 @@ class _DownloadsSectionState extends State<DownloadsSection> {
       ),
       SettingRow(
         label: context.l10n.settingsDeleteWatched,
-        hint: context.l10n.settingsDeleteWatchedHint,
         value: Segments<String>(
           choices: [
             ('watched', context.l10n.settingsRightAway),
@@ -272,7 +270,6 @@ class _DownloadsSectionState extends State<DownloadsSection> {
       ),
       SettingRow(
         label: context.l10n.settingsDownloadNextEpisode,
-        hint: context.l10n.settingsDownloadNextEpisodeHint,
         value: SettingSwitch(
           label: context.l10n.settingsDownloadNextEpisode,
           value: current.prefetch,
@@ -293,7 +290,6 @@ class _DownloadsSectionState extends State<DownloadsSection> {
         return SettingRow(
           key: const ValueKey('settings:videos'),
           label: context.l10n.settingsVideos,
-          hint: context.l10n.settingsVideosHint,
           value: dir.isEmpty
               ? Text(
                   snapshot.hasError ? errorMessage(snapshot.error!) : '…',

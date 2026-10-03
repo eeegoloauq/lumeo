@@ -25,7 +25,6 @@ class GeneralSection extends StatelessWidget {
           ),
           SettingRow(
             label: l10n.settingsBackground,
-            hint: l10n.settingsBackgroundHint,
             value: SettingSwitch(
               label: l10n.settingsBackground,
               value: settings.background,
@@ -34,7 +33,6 @@ class GeneralSection extends StatelessWidget {
           ),
           SettingRow(
             label: l10n.settingsAutostart,
-            hint: l10n.settingsAutostartHint,
             value: SettingSwitch(
               label: l10n.settingsAutostart,
               value: settings.autostart,

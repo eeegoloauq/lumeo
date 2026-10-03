@@ -54,13 +54,13 @@ class AudioSubtitlesSection extends StatelessWidget {
             ),
             SettingRow(
               label: context.l10n.settingsSubtitleMode,
-              hint: context.l10n.settingsForeignAudioHint,
               value: Segments<String>(
                 choices: [
                   ('always', context.l10n.settingsAlways),
                   ('foreign', context.l10n.settingsForeignAudio),
                   ('manual', context.l10n.settingsManual),
                 ],
+                tooltips: {'foreign': context.l10n.settingsForeignAudioHint},
                 selected: current.subtitleMode,
                 onSelected: (mode) => patch({'subtitleMode': mode}),
               ),
@@ -133,7 +133,6 @@ class AudioSubtitlesSection extends StatelessWidget {
             ),
             SettingRow(
               label: context.l10n.settingsKeepFileStyling,
-              hint: context.l10n.settingsKeepFileStylingHint,
               value: SettingSwitch(
                 label: context.l10n.settingsKeepFileStyling,
                 value: current.subtitleKeepStyling,

@@ -190,7 +190,7 @@ void main() {
 
     expect(jsonDecode(patched.last), {'accent': 'violet'});
     expect(
-      Theme.of(tester.element(find.text('Accent'))).colorScheme.primary,
+      Theme.of(tester.element(find.text('Accent colour'))).colorScheme.primary,
       Palette.accents['violet'],
     );
   });
@@ -217,7 +217,8 @@ void main() {
     expect(settings.textScale, 'large');
     expect(patched, isEmpty, reason: 'not the core\'s');
     expect(
-      MediaQuery.textScalerOf(tester.element(find.text('Accent'))).scale(10),
+      MediaQuery.textScalerOf(tester.element(find.text('Accent colour')))
+          .scale(10),
       greaterThan(10),
     );
   });
@@ -262,7 +263,7 @@ void main() {
 
     expect(patched.last, 'DELETE');
     expect(
-      Theme.of(tester.element(find.text('Accent'))).colorScheme.primary,
+      Theme.of(tester.element(find.text('Accent colour'))).colorScheme.primary,
       Palette.accents['white'],
     );
     expect(settings.timelinePreviews, isTrue);
@@ -284,7 +285,7 @@ void main() {
 
     await tester.tap(
       find.descendant(
-        of: find.widgetWithText(SettingRow, 'Start at login'),
+        of: find.widgetWithText(SettingRow, 'Start with the system'),
         matching: find.byType(Switch),
       ),
     );

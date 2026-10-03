@@ -30,7 +30,6 @@ class PlaybackSection extends StatelessWidget {
           if (current != null) ...[
             SettingRow(
               label: context.l10n.settingsShowNextEpisode,
-              hint: context.l10n.settingsShowNextEpisodeHint,
               value: PreferenceStepper(
                 stored: current.nextNotice,
                 min: 0,
@@ -48,7 +47,6 @@ class PlaybackSection extends StatelessWidget {
             ),
             SettingRow(
               label: context.l10n.settingsPlayNextEpisode,
-              hint: context.l10n.settingsNextCountdownHint,
               value: PresetChoice(
                 presets: [
                   (0, context.l10n.settingsOnPress),

@@ -66,6 +66,8 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 - Every request to the core carries the token from `<data>/api-token`; artwork alone goes by an
   unguessable address instead. The core binds to localhost: exposing it needs TLS and a way to
   hand a remote client the token first.
+- Interface text is short: a setting is a name and a control, a hint only for a consequence
+  nobody would guess (`docs/decisions/interface.md`, Settings).
 - Fix causes, not symptoms; a workaround needs the user's agreement and a comment saying why.
 - Commits: English, `type: what and why`, no `Co-Authored-By`, `Claude-Session` or other bot
   trailers, a cloud session's default included. Comments explain why in a line or two, not the

@@ -110,7 +110,7 @@
   "@settingsAppearance": {
     "description": "Appearance in ui/screens/settings/appearance_section.dart"
   },
-  "settingsAccent": "Accent",
+  "settingsAccent": "Accent colour",
   "@settingsAccent": {
     "description": "Accent in ui/screens/settings/appearance_section.dart"
   },
@@ -138,7 +138,6 @@
   "@settingsEpisodeStills": {
     "description": "Episode stills in ui/screens/settings/appearance_section.dart"
   },
-  "settingsEpisodeStillsBlurHint": "Blur keeps an episode’s still hidden until it is watched.",
   "settingsShow": "Show",
   "@settingsShow": {
     "description": "Show in ui/screens/settings/appearance_section.dart"
@@ -265,7 +264,6 @@
   "@settingsShowNextEpisode": {
     "description": "Show next episode in ui/screens/settings/playback_section.dart"
   },
-  "settingsShowNextEpisodeHint": "When the file does not mark its credits.",
   "settingsEarlier": "Earlier",
   "@settingsEarlier": {
     "description": "Earlier in ui/screens/settings/playback_section.dart"
@@ -331,7 +329,7 @@
   "@settingsSubtitleMode": {
     "description": "Turn on in ui/screens/settings/audio_subtitles_section.dart"
   },
-  "settingsForeignAudioHint": "Foreign audio: when the sound isn’t in the subtitle languages.",
+  "settingsForeignAudioHint": "When the sound isn’t in one of the subtitle languages.",
   "settingsAlways": "Always",
   "@settingsAlways": {
     "description": "Always in ui/screens/settings/audio_subtitles_section.dart"
@@ -503,7 +501,6 @@
   "@settingsResetSettings": {
     "description": "Reset settings in ui/screens/settings/about_section.dart"
   },
-  "settingsResetHint": "Downloads, your list and history stay.",
   "settingsResetAction": "Reset…",
   "@settingsResetAction": {
     "description": "Reset… in ui/screens/settings/about_section.dart"
@@ -602,7 +599,6 @@
       }
     }
   },
-  "settingsNextCountdownHint": "Counted from the last frame. Credits marked in the file are the countdown themselves.",
   "settingsTimelinePreviewsHint": "Frames over the seek bar, from a second player on the same file.",
   "commonSecondUnit": "s",
   "@commonSecondUnit": {
@@ -621,7 +617,6 @@
       }
     }
   },
-  "settingsKeepFileStylingHint": "Styled subtitles, like anime signs, stay as drawn. Off, the colour and background above apply to them too.",
   "settingsSourceError": "Not answering — {error}",
   "@settingsSourceError": {
     "description": "Status of an addon when it fails; the error text comes from the core.",
@@ -641,8 +636,6 @@
     }
   },
   "settingsResetConfirm": "Put every setting back as it was? Downloads, your list and history stay.",
-  "settingsPlayerLogHint": "The player’s logs are mpv.log and mpv.old.log.",
-  "settingsJournalLogHint": "The player’s logs are mpv.log and mpv.old.log. The core logs to the system journal.",
   "settingsProviderCount": "{count, plural, =0{No source providers} one{1 source provider} other{{count} source providers}}",
   "@settingsProviderCount": {
     "description": "Number of source providers reported by the core.",
@@ -654,7 +647,6 @@
   },
   "settingsNoProviders": "None: the core can browse and play nothing.",
   "settingsHardwareDecoderHint": "The hardware decoder is named once a film has played.",
-  "settingsNoDecoderInfo": "mpv did not answer, so nothing is claimed here",
   "settingsDetailsLumeo": "Lumeo {version}",
   "@settingsDetailsLumeo": {
     "description": "Lumeo version in copied bug report.",
@@ -764,7 +756,6 @@
     }
   },
   "settingsDiskLimitTooltip": "Over the limit, watched downloads go first. Unwatched ones stay.",
-  "settingsDiskLimitHint": "When full, watched downloads go first.",
   "settingsGigabytes": "{count, plural, =0{0 GB} one{1 GB} other{{count} GB}}",
   "@settingsGigabytes": {
     "description": "Disk limit size in gigabytes.",
@@ -778,7 +769,6 @@
   "@settingsGigabyteUnit": {
     "description": "Unit suffix in disk limit number field."
   },
-  "settingsDeleteWatchedHint": "Unwatched downloads are never deleted by this.",
   "settingsAfterDays": "{count, plural, one{After 1 day} other{After {count} days}}",
   "@settingsAfterDays": {
     "description": "Custom retention period for watched downloads.",
@@ -792,8 +782,6 @@
   "@settingsDayUnit": {
     "description": "Unit suffix in watched-download retention field."
   },
-  "settingsDownloadNextEpisodeHint": "Once an episode is on disk, the next one downloads, within the disk limit.",
-  "settingsVideosHint": "New downloads go here; the ones already here stay.",
   "settingsMegabytesPerSecond": "{rate} MB/s",
   "@settingsMegabytesPerSecond": {
     "description": "Network rate limit in megabytes per second.",
@@ -2658,12 +2646,8 @@
   "@releaseDownload": {"description": "Opens the newer release's page, where its packages are."},
   "settingsCheckUpdates": "Check for updates",
   "@settingsCheckUpdates": {"description": "Settings, About: whether the core asks GitHub for a newer release."},
-  "settingsCheckUpdatesHint": "Asks GitHub once a day and says when a new version is out. Nothing is installed by itself.",
-  "@settingsCheckUpdatesHint": {"description": "Hint under Check for updates."},
   "settingsBetaUpdates": "Offer betas",
   "@settingsBetaUpdates": {"description": "Settings, About: whether betas, versions before a release, are offered as updates too."},
-  "settingsBetaUpdatesHint": "Also says when a beta is out: the next version before its release, to try what is new early.",
-  "@settingsBetaUpdatesHint": {"description": "Hint under Offer betas."},
   "playerCommandPause": "Pause or play",
   "@playerCommandPause": {"description": "Description of a player shortcut."},
   "playerCommandExactForward": "Seek exactly 1 second forward",
@@ -2714,12 +2698,8 @@
   "@playerCommandProgress": {"description": "Description of a player shortcut."},
   "settingsBackground": "Keep running when closed",
   "@settingsBackground": {"description": "Background setting in ui/screens/settings/general_section.dart"},
-  "settingsBackgroundHint": "Closing the window leaves Lumeo running and downloads going. Quit from the tray or with Ctrl+Q.",
-  "@settingsBackgroundHint": {"description": "Hint under the background setting."},
-  "settingsAutostart": "Start at login",
+  "settingsAutostart": "Start with the system",
   "@settingsAutostart": {"description": "Autostart setting in ui/screens/settings/general_section.dart"},
-  "settingsAutostartHint": "In the background, without a window.",
-  "@settingsAutostartHint": {"description": "Hint under the autostart setting."},
   "backgroundOpen": "Open Lumeo",
   "@backgroundOpen": {"description": "Tray menu item that shows the window."},
   "backgroundQuit": "Quit",
