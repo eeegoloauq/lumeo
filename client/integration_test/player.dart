@@ -224,6 +224,14 @@ void playerTests() {
           await host.get('keepaspect') == 'yes',
       what: 'fill is mpv\'s panscan',
     );
+    await waitFor(tester, () async {
+      final margins = [
+        for (final side in ['ml', 'mr', 'mt', 'mb'])
+          double.tryParse(await host.get('osd-dimensions/$side') ?? ''),
+      ];
+      // A negative margin is picture cut off past the view's edge.
+      return margins.every((margin) => margin != null && margin <= 0);
+    }, what: 'fill leaves no bars');
     await tester.tap(find.text('Stretch'));
     await waitFor(
       tester,
