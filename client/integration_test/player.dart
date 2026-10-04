@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:lumeo/ui/player/anime4k.dart';
 import 'package:lumeo/ui/player/bindings.dart';
 import 'package:lumeo/ui/player/chrome.dart';
 import 'package:lumeo/ui/player/menus.dart';
@@ -178,7 +179,7 @@ void playerTests() {
     expect(patched, isEmpty, reason: 'speed belongs to this film only');
   });
 
-  testWidgets('mpv fits the picture to the view, so fill keeps its OSD', (
+  testWidgets('mpv fits the picture to the view and runs the menu\'s shaders', (
     tester,
   ) async {
     final server = await serveFilm();
@@ -239,6 +240,23 @@ void playerTests() {
           double.tryParse(await host.get('panscan') ?? '') == 0 &&
           await host.get('keepaspect') == 'no',
       what: 'stretch drops mpv\'s aspect',
+    );
+    await tester.tap(find.text('Anime4K A'));
+    await waitFor(
+      tester,
+      () async => Anime4k.of(await host.get('glsl-shaders') ?? '') == Anime4k.a,
+      what: 'Anime4K A is mpv\'s shader list',
+    );
+    expect(
+      Anime4k.a.paths.split(':').where((path) => !File(path).existsSync()),
+      isEmpty,
+      reason: 'the bundle carries every shader of the preset',
+    );
+    await tester.tap(find.text('Anime4K off'));
+    await waitFor(
+      tester,
+      () async => (await host.get('glsl-shaders') ?? '').isEmpty,
+      what: 'off empties the shader list',
     );
   });
 

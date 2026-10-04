@@ -129,6 +129,15 @@ changes its mind. Any GPU draws the defaults; software rendering cannot, and
 the player suite, which runs on llvmpipe, applies `fast` for that reason
 (`mpvProfile`). What is set on top is a decision written here, not a taste.
 
+Anime4K is offered in Picture, off by default: it sharpens lines and wipes
+grain and fine texture, which some like and others call damage, and its
+high-end presets need a discrete GPU at 4K. The shaders are Anime4K 4.0.1's
+(`Anime4K_v4.0.zip`, MIT, sha256
+`139cd282086457c5adc79caf7b75b8b825091d71c9b54958c18745fea62d7ed7`), only the
+files of its high-end A, B and C presets, in `client/assets/anime4k`. The doubled modes
+(A+A and the like) are left out: they oversharpen on almost any source. mpv
+runs them as `glsl-shaders`, so the choice is read back from mpv.
+
 The chrome follows the mouse and nothing else: up when the pointer moves,
 gone half a second after it stops, as mpv's controller does. A key, a pause or
 a seek does not bring it up, and a paused film does not keep it up; a menu

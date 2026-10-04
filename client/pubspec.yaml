@@ -55,6 +55,7 @@ flutter:
   generate: true
   assets:
     - assets/dev.lumeo.lumeo.metainfo.xml
+    - assets/anime4k/
   shaders:
     - shaders/scrim.frag
 

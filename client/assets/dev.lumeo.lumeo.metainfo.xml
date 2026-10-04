@@ -39,6 +39,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.4" date="2026-10-04" type="development">
+      <description>
+        <ul>
+          <li>Player: Anime4K in Settings → Picture sharpens anime upscaled to a large screen; it needs a strong graphics card.</li>
+          <li xml:lang="ru">Плеер: Anime4K в Настройки → Картинка делает чётче аниме на большом экране; нужна мощная видеокарта.</li>
+          <li>The notes of each beta are shown after updating to it.</li>
+          <li xml:lang="ru">После обновления на бету показываются её изменения.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.3" date="2026-10-03" type="development">
       <description>
         <ul>

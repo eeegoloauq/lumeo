@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/play_block.dart';
 import '../widgets/source_list.dart'
     show formatBytes, formatTimeLeft, languageCodes, localLabel, sourceTitle;
+import 'anime4k.dart';
 import 'bindings.dart';
 import 'chapters.dart';
 import 'chrome.dart' show clock;
@@ -763,6 +764,8 @@ class SettingsMenu extends StatefulWidget {
     this.shortcuts,
     required this.onRate,
     required this.onFit,
+    this.anime4k = Anime4k.off,
+    this.onAnime4k,
     this.onChapter,
     required this.onShortcuts,
     required this.onStats,
@@ -786,6 +789,10 @@ class SettingsMenu extends StatefulWidget {
   final List<Shortcut>? shortcuts;
   final void Function(double) onRate;
   final void Function(int) onFit;
+
+  /// The Anime4K preset mpv runs; null for shaders that are none of them.
+  final Anime4k? anime4k;
+  final void Function(Anime4k)? onAnime4k;
   final void Function(int)? onChapter;
   final VoidCallback onShortcuts;
   final VoidCallback onStats;
@@ -960,6 +967,24 @@ class _SettingsMenuState extends State<SettingsMenu> {
           closes: false,
           onTap: () => widget.onFit(i),
         ),
+    if (_page == 'Picture') ...[
+      const Divider(height: 1, color: Color(0x30FFFFFF)),
+      for (final (preset, resolution) in [
+        (Anime4k.off, ''),
+        (Anime4k.a, '1080p'),
+        (Anime4k.b, '720p'),
+        (Anime4k.c, '480p'),
+      ])
+        MenuRow(
+          label: preset == Anime4k.off
+              ? context.l10n.playerAnime4kOff
+              : 'Anime4K ${preset.name.toUpperCase()}',
+          detail: resolution,
+          current: widget.anime4k == preset,
+          closes: false,
+          onTap: () => widget.onAnime4k?.call(preset),
+        ),
+    ],
     if (_page == 'Chapters')
       for (final (i, chapter) in widget.chapters.indexed)
         MenuRow(

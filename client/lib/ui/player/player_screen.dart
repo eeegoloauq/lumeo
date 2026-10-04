@@ -19,6 +19,7 @@ import '../../platform/local_settings.dart';
 import '../../platform/window.dart';
 import '../widgets/loading.dart';
 import '../widgets/play_block.dart';
+import 'anime4k.dart';
 import 'bindings.dart';
 import 'chapters.dart';
 import 'chrome.dart';
@@ -301,6 +302,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// Fit, fill, stretch. mpv fits the picture to its target, which is the
   /// view's size (`_renderAt`), so its OSD is never cropped with the picture.
   int get _fit => !_keepAspect ? 2 : (_panscan ? 1 : 0);
+
+  Anime4k? _anime4k = Anime4k.off;
 
   void _setFit(int fit) {
     unawaited(_mpvSet('panscan', fit == 1 ? '1' : '0'));
@@ -653,6 +656,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       'panscan': (value) =>
           setState(() => _panscan = (double.tryParse(value) ?? 0) > 0),
       'keepaspect': (value) => setState(() => _keepAspect = value != 'no'),
+      'glsl-shaders': (value) => setState(() => _anime4k = Anime4k.of(value)),
       'sub-delay': (value) =>
           setState(() => _subtitleDelay = double.tryParse(value) ?? 0),
       'sub-visibility': (value) =>
@@ -1974,6 +1978,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           chapter: _chapter,
           onRate: _setRate,
           onFit: _setFit,
+          anime4k: _anime4k,
+          onAnime4k: (preset) =>
+              unawaited(_mpvSet('glsl-shaders', preset.paths)),
           onChapter: (i) => unawaited(_mpvSet('chapter', '$i')),
           shortcuts: _shortcuts,
           hardware: _hardware,

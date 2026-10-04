@@ -2076,6 +2076,10 @@
   "@playerFit": {
     "description": "Fit picture inside player."
   },
+  "playerAnime4kOff": "Anime4K off",
+  "@playerAnime4kOff": {
+    "description": "Player › Settings › Picture: no Anime4K upscaling shaders."
+  },
   "playerFill": "Fill",
   "@playerFill": {
     "description": "Fill player with picture."
