@@ -39,6 +39,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.5" date="2026-10-11" type="development">
+      <description>
+        <ul>
+          <li>Sources: when a torrent holds two versions of an episode, the list shows each one's folder, and the next episode comes from the same one.</li>
+          <li xml:lang="ru">Источники: если в раздаче две версии серии, в списке видно папку каждой, и следующая серия берётся из той же.</li>
+          <li>Sources: a director's cut, whose episodes are numbered differently, is no longer picked for an episode; it is marked and listed last.</li>
+          <li xml:lang="ru">Источники: режиссёрская версия с другой нумерацией серий больше не выбирается сама; она помечена и стоит в конце списка.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.4" date="2026-10-04" type="development">
       <description>
         <ul>
