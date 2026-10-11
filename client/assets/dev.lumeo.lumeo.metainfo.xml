@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.6" date="2026-10-12" type="development">
+      <description>
+        <ul>
+          <li>Series: the line under Play opens a menu to choose the version to watch: a folder already on disk, another release, or the best copy of each episode.</li>
+          <li xml:lang="ru">Сериалы: строка под Play открывает меню выбора версии: папка, которая уже на диске, другая раздача или лучшая копия каждой серии.</li>
+          <li>Series: a folder on this computer, such as Downloads, can be used for a series; its episodes play from there and are never deleted.</li>
+          <li xml:lang="ru">Сериалы: можно указать папку на этом компьютере, например «Загрузки»; серии из неё играют оттуда и никогда не удаляются.</li>
+          <li>Title page: list and rating sit beside Play, and the episode synopsis above the episodes is gone, so nothing is spoiled.</li>
+          <li xml:lang="ru">Страница тайтла: «в список» и оценка стоят рядом с Play, а описание серии над лентой убрано, чтобы не было спойлеров.</li>
+          <li>Without a source addon, episodes not on disk are dimmed.</li>
+          <li xml:lang="ru">Без аддона источников серии, которых нет на диске, приглушены.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.5" date="2026-10-11" type="development">
       <description>
         <ul>
