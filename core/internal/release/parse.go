@@ -31,8 +31,11 @@ type Info struct {
 	Repack     bool     `json:"repack,omitempty"`
 	Proper     bool     `json:"proper,omitempty"`
 	Remux      bool     `json:"remux,omitempty"`
-	Group      string   `json:"group,omitempty"`
-	Container  string   `json:"container,omitempty"`
+	// DirectorsCut is a re-edit, which for a series can renumber the
+	// episodes: two broadcast episodes become one.
+	DirectorsCut bool   `json:"directorsCut,omitempty"`
+	Group        string `json:"group,omitempty"`
+	Container    string `json:"container,omitempty"`
 }
 
 var (
@@ -53,6 +56,9 @@ var (
 	reDottedCodec = regexp.MustCompile(`(?i)\b([hx])\.(26[45])\b`)
 	reContainer   = regexp.MustCompile(`(?i)\.(mkv|mp4|avi|ts|m2ts)$`)
 	reSeparators  = regexp.MustCompile(`[._]+`)
+	// Shin henshuu-ban, "newly edited version", is what Japanese releases
+	// call it.
+	reDirectorsCut = regexp.MustCompile(`(?i)\bdirector(?:'|’)?s?[\s-]+cut\b|\bshin[\s-]+henshuu?[\s-]*ban\b`)
 )
 
 // token → canonical value tables. Order inside a table does not matter; the
@@ -159,6 +165,7 @@ func Parse(name string) Info {
 	in.Repack = strings.Contains(lower, "repack")
 	in.Proper = strings.Contains(lower, "proper")
 	in.Atmos = strings.Contains(lower, "atmos")
+	in.DirectorsCut = reDirectorsCut.MatchString(flat)
 	in.MultiSub = strings.Contains(lower, "multi sub") || strings.Contains(lower, "multisub") ||
 		strings.Contains(lower, "multi-subs") || strings.Contains(lower, "multi subs")
 	in.MultiAudio = strings.Contains(lower, "multi audio") || strings.Contains(lower, "dual audio")

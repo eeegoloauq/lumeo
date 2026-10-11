@@ -180,7 +180,11 @@ class _SourceRow extends StatelessWidget {
     final codes = languageCodes(s, context.l10n);
     final title = sourceTitle(s, context.l10n);
     return Tooltip(
-      message: [s.rawName, ?gap?.sentence(context.l10n)].join('\n'),
+      message: [
+        s.rawName,
+        if (s.path.isNotEmpty) s.path,
+        ?gap?.sentence(context.l10n),
+      ].join('\n'),
       waitDuration: const Duration(milliseconds: 600),
       child: ListTile(
         // The drawer opens on the copy Play would start, so the keyboard is
@@ -223,25 +227,45 @@ class _SourceRow extends StatelessWidget {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 6,
             children: [
-              for (final code in codes) _Code(code),
-              if (codes.isEmpty)
-                Text(context.l10n.downloadsNoLanguages, style: Typo.data),
-              if (gap != null) ...[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    gap.mark(context.l10n),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Typo.data.copyWith(color: Palette.warn),
-                  ),
+              if (s.packFolder.isNotEmpty)
+                Text(
+                  s.packFolder,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Typo.data.copyWith(color: Palette.dim),
                 ),
-              ],
-              const Spacer(),
-              if (s.lastUsed)
-                Text(context.l10n.downloadsLastUsed, style: Typo.data),
+              Row(
+                children: [
+                  for (final code in codes) _Code(code),
+                  if (codes.isEmpty)
+                    Text(context.l10n.downloadsNoLanguages, style: Typo.data),
+                  if (gap != null) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        gap.mark(context.l10n),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Typo.data.copyWith(color: Palette.warn),
+                      ),
+                    ),
+                  ],
+                  if (s.directorsCut) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      context.l10n.downloadsDirectorsCut,
+                      style: Typo.data.copyWith(color: Palette.warn),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (s.lastUsed)
+                    Text(context.l10n.downloadsLastUsed, style: Typo.data),
+                ],
+              ),
             ],
           ),
         ),

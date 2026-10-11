@@ -78,7 +78,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	// A copy listed from disk carries no pack name; replaying it is not a new pick.
 	if s.progress != nil && req.Source.ProviderID != "local" {
-		if err := s.progress.RememberSource(r.Context(), req.ItemID, req.Source.BingeGroup); err != nil {
+		if err := s.progress.RememberSource(r.Context(), req.ItemID, req.Source.BingeGroup, req.Source.Folder()); err != nil {
 			// The download is running; forgetting the pick costs the next
 			// episode its default, not this one its start.
 			s.log.Warn("remembering the source failed", "item", req.ItemID, "err", err)

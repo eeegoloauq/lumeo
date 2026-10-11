@@ -230,6 +230,7 @@
   "downloadsSeedCount": "{count, plural, =0{нет сидов} one{{count} сид} few{{count} сида} many{{count} сидов} other{{count} сидов}}",
   "downloadsNoLanguages": "языки не указаны",
   "downloadsLastUsed": "в прошлый раз",
+  "downloadsDirectorsCut": "режиссёрская версия",
   "downloadsTimeLeftMinutes": "осталось {minutes} мин",
   "downloadsTimeLeftHours": "осталось {hours} ч {minutes} мин",
   "downloadsByteUnit": "Б",

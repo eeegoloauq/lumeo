@@ -13,6 +13,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/egress"
+	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/release"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 )
@@ -95,7 +96,7 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 	}
 	subs, audio := s.viewerLanguages(r.Context())
 	rankSources(all, subs, audio)
-	listed := s.preferKnown(r.Context(), itemID, all)
+	listed := s.preferKnown(r.Context(), itemID, q.Kind == catalog.KindSeries, all)
 	// providers is how many source addons were asked: with none, an empty list
 	// means "add one", not "no copies".
 	writeJSON(w, http.StatusOK, map[string]any{"sources": listed, "failed": failed, "providers": len(providers)})
@@ -207,8 +208,16 @@ type listedSource struct {
 	// Local is "done" for a copy on disk, "partial" for one started and not
 	// finished.
 	Local string `json:"local,omitempty"`
-	// LastUsed is the pack started last time for this title.
+	// LastUsed is the pack, and the folder in it, started last time for this
+	// title.
 	LastUsed bool `json:"lastUsed,omitempty"`
+	// DirectorsCut is a director's cut of a series, whose numbers are not
+	// the catalogue's: its episode 9 is two later broadcast episodes in one.
+	DirectorsCut bool `json:"directorsCut,omitempty"`
+	// PackFolder is the file's folder when its pack offers another file for
+	// the episode too: the pack author's own name for the version, and the
+	// only thing that tells the two rows apart.
+	PackFolder string `json:"folder,omitempty"`
 }
 
 // preferKnown moves ahead of the ranking what this library already chose: a
@@ -218,18 +227,29 @@ type listedSource struct {
 // download passed over for a fresh one was the ranking deciding for a viewer
 // who had already decided, and so was a finished copy put back ahead of the
 // one picked after it.
-func (s *Server) preferKnown(ctx context.Context, itemID string, all []sources.MediaSource) []listedSource {
-	var binge string
+//
+// Within each of those, a director's cut of a series goes behind the rest,
+// however healthy: the catalogue numbers the broadcast cut, so a re-edit
+// offered for an episode is another part of the story. It stays listed for
+// whoever wants it, and once picked its folder is the one remembered.
+func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, all []sources.MediaSource) []listedSource {
+	var choice progress.Choice
 	if s.progress != nil && itemID != "" {
-		choice, err := s.progress.Choice(ctx, itemID)
+		var err error
+		choice, err = s.progress.Choice(ctx, itemID)
 		if err != nil {
 			s.log.Warn("reading the source choice failed", "item", itemID, "err", err)
 		}
-		binge = choice.BingeGroup
 	}
 	listed := make([]listedSource, len(all))
 	for i, src := range all {
-		listed[i] = listedSource{MediaSource: src, LastUsed: binge != "" && src.BingeGroup == binge}
+		// A pick from before folders were kept matches the whole pack.
+		lastUsed := choice.BingeGroup != "" && src.BingeGroup == choice.BingeGroup &&
+			(choice.Folder == "" || src.Folder() == choice.Folder)
+		listed[i] = listedSource{MediaSource: src, LastUsed: lastUsed, DirectorsCut: series && src.DirectorsCut()}
+		if twinned(src, all) {
+			listed[i].PackFolder = src.Folder()
+		}
 		if s.downloads != nil {
 			if d, ok := s.downloads.Find(ctx, src.Locator); ok && d.State != acquire.StateFailed {
 				listed[i].Local = "partial"
@@ -239,8 +259,25 @@ func (s *Server) preferKnown(ctx context.Context, itemID string, all []sources.M
 			}
 		}
 	}
-	sort.SliceStable(listed, func(i, j int) bool { return listed[i].known() < listed[j].known() })
+	sort.SliceStable(listed, func(i, j int) bool {
+		if ki, kj := listed[i].known(), listed[j].known(); ki != kj {
+			return ki < kj
+		}
+		return !listed[i].DirectorsCut && listed[j].DirectorsCut
+	})
 	return listed
+}
+
+// twinned says whether the pack of a copy offers another file for the same
+// episode.
+func twinned(src sources.MediaSource, all []sources.MediaSource) bool {
+	if src.Locator.Scheme != "torrent" {
+		return false
+	}
+	return slices.ContainsFunc(all, func(other sources.MediaSource) bool {
+		return other.Locator.Scheme == "torrent" && other.Locator.InfoHash == src.Locator.InfoHash &&
+			!other.Locator.Same(src.Locator)
+	})
 }
 
 func (l listedSource) known() int {

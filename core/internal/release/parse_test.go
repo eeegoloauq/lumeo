@@ -63,3 +63,18 @@ func TestParseTitle(t *testing.T) {
 		}
 	}
 }
+
+func TestParseDirectorsCut(t *testing.T) {
+	for in, want := range map[string]bool{
+		"[Group] The Prisoner Director's Cut - 09.mkv":                true,
+		"The Prisoner - S1 - Directors Cut - BD (1080P) [Dual-Audio]": true,
+		"The.Prisoner.Directors.Cut.S01E09.1080p.BluRay.x265":         true,
+		"The Prisoner Director’s Cut 09 [BD 1080p]":                   true,
+		"[Group] The Prisoner - 09.mkv":                               false,
+		"The Director Cuts Loose 2001 1080p":                          false,
+	} {
+		if got := Parse(in).DirectorsCut; got != want {
+			t.Errorf("%s: directorsCut %v, want %v", in, got, want)
+		}
+	}
+}

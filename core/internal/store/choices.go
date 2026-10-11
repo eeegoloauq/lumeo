@@ -15,9 +15,9 @@ func (d *DB) Choice(ctx context.Context, itemID string) (progress.Choice, error)
 	var audioLanguage, audioTitle, subtitleLanguage, subtitleTitle sql.NullString
 	var subtitleOff bool
 	err := d.db.QueryRowContext(ctx, `
-		SELECT binge_group, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_off
+		SELECT binge_group, folder, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_off
 		FROM choices WHERE item_id = ?`, itemID).
-		Scan(&choice.BingeGroup, &audioLanguage, &audioTitle, &subtitleLanguage, &subtitleTitle, &subtitleOff)
+		Scan(&choice.BingeGroup, &choice.Folder, &audioLanguage, &audioTitle, &subtitleLanguage, &subtitleTitle, &subtitleOff)
 	if errors.Is(err, sql.ErrNoRows) {
 		return progress.Choice{}, nil
 	}
@@ -48,18 +48,19 @@ func (d *DB) SaveChoice(ctx context.Context, itemID string, choice progress.Choi
 		}
 	}
 	_, err := d.db.ExecContext(ctx, `
-		INSERT INTO choices(item_id, binge_group, audio_language, audio_title,
+		INSERT INTO choices(item_id, binge_group, folder, audio_language, audio_title,
 			subtitle_language, subtitle_title, subtitle_off, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(item_id) DO UPDATE SET
 			binge_group = excluded.binge_group,
+			folder = excluded.folder,
 			audio_language = excluded.audio_language,
 			audio_title = excluded.audio_title,
 			subtitle_language = excluded.subtitle_language,
 			subtitle_title = excluded.subtitle_title,
 			subtitle_off = excluded.subtitle_off,
 			updated_at = excluded.updated_at`,
-		itemID, choice.BingeGroup, audioLanguage, audioTitle,
+		itemID, choice.BingeGroup, choice.Folder, audioLanguage, audioTitle,
 		subtitleLanguage, subtitleTitle, subtitleOff, at.Unix())
 	if err != nil {
 		return fmt.Errorf("save choice for %q: %w", itemID, err)

@@ -991,6 +991,7 @@
   },
   "downloadsNoLanguages": "no languages listed",
   "downloadsLastUsed": "last used",
+  "downloadsDirectorsCut": "Director's Cut",
   "downloadsTimeLeftMinutes": "{minutes, plural, one{1 min left} other{{minutes} min left}}",
   "@downloadsTimeLeftMinutes": {
     "description": "Estimated download time left.",
@@ -1900,6 +1901,9 @@
   },
   "@downloadsLastUsed": {
     "description": "Source row last-used marker."
+  },
+  "@downloadsDirectorsCut": {
+    "description": "Source row marker: a re-edited cut of a series whose episode numbers differ from the catalogue's."
   },
   "downloadsStopDiscardOne": "Stop and discard",
   "@downloadsStopDiscardOne": {

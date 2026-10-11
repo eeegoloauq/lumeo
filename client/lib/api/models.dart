@@ -681,11 +681,14 @@ class MediaSource {
     this.size = 0,
     this.seeders = 0,
     this.filename = '',
+    this.path = '',
     this.tracker = '',
     this.languages = const [],
     this.bingeGroup = '',
     this.local = '',
     this.lastUsed = false,
+    this.directorsCut = false,
+    this.packFolder = '',
   });
 
   final String providerId;
@@ -695,6 +698,10 @@ class MediaSource {
   final int size;
   final int seeders;
   final String filename;
+
+  /// The file inside its pack, folders included. Sent back with a download so
+  /// the core remembers which folder, and so which cut, was picked.
+  final String path;
 
   /// Where the provider found this copy, and the languages it says it
   /// carries, audio and subtitles alike: the provider's, not the release
@@ -713,6 +720,14 @@ class MediaSource {
   final String local;
   final bool lastUsed;
 
+  /// A director's cut of a series: its episode numbers are not the
+  /// catalogue's, so the core ranks it last and the row says so.
+  final bool directorsCut;
+
+  /// The file's folder, set only when its pack offers another file for the
+  /// episode: the pack author's name for the version.
+  final String packFolder;
+
   factory MediaSource.fromJson(Map<String, dynamic> json) => MediaSource(
     providerId: json['providerId'] as String? ?? '',
     rawName: json['rawName'] as String? ?? '',
@@ -721,11 +736,14 @@ class MediaSource {
     size: json['size'] as int? ?? 0,
     seeders: json['seeders'] as int? ?? 0,
     filename: json['filename'] as String? ?? '',
+    path: json['path'] as String? ?? '',
     tracker: json['tracker'] as String? ?? '',
     languages: (json['languages'] as List<dynamic>? ?? []).cast<String>(),
     bingeGroup: json['bingeGroup'] as String? ?? '',
     local: json['local'] as String? ?? '',
     lastUsed: json['lastUsed'] as bool? ?? false,
+    directorsCut: json['directorsCut'] as bool? ?? false,
+    packFolder: json['folder'] as String? ?? '',
   );
 
   Map<String, dynamic> toJson() => {
@@ -736,6 +754,7 @@ class MediaSource {
     'size': size,
     'seeders': seeders,
     'filename': filename,
+    if (path.isNotEmpty) 'path': path,
     if (tracker.isNotEmpty) 'tracker': tracker,
     if (languages.isNotEmpty) 'languages': languages,
     if (bingeGroup.isNotEmpty) 'bingeGroup': bingeGroup,

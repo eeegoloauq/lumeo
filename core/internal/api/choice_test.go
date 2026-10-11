@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -119,7 +120,7 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 	if got := sourceNames(t, h); got[0] != "disk done false" || got[1] != "half partial false" || got[2] != "best  false" {
 		t.Fatalf("without a remembered pack: %v", got)
 	}
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p"); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	want := []string{"disk done false", "half partial false", "pack  true", "best  false", "failed  false"}
@@ -131,7 +132,7 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 	}
 	// Seen 2026-09-30: another copy picked after the one on disk went back
 	// behind it on the next visit, although it was what the viewer chose last.
-	if err := watch.RememberSource(context.Background(), "abc123", "half|720p"); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", "half|720p", ""); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	if got := sourceNames(t, h); got[0] != "half partial true" || got[1] != "disk done false" {
@@ -159,7 +160,7 @@ func TestSourcesListWhatIsOnDiskWhenNoProviderDoes(t *testing.T) {
 		t.Fatalf("sources = %v", got)
 	}
 
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p"); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	rec := requestJSON(t, h, http.MethodPost, "/api/v1/downloads",
@@ -175,12 +176,12 @@ func TestSourcesListWhatIsOnDiskWhenNoProviderDoes(t *testing.T) {
 func TestStartingADownloadRemembersItsPack(t *testing.T) {
 	h, watch := choiceServer(t, nil, nil)
 	rec := requestJSON(t, h, http.MethodPost, "/api/v1/downloads",
-		`{"itemId":"abc123","season":1,"episode":1,"source":{"bingeGroup":"group|1080p","locator":{"scheme":"torrent","infoHash":"e1"}}}`)
+		`{"itemId":"abc123","season":1,"episode":1,"source":{"bingeGroup":"group|1080p","path":"Season 01/e01.mkv","locator":{"scheme":"torrent","infoHash":"e1"}}}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
 	choice, err := watch.Choice(context.Background(), "abc123")
-	if err != nil || choice.BingeGroup != "group|1080p" {
+	if err != nil || choice.BingeGroup != "group|1080p" || choice.Folder != "Season 01" {
 		t.Fatalf("choice = %+v, %v", choice, err)
 	}
 }
@@ -189,7 +190,7 @@ func TestStartingADownloadRemembersItsPack(t *testing.T) {
 // holds in the next, and neither half overwrites the other.
 func TestChoicePatchKeepsThePackAndTheOtherTrack(t *testing.T) {
 	h, watch := choiceServer(t, nil, nil)
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p"); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	for _, body := range []string{
@@ -221,5 +222,65 @@ func TestChoicePatchKeepsThePackAndTheOtherTrack(t *testing.T) {
 
 	if rec := requestJSON(t, h, http.MethodPatch, "/api/v1/choices/abc123", `{"audio":{"off":true}}`); rec.Code != http.StatusBadRequest {
 		t.Fatalf("audio off: status %d, want 400", rec.Code)
+	}
+}
+
+// packFile is one file of a pack, as a provider lists it for an episode.
+func packFile(pack, hash string, index, seeders int, path string) sources.MediaSource {
+	src := torrentSource(pack+" "+path, hash, seeders, "pack|"+hash)
+	src.Release = release.Parse(pack)
+	src.Path = path
+	src.Locator.FileIndex = &index
+	return src
+}
+
+// Seen 2026-10-10: a pack holding the season twice, broadcast and director's
+// cut in two folders, is listed with both files for an episode under one
+// pack name, in an order that changed from episode to episode, and episode 9
+// played the director's cut's 9: two later broadcast episodes.
+func TestSourcesKeepToTheBroadcastCutAndTheFolderPicked(t *testing.T) {
+	const both = "[Group] The Prisoner (Season 01 + Director's Cut) [1080p]"
+	h, watch := choiceServer(t, nil, fixedSource{
+		// Only this cut, its files at the root: the pack's name says which.
+		packFile("The Prisoner S01 Director's Cut 1080p", "recut", 8, 900, "The Prisoner - 09.mkv"),
+		// Every cut in its folders, and this file from the broadcast one.
+		packFile("The Prisoner (S1 + S2 + Director's Cut) 1080p", "sorted", 8, 600, "Season 1/The Prisoner S01E09.mkv"),
+		packFile(both, "both", 33, 395, "The Prisoner Director's Cut/The Prisoner Director's Cut - 09.mkv"),
+		packFile(both, "both", 8, 395, "The Prisoner/The Prisoner - 09.mkv"),
+	})
+	names := func() []string {
+		var out []string
+		for _, s := range listSources(t, h) {
+			out = append(out, fmt.Sprint(s.Path, " ", s.LastUsed))
+		}
+		return out
+	}
+	if got := names(); got[0] != "Season 1/The Prisoner S01E09.mkv false" || got[1] != "The Prisoner/The Prisoner - 09.mkv false" {
+		t.Fatalf("nothing picked yet: %v", got)
+	}
+	// Only the two files of one pack name their folders: nothing else tells
+	// those rows apart.
+	for _, s := range listSources(t, h) {
+		want := ""
+		if s.Locator.InfoHash == "both" {
+			want = s.Folder()
+		}
+		if s.PackFolder != want {
+			t.Fatalf("%s: folder %q, want %q", s.Path, s.PackFolder, want)
+		}
+	}
+	// A pick recorded before folders were kept names the pack alone.
+	if err := watch.RememberSource(context.Background(), "abc123", "pack|both", ""); err != nil {
+		t.Fatalf("remember: %v", err)
+	}
+	if got := names(); got[0] != "The Prisoner/The Prisoner - 09.mkv true" || got[1] != "The Prisoner Director's Cut/The Prisoner Director's Cut - 09.mkv true" {
+		t.Fatalf("pack remembered without a folder: %v", got)
+	}
+	// Picked by hand, the director's cut is what the next episode continues.
+	if err := watch.RememberSource(context.Background(), "abc123", "pack|both", "The Prisoner Director's Cut"); err != nil {
+		t.Fatalf("remember: %v", err)
+	}
+	if got := names(); got[0] != "The Prisoner Director's Cut/The Prisoner Director's Cut - 09.mkv true" || slices.Contains(got, "The Prisoner/The Prisoner - 09.mkv true") {
+		t.Fatalf("director's cut picked: %v", got)
 	}
 }

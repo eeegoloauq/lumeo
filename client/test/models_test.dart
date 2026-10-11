@@ -22,6 +22,14 @@ void main() {
     expect(old.progress.upload, 0);
     expect(old.progress.sent, 0);
   });
+  test('a source started as a download carries its path in the pack back', () {
+    final source = MediaSource.fromJson(const {
+      'bingeGroup': 'pack|1',
+      'path': 'Season 01/e09.mkv',
+    });
+    expect(source.toJson()['path'], 'Season 01/e09.mkv');
+  });
+
   test('a running series shows an open-ended year range', () {
     const series = MediaItem(
       id: 'a',

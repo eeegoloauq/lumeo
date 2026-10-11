@@ -58,6 +58,28 @@ disk for the next. The client used to hold the pack in a page's state, and
 leaving the page gave the ranking's best again, passing a finished download
 over for a fresh one.
 
+The pack is remembered with the folder the file sat in. One pack can hold a
+season twice, the broadcast cut and a director's cut in two folders, and the
+provider lists both files for an episode under one `bingeGroup`, in an order
+that changes from episode to episode; the pack alone played one cut, then the
+other. The folder comes from the provider's second line, the file's path in
+the pack, which is why the client sends a source's `path` back when it starts
+a download.
+
+A director's cut of a series goes behind every other copy in its group, on
+disk, picked or stranger, however healthy. The catalogue numbers the
+broadcast cut, and a re-edit renumbers it: its episode 9 is broadcast 16 and
+17, and after its last episode the catalogue's next one is halfway through
+the story again. Nothing before the download says how long a file runs, so
+the name is the evidence, "director's cut" or the Japanese "shin
+henshuu-ban". A file in a folder is judged by its path alone: a pack that
+sorts its files into folders names the cut in the folder, and its own name
+lists every cut it holds ("S1 + S2 + Director's Cut"). Only a file at the
+pack's root is judged by the pack's name. The copy stays in the list, marked
+"Director's Cut", and picked by hand, its folder is what the next episode
+continues. A row's tooltip carries the file's path under the pack's name: two
+rows of one pack differ by nothing else.
+
 The tracks picked in the player go into the same record, for the whole title
 rather than the episode, as a language and a title: mpv's ids are per file,
 and the title is what tells "English Full" from "English Honorifics". Only the

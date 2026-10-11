@@ -5,6 +5,7 @@ package sources
 
 import (
 	"context"
+	"path"
 
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/release"
@@ -58,6 +59,9 @@ type MediaSource struct {
 	Size       int64        `json:"size,omitempty"` // bytes, 0 when unknown
 	Seeders    int          `json:"seeders,omitempty"`
 	Filename   string       `json:"filename,omitempty"`
+	// Path is the file inside its pack, folders included, as the provider
+	// shows it: one pack can hold the same episode twice, in two cuts.
+	Path string `json:"path,omitempty"`
 	// Tracker is where the provider found this copy — its own word for it,
 	// not ours. A provider that aggregates several trackers is the only one
 	// that knows which of them answered.
@@ -68,6 +72,25 @@ type MediaSource struct {
 	Languages  []string `json:"languages,omitempty"`
 	BingeGroup string   `json:"bingeGroup,omitempty"` // provider hint: same pack as the next episode
 	Locator    Locator  `json:"locator"`
+}
+
+// Folder is the folder the file sits in inside its pack, "" at the root or
+// when the provider does not say.
+func (m MediaSource) Folder() string {
+	if dir := path.Dir(m.Path); dir != "." {
+		return dir
+	}
+	return ""
+}
+
+// DirectorsCut says whether this copy is a director's cut. A pack that sorts
+// its files into folders names the cut in the folder, and its own name may
+// list every cut it holds; only a file at the pack's root is the pack's name.
+func (m MediaSource) DirectorsCut() bool {
+	if m.Folder() != "" {
+		return release.Parse(m.Path).DirectorsCut
+	}
+	return m.Release.DirectorsCut || release.Parse(m.Path).DirectorsCut
 }
 
 type Provider interface {

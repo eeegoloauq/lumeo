@@ -244,6 +244,7 @@ func streams(providerID string, body streamResponse) []sources.MediaSource {
 			Seeders:    parseSeeders(text),
 			Size:       s.BehaviorHints.VideoSize,
 			Filename:   s.BehaviorHints.Filename,
+			Path:       packPath(text, s.BehaviorHints.Filename),
 			Tracker:    parseTracker(text),
 			Languages:  parseFlagLanguages(text),
 			BingeGroup: s.BehaviorHints.BingeGroup,
@@ -328,6 +329,23 @@ func parseFlagLanguages(text string) []string {
 		i++
 	}
 	return out
+}
+
+// packPath is the file's path inside its pack, which the addon prints on the
+// line after the release name. That line is the path only when it ends with
+// the file's own name; otherwise it is something else of the addon's.
+func packPath(text, filename string) string {
+	if filename == "" {
+		return ""
+	}
+	lines := strings.SplitN(text, "\n", 3)
+	if len(lines) < 2 {
+		return ""
+	}
+	if line := strings.TrimSpace(lines[1]); strings.HasSuffix(line, filename) {
+		return line
+	}
+	return ""
 }
 
 func firstLine(s string) string {

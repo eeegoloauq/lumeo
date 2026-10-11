@@ -542,6 +542,8 @@ void main() {
       String resolution, {
       String local = '',
       bool lastUsed = false,
+      bool directorsCut = false,
+      String folder = '',
       List<String> languages = const ['en'],
     }) => {
       'providerId': 'torrentio',
@@ -553,6 +555,8 @@ void main() {
       'languages': languages,
       'local': local,
       'lastUsed': lastUsed,
+      'directorsCut': directorsCut,
+      'folder': folder,
     };
     final started = <String>[];
     await tester.pumpWidget(
@@ -564,6 +568,12 @@ void main() {
             copy('pack', '720p', lastUsed: true),
             copy('sharp', '2160p', languages: ['en', 'ru', 'ja', 'de', 'fr']),
             copy('mid', '1080p'),
+            copy(
+              'recut',
+              '1080p',
+              directorsCut: true,
+              folder: 'Night of the Living Dead Director\'s Cut',
+            ),
           ],
         ),
       ),
@@ -587,6 +597,12 @@ void main() {
     expect(top('720p · disk · WEB-DL'), lessThan(top('2160p')));
     expect(find.text('1.0 GB · on disk'), findsOneWidget);
     expect(find.text('last used'), findsOneWidget);
+    expect(find.text("Director's Cut"), findsOneWidget);
+    expect(
+      find.text("Night of the Living Dead Director's Cut"),
+      findsOneWidget,
+      reason: 'a pack with two files for the episode names each folder',
+    );
     expect(
       find.text('+2'),
       findsOneWidget,

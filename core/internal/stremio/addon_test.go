@@ -51,3 +51,17 @@ func TestParseTrackerWhenAbsent(t *testing.T) {
 		t.Errorf("got %q, want empty", got)
 	}
 }
+
+// One pack can carry an episode twice, as a broadcast cut and a director's
+// cut in their own folders; the folder exists only on the addon's second line.
+func TestPackPathIsTheLineEndingWithTheFile(t *testing.T) {
+	text := "[Group] The Prisoner (Season 01 + Director's Cut) [1080p]\n" +
+		"[Group] The Prisoner Director's Cut/[Group] The Prisoner Director's Cut - 09.mkv\n" +
+		"👤 395 💾 486.71 MB ⚙️ NyaaSi"
+	if got := packPath(text, "[Group] The Prisoner Director's Cut - 09.mkv"); got != "[Group] The Prisoner Director's Cut/[Group] The Prisoner Director's Cut - 09.mkv" {
+		t.Errorf("path: got %q", got)
+	}
+	if got := packPath("The.Prisoner.S01E09.1080p\n👤 5 💾 900 MB", "The.Prisoner.S01E09.1080p.mkv"); got != "" {
+		t.Errorf("a line that is not the file: got %q", got)
+	}
+}

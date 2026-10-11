@@ -53,6 +53,10 @@ type Choice struct {
 	// Nearly every copy of an episode is a whole season, so the next episode
 	// from the same pack is usually already on disk.
 	BingeGroup string `json:"bingeGroup"`
+	// Folder is where inside that pack the copy was: a pack can hold the
+	// season twice, cut two ways, and the next episode comes from the same
+	// cut.
+	Folder string `json:"folder"`
 	// Audio and Subtitle are the tracks last picked by hand, for the whole
 	// title rather than the episode: a pick the next episode forgot would be
 	// asked for again every evening. Nil when nobody picked.
@@ -214,14 +218,14 @@ func (s *Service) Choice(ctx context.Context, itemID string) (Choice, error) {
 	return s.store.Choice(ctx, itemID)
 }
 
-// RememberSource records the pack of a copy that was started. An empty group
-// is recorded too: the viewer's last pick was a copy outside any pack, and an
-// older pack is no longer what they chose.
-func (s *Service) RememberSource(ctx context.Context, itemID, bingeGroup string) error {
+// RememberSource records the pack of a copy that was started, and its folder
+// in the pack. An empty group is recorded too: the viewer's last pick was a
+// copy outside any pack, and an older pack is no longer what they chose.
+func (s *Service) RememberSource(ctx context.Context, itemID, bingeGroup, folder string) error {
 	if itemID == "" {
 		return nil
 	}
-	return s.changeChoice(ctx, itemID, func(c *Choice) { c.BingeGroup = bingeGroup })
+	return s.changeChoice(ctx, itemID, func(c *Choice) { c.BingeGroup, c.Folder = bingeGroup, folder })
 }
 
 // RememberTracks records the tracks picked by hand. A nil track leaves the
