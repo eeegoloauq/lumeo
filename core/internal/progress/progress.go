@@ -49,19 +49,34 @@ type Store interface {
 // than in a client because every client plays the same library: the copy
 // picked on one machine is the one on disk for the next.
 type Choice struct {
-	// BingeGroup is the provider's name for the pack the copy came from.
-	// Nearly every copy of an episode is a whole season, so the next episode
-	// from the same pack is usually already on disk.
-	BingeGroup string `json:"bingeGroup"`
-	// Folder is where inside that pack the copy was: a pack can hold the
-	// season twice, cut two ways, and the next episode comes from the same
-	// cut.
-	Folder string `json:"folder"`
+	Pack
 	// Audio and Subtitle are the tracks last picked by hand, for the whole
 	// title rather than the episode: a pick the next episode forgot would be
 	// asked for again every evening. Nil when nobody picked.
 	Audio    *Track `json:"audio"`
 	Subtitle *Track `json:"subtitle"`
+}
+
+// Pack is the release a title plays from: the one its last copy was started
+// from, or the one picked for it.
+type Pack struct {
+	// BingeGroup is the provider's name for the pack the copy came from.
+	// Nearly every copy of an episode is a whole season, so the next episode
+	// from the same pack is usually already on disk.
+	BingeGroup string `json:"bingeGroup"`
+	// InfoHash is the torrent the copy came from, which names the pack when
+	// the provider gave no group.
+	InfoHash string `json:"infoHash,omitempty"`
+	// Folder is where inside that pack the copy was: a pack can hold the
+	// season twice, cut two ways, and the next episode comes from the same
+	// cut.
+	Folder string `json:"folder"`
+	// Dir is a folder on this machine, for files that came from no provider.
+	Dir string `json:"dir,omitempty"`
+	// Picked is a release chosen by hand on the title's page, not merely the
+	// one the last copy came from: its copies go ahead of other releases'
+	// already on disk.
+	Picked bool `json:"picked,omitempty"`
 }
 
 // Track names a track the way it carries over from one file to the next.
@@ -218,14 +233,15 @@ func (s *Service) Choice(ctx context.Context, itemID string) (Choice, error) {
 	return s.store.Choice(ctx, itemID)
 }
 
-// RememberSource records the pack of a copy that was started, and its folder
-// in the pack. An empty group is recorded too: the viewer's last pick was a
-// copy outside any pack, and an older pack is no longer what they chose.
-func (s *Service) RememberSource(ctx context.Context, itemID, bingeGroup, folder string) error {
+// RememberSource records the pack of a copy that was started or picked, and
+// its folder. An empty pack is recorded too: the viewer's last pick was a copy
+// outside any pack, or the ranking's, and an older pack is no longer what
+// they chose.
+func (s *Service) RememberSource(ctx context.Context, itemID string, pack Pack) error {
 	if itemID == "" {
 		return nil
 	}
-	return s.changeChoice(ctx, itemID, func(c *Choice) { c.BingeGroup, c.Folder = bingeGroup, folder })
+	return s.changeChoice(ctx, itemID, func(c *Choice) { c.Pack = pack })
 }
 
 // RememberTracks records the tracks picked by hand. A nil track leaves the

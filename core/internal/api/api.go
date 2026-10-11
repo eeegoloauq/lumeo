@@ -158,6 +158,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/searches", s.handleForgetSearches)
 	mux.HandleFunc("GET /api/v1/items/{id}", s.handleItem)
 	mux.HandleFunc("GET /api/v1/items/{id}/after", s.handleEpisodeAfter)
+	mux.HandleFunc("GET /api/v1/items/{id}/folders", s.handleFolders)
+	mux.HandleFunc("POST /api/v1/items/{id}/folders", s.handleLinkFolder)
 	mux.HandleFunc("GET /api/v1/sources", s.handleSources)
 	mux.HandleFunc("GET /api/v1/subtitles", s.handleSubtitles)
 	mux.HandleFunc("GET /api/v1/subtitles/{token}", s.handleSubtitleFile)

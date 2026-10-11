@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -68,8 +69,9 @@ func (s *Server) handleChoice(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, choice)
 }
 
-// handlePatchChoice records the tracks a player saw picked by hand. The source
-// is not patched here: it is recorded by the download that starts it.
+// handlePatchChoice records the tracks a player saw picked by hand, and the
+// release picked for the title without starting a copy of it. A copy that
+// starts records its own release, with the download.
 func (s *Server) handlePatchChoice(w http.ResponseWriter, r *http.Request) {
 	if !s.haveProgress(w) {
 		return
@@ -77,9 +79,21 @@ func (s *Server) handlePatchChoice(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Audio    *progress.Track `json:"audio"`
 		Subtitle *progress.Track `json:"subtitle"`
+		Source   json.RawMessage `json:"source"`
 	}
 	if !readJSON(w, r, &body) {
 		return
+	}
+	pack, err := chosenSource(body.Source)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if pack != nil {
+		if err := s.progress.RememberSource(r.Context(), r.PathValue("id"), *pack); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	choice, err := s.progress.RememberTracks(r.Context(), r.PathValue("id"), body.Audio, body.Subtitle)
 	if errors.Is(err, progress.ErrInvalid) {

@@ -28,11 +28,13 @@ func (d *DB) SaveDownload(ctx context.Context, download acquire.Download) error 
 		INSERT INTO downloads(
 			id, item_id, season, episode, name, scheme, locator,
 			dir, file_path, size, state, error, created_at, updated_at,
-			paused_by_user, paused_at_bytes
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			paused_by_user, paused_at_bytes, binge_group, pack_path
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			paused_by_user = excluded.paused_by_user,
 			paused_at_bytes = excluded.paused_at_bytes,
+			binge_group = excluded.binge_group,
+			pack_path = excluded.pack_path,
 			item_id = excluded.item_id,
 			season = excluded.season,
 			episode = excluded.episode,
@@ -49,7 +51,7 @@ func (d *DB) SaveDownload(ctx context.Context, download acquire.Download) error 
 		download.ID, download.ItemID, download.Season, download.Episode, download.Name,
 		download.Locator.Scheme, locator, download.Dir, download.FilePath, download.Size,
 		string(download.State), download.Error, download.CreatedAt.Unix(), download.UpdatedAt.Unix(),
-		download.PausedByUser, pausedAt)
+		download.PausedByUser, pausedAt, download.BingeGroup, download.PackPath)
 	if err != nil {
 		return fmt.Errorf("save download %q: %w", download.ID, err)
 	}
@@ -60,7 +62,7 @@ func (d *DB) Downloads(ctx context.Context) ([]acquire.Download, error) {
 	rows, err := d.db.QueryContext(ctx, `
 		SELECT id, item_id, season, episode, name, locator,
 		       dir, file_path, size, state, error, created_at, updated_at,
-		       paused_by_user, paused_at_bytes
+		       paused_by_user, paused_at_bytes, binge_group, pack_path
 		FROM downloads
 		ORDER BY created_at DESC`)
 	if err != nil {
@@ -86,7 +88,7 @@ func (d *DB) Download(ctx context.Context, id string) (acquire.Download, bool, e
 	row := d.db.QueryRowContext(ctx, `
 		SELECT id, item_id, season, episode, name, locator,
 		       dir, file_path, size, state, error, created_at, updated_at,
-		       paused_by_user, paused_at_bytes
+		       paused_by_user, paused_at_bytes, binge_group, pack_path
 		FROM downloads
 		WHERE id = ?`, id)
 	download, err := scanDownload(row.Scan)
@@ -114,7 +116,7 @@ func scanDownload(scan func(dest ...any) error) (acquire.Download, error) {
 	if err := scan(
 		&download.ID, &download.ItemID, &download.Season, &download.Episode, &download.Name,
 		&locator, &download.Dir, &download.FilePath, &download.Size, &state, &download.Error,
-		&createdAt, &updatedAt, &download.PausedByUser, &pausedAt,
+		&createdAt, &updatedAt, &download.PausedByUser, &pausedAt, &download.BingeGroup, &download.PackPath,
 	); err != nil {
 		return acquire.Download{}, err
 	}

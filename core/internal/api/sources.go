@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -86,6 +87,8 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 				Release:    release.Parse(row.Name),
 				Size:       row.Size,
 				Filename:   row.Name,
+				Path:       row.PackPath,
+				BingeGroup: row.BingeGroup,
 				Locator:    row.Locator,
 			}
 			if row.Locator.Scheme == "file" {
@@ -243,10 +246,7 @@ func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, al
 	}
 	listed := make([]listedSource, len(all))
 	for i, src := range all {
-		// A pick from before folders were kept matches the whole pack.
-		lastUsed := choice.BingeGroup != "" && src.BingeGroup == choice.BingeGroup &&
-			(choice.Folder == "" || src.Folder() == choice.Folder)
-		listed[i] = listedSource{MediaSource: src, LastUsed: lastUsed, DirectorsCut: series && src.DirectorsCut()}
+		listed[i] = listedSource{MediaSource: src, LastUsed: holds(choice.Pack, src), DirectorsCut: series && src.DirectorsCut()}
 		if twinned(src, all) {
 			listed[i].PackFolder = src.Folder()
 		}
@@ -260,12 +260,40 @@ func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, al
 		}
 	}
 	sort.SliceStable(listed, func(i, j int) bool {
-		if ki, kj := listed[i].known(), listed[j].known(); ki != kj {
+		if ki, kj := listed[i].known(choice.Picked), listed[j].known(choice.Picked); ki != kj {
 			return ki < kj
 		}
 		return !listed[i].DirectorsCut && listed[j].DirectorsCut
 	})
 	return listed
+}
+
+// packOf is the pack a copy belongs to, as a choice records it.
+func packOf(src sources.MediaSource) progress.Pack {
+	switch src.Locator.Scheme {
+	case "file":
+		return progress.Pack{Dir: filepath.Dir(src.Locator.Path)}
+	case "torrent":
+		return progress.Pack{BingeGroup: src.BingeGroup, InfoHash: src.Locator.InfoHash, Folder: src.Folder()}
+	}
+	return progress.Pack{BingeGroup: src.BingeGroup, Folder: src.Folder()}
+}
+
+// holds says whether a copy is of the chosen pack. A pick from before folders
+// were kept matches the whole pack, and a folder on this machine holds the
+// files under it, its season folders included.
+func holds(pack progress.Pack, src sources.MediaSource) bool {
+	if pack.Dir != "" {
+		return src.Locator.Scheme == "file" && within(pack.Dir, src.Locator.Path)
+	}
+	same := pack.BingeGroup != "" && src.BingeGroup == pack.BingeGroup ||
+		pack.InfoHash != "" && src.Locator.Scheme == "torrent" && src.Locator.InfoHash == pack.InfoHash
+	return same && (pack.Folder == "" || src.Folder() == pack.Folder)
+}
+
+func within(dir, path string) bool {
+	rel, err := filepath.Rel(dir, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 }
 
 // twinned says whether the pack of a copy offers another file for the same
@@ -280,7 +308,11 @@ func twinned(src sources.MediaSource, all []sources.MediaSource) bool {
 	})
 }
 
-func (l listedSource) known() int {
+// known orders what the library chose: the chosen release's copy on disk,
+// then any copy on disk, then the chosen release's from a provider. A
+// release picked by hand goes ahead of other releases' copies on disk: that
+// is what picking it on the title's page asks for.
+func (l listedSource) known(picked bool) int {
 	local := 2
 	switch l.Local {
 	case "done":
@@ -291,12 +323,14 @@ func (l listedSource) known() int {
 	switch {
 	case l.LastUsed && local < 2:
 		return local
+	case l.LastUsed && picked:
+		return 2
 	case local < 2:
-		return 2 + local
+		return 3 + local
 	case l.LastUsed:
-		return 4
+		return 5
 	}
-	return 5
+	return 6
 }
 
 func resolutionRank(res string) int {

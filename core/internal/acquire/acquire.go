@@ -46,6 +46,11 @@ type Download struct {
 	Dir      string          `json:"-"` // where the backend writes; not the client's business
 	FilePath string          `json:"-"`
 	Size     int64           `json:"size,omitempty"`
+	// BingeGroup and PackPath are the source's: the release the file came
+	// from and where it sits in it, which is what groups the copies on disk
+	// into the choices a viewer makes.
+	BingeGroup string `json:"-"`
+	PackPath   string `json:"-"`
 	// Release is Name read the way the source list reads it, so a row can say
 	// which copy it is (2160p, HDR) without the client parsing names itself.
 	// Derived on every read, never stored: a better parser relabels old rows.

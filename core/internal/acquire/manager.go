@@ -192,16 +192,18 @@ func (m *Manager) start(ctx context.Context, req Request, local bool) (Download,
 	}
 	now := m.now()
 	row := Download{
-		ID:        newID(),
-		ItemID:    req.ItemID,
-		Season:    req.Season,
-		Episode:   req.Episode,
-		Name:      req.Source.RawName,
-		Locator:   req.Source.Locator,
-		Size:      req.Source.Size,
-		State:     StateActive,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:         newID(),
+		ItemID:     req.ItemID,
+		Season:     req.Season,
+		Episode:    req.Episode,
+		Name:       req.Source.RawName,
+		Locator:    req.Source.Locator,
+		Size:       req.Source.Size,
+		BingeGroup: req.Source.BingeGroup,
+		PackPath:   req.Source.Path,
+		State:      StateActive,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 	// A local file belongs to the user, not the download manager.
 	if row.Locator.Scheme != "file" {

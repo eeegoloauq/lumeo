@@ -23,6 +23,9 @@ import (
 // it holds.
 var ErrNotVideo = acquirelocal.ErrNotVideo
 
+// ErrNotFolder is a path that does not name a folder.
+var ErrNotFolder = errors.New("not a folder")
+
 type Service struct {
 	catalog   *catalog.Service
 	downloads *acquire.Manager
@@ -370,4 +373,90 @@ func (s *Service) siblings(ctx context.Context, path string, opened release.Info
 			s.log.Info("local sibling registration failed", "path", other, "err", err)
 		}
 	}
+}
+
+// Link makes the episodes of a series found in a folder its copies on this
+// machine, and returns how many it found. The folder is the viewer's pick for
+// this title, so a file is taken by its episode number however loosely its
+// name matches the catalogue's; one that names another show is left alone,
+// which is what makes picking the whole downloads folder safe. Season folders
+// one level down are looked into.
+func (s *Service) Link(ctx context.Context, itemID, dir string) (int, error) {
+	if !filepath.IsAbs(dir) {
+		return 0, ErrNotFolder
+	}
+	dir = filepath.Clean(dir)
+	stat, err := os.Stat(dir)
+	if err != nil {
+		return 0, err
+	}
+	if !stat.IsDir() {
+		return 0, ErrNotFolder
+	}
+	item, err := s.catalog.Item(ctx, itemID)
+	if err != nil {
+		return 0, err
+	}
+	known := map[string]acquire.Download{}
+	for _, row := range s.downloads.List(ctx) {
+		if row.Locator.Scheme == "file" {
+			known[row.FilePath] = row
+		}
+	}
+	found := 0
+	for _, path := range videosIn(dir, 1) {
+		info := parsed(path)
+		if info.Episode == 0 || info.Title != "" && !sharesWord(item.Title, info.Title) {
+			continue
+		}
+		season, episode, ok := episodeIn(item.Episodes, info.Season, info.Episode)
+		if !ok {
+			continue
+		}
+		if row, ok := known[path]; ok {
+			if row.ItemID != itemID || row.Season != season || row.Episode != episode {
+				if err := s.downloads.Identify(ctx, row.ID, itemID, season, episode); err != nil {
+					return found, err
+				}
+			}
+			found++
+			continue
+		}
+		stat, err := os.Stat(path)
+		if err != nil || !stat.Mode().IsRegular() {
+			continue
+		}
+		if _, err := s.start(ctx, path, stat.Size(), info, itemID, season, episode); err != nil {
+			return found, err
+		}
+		found++
+	}
+	return found, nil
+}
+
+// videosIn lists the videos in dir and in its folders down to depth more
+// levels, a thousand at most: a folder picked by mistake is not walked whole.
+func videosIn(dir string, depth int) []string {
+	var out []string
+	var walk func(string, int)
+	walk = func(at string, left int) {
+		entries, err := os.ReadDir(at)
+		if err != nil {
+			return
+		}
+		for _, entry := range entries {
+			if len(out) >= 1000 {
+				return
+			}
+			path := filepath.Join(at, entry.Name())
+			switch {
+			case entry.IsDir() && left > 0 && !strings.HasPrefix(entry.Name(), "."):
+				walk(path, left-1)
+			case entry.Type().IsRegular() && video(entry.Name()):
+				out = append(out, path)
+			}
+		}
+	}
+	walk(dir, depth)
+	return out
 }

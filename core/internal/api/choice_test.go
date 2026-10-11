@@ -120,7 +120,7 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 	if got := sourceNames(t, h); got[0] != "disk done false" || got[1] != "half partial false" || got[2] != "best  false" {
 		t.Fatalf("without a remembered pack: %v", got)
 	}
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "group|1080p", Folder: ""}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	want := []string{"disk done false", "half partial false", "pack  true", "best  false", "failed  false"}
@@ -132,7 +132,7 @@ func TestSourcesPutWhatTheLibraryChoseAheadOfTheRanking(t *testing.T) {
 	}
 	// Seen 2026-09-30: another copy picked after the one on disk went back
 	// behind it on the next visit, although it was what the viewer chose last.
-	if err := watch.RememberSource(context.Background(), "abc123", "half|720p", ""); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "half|720p", Folder: ""}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	if got := sourceNames(t, h); got[0] != "half partial true" || got[1] != "disk done false" {
@@ -160,7 +160,7 @@ func TestSourcesListWhatIsOnDiskWhenNoProviderDoes(t *testing.T) {
 		t.Fatalf("sources = %v", got)
 	}
 
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "group|1080p", Folder: ""}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	rec := requestJSON(t, h, http.MethodPost, "/api/v1/downloads",
@@ -190,7 +190,7 @@ func TestStartingADownloadRemembersItsPack(t *testing.T) {
 // holds in the next, and neither half overwrites the other.
 func TestChoicePatchKeepsThePackAndTheOtherTrack(t *testing.T) {
 	h, watch := choiceServer(t, nil, nil)
-	if err := watch.RememberSource(context.Background(), "abc123", "group|1080p", ""); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "group|1080p", Folder: ""}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	for _, body := range []string{
@@ -270,14 +270,14 @@ func TestSourcesKeepToTheBroadcastCutAndTheFolderPicked(t *testing.T) {
 		}
 	}
 	// A pick recorded before folders were kept names the pack alone.
-	if err := watch.RememberSource(context.Background(), "abc123", "pack|both", ""); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "pack|both", Folder: ""}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	if got := names(); got[0] != "The Prisoner/The Prisoner - 09.mkv true" || got[1] != "The Prisoner Director's Cut/The Prisoner Director's Cut - 09.mkv true" {
 		t.Fatalf("pack remembered without a folder: %v", got)
 	}
 	// Picked by hand, the director's cut is what the next episode continues.
-	if err := watch.RememberSource(context.Background(), "abc123", "pack|both", "The Prisoner Director's Cut"); err != nil {
+	if err := watch.RememberSource(context.Background(), "abc123", progress.Pack{BingeGroup: "pack|both", Folder: "The Prisoner Director's Cut"}); err != nil {
 		t.Fatalf("remember: %v", err)
 	}
 	if got := names(); got[0] != "The Prisoner Director's Cut/The Prisoner Director's Cut - 09.mkv true" || slices.Contains(got, "The Prisoner/The Prisoner - 09.mkv true") {

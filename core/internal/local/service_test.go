@@ -287,3 +287,62 @@ func TestCloseStopsAnIdentification(t *testing.T) {
 		t.Fatalf("after close=%+v err=%v; want no title", got, err)
 	}
 }
+
+func TestLinkTakesTheTitlesEpisodesFromAFolder(t *testing.T) {
+	item := catalog.MediaItem{ID: "show", Kind: catalog.KindSeries, Title: "Show", ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: "tt3"},
+		Episodes: []catalog.Episode{{Season: 1, Number: 1}, {Season: 1, Number: 2}, {Season: 1, Number: 3}}}
+	s, m, _ := makeService(t, []catalog.MediaItem{item})
+	ctx := context.Background()
+	dir := filepath.Join(t.TempDir(), "Downloads")
+	writeVideo(t, filepath.Join(dir, "Season 1"), "[Group] Show - 01 [1080p].mkv")
+	second := writeVideo(t, filepath.Join(dir, "Season 1"), "Show.S01E02.mkv")
+	writeVideo(t, dir, "Show.S01E03.mkv")
+	writeVideo(t, dir, "Other.S01E03.mkv")                       // another show in the same folder
+	writeVideo(t, filepath.Join(dir, "Extras"), "Show NCOP.mkv") // no episode number
+	writeVideo(t, filepath.Join(dir, "Season 1", "deeper"), "Show.S01E01.mkv")
+	// Opened before and taken for something else: the folder's pick wins.
+	before, err := m.OpenLocal(ctx, acquire.Request{ItemID: "elsewhere", Season: 4, Episode: 4, Source: sources.MediaSource{RawName: "Show.S01E02.mkv", Locator: sources.Locator{Scheme: "file", Path: second}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The catalogue knows a title once something has turned it up.
+	shows, err := s.catalog.Search(ctx, catalog.KindSeries, "Show")
+	if err != nil || len(shows) != 1 {
+		t.Fatalf("search=%+v err=%v", shows, err)
+	}
+	id := shows[0].ID
+	found, err := s.Link(ctx, id, dir)
+	if err != nil || found != 3 {
+		t.Fatalf("found=%d err=%v", found, err)
+	}
+	got := map[int]string{}
+	for _, row := range m.List(ctx) {
+		if row.ItemID != id || row.Season != 1 {
+			t.Fatalf("row=%+v", row)
+		}
+		got[row.Episode] = filepath.Base(row.FilePath)
+	}
+	if len(got) != 3 || got[1] != "[Group] Show - 01 [1080p].mkv" || got[2] != "Show.S01E02.mkv" || got[3] != "Show.S01E03.mkv" {
+		t.Fatalf("episodes=%v", got)
+	}
+	if again, _ := m.Get(ctx, before.ID); again.ItemID != id || again.Episode != 2 {
+		t.Fatalf("the earlier row=%+v", again)
+	}
+	if found, err := s.Link(ctx, id, dir); err != nil || found != 3 || len(m.List(ctx)) != 3 {
+		t.Fatalf("again: found=%d err=%v rows=%d", found, err, len(m.List(ctx)))
+	}
+}
+
+func TestLinkRefusesWhatIsNotAFolder(t *testing.T) {
+	s, _, _ := makeService(t, nil)
+	file := writeVideo(t, t.TempDir(), "Show.S01E01.mkv")
+	for _, path := range []string{"relative/dir", file} {
+		if _, err := s.Link(context.Background(), "show", path); !errors.Is(err, ErrNotFolder) {
+			t.Fatalf("%s: err=%v", path, err)
+		}
+	}
+	if _, err := s.Link(context.Background(), "show", filepath.Join(t.TempDir(), "gone")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("missing: err=%v", err)
+	}
+}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -76,9 +77,10 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	if s.library != nil && !req.Prefetch {
 		s.library.Picked(d.ID)
 	}
-	// A copy listed from disk carries no pack name; replaying it is not a new pick.
-	if s.progress != nil && req.Source.ProviderID != "local" {
-		if err := s.progress.RememberSource(r.Context(), req.ItemID, req.Source.BingeGroup, req.Source.Folder()); err != nil {
+	// Replaying a copy listed from disk is not a new pick, and a copy of the
+	// release already chosen leaves the choice as it was, picked by hand or not.
+	if s.progress != nil && req.Source.ProviderID != "local" && !s.alreadyChosen(r.Context(), req.ItemID, req.Source) {
+		if err := s.progress.RememberSource(r.Context(), req.ItemID, packOf(req.Source)); err != nil {
 			// The download is running; forgetting the pick costs the next
 			// episode its default, not this one its start.
 			s.log.Warn("remembering the source failed", "item", req.ItemID, "err", err)
@@ -192,4 +194,9 @@ func (s *Server) handleRemoveDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) alreadyChosen(ctx context.Context, itemID string, src sources.MediaSource) bool {
+	choice, err := s.progress.Choice(ctx, itemID)
+	return err == nil && holds(choice.Pack, src)
 }
