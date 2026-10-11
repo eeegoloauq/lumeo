@@ -138,6 +138,13 @@ files of its high-end A, B and C presets, in `client/assets/anime4k`. The double
 (A+A and the like) are left out: they oversharpen on almost any source. mpv
 runs them as `glsl-shaders`, so the choice is read back from mpv.
 
+On NVIDIA (GTX 1660 Ti) Anime4K turns orange into green, and it is offered
+anyway, the bug known. mpv on GLES, the only API it can draw in inside
+Flutter's share group, declares `precision mediump sampler2D`, and NVIDIA
+reads textures at that precision; the same mpv with `highp`, desktop GL and
+gpu-next are clean. The fix is mpv reading textures at `highp` where the
+driver has it.
+
 The chrome follows the mouse and nothing else: up when the pointer moves,
 gone half a second after it stops, as mpv's controller does. A key, a pause or
 a seek does not bring it up, and a paused film does not keep it up; a menu

@@ -124,6 +124,13 @@ language, or more than one backdrop. Waiting on it:
   where that mapping fails. Kitsu keeps each part a title of its own and
   Torrentio answers `kitsu:<id>:<episode>`; the core looks up by IMDb id only
   today.
+- A copy that is not the episode, told by its length once it plays. The
+  provider maps files to episodes by the number in the name, so another cut
+  or a two-minute short ("Break Time" for Re:Zero S1E9) arrives as the
+  episode; only a director's cut is caught by name before the download. mpv's
+  `duration` against the catalogue's runtime catches any of them: well off,
+  the player says it is not this episode and offers the next copy. Only when
+  somebody asks for it.
 - `[?]` Proxy per addon, beyond `HTTP_PROXY`.
 - `[?]` Whether ranking by language flags holds for live action, where the
   flags are mostly dubs. Fresh anime episodes can have only raw copies for
