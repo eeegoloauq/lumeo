@@ -28,6 +28,7 @@ class EpisodeCard extends StatefulWidget {
     this.progress,
     this.download,
     this.artworkPreference = 'show',
+    this.unreachable = false,
   });
 
   static const width = 300.0;
@@ -58,6 +59,10 @@ class EpisodeCard extends StatefulWidget {
   final WatchEntry? progress;
   final Download? download;
   final String artworkPreference;
+
+  /// Out, but nothing can fetch it now and it is not on disk: drawn as dim as
+  /// an episode not out yet, and still selectable.
+  final bool unreachable;
 
   @override
   State<EpisodeCard> createState() => _EpisodeCardState();
@@ -131,7 +136,7 @@ class _EpisodeCardState extends State<EpisodeCard> {
                     _Still(
                       episode: e,
                       frame: widget.frame,
-                      dimmed: upcoming,
+                      dimmed: upcoming || widget.unreachable,
                       // The mouse's way to start; the keyboard has Enter.
                       showPlay: _hovered && !upcoming,
                       // A card the keyboard is on but cannot choose (not out
@@ -153,7 +158,7 @@ class _EpisodeCardState extends State<EpisodeCard> {
                       overflow: TextOverflow.ellipsis,
                       style: Typo.cardTitle.copyWith(
                         fontSize: 15,
-                        color: upcoming
+                        color: upcoming || widget.unreachable
                             ? Palette.muted
                             : lit
                             ? Palette.text

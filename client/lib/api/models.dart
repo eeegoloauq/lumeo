@@ -1051,6 +1051,62 @@ class TitleChoice {
   );
 }
 
+/// The releases of a title on disk, and whether one is picked for it or Play
+/// takes the best copy of each episode.
+class TitleFolders {
+  const TitleFolders({required this.folders, required this.chosen});
+
+  final List<DiskFolder> folders;
+  final bool chosen;
+
+  factory TitleFolders.fromJson(Map<String, dynamic> json) => TitleFolders(
+    folders: (json['folders'] as List<dynamic>? ?? [])
+        .map((e) => DiskFolder.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    chosen: json['chosen'] as bool? ?? false,
+  );
+}
+
+/// One release of a title on disk: a folder of a pack, a run of
+/// single-episode releases from one group, or a folder on this machine.
+class DiskFolder {
+  const DiskFolder({
+    required this.source,
+    this.folder = '',
+    this.dir = '',
+    this.episodes = const [],
+    this.directorsCut = false,
+    this.current = false,
+  });
+
+  /// One of its copies: picking the folder sends it back.
+  final MediaSource source;
+
+  /// The folder inside the pack, or the one on this machine.
+  final String folder;
+  final String dir;
+  final List<({int season, int episode})> episodes;
+  final bool directorsCut;
+
+  /// The folder Play continues from.
+  final bool current;
+
+  factory DiskFolder.fromJson(Map<String, dynamic> json) => DiskFolder(
+    source: MediaSource.fromJson(json['source'] as Map<String, dynamic>),
+    folder: json['folder'] as String? ?? '',
+    dir: json['dir'] as String? ?? '',
+    episodes: [
+      for (final e in json['episodes'] as List<dynamic>? ?? [])
+        (
+          season: (e as Map<String, dynamic>)['season'] as int? ?? 0,
+          episode: e['episode'] as int? ?? 0,
+        ),
+    ],
+    directorsCut: json['directorsCut'] as bool? ?? false,
+    current: json['current'] as bool? ?? false,
+  );
+}
+
 /// A track the way it carries over from one file to the next. mpv's ids are
 /// per file; a release keeps its languages and titles, and the title is what
 /// tells apart the tracks that share a language — "English Full", "English

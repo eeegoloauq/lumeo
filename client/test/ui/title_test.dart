@@ -367,13 +367,17 @@ void main() {
   });
 
   uiTest('the strip stays where the arrows took it', (tester) async {
-    // Changing between episodes with and without a synopsis used to reset the
-    // strip to episode one.
+    // Changing the selection between episodes with and without a synopsis
+    // used to reset the strip to episode one.
     await openSeries(tester);
     await press(tester, LogicalKeyboardKey.arrowRight, 5);
     await press(tester, LogicalKeyboardKey.arrowLeft);
     expect(card(tester, 5).selected, isTrue);
-    expect(find.text('The story continues.'), findsOneWidget);
+    expect(
+      find.text('The story continues.'),
+      findsNothing,
+      reason: 'the page names the episode and does not tell its story',
+    );
     expect(
       tester.getRect(cardAt(5)).right,
       lessThanOrEqualTo(stripRect(tester).right),
@@ -691,5 +695,155 @@ void main() {
         .getRect(find.byKey(const ValueKey('settings:sources')))
         .top;
     expect(top, inInclusiveRange(0, window.height));
+  });
+
+  Map<String, dynamic> packCopy(String folder, int episode) => {
+    'providerId': 'local',
+    'rawName': '[Kaizoku] Show S01 [BD 1080p]',
+    'release': {'resolution': '1080p', 'source': 'BluRay', 'group': 'Kaizoku'},
+    'locator': {'scheme': 'torrent', 'infoHash': 'pack', 'fileIndex': episode},
+    'path': '$folder/e0$episode.mkv',
+    'bingeGroup': 'kaizoku',
+  };
+
+  uiTest('the release menu picks a folder on disk, and Play follows it', (
+    tester,
+  ) async {
+    final patches = <String>[];
+    final asked = <String>[];
+    final started = <String>[];
+    await openSeries(
+      tester,
+      api: fakeCore(
+        choicePatches: patches,
+        sourceCalls: asked,
+        started: started,
+        // The core marks the picked release's copy; the ranking put another
+        // ahead of it.
+        sources: [
+          fakeSources.first,
+          {...packCopy('Shin Henshuu-ban', 1), 'lastUsed': true},
+        ],
+        folders: {
+          'chosen': true,
+          'folders': [
+            {
+              'source': packCopy('Season 1', 1),
+              'folder': 'Season 1',
+              'episodes': [
+                {'season': 1, 'episode': 1},
+                {'season': 1, 'episode': 2},
+              ],
+              'current': true,
+            },
+            {
+              'source': packCopy('Shin Henshuu-ban', 1),
+              'folder': 'Shin Henshuu-ban',
+              'directorsCut': true,
+              'episodes': [
+                {'season': 1, 'episode': 1},
+              ],
+            },
+          ],
+        },
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Season 1'), findsWidgets);
+    expect(find.text('2 of 6'), findsOneWidget, reason: 'of the season');
+    expect(find.textContaining("Director's Cut"), findsOneWidget);
+    expect(find.text('All copies of E1'), findsOneWidget);
+    expect(
+      find.text('Folder on this computer…'),
+      findsNothing,
+      reason: 'a core on another machine cannot read a folder on this one',
+    );
+
+    final before = asked.length;
+    await tester.tap(find.textContaining('Shin Henshuu-ban'));
+    await waitFor(
+      tester,
+      () async => asked.length > before,
+      what: 'the copies were asked for again after the pick',
+    );
+    final picked = jsonDecode(patches.single) as Map<String, dynamic>;
+    expect(
+      (picked['source'] as Map<String, dynamic>)['path'],
+      'Shin Henshuu-ban/e01.mkv',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play S1 E1'));
+    await waitFor(
+      tester,
+      () async => started.isNotEmpty,
+      what: 'Play asked the core for a download',
+    );
+    expect(started.single, contains('Shin Henshuu-ban/e01.mkv'));
+  });
+
+  uiTest('best copy forgets the pick, and all copies opens the table', (
+    tester,
+  ) async {
+    final patches = <String>[];
+    await openSeries(tester, api: fakeCore(choicePatches: patches));
+    await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Best copy for each episode'));
+    await tester.pumpAndSettle();
+    expect(jsonDecode(patches.single), {'source': null});
+
+    await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All copies of E1'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 copies'), findsOneWidget, reason: 'the table');
+  });
+
+  uiTest('with no source addon a series dims what is not on disk', (
+    tester,
+  ) async {
+    await openSeries(
+      tester,
+      api: fakeCore(
+        baseUrl: 'http://127.0.0.1:1',
+        sources: const [],
+        addons: [
+          for (final addon in fakeAddons)
+            if (!(addon['resources'] as List).contains('stream')) addon,
+        ],
+        downloads: [
+          {
+            'id': 'e1',
+            'itemId': 'tt0903747',
+            'season': 1,
+            'episode': 1,
+            'name': 'Show.S01E01.mkv',
+            'state': 'done',
+            'ready': true,
+            'resolved': true,
+            'progress': {'completed': 1, 'total': 1},
+            'locator': {'scheme': 'file', 'path': '/films/Show.S01E01.mkv'},
+            'createdAt': '2026-09-20T11:00:00Z',
+            'updatedAt': '2026-09-20T11:00:00Z',
+          },
+        ],
+      ),
+    );
+    await waitFor(
+      tester,
+      () async => card(tester, 2).unreachable,
+      what: 'the episodes nothing can fetch are dimmed',
+    );
+    expect(card(tester, 1).unreachable, isFalse, reason: 'it is on disk');
+
+    await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    expect(find.text('Folder on this computer…'), findsOneWidget);
+    expect(
+      find.text('Add one'),
+      findsOneWidget,
+      reason: 'the menu says what the empty list needs',
+    );
   });
 }

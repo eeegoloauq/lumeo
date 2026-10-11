@@ -295,7 +295,7 @@ class _ItemScreenState extends State<ItemScreen> {
             // rebuild the strip below and scroll it back to the first episode.
             if (seasons.isNotEmpty)
               SliverToBoxAdapter(
-                child: _EpisodeSynopsis(
+                child: _EpisodeLine(
                   episode: current?.season == season ? current : null,
                 ),
               ),
@@ -316,6 +316,7 @@ class _ItemScreenState extends State<ItemScreen> {
                       widget.preferences,
                       widget.downloads,
                       widget.frames,
+                      choice,
                     ]),
                     builder: (context, _) => EpisodeCard(
                       episode: episodes[i],
@@ -338,6 +339,17 @@ class _ItemScreenState extends State<ItemScreen> {
                         season: episodes[i].season,
                         episode: episodes[i].number,
                       ),
+                      // With no provider to ask, only what is on disk plays.
+                      unreachable:
+                          choice.unreachable &&
+                          !(widget.downloads
+                                  .of(
+                                    widget.itemId,
+                                    season: episodes[i].season,
+                                    episode: episodes[i].number,
+                                  )
+                                  ?.isDone ??
+                              false),
                       onSelect: () => _selectEpisode(episodes[i]),
                       onPlay: () => _playEpisode(episodes[i]),
                       onStep: (by) => i + by >= 0 && i + by < episodes.length
@@ -557,31 +569,26 @@ class _ItemData {
 /// asked of the widget that draws it. A film's banner is bounded only by the
 /// ceiling.
 double get _seasonBlock =>
-    _Seasons.height + _EpisodeSynopsis.height + _stripHeight + _breath;
+    _Seasons.height + _EpisodeLine.height + _stripHeight + _breath;
 
 const _stripHeight = EpisodeCard.height + 2 * EpisodeCard.ring;
 
 /// The card is not flush with the bottom edge of the window.
 const _breath = 16.0;
 
-/// What the selected episode is about, once instead of on every card: above
-/// the strip so it stays put, and tied to the selection rather than to hover.
-class _EpisodeSynopsis extends StatelessWidget {
-  const _EpisodeSynopsis({required this.episode});
+/// Which episode is selected, above the strip so it stays put: its title and
+/// date only. The title's overview is already above it, and a synopsis of
+/// the next episode spoils it.
+class _EpisodeLine extends StatelessWidget {
+  const _EpisodeLine({required this.episode});
 
-  static const _lines = 2;
-  static const _gap = 6.0;
   static const _below = 18.0;
 
-  static double _line(TextStyle style) =>
-      (style.fontSize! * style.height!).ceilToDouble();
-
-  /// The same height for any synopsis, so picking a card never moves the
-  /// strip under the pointer.
-  static double get height =>
-      _line(_titleStyle) + _gap + _line(Typo.body) * _lines + _below;
-
   static final _titleStyle = Typo.cardTitle.copyWith(fontSize: 17);
+
+  /// The same height with or without an episode, so the strip never moves.
+  static double get height =>
+      (_titleStyle.fontSize! * _titleStyle.height!).ceilToDouble() + _below;
 
   final Episode? episode;
 
@@ -594,38 +601,21 @@ class _EpisodeSynopsis extends StatelessWidget {
         height: height - _below,
         child: e == null
             ? null
-            : ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            : Text.rich(
+                TextSpan(
+                  text: e.fullLabel(context.l10n),
                   children: [
-                    Text.rich(
+                    if (e.released != null)
                       TextSpan(
-                        text: e.fullLabel(context.l10n),
-                        children: [
-                          if (e.released != null)
-                            TextSpan(
-                              text:
-                                  '   ${DateFormat.yMMMd(context.l10n.localeName).format(e.released!)}',
-                              style: Typo.data.copyWith(color: Palette.muted),
-                            ),
-                        ],
+                        text:
+                            '   ${DateFormat.yMMMd(context.l10n.localeName).format(e.released!)}',
+                        style: Typo.data.copyWith(color: Palette.muted),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _titleStyle,
-                    ),
-                    const SizedBox(height: _gap),
-                    Text(
-                      e.overview,
-                      // A third line would push the season off the bottom
-                      // of a short window.
-                      maxLines: _lines,
-                      overflow: TextOverflow.ellipsis,
-                      style: Typo.body.copyWith(color: Palette.dim),
-                    ),
                   ],
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _titleStyle,
               ),
       ),
     );
@@ -692,7 +682,7 @@ class _Banner extends StatelessWidget {
             PlayHead(
               choice: choice,
               progress: progress,
-              series: series,
+              episodes: series ? item.episodes : const [],
               action: action,
             ),
           ],

@@ -121,6 +121,41 @@ Writing our own indexer instead of speaking the addon protocol stays out of
 scope: an aggregator across trackers is scrapers that break weekly, and the
 roadmap already carries the question of whether addon gaps ever justify it.
 
+## Picking the release on the title's page
+
+Under a series' Play, the line that says what Play starts opens a menu of
+releases rather than the table of copies: the releases on disk, a folder on
+this computer, the packs the providers offer for the current episode, every
+copy of it (the table), and the best copy of each episode. The table answers
+"which file for this episode"; a series is watched from one release, and
+that is the question the line in front of Play should answer. A film has no
+releases to keep to, and its line opens the table as before.
+
+What is on disk is told apart the way a pick is: a pack and the folder in it,
+the pack named by the provider's group or by its torrent when it gave none,
+and a folder on this machine by its path. A run of single-episode releases of
+one group is one release, the way a provider groups them, not a dozen
+folders. For that the download keeps the group and the file's path in the
+pack it came with; each line counts the episodes it holds of the seasons it
+is in ("13 of 26").
+
+A pick here records the release without starting anything, and marks it as
+picked by hand. That mark is what lets a pick beat a copy on disk: a release
+remembered because a copy of it started last still comes after any copy
+already here, since replacing a finished file with a fresh download was the
+mistake that rule exists for, but a release somebody chose on purpose is what
+they want to watch, the director's cut on disk included. Starting a copy of
+the release already chosen leaves the choice as it was. The best copy of each
+episode forgets the release, and the ranking decides again.
+
+A folder on this computer is offered only when the core is on the machine
+being browsed, because the core reads it. Every file in it and in its folders
+one level down that carries an episode number of the series becomes that
+episode's copy; a file whose name is another show's is left alone, so picking
+the whole downloads folder takes this series out of it. With no provider to
+ask, the episodes that are not on disk are drawn dim, and the menu still
+offers the folders.
+
 Download season is Play's choice made for each released episode, one after
 another, by the client: the copy a press of Play would start, which only the
 client can pick because only it knows what this machine decodes. One at a

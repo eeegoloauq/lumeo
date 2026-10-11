@@ -12,6 +12,7 @@ import '../theme.dart';
 import 'buttons.dart';
 import 'episode_card.dart' show shortDate;
 import 'loading.dart';
+import 'release_menu.dart';
 import 'source_list.dart';
 
 /// The choice of how to watch one thing: which copies exist, which one Play
@@ -77,11 +78,18 @@ class SourceChoice extends ChangeNotifier {
   /// empty list it is off rather than doing nothing.
   bool get playable => loading || picked != null;
 
+  /// No provider can be asked for a copy: none is added, or none answered.
+  /// Only what is on disk can be played.
+  bool get unreachable =>
+      sources != null && (providers == 0 || failed.length >= providers);
+
   /// Not out yet: nobody has a copy, so nobody is asked.
   bool get upcoming =>
       released != null && released!.isAfter(DateTime.now().toUtc());
 
-  Future<void> load() async {
+  /// Asks for the list again. [follow] is for a release just picked: Play
+  /// takes its copy, which the core marks, over the ranking's best.
+  Future<void> load({bool follow = false}) async {
     if (upcoming) {
       startWhenReady = false;
       _ping();
@@ -100,7 +108,11 @@ class SourceChoice extends ChangeNotifier {
       sources = found.sources;
       failed = found.failed;
       providers = found.providers;
-      picked = preferredSource(found.sources);
+      picked =
+          (follow
+              ? preferredSource(found.sources.where((s) => s.lastUsed).toList())
+              : null) ??
+          preferredSource(found.sources);
       error = null;
     } on Object catch (e) {
       error = e;
@@ -247,22 +259,27 @@ class SourcesFailed implements Exception {
       failed.map((f) => '${f.provider}: ${f.reason}').join(', ');
 }
 
-/// Play, and under it what Play will start: the copy on disk or the stream.
+/// Play with what can be done to the title beside it, and under it what Play
+/// will start: the copy on disk or the stream, and the way to another.
 class PlayHead extends StatelessWidget {
   const PlayHead({
     super.key,
     required this.choice,
     this.progress,
-    this.series = false,
+    this.episodes = const [],
     this.action,
   });
 
   final SourceChoice choice;
   final WatchEntry? progress;
-  final bool series;
 
-  /// Beside the source: a film's download button.
+  /// A series' episodes; empty for a film.
+  final List<Episode> episodes;
+
+  /// Beside Play: the list and rating buttons, and a film's download.
   final Widget? action;
+
+  bool get series => episodes.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -290,23 +307,18 @@ class PlayHead extends StatelessWidget {
                     : context.l10n.playerResume,
                 onPressed: choice.playable ? choice.start : null,
               ),
+              if (action case final action?) ...[
+                const SizedBox(width: 12),
+                action,
+              ],
               if (resume) ...[
                 const SizedBox(width: 16),
                 Text(_left(entry, context.l10n), style: Typo.heroMeta),
               ],
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(child: _Summary(choice: choice)),
-              if (action case final action?) ...[
-                const SizedBox(width: 8),
-                action,
-              ],
-            ],
-          ),
+          const SizedBox(height: 8),
+          _Summary(choice: choice, episodes: episodes),
         ],
       ),
     );
@@ -329,9 +341,10 @@ class PlayHead extends StatelessWidget {
 /// What Play is about to start, and the way into the rest; or why there is
 /// nothing to start.
 class _Summary extends StatefulWidget {
-  const _Summary({required this.choice});
+  const _Summary({required this.choice, required this.episodes});
 
   final SourceChoice choice;
+  final List<Episode> episodes;
 
   @override
   State<_Summary> createState() => _SummaryState();
@@ -380,79 +393,106 @@ class _SummaryState extends State<_Summary> {
       );
     }
     final picked = choice.picked;
+    final series = widget.episodes.isNotEmpty;
     if (picked == null) {
+      final String text;
+      final String? action;
+      final VoidCallback onTap;
       if (choice.providers == 0) {
-        return _Line(
-          text: context.l10n.playerNoSourceAddons,
-          action: choice.onAddSource == null
-              ? null
-              : context.l10n.playerAddSource,
-          onTap: choice.onAddSource ?? () {},
+        text = context.l10n.playerNoSourceAddons;
+        action = choice.onAddSource == null
+            ? null
+            : context.l10n.playerAddSource;
+        onTap = choice.onAddSource ?? () {};
+      } else {
+        final empty = emptySources(
+          failed: choice.failed,
+          released: choice.released,
+          now: DateTime.now(),
+          l10n: context.l10n,
+        );
+        text = empty.text;
+        action = empty.retry ? context.l10n.commonTryAgain : null;
+        onTap = choice.load;
+      }
+      // A series can still play from a folder on disk, which the menu
+      // offers along with what to do about the empty list.
+      if (series) {
+        return ReleaseMenu(
+          choice: choice,
+          episodes: widget.episodes,
+          builder: (context, toggle) =>
+              _SourceButton(text: text, onPressed: toggle),
         );
       }
-      final empty = emptySources(
-        failed: choice.failed,
-        released: choice.released,
-        now: DateTime.now(),
-        l10n: context.l10n,
-      );
-      return _Line(
-        text: empty.text,
-        action: empty.retry ? context.l10n.commonTryAgain : null,
-        onTap: choice.load,
-      );
+      return _Line(text: text, action: action, onTap: onTap);
     }
     final onDisk = picked.local == 'done';
-    final r = picked.release;
-    final facts = [
-      if (r.resolution.isNotEmpty) r.resolution,
-      if (onDisk)
-        sourceTitle(picked, context.l10n)
-      else
-        formatBytes(picked.size, context.l10n),
+    final what = [
+      sourceTitle(picked, context.l10n),
+      if (picked.packFolder.isNotEmpty) picked.packFolder,
     ].where((e) => e.isNotEmpty).join(' · ');
-    return Tooltip(
-      message: picked.rawName,
-      child: TextButton(
-        key: const ValueKey('source-chip'),
+    final text = [
+      onDisk ? context.l10n.downloadsOnDisk : context.l10n.playerStream,
+      if (what.isNotEmpty) what,
+    ].join(' · ');
+    final icon = onDisk ? Icons.check : Icons.play_circle_outline;
+    final Widget button;
+    if (series) {
+      button = ReleaseMenu(
+        choice: choice,
+        episodes: widget.episodes,
+        builder: (context, toggle) =>
+            _SourceButton(icon: icon, text: text, onPressed: toggle),
+      );
+    } else {
+      button = _SourceButton(
+        icon: icon,
+        text: text,
         onPressed: () => showSources(context, choice),
-        style: TextButton.styleFrom(
-          backgroundColor: Palette.tint,
-          foregroundColor: Palette.text,
-          fixedSize: const Size.fromHeight(DownloadButton.size),
-          padding: const EdgeInsets.only(left: 12, right: 6),
-          shape: const StadiumBorder(),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(onDisk ? Icons.check : Icons.play_circle_outline, size: 16),
+      );
+    }
+    return Tooltip(message: picked.rawName, child: button);
+  }
+}
+
+/// What Play starts, quiet under the buttons beside it: a line that opens the
+/// way to another copy, drawn as a button only under the pointer.
+class _SourceButton extends StatelessWidget {
+  const _SourceButton({this.icon, required this.text, required this.onPressed});
+
+  final IconData? icon;
+  final String text;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      key: const ValueKey('source-chip'),
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: Palette.dim,
+        fixedSize: const Size.fromHeight(32),
+        padding: const EdgeInsets.only(left: 8, right: 4),
+        shape: const StadiumBorder(),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon case final icon?) ...[
+            Icon(icon, size: 16),
             const SizedBox(width: 6),
-            Flexible(
-              child: Text.rich(
-                TextSpan(
-                  text: onDisk
-                      ? context.l10n.downloadsOnDisk
-                      : context.l10n.playerStream,
-                  children: [
-                    if (facts.isNotEmpty)
-                      TextSpan(
-                        text: ' · $facts',
-                        style: const TextStyle(
-                          color: Palette.dim,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                  ],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Typo.cardTitle.copyWith(fontSize: 13),
-              ),
-            ),
-            const Icon(Icons.arrow_drop_down, size: 20),
           ],
-        ),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Typo.data.copyWith(color: Palette.dim),
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, size: 20),
+        ],
       ),
     );
   }

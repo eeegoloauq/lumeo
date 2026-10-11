@@ -210,6 +210,13 @@ and answered at once, and the lookup runs behind it, as slow as the provider.
 The player plays it meanwhile and reports no progress until the download has
 a title, which it reads on its next poll along with the name it shows.
 
+A folder can be linked to a series from its page
+(`POST /api/v1/items/{id}/folders`): each file in it, or in its folders one
+level down, that carries an episode number of the series and names no other
+show becomes such a download of that title, and the folder becomes the
+title's pick. A thousand files at most are looked at, and links are not
+followed. `GET` on the same path lists the title's releases on disk.
+
 The file is the user's: it gets no directory under `<data>/downloads`,
 Storage and Free leave it out, and removing its download removes the row
 only. A title's source list offers it first, as a finished copy.
@@ -220,7 +227,7 @@ nothing. A file is read only
 while it holds a video container, checked on the open file that is then
 served (a link called film.mkv to a key file is refused, and so is a video
 swapped for one after it was opened), and a download request cannot name a
-file: only `POST /api/v1/local` adds one. Because the
+file: only `POST /api/v1/local` and a linked folder add one. Because the
 core reads files by path, on a loopback listener it answers only
 loopback `Host` names: a page that rebinds its own domain to 127.0.0.1 would
 otherwise read them. A request a browser sends from another site that would

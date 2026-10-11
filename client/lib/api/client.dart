@@ -347,6 +347,28 @@ class LumeoApi {
     if (subtitle != null) 'subtitle': subtitle.toJson(),
   });
 
+  /// The releases of a title on disk.
+  Future<TitleFolders> folders(String itemId) async => TitleFolders.fromJson(
+    await _get('/api/v1/items/${_seg(itemId)}/folders'),
+  );
+
+  /// Makes the episodes in a folder on this machine the title's copies, and
+  /// that folder the one Play continues from.
+  Future<TitleFolders> linkFolder(String itemId, String path) async =>
+      TitleFolders.fromJson(
+        await _send('POST', '/api/v1/items/${_seg(itemId)}/folders', {
+          'path': path,
+        }),
+      );
+
+  /// Makes the release of [source] the one Play continues from; null goes
+  /// back to the best copy of each episode.
+  Future<void> chooseSource(String itemId, MediaSource? source) => _send(
+    'PATCH',
+    '/api/v1/choices/${_seg(itemId)}',
+    {'source': source?.toJson()},
+  );
+
   /// Reports where playback is. The core decides when that counts as
   /// watched; [watched] forces it either way, and false starts over.
   Future<WatchEntry> putProgress(

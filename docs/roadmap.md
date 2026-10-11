@@ -36,7 +36,13 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   watched entries, which is all it needs. `progress.updated_at` moves with a
   rewatch, so a first-watched time needs a column of its own first.
 - Files the user already has (a folder of films outside Lumeo) as a library
-  of their own: on the home screen, not as a Library tab.
+  of their own: on the home screen, not as a Library tab. A series' folder
+  can already be linked from its page; this is the scan of a whole folder.
+- A title's episodes as a vertical list under the banner, each with its
+  still, length and, for watched episodes and the next one only, a synopsis:
+  for long series it beats the strip. A different page, scrolled, with its
+  own keyboard; mockup first (the canvas "Series page · release picker",
+  page "Others' layouts").
 
 ## Player
 

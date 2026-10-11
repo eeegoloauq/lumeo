@@ -35,6 +35,9 @@ LumeoApi fakeCore({
 
   /// Every body the player patched the title's track choice with.
   List<String>? choicePatches,
+  // What /items/{id}/folders answers, and the paths linked to a title.
+  Map<String, dynamic> folders = const {'folders': [], 'chosen': false},
+  List<String>? linked,
   String aboutDir = '/nowhere/downloads',
 
   /// What GET /api/v1/update answers with; null is the core's 204.
@@ -454,6 +457,15 @@ LumeoApi fakeCore({
           choice.addAll(jsonDecode(request.body) as Map<String, dynamic>);
         }
         return _json(choice);
+      }
+      if (path.startsWith('/api/v1/items/') && path.endsWith('/folders')) {
+        if (request.method == 'POST') {
+          linked?.add(
+            (jsonDecode(request.body) as Map<String, dynamic>)['path']
+                as String,
+          );
+        }
+        return _json(folders);
       }
       if (catalogFails) {
         return _json({'error': 'nope'}, status: 500);

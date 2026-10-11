@@ -211,14 +211,23 @@ still, so it reads over any picture.
 A card answers "which episode is this" and nothing more: "17 · Title" (or
 "Episode 17" when the provider's title is only that), the watched bar (white,
 full once watched, as a check said less), the on-disk mark, and a date only when it means something. What it
-is about belongs to the one episode being considered: its name and synopsis sit
-in a block of fixed height above the strip, there even when the provider has no
-synopsis, where it has room to be read and does not repeat fourteen times. Printed on every card it is noise and a
-spoiler; painted over the still on hover it fights the play mark for the same
-space.
+is about is not on the page at all. Above the strip is one line, the
+selected episode's name and date. A synopsis there made the page two
+paragraphs, the title's overview and the episode's, and the episode's runs
+the width of the window; printed on every card it is a wall of text and a
+spoiler for every episode not yet watched. The title's overview is what the
+page owes; a setting for episode synopses can come if somebody asks.
 The air date is there only when it means something — that the episode is not
 out yet, or that it landed in the last fortnight. On an episode from 2008 the
 date is trivia standing in a place where nothing needs to stand.
+
+Play has what can be done to the title beside it, in one row: a film's
+download, the list, the rating. Under them, quieter, is what Play will start
+— on disk or a stream, and from which release — as a line that is a button
+only under the pointer. It used to be a filled chip in a second row with the
+list and rating, three pills of different kinds that read as a toolbar; the
+release name says enough without the resolution and the size, which the
+menu and the table carry.
 
 The page keeps exactly one current episode: the banner's button plays it and
 the table under the strip is its list. Picking a card re-points both. Once

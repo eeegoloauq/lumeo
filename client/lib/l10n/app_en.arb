@@ -1164,6 +1164,22 @@
       }
     }
   },
+  "itemReleaseAvailable": "Available",
+  "@itemReleaseAvailable": {"description": "Heading in the release menu over the packs the providers offer."},
+  "itemReleaseFolder": "Folder on this computer…",
+  "@itemReleaseFolder": {"description": "Release menu item that links a folder of the series' files on this machine."},
+  "itemReleaseFolderTitle": "Folder with this series",
+  "@itemReleaseFolderTitle": {"description": "Title of the folder dialog opened from the release menu."},
+  "itemReleaseFolderEmpty": "No episodes of this series in that folder",
+  "@itemReleaseFolderEmpty": {"description": "The folder picked from the release menu holds none of the series' episodes."},
+  "itemReleaseAllCopies": "All copies of E{episode}",
+  "@itemReleaseAllCopies": {"description": "Release menu item that opens the table of every copy of the current episode.", "placeholders": {"episode": {"type": "int"}}},
+  "itemReleaseBest": "Best copy for each episode",
+  "@itemReleaseBest": {"description": "Release menu item: no release picked, Play takes the best copy of each episode."},
+  "itemReleaseHave": "{have} of {total}",
+  "@itemReleaseHave": {"description": "How many of a season's released episodes a folder on disk holds.", "placeholders": {"have": {"type": "int"}, "total": {"type": "int"}}},
+  "itemReleaseNotChosen": "Could not pick it: {error}",
+  "@itemReleaseNotChosen": {"description": "Picking a release failed; error is from the core.", "placeholders": {"error": {"type": "String"}}},
   "itemSeason": "Season {number}",
   "@itemSeason": {
     "description": "Season selector tab.",
