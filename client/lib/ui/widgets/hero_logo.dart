@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,10 @@ import 'artwork_image.dart';
 /// it disappears entirely. So the artwork is measured once — mean luminance
 /// over the pixels that are actually opaque — and a dark logo is filled white
 /// rather than dropped. Its shape is the design; only the ink changes.
+///
+/// Until the logo comes the title is its text, in the logo's box so nothing
+/// below moves: after [textAfter], so a logo already near never flashes the
+/// text, and for good when the logo fails. The logo fades in over it.
 class HeroLogo extends StatefulWidget {
   const HeroLogo({
     super.key,
@@ -23,6 +28,8 @@ class HeroLogo extends StatefulWidget {
   final String url;
   final String title;
   final double height;
+
+  static const textAfter = Duration(milliseconds: 400);
 
   @override
   State<HeroLogo> createState() => _HeroLogoState();
@@ -64,6 +71,8 @@ class _HeroLogoState extends State<HeroLogo> {
 
   bool? _needsTint;
   bool _failed = false;
+  bool _late = false;
+  Timer? _text;
   ImageStream? _stream;
   ImageStreamListener? _listener;
 
@@ -71,10 +80,16 @@ class _HeroLogoState extends State<HeroLogo> {
   void initState() {
     super.initState();
     _inspect();
+    if (_needsTint == null) {
+      _text = Timer(HeroLogo.textAfter, () {
+        if (mounted) setState(() => _late = true);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _text?.cancel();
     _release();
     super.dispose();
   }
@@ -112,24 +127,57 @@ class _HeroLogoState extends State<HeroLogo> {
     _stream!.addListener(_listener!);
   }
 
+  Widget get _title => SizedBox(
+    key: const ValueKey('title'),
+    height: widget.height,
+    child: Align(
+      alignment: Alignment.bottomLeft,
+      child: Text(
+        widget.title,
+        style: Typo.heroTitle,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    if (_failed) return Text(widget.title, style: Typo.heroTitle);
-    if (_needsTint == null) {
+    final needsTint = _needsTint;
+    final Widget shown;
+    if (_failed) {
+      shown = _title;
+    } else if (needsTint == null) {
       // Hold the space rather than flash a dark logo and repaint it white.
-      return SizedBox(height: widget.height);
+      shown = _late ? _title : SizedBox(height: widget.height);
+    } else {
+      final image = Image(
+        image: ArtworkImage(widget.url),
+        height: widget.height,
+        alignment: Alignment.centerLeft,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => _title,
+      );
+      shown = KeyedSubtree(
+        key: const ValueKey('logo'),
+        child: needsTint
+            ? ColorFiltered(
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
+                child: image,
+              )
+            : image,
+      );
     }
-    final image = Image(
-      image: ArtworkImage(widget.url),
-      height: widget.height,
-      alignment: Alignment.centerLeft,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => Text(widget.title, style: Typo.heroTitle),
-    );
-    if (!_needsTint!) return image;
-    return ColorFiltered(
-      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-      child: image,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.bottomLeft,
+        children: [...previous, ?current],
+      ),
+      child: shown,
     );
   }
 }

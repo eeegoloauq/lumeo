@@ -7,8 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - The title is blank until the logo loads or finally fails: after 400 ms
-     show the text in the logo's box, cross-fade the logo in when it comes.
    - A back arrow left of the wordmark on pages with a way back; no tab lit
      on pages that are not Home, Library or Settings.
    - mpv's `R` takes `sub-pos` past the core's 70–100, and Settings shows

@@ -89,6 +89,11 @@ luminance over its opaque pixels decides: below 0.18 it is filled white — the
 shape is the design, only the ink changes — and anything above keeps its
 colours. The line sits far below the dark-but-coloured case (a measured 0.28)
 on purpose, because repainting one of those would be the worse bug.
+Until the measured logo is there, the title is its text in the logo's box:
+not at once, since a logo close at hand would flash the text first, but
+after 400 ms, the logo cross-fading in over it when it comes and the text
+staying when it never does. A blank space held for the logo was what a
+viewer on a slow line read as the title for longer than the page.
 
 Sizes are fixed, not scaled from the window. A wider screen should hand the
 viewer more posters and more air, not larger letters — text that grows with the

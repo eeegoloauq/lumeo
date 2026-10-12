@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/ui/widgets/artwork_image.dart';
 import 'package:lumeo/ui/widgets/hero_logo.dart';
 
 /// Builds a solid image of one colour, so the luminance rule can be tested
@@ -44,5 +46,45 @@ void main() {
 
   test('transparent pixels are not part of the mark', () async {
     expect(await logoNeedsInk(await _swatch(0, 0, 0, alpha: 10)), isFalse);
+  });
+
+  testWidgets('the title is text in the logo\'s box until the logo comes', (
+    tester,
+  ) async {
+    // The title stayed blank until the logo loaded or finally failed, which
+    // on a slow line took longer than reading the page.
+    const url = 'test://slow-logo';
+    final logo = Completer<ImageInfo>();
+    PaintingBinding.instance.imageCache.putIfAbsent(
+      const ArtworkImage(url),
+      () => OneFrameImageStreamCompleter(logo.future),
+    );
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: HeroLogo(url: url, title: 'Night of the Living Dead'),
+        ),
+      ),
+    );
+    final height = tester.getSize(find.byType(HeroLogo)).height;
+    expect(find.text('Night of the Living Dead'), findsNothing);
+    await tester.pump(HeroLogo.textAfter);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Night of the Living Dead'), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(HeroLogo)).height,
+      height,
+      reason: 'nothing below moves',
+    );
+
+    final image = await tester.runAsync(() => _swatch(235, 235, 235));
+    await tester.runAsync(() async {
+      logo.complete(ImageInfo(image: image!));
+      // The logo is measured off the frame before it is drawn.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('Night of the Living Dead'), findsNothing);
   });
 }
