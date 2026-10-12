@@ -39,6 +39,38 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.7" date="2026-10-12" type="development">
+      <description>
+        <ul>
+          <li>Play no longer starts a copy larger than the free disk; it says how much it needs and how much is free. Copies that do not fit go to the end of the list.</li>
+          <li xml:lang="ru">Play больше не запускает копию больше свободного места на диске и говорит, сколько нужно и сколько свободно. Копии, которые не помещаются, уходят в конец списка.</li>
+          <li>The default disk limit is half the space Lumeo has on the download disk, 50 GB at most, instead of a fixed 50 GB.</li>
+          <li xml:lang="ru">Лимит диска по умолчанию — половина места, которое есть у Lumeo на диске загрузок, но не больше 50 ГБ, а не всегда 50 ГБ.</li>
+          <li>Play's pick: a copy with many more seeders wins over a better-flagged one, and a copy without language flags is no longer treated as foreign.</li>
+          <li xml:lang="ru">Выбор Play: копия с намного большим числом сидов побеждает копию с «правильными» флагами, а копия без флагов языка больше не считается иностранной.</li>
+          <li>While a film is starting, the player says what it waits for: peers, percent and speed. After 30 s with no peers it offers the next copy.</li>
+          <li xml:lang="ru">Пока фильм запускается, плеер пишет, чего он ждёт: пиры, процент и скорость. Если пиров нет 30 секунд, он предлагает следующую копию.</li>
+          <li>Films have the same version menu as series, with Automatic first; a film's file on this computer can be chosen from it.</li>
+          <li xml:lang="ru">У фильмов то же меню выбора версии, что и у сериалов, с «Автоматически» первым пунктом; в нём можно выбрать файл фильма на этом компьютере.</li>
+          <li>Settings, Playback: "Copy to play" can be "Ask every time": Play then opens the list of copies.</li>
+          <li xml:lang="ru">Настройки, Воспроизведение: «Какую копию играть» можно поставить на «Спрашивать каждый раз» — тогда Play открывает список копий.</li>
+          <li>After adding a source from a title's "Add one", a button goes back to that title. Play from the home banner no longer starts the film by itself on the way back.</li>
+          <li xml:lang="ru">После добавления источника через «Добавить» на странице тайтла кнопка возвращает к нему. Play с баннера на главной больше не запускает фильм сам по возвращении.</li>
+          <li>The title shows as text until its logo has loaded.</li>
+          <li xml:lang="ru">Название показывается текстом, пока не загрузится логотип.</li>
+          <li>A back arrow sits before the logo at the top, and no tab is lit on a title or search page.</li>
+          <li xml:lang="ru">Слева от логотипа наверху есть стрелка «Назад», а на странице тайтла или поиска ни одна вкладка не подсвечена.</li>
+          <li>Subtitles come on by default only when the audio is not in your language, and turning them on or off by hand is remembered for that audio language.</li>
+          <li xml:lang="ru">Субтитры по умолчанию включаются, только если звук не на вашем языке, а включение или выключение вручную запоминается для этого языка звука.</li>
+          <li>Moving subtitles below the picture with mpv's keys no longer shows an error in Settings; a setting that could not be saved is shown in its own section.</li>
+          <li xml:lang="ru">Перемещение субтитров ниже картинки клавишами mpv больше не вызывает ошибку в настройках; настройка, которую не удалось сохранить, показана в своём разделе.</li>
+          <li>The first time you leave the player, a card says the title stays on this computer and when it is deleted.</li>
+          <li xml:lang="ru">Когда вы впервые закрываете плеер, карточка говорит, что тайтл остаётся на этом компьютере и когда он удалится.</li>
+          <li>Closing during playback saves the newest position, changing what is kept no longer hangs, and the downloads panel counts a season pack's speed and time left once.</li>
+          <li xml:lang="ru">Закрытие во время просмотра сохраняет самую свежую позицию, смена правила хранения больше не зависает, а панель загрузок считает скорость и оставшееся время сезонной раздачи один раз.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.6" date="2026-10-12" type="development">
       <description>
         <ul>
