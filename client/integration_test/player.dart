@@ -1111,6 +1111,55 @@ void playerTests() {
     expect((jsonDecode(started.last)['source'] as Map)['rawName'], nextName);
   });
 
+  testWidgets('a copy that finds no peers offers the next one', (tester) async {
+    // The player showed "0%" for minutes while the downloads panel said
+    // "Finding peers", with no way to another copy short of the menus.
+    final started = <String>[];
+    final since = DateTime.now().subtract(const Duration(minutes: 1));
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          started: started,
+          downloads: [
+            fakeDownload(id: 'copy1', ready: false, waitingSince: since),
+            fakeDownload(
+              id: 'copy2',
+              ready: false,
+              waitingSince: since,
+              name: 'Night of the Living Dead 1968 2160p BluRay x265 DTS-HD',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PosterTile).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await waitFor(
+      tester,
+      () async => find.byType(PlayerScreen).evaluate().isNotEmpty,
+      what: 'the first copy opened',
+    );
+    final first = tester
+        .widget<PlayerScreen>(find.byType(PlayerScreen))
+        .download;
+    await waitFor(
+      tester,
+      () async => find.text('Try another copy').evaluate().isNotEmpty,
+      what: 'the player offered another copy',
+    );
+    await tester.tap(find.text('Try another copy'));
+    await waitFor(
+      tester,
+      () async =>
+          tester.widget<PlayerScreen>(find.byType(PlayerScreen)).download !=
+          first,
+      what: 'the player reopened on the next copy',
+    );
+    expect(started, hasLength(2));
+  });
+
   // mpv defaults can arrive before stored preferences; a late response must
   // still apply the stored values.
   for (final (answers, unreachable) in [('on time', 0), ('late', 2)]) {

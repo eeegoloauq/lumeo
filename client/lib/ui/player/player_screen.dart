@@ -762,6 +762,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _download = fresh;
         _error = null;
       });
+      if (findingNoPeers(fresh, DateTime.now())) _askSources();
       _openedUnnamed ??= fresh.itemId.isEmpty;
       if (!_itemAsked &&
           fresh.itemId.isNotEmpty &&
@@ -1472,23 +1473,44 @@ class _PlayerScreenState extends State<PlayerScreen> {
       unawaited(_loadEpisodeProgress(_download!.itemId));
     }
     _settingsPage = '';
-    final wantsSources =
-        _menu == PlayerMenu.settings || _menu == PlayerMenu.download;
-    if (wantsSources && _sources == null && (_download?.itemId ?? '') != '') {
-      final download = _download!;
-      _sources =
-          SourceChoice(
-            api: widget.api,
-            downloads: widget.downloads,
-            itemId: download.itemId,
-            season: download.season,
-            episode: download.episode,
-            onStarted: (started) => widget.onNext(started.id, _title),
-          )..addListener(() {
-            if (mounted) setState(() {});
-          });
+    if (_menu == PlayerMenu.settings || _menu == PlayerMenu.download) {
+      _askSources();
     }
     if (_menu == PlayerMenu.none) _restartIdle();
+  }
+
+  /// The copies of what is playing, asked for once: for the menus, and for
+  /// another copy to offer when this one finds no peers.
+  void _askSources() {
+    final download = _download;
+    if (_sources != null || download == null || download.itemId.isEmpty) {
+      return;
+    }
+    _sources =
+        SourceChoice(
+          api: widget.api,
+          downloads: widget.downloads,
+          itemId: download.itemId,
+          season: download.season,
+          episode: download.episode,
+          onStarted: (started) => widget.onNext(started.id, _title),
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
+  }
+
+  /// The copy offered when this one finds no peers: the next in the ranking
+  /// after it that this machine decodes.
+  MediaSource? get _nextCopy {
+    final download = _download, listed = _sources?.sources;
+    if (download == null || listed == null) return null;
+    final at = listed.indexWhere(
+      (s) => s.rawName == download.name || s.filename == download.name,
+    );
+    return listed
+        .skip(at + 1)
+        .where((s) => DeviceDecoders.instance.gapIn(s.release) == null)
+        .firstOrNull;
   }
 
   void _closeMenu() {
@@ -2111,12 +2133,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                       _ => _title,
                     },
-                    percent:
-                        _advancing ||
-                            (_download?.isDone ?? false) ||
-                            (_download?.progress.total ?? 0) <= 0
-                        ? null
-                        : _download!.progress.fraction,
+                    download: _advancing ? null : _download,
+                    nextCopy: _advancing ? null : _nextCopy,
+                    onNextCopy: _pickSource,
                     error: _error,
                     choiceError: _advancing ? _switch?.error : null,
                     choiceEmpty:

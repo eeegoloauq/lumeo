@@ -9,6 +9,9 @@ import '../../l10n/l10n.dart';
 import '../theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/play_block.dart' show emptySources;
+import '../widgets/source_list.dart' show formatBytes;
+import 'chrome.dart' show clock;
+import 'menus.dart' show SettingsMenu;
 
 /// Translate mpv failures into actionable playback messages.
 String playbackTrouble(Object error, AppLocalizations l10n) {
@@ -50,11 +53,54 @@ class PlayerNotice extends StatelessWidget {
   }
 }
 
+/// How long a download finds no peers before the player offers another copy.
+const noPeersPatience = Duration(seconds: 30);
+
+/// The download has looked for peers for [noPeersPatience] with the network
+/// up: another copy is worth offering. Offline, no copy would do better.
+bool findingNoPeers(Download d, DateTime now) {
+  final since = d.waitingSince;
+  return d.isActive &&
+      d.stage == DownloadStage.findingPeers &&
+      !d.offline &&
+      since != null &&
+      now.difference(since) >= noPeersPatience;
+}
+
+/// What the wait is on, the downloads panel's stage: how long it has looked
+/// for peers, then how many it found, then how much has come and how fast.
+String _waitLine(Download d, DateTime now, AppLocalizations l10n) {
+  final p = d.progress;
+  switch (d.stage) {
+    case DownloadStage.findingPeers:
+      final label = d.offline ? l10n.downloadsOffline : d.stage.label(l10n);
+      final since = d.waitingSince;
+      if (since == null) return label;
+      final waited = now.difference(since);
+      return l10n.downloadsWaitingSince(
+        label,
+        clock(waited.isNegative ? Duration.zero : waited),
+      );
+    case DownloadStage.fetchingMetadata:
+      return l10n.playerPeers(d.stage.label(l10n), p.peers);
+    case DownloadStage.arriving:
+      return [
+        l10n.playerPeers(
+          l10n.playerPercent((p.fraction * 100).round()),
+          p.peers,
+        ),
+        if (p.rate > 0) l10n.downloadsRate(formatBytes(p.rate, l10n)),
+      ].join(' · ');
+  }
+}
+
 class PlayerWaiting extends StatefulWidget {
   const PlayerWaiting({
     super.key,
     required this.title,
-    required this.percent,
+    required this.download,
+    this.nextCopy,
+    required this.onNextCopy,
     required this.error,
     required this.choiceError,
     required this.choiceEmpty,
@@ -75,7 +121,14 @@ class PlayerWaiting extends StatefulWidget {
   static const delay = Duration(seconds: 1);
 
   final String title;
-  final double? percent;
+
+  /// The download being waited for, while it is still arriving; null for a
+  /// file on disk or once the wait is for another episode.
+  final Download? download;
+
+  /// The copy offered in its place once it has found no peers for a while.
+  final MediaSource? nextCopy;
+  final ValueChanged<MediaSource> onNextCopy;
   final Object? error;
   final Object? choiceError;
   final bool choiceEmpty;
@@ -99,17 +152,24 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
   bool _showPresentation = false;
   Timer? _timer;
 
+  /// Counts the time spent finding peers between polls.
+  late final Timer _clock;
+
   @override
   void initState() {
     super.initState();
     _timer = Timer(PlayerWaiting.delay, () {
       if (mounted) setState(() => _showPresentation = true);
     });
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (widget.download?.waitingSince != null) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _clock.cancel();
     super.dispose();
   }
 
@@ -140,6 +200,8 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
               ? context.l10n.playerDecoderMissingShort(codec)
               : context.l10n.playerCopyWouldNotStart
         : '';
+    final download = widget.download, next = widget.nextCopy;
+    final now = DateTime.now();
     return Stack(
       children: [
         if (widget.overPicture)
@@ -175,17 +237,37 @@ class _PlayerWaitingState extends State<PlayerWaiting> {
                     ),
                   ),
                 ),
-                if (!failed &&
-                    widget.percent != null &&
-                    widget.percent! < 1) ...[
+                if (!failed && download != null && download.isActive) ...[
                   const SizedBox(height: 8),
                   Text(
-                    context.l10n.playerPercent((widget.percent! * 100).round()),
+                    _waitLine(download, now, context.l10n),
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0x99FFFFFF),
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
+                  // Below the line, so the ring and the title stay put.
+                  if (next != null && findingNoPeers(download, now)) ...[
+                    const SizedBox(height: 16),
+                    QuietButton(
+                      label: context.l10n.playerTryAnotherCopy,
+                      onPressed: () => widget.onNextCopy(next),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      [
+                        SettingsMenu.sourceLabel(next, context.l10n),
+                        if (next.size > 0) formatBytes(next.size, context.l10n),
+                        if (next.seeders > 0)
+                          context.l10n.playerSeedCount(next.seeders),
+                      ].join(' · '),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0x80FFFFFF),
+                      ),
+                    ),
+                  ],
                 ],
                 if (failed) ...[
                   const SizedBox(height: 8),

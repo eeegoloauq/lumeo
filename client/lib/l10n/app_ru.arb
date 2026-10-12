@@ -439,6 +439,7 @@
   "playerCoreStopped": "Ядро перестало отвечать",
   "playerCopyWouldNotStart": "Эта копия не запускается",
   "playerTryAgain": "Повторить",
+  "playerTryAnotherCopy": "Попробовать другую копию",
   "playerWatched": "просмотрено",
   "playerReset": "Сбросить",
   "playerMoreTracks": "ещё {count}",

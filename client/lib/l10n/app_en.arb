@@ -2194,6 +2194,10 @@
   "@playerTryAgain": {
     "description": "Retry starting playback."
   },
+  "playerTryAnotherCopy": "Try another copy",
+  "@playerTryAnotherCopy": {
+    "description": "The copy being waited for has found no peers: start the next copy in the ranking, named under the button."
+  },
   "playerWatched": "watched",
   "@playerWatched": {
     "description": "Watched episode status in player episode list."

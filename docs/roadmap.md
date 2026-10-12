@@ -7,10 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - The player shows "0%" while the downloads panel says "Finding peers".
-     Under the ring: the same stage, then peers and rate; after about 30 s
-     with no peers a quiet "Try another copy" naming the next copy. The ring
-     stays put; lines appear below it.
    - One release menu for films and series: Automatic (checked by default,
      "the best copy for each episode") first, then On disk, Available, and
      "All copies…" and "File/Folder on this computer…" last, no icons. A
@@ -70,9 +66,6 @@ Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
 ## Player
 
-- A copy whose swarm is empty: after a while with no peers the player says so
-  and offers another copy. The addon's seeder count cannot tell: zero is also
-  what an addon without counts sends.
 - mpv's window requests (clipboard, window size, minimise, on-top): answer
   each through an observed property, as `fullscreen` is.
 - `video_output.cc` treats a failed `eglClientWaitSyncKHR` as signalled;
