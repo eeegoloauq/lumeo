@@ -198,7 +198,10 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_ACTIVATE:
-      if (child_content_ != nullptr) {
+      // Not on deactivation: SetFocus activates the focused window's parent,
+      // so a window being left, or hidden into the tray, would take the
+      // activation back from the window the user went to.
+      if (child_content_ != nullptr && LOWORD(wparam) != WA_INACTIVE) {
         SetFocus(child_content_);
       }
       return 0;
