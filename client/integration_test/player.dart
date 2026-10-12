@@ -633,7 +633,11 @@ void playerTests() {
             api: fakeCore(
               downloads: [fakeDownload()],
               baseUrl: 'http://127.0.0.1:${server.port}',
-              preferences: {'subtitleLanguages': languages},
+              // About language order, not when subtitles come on.
+              preferences: {
+                'subtitleLanguages': languages,
+                'subtitleMode': 'always',
+              },
               keptSubtitles: [
                 {
                   'id': 'k1',
@@ -674,6 +678,53 @@ void playerTests() {
       },
     );
   }
+
+  testWidgets('subtitles turned off for a soundtrack\'s language stay off for '
+      'the next title in it, and turned on by hand are kept on', (
+    tester,
+  ) async {
+    final server = await serveFilm(tracksFilm());
+    final patched = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          patched: patched,
+          preferences: {
+            'subtitleLanguages': ['en'],
+            // mpv alone would put English subtitles over the English audio.
+            'subtitleMode': 'always',
+            'subtitlesWithAudio': {'en': false},
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    await waitFor(
+      tester,
+      () async => await mpv.getProperty('sid') == 'no',
+      what: 'the answer for English turned the subtitle off',
+    );
+
+    final tracks = jsonDecode(await mpv.getProperty('track-list')) as List;
+    final full = tracks.firstWhere((t) => t['title'] == 'English Full');
+    await mpv.setProperty('sid', '${full['id']}');
+    await waitFor(
+      tester,
+      () async => patched.any((p) => p.contains('subtitlesWithAudio')),
+      what: 'turning it on by hand reached the core',
+    );
+    expect(
+      jsonDecode(patched.lastWhere((p) => p.contains('subtitlesWithAudio'))),
+      {
+        'subtitlesWithAudio': {'en': true},
+      },
+    );
+  });
 
   testWidgets('every property mpv is given is one mpv knows', (tester) async {
     // mpv silently ignores unknown option names, so read properties back to
