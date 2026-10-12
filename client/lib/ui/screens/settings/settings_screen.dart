@@ -209,13 +209,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return widget.preferences.patch(patch);
   }
 
-  /// The preferences failure, in the section it belongs to: the one changed
-  /// last, or the first one when the document never arrived.
+  /// The preferences failure, in the section it belongs to: the section of
+  /// the preference that was not stored, whoever changed it (the player
+  /// stores the subtitle size and height too); else the one changed last, or
+  /// the first one when the document never arrived.
   Object? _errorIn(SettingsSection section) {
     final error = widget.preferences.error;
     if (error == null) return null;
-    return section == (_changedIn ?? SettingsSection.appearance) ? error : null;
+    final owner = widget.preferences.failedKeys.map(_sectionOf).nonNulls;
+    return section ==
+            (owner.firstOrNull ?? _changedIn ?? SettingsSection.appearance)
+        ? error
+        : null;
   }
+
+  static SettingsSection? _sectionOf(String key) => switch (key) {
+    'accent' || 'episodeArtwork' => SettingsSection.appearance,
+    'askCopy' ||
+    'nextNotice' ||
+    'nextCountdown' ||
+    'seekStep' => SettingsSection.playback,
+    'audioLanguages' => SettingsSection.audioSubtitles,
+    final key when key.startsWith('subtitle') => SettingsSection.audioSubtitles,
+    'keep' ||
+    'keepDays' ||
+    'diskLimit' ||
+    'prefetch' ||
+    'downloadDir' ||
+    'uploadLimit' ||
+    'downloadLimit' => SettingsSection.downloads,
+    'checkUpdates' || 'betaUpdates' => SettingsSection.about,
+    _ => null,
+  };
 
   void _refreshAbout() => setState(() {
     _about = widget.api.about();

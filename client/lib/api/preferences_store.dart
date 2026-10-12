@@ -19,6 +19,7 @@ class PreferencesStore extends ChangeNotifier {
   Preferences? _current;
   Languages _languages = Languages.none;
   Object? _error;
+  Set<String> _failed = const {};
   bool _disposed = false;
   Future<void> _writes = Future.value();
 
@@ -32,6 +33,10 @@ class PreferencesStore extends ChangeNotifier {
 
   /// The last load or patch failure, cleared by the next successful answer.
   Object? get error => _error;
+
+  /// The preferences the failed write carried; none when it was a read or a
+  /// reset.
+  Set<String> get failedKeys => _failed;
 
   /// Asks for the complete effective preferences document, and for the
   /// language table alongside it. The table failing is not the document
@@ -60,7 +65,7 @@ class PreferencesStore extends ChangeNotifier {
 
   /// Sends a partial document and keeps the returned complete document.
   Future<void> patch(Map<String, Object?> patch) =>
-      _write(() => _api.patchPreferences(patch));
+      _write(() => _api.patchPreferences(patch), keys: patch.keys.toSet());
 
   /// Every preference back to the core's default. A burst still waiting to
   /// be remembered is dropped: it was chosen before the reset.
@@ -74,20 +79,24 @@ class PreferencesStore extends ChangeNotifier {
   /// Sends one write after every earlier one has been answered, so the core
   /// applies them in the order they were made: a patch still on its way when
   /// Reset is pressed cannot land after the reset and bring its value back.
-  Future<void> _write(Future<Preferences> Function() send) =>
-      _writes = _writes.then((_) async {
-        try {
-          final fresh = await send();
-          if (_disposed) return;
-          _current = fresh;
-          _error = null;
-          notifyListeners();
-        } on Object catch (error) {
-          if (_disposed) return;
-          _error = error;
-          notifyListeners();
-        }
-      });
+  Future<void> _write(
+    Future<Preferences> Function() send, {
+    Set<String> keys = const {},
+  }) => _writes = _writes.then((_) async {
+    try {
+      final fresh = await send();
+      if (_disposed) return;
+      _current = fresh;
+      _error = null;
+      _failed = const {};
+      notifyListeners();
+    } on Object catch (error) {
+      if (_disposed) return;
+      _error = error;
+      _failed = keys;
+      notifyListeners();
+    }
+  });
 
   /// Remembers only the last value of each key chosen during a burst — a
   /// speed key held down, a stepper clicked five times — as one patch.

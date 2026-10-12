@@ -237,6 +237,27 @@ void main() {
     expect(strip<String>(tester, 'Show').selected, {'show'});
   });
 
+  uiTest('a preference the player could not store is shown where it is set', (
+    tester,
+  ) async {
+    // The player stored a subtitle height the core refused, and Settings
+    // showed the refusal under Appearance, the section it falls back to.
+    await tester.pumpWidget(testApp(api: fakeCore(preferencesFail: true)));
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, null);
+    final store = tester
+        .widget<SettingsScreen>(find.byType(SettingsScreen))
+        .preferences;
+    await store.patch({'subtitlePosition': 101});
+    await tester.pumpAndSettle();
+    Finder refusalIn(SettingsSection section) => find.descendant(
+      of: find.byKey(ValueKey('settings:${section.name}')),
+      matching: find.text('preferences refused'),
+    );
+    expect(refusalIn(SettingsSection.audioSubtitles), findsOneWidget);
+    expect(refusalIn(SettingsSection.appearance), findsNothing);
+  });
+
   uiTest('Reset puts the preferences back, after asking', (tester) async {
     final patched = <String>[];
     final settings = temporarySettings();

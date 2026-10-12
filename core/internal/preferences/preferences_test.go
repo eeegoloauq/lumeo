@@ -237,7 +237,7 @@ func TestPatchRejectsInvalidDocumentsWithoutWriting(t *testing.T) {
 		{name: "invalid audio language", body: `{"audioLanguages":["japanese"]}`, message: `invalid audio language "japanese"`},
 		{name: "unknown subtitle mode", body: `{"subtitleMode":"smart"}`, message: `subtitleMode must be "always", "foreign", or "manual"`},
 		{name: "subtitle scale too small", body: `{"subtitleScale":0.4}`, message: "subtitleScale must be between 0.5 and 2"},
-		{name: "subtitle position off the picture", body: `{"subtitlePosition":101}`, message: "subtitlePosition must be between 70 and 100"},
+		{name: "subtitle position past mpv's range", body: `{"subtitlePosition":151}`, message: "subtitlePosition must be between 0 and 150"},
 		{name: "subtitle position not number", body: `{"subtitlePosition":"low"}`, message: "subtitlePosition must be a whole number"},
 		{name: "subtitle position fraction", body: `{"subtitlePosition":85.5}`, message: "subtitlePosition must be a whole number"},
 		{name: "subtitle background unknown", body: `{"subtitleBackground":"glow"}`, message: `subtitleBackground must be "none", "shadow", or "box"`},

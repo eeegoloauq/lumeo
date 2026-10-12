@@ -123,7 +123,10 @@ class AudioSubtitlesSection extends StatelessWidget {
                 max: 30,
                 step: 5,
                 width: 120,
-                describe: (lift) => lift <= 0
+                // Below the bottom only by mpv's keys.
+                describe: (lift) => lift < 0
+                    ? context.l10n.settingsBelowPicture
+                    : lift == 0
                     ? context.l10n.settingsBottom
                     : context.l10n.settingsPercentUp(lift),
                 lessLabel: context.l10n.settingsLower,
@@ -165,7 +168,9 @@ class _Preview extends StatelessWidget {
     // a preview this small is too small to judge. sub-scale grows the outline
     // and the shadow with the text, as libass does.
     final unit = height / 720 * 2 * preferences.subtitleScale;
-    final lift = (100 - preferences.subtitlePosition) / 100 * height;
+    // Below the picture is off the sample: it is drawn on the bottom edge.
+    final lift =
+        (100 - preferences.subtitlePosition).clamp(0, 100) / 100 * height;
     // libass sizes a font by its OS/2 win ascent plus descent rather than
     // its em, and that line is 1.395 em of IBM Plex Sans.
     const plexLine = 1.395;

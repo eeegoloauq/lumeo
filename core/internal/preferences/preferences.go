@@ -32,7 +32,8 @@ type Preferences struct {
 	SubtitleMode string `json:"subtitleMode"`
 	// SubtitleScale and SubtitlePosition are mpv's sub-scale and sub-pos: 1
 	// is the size mpv draws by default, and 100 sits the line on the bottom
-	// edge of the picture, with lower numbers lifting it.
+	// edge of the picture, with lower numbers lifting it and higher ones
+	// taking it below.
 	SubtitleScale    float64 `json:"subtitleScale"`
 	SubtitlePosition int     `json:"subtitlePosition"`
 	// SubtitleBackground is what sets the text off the picture: "none" is a
@@ -278,7 +279,9 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 		case "subtitleScale":
 			changes[key], err = number(key, raw, 0.5, 2)
 		case "subtitlePosition":
-			changes[key], err = integer(key, raw, 70, 100)
+			// mpv's own range: its keys reach all of it, and the player keeps
+			// what they set.
+			changes[key], err = integer(key, raw, 0, 150)
 		case "subtitleBackground":
 			changes[key], err = oneOf(key, raw, SubtitleBackgrounds)
 		case "subtitleColor":

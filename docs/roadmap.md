@@ -7,8 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - mpv's `R` takes `sub-pos` past the core's 70–100, and Settings shows
-     the raw error under Appearance.
    - Subtitles: default "Foreign audio", and a subtitle turned on or off by
      hand is remembered per audio language for the next titles.
    - Once per machine, on leaving the player the first time: a card where

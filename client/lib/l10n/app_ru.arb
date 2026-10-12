@@ -180,6 +180,7 @@
   "settingsTimelinePreviewsHint": "Кадры над шкалой перемотки — от второго плеера на том же файле.",
   "commonSecondUnit": "с",
   "settingsBottom": "внизу",
+  "settingsBelowPicture": "под картинкой",
   "settingsPercentUp": "на {percent}% выше",
   "settingsSourceAdded": "{name}: добавлено",
   "settingsBackTo": "Назад к «{title}»",

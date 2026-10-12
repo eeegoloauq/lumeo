@@ -312,6 +312,12 @@ screenshots go (a folder on this machine), and how long a finished download
 stays in the panel, and the interface's language. Reset puts back both
 kinds; downloads, the list and history are not settings.
 
+A preference the core would not store is said in the section where it is
+set, whoever changed it: the player stores the subtitle size and height from
+mpv's keys, and its refusals used to land under Appearance, the section
+Settings falls back to. The core accepts mpv's own range for those, since
+the keys reach all of it.
+
 A row is its name and its control. A line under the name is for a
 consequence the name cannot carry and nobody would guess, such as what Reset
 keeps; it is never a restatement of the name, how the feature works inside, or

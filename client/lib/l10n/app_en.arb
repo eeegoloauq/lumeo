@@ -612,6 +612,8 @@
   "@settingsBottom": {
     "description": "Subtitle height setting at zero lift."
   },
+  "settingsBelowPicture": "below the picture",
+  "@settingsBelowPicture": {"description": "Subtitle height set below the picture, by mpv's keys."},
   "settingsPercentUp": "{percent}% up",
   "@settingsPercentUp": {
     "description": "Subtitle height setting.",
