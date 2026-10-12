@@ -200,6 +200,18 @@ A tab is lit only on its own page. A title or a search lit the tab it was
 opened from, as if the window were still there; now it lights none, and the
 arrow says where the page leads back to.
 
+## Help at the moment it is needed
+
+Nothing greets a first run: a banner on Home would stand between a new viewer
+and the films, and say things before they mean anything. What Lumeo does that
+a viewer would not guess is said once, when it first happens. Leaving the
+player the first time, a card where the update card sits says that the title
+is in My list and on this computer and, from the keep setting, when it is
+deleted, with the way to Storage; a viewer closing a film after ten seconds
+otherwise finds its download running with no reason given. It is shown once
+per machine (`keepsTold` in `client.json`), and not for a file opened from
+this computer, which is never deleted.
+
 ## A season is a strip, not a page
 
 Episodes are a horizontal row of cards, the same gesture the shelves on the

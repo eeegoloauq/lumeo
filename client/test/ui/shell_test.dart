@@ -460,6 +460,49 @@ void main() {
     expect(lit('Home'), isTrue);
   });
 
+  uiTest('the first film left says once what Lumeo keeps', (tester) async {
+    // A first-time viewer closed a film after ten seconds and found its
+    // download running, with nothing saying why.
+    final settings = temporarySettings();
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(downloads: [fakeDownload()]),
+        settings: settings,
+      ),
+    );
+    await tester.pumpAndSettle();
+    Future<void> playAndLeave() async {
+      await tester.tap(find.text('Play').first);
+      await waitFor(
+        tester,
+        () async => playing(tester) != null,
+        what: 'the film opened',
+      );
+      tester.widget<PlayerStandIn>(find.byType(PlayerStandIn)).screen.onClose();
+      await tester.pumpAndSettle();
+    }
+
+    await playAndLeave();
+    expect(find.text('Lumeo keeps what you watch'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'is in My list and on this computer. It stays until you delete it.',
+      ),
+      findsOneWidget,
+      reason: 'the keep setting is Never',
+    );
+    expect(settings.keepsTold, isTrue);
+    await tester.tap(find.text('Storage'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lumeo keeps what you watch'), findsNothing);
+    expect(find.byKey(const ValueKey('settings:downloads')), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await playAndLeave();
+    expect(find.text('Lumeo keeps what you watch'), findsNothing);
+  });
+
   uiTest('a file the core refuses says why', (tester) async {
     await tester.pumpWidget(
       testApp(open: '/films/notes.txt', api: fakeCore(openFails: true)),

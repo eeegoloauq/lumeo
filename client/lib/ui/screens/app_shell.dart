@@ -17,7 +17,9 @@ import '../../platform/release_notes.dart';
 import '../../platform/window.dart';
 import '../player/episode_frames.dart';
 import '../player/player_screen.dart';
+import '../theme.dart';
 import '../widgets/downloads_indicator.dart';
+import '../widgets/floating_card.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/release_notes_card.dart';
 import 'home_screen.dart';
@@ -163,6 +165,41 @@ class _AppShellState extends State<AppShell> {
   /// that asks for something, and it covers the update the viewer is on.
   Widget? _releaseCard() {
     final l10n = context.l10n;
+    // What just happened to the film comes before what is new in Lumeo.
+    if (_keptTitle case final title?) {
+      void close() => setState(() => _keptTitle = null);
+      final prefs = widget.preferences.current;
+      return FloatingCard(
+        title: l10n.keepsTitle,
+        onClose: close,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              [
+                l10n.keepsHere(title),
+                switch (prefs?.keep) {
+                  'watched' => l10n.keepsDeletedWatched,
+                  'days' => l10n.keepsDeletedAfterDays(prefs!.keepDays),
+                  'forever' => l10n.keepsStays,
+                  _ => '',
+                },
+              ].where((s) => s.isNotEmpty).join(' '),
+              style: Typo.data.copyWith(color: Palette.dim),
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: () {
+                close();
+                openSettings(section: SettingsSection.downloads);
+              },
+              child: Text(l10n.keepsStorage),
+            ),
+          ],
+        ),
+      );
+    }
     void seen() {
       widget.settings.lastSeenVersion = appVersion;
       _news = const [];
@@ -217,7 +254,7 @@ class _AppShellState extends State<AppShell> {
           // Not a catalogue title: the file plays under its own name.
         }
       }
-      if (mounted) _play(download.id, title);
+      if (mounted) _play(download.id, title, kept: false);
     } on Object catch (error) {
       if (!mounted) return;
       final reason = error is LumeoApiException ? error.message : '$error';
@@ -401,16 +438,21 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
-  void _play(String downloadId, String title) {
+  void _play(String downloadId, String title, {bool kept = true}) {
     setState(() {
       _spendAutoplay();
       _playing = _Playing(
         downloadId,
         title,
         wasFullscreen: AppWindow.instance.fullscreen,
+        kept: kept,
       );
     });
   }
+
+  /// The title the "Lumeo keeps what you watch" card names, shown once per
+  /// machine on leaving the player the first time.
+  String? _keptTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +474,13 @@ class _AppShellState extends State<AppShell> {
             continuing: _playing!.continuing,
             onClose: () {
               final playing = _playing!;
-              setState(() => _playing = null);
+              setState(() {
+                _playing = null;
+                if (playing.kept && !widget.settings.keepsTold) {
+                  widget.settings.keepsTold = true;
+                  _keptTitle = playing.title;
+                }
+              });
               // The window goes back the way the film found it. Held here, not in the
               // screen, which is rebuilt for every episode.
               AppWindow.instance.setFullscreen(playing.wasFullscreen);
@@ -680,10 +728,15 @@ class _Playing {
     this.title, {
     required this.wasFullscreen,
     this.continuing = false,
+    this.kept = true,
   });
 
   final String downloadId;
   final String title;
+
+  /// Whether Lumeo keeps the file: not one opened from this computer, which
+  /// is the viewer's own and never deleted.
+  final bool kept;
 
   /// How the window stood when the sitting began, to be put back when it
   /// ends. It belongs to the sitting rather than to any one episode's screen.
@@ -698,6 +751,7 @@ class _Playing {
     title,
     wasFullscreen: wasFullscreen,
     continuing: true,
+    kept: kept,
   );
 }
 

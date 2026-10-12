@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/folders.dart';
 import '../theme.dart';
+import 'floating_card.dart';
 
 /// Release notes in a corner: what an update brought, or what a newer
 /// release would bring. A long list stops at [shown] until its count is
@@ -42,41 +43,13 @@ class _ReleaseNotesCardState extends State<ReleaseNotesCard> {
         ? items
         : items.take(widget.collapsed ? 0 : ReleaseNotesCard.shown);
     final hidden = items.length - shown.length;
-    return Container(
-      width: 360,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Palette.raised,
-        borderRadius: const BorderRadius.all(Shape.floatingRadius),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x99000000),
-            blurRadius: 32,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
+    return FloatingCard(
+      title: widget.title,
+      onClose: widget.onClose,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: Typo.cardTitle.copyWith(fontSize: 15),
-                ),
-              ),
-              IconButton(
-                tooltip: context.l10n.commonClose,
-                onPressed: widget.onClose,
-                icon: const Icon(Icons.close, size: 18),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
           Flexible(
             child: SingleChildScrollView(
               child: Column(

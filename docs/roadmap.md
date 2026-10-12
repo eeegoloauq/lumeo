@@ -6,14 +6,9 @@ before code.
 
 ## Next
 
-1. What a first-time user runs into, in this order (mockups agreed):
-   - Once per machine, on leaving the player the first time: a card where
-     the update card sits, "Lumeo keeps what you watch", saying the title is
-     in My list and on this computer and, from the keep setting, when it is
-     deleted; Storage and close.
-2. Windows libmpv: media_kit's is mpv 0.36 built without Lua, so the console
+1. Windows libmpv: media_kit's is mpv 0.36 built without Lua, so the console
    and statistics do not work. Ship a current libmpv with Lua, pinned by hash.
-3. Skip the opening and ending of files whose chapters are unnamed, found by
+2. Skip the opening and ending of files whose chapters are unnamed, found by
    the audio the episodes of a season share (`[?]`).
 
 ## Remote core

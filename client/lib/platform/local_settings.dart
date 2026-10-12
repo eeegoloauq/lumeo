@@ -29,6 +29,7 @@ class LocalSettings extends ChangeNotifier {
   String _screenshotsDir = '';
   String? _lastSeenVersion;
   String _dismissedUpdate = '';
+  bool _keepsTold = false;
   DateTime? _dismissedAt;
   DateTime? _clearedAt;
   Timer? _saveTimer;
@@ -77,6 +78,7 @@ class LocalSettings extends ChangeNotifier {
         settings._lastSeenVersion = decoded['lastSeenVersion'] is String
             ? decoded['lastSeenVersion'] as String
             : '';
+        settings._keepsTold = decoded['keepsTold'] == true;
         if (decoded['dismissedUpdate'] is String) {
           settings._dismissedUpdate = decoded['dismissedUpdate'] as String;
         }
@@ -116,6 +118,16 @@ class LocalSettings extends ChangeNotifier {
   set dismissedUpdate(String value) {
     if (value == _dismissedUpdate) return;
     _dismissedUpdate = value;
+    _scheduleSave();
+  }
+
+  /// Whether this machine has been told, once, that what is watched stays
+  /// on it until the keep policy deletes it.
+  bool get keepsTold => _keepsTold;
+
+  set keepsTold(bool value) {
+    if (value == _keepsTold) return;
+    _keepsTold = value;
     _scheduleSave();
   }
 
@@ -303,6 +315,7 @@ class LocalSettings extends ChangeNotifier {
       'autostart': _autostart,
       'screenshotsDir': _screenshotsDir,
       if (_dismissedUpdate.isNotEmpty) 'dismissedUpdate': _dismissedUpdate,
+      if (_keepsTold) 'keepsTold': true,
       if (_dismissedAt != null)
         'updateDismissedAt': _dismissedAt!.toIso8601String(),
       if (_clearedAt != null)
