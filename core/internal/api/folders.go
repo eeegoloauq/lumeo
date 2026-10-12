@@ -124,7 +124,8 @@ func folderKey(src sources.MediaSource) string {
 }
 
 // handleLinkFolder makes the episodes of a series in a folder on this machine
-// its copies there, and that folder the one Play continues from.
+// its copies there, and that folder the one Play continues from; for a film,
+// the path is its file.
 func (s *Server) handleLinkFolder(w http.ResponseWriter, r *http.Request) {
 	if s.local == nil {
 		writeError(w, http.StatusServiceUnavailable, "local files are not configured")
@@ -142,7 +143,7 @@ func (s *Server) handleLinkFolder(w http.ResponseWriter, r *http.Request) {
 	itemID := r.PathValue("id")
 	found, err := s.local.Link(r.Context(), itemID, body.Path)
 	switch {
-	case errors.Is(err, local.ErrNotFolder):
+	case errors.Is(err, local.ErrNotFolder), errors.Is(err, local.ErrNotVideo):
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	case errors.Is(err, os.ErrNotExist):
@@ -155,7 +156,11 @@ func (s *Server) handleLinkFolder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "no episodes of this title in the folder")
 		return
 	}
-	if err := s.progress.RememberSource(r.Context(), itemID, progress.Pack{Dir: filepath.Clean(body.Path), Picked: true}); err != nil {
+	dir := filepath.Clean(body.Path)
+	if stat, err := os.Stat(dir); err == nil && !stat.IsDir() {
+		dir = filepath.Dir(dir)
+	}
+	if err := s.progress.RememberSource(r.Context(), itemID, progress.Pack{Dir: dir, Picked: true}); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

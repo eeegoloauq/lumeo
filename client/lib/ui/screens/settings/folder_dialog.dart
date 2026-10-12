@@ -22,11 +22,29 @@ Future<String?> chooseFolder(
   );
 }
 
+/// Picks a file the same way: the folders are walked, a file is the answer.
+/// Every file is listed; whoever takes the path says what it cannot use.
+Future<String?> chooseFile(
+  BuildContext context, {
+  required String title,
+  required String start,
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => _FolderDialog(title: title, start: start, file: true),
+  );
+}
+
 class _FolderDialog extends StatefulWidget {
-  const _FolderDialog({required this.title, required this.start});
+  const _FolderDialog({
+    required this.title,
+    required this.start,
+    this.file = false,
+  });
 
   final String title;
   final String start;
+  final bool file;
 
   @override
   State<_FolderDialog> createState() => _FolderDialogState();
@@ -35,6 +53,7 @@ class _FolderDialog extends StatefulWidget {
 class _FolderDialogState extends State<_FolderDialog> {
   late final _path = TextEditingController();
   List<String> _children = const [];
+  List<String> _files = const [];
   String _at = '';
   String? _problem;
 
@@ -66,18 +85,23 @@ class _FolderDialogState extends State<_FolderDialog> {
   Future<void> _open(String path) async {
     final dir = Directory(path);
     try {
-      final children = <String>[];
+      final children = <String>[], files = <String>[];
       await for (final entry in dir.list(followLinks: false)) {
-        if (entry is! Directory) continue;
         final name = entry.uri.pathSegments.where((s) => s.isNotEmpty).last;
         // Dot-folders are configuration, not somewhere to keep films.
-        if (!name.startsWith('.')) children.add(name);
+        if (name.startsWith('.')) continue;
+        if (entry is Directory) children.add(name);
+        if (entry is File && widget.file) files.add(name);
       }
-      children.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      int byName(String a, String b) =>
+          a.toLowerCase().compareTo(b.toLowerCase());
+      children.sort(byName);
+      files.sort(byName);
       if (!mounted) return;
       setState(() {
         _at = dir.path;
         _children = children;
+        _files = files;
         _problem = null;
         _path.text = dir.path;
       });
@@ -97,6 +121,8 @@ class _FolderDialogState extends State<_FolderDialog> {
     if (path.isEmpty) return;
     if (Directory(path).existsSync()) {
       _open(path);
+    } else if (widget.file && File(path).existsSync()) {
+      Navigator.pop(context, path);
     } else {
       setState(() => _problem = context.l10n.settingsFolderMissing);
     }
@@ -141,7 +167,7 @@ class _FolderDialogState extends State<_FolderDialog> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: _children.isEmpty
+              child: _children.isEmpty && _files.isEmpty
                   ? Center(
                       child: Text(
                         context.l10n.settingsFolderEmpty,
@@ -161,6 +187,17 @@ class _FolderDialogState extends State<_FolderDialog> {
                             title: Text(name, style: Typo.dataStrong),
                             onTap: () => _open(_join(name)),
                           ),
+                        for (final name in _files)
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.movie_outlined,
+                              size: 18,
+                              color: Palette.muted,
+                            ),
+                            title: Text(name, style: Typo.data),
+                            onTap: () => Navigator.pop(context, _join(name)),
+                          ),
                       ],
                     ),
             ),
@@ -172,10 +209,11 @@ class _FolderDialogState extends State<_FolderDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text(context.l10n.commonCancel),
         ),
-        TextButton(
-          onPressed: _at.isEmpty ? null : () => Navigator.pop(context, _at),
-          child: Text(context.l10n.settingsFolderUse),
-        ),
+        if (!widget.file)
+          TextButton(
+            onPressed: _at.isEmpty ? null : () => Navigator.pop(context, _at),
+            child: Text(context.l10n.settingsFolderUse),
+          ),
       ],
     );
   }

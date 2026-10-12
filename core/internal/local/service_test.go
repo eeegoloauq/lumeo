@@ -334,15 +334,53 @@ func TestLinkTakesTheTitlesEpisodesFromAFolder(t *testing.T) {
 	}
 }
 
+// known has the catalogue turn up a title, as browsing to it would.
+func known(t *testing.T, s *Service, kind catalog.Kind, title string) string {
+	t.Helper()
+	found, err := s.catalog.Search(context.Background(), kind, title)
+	if err != nil || len(found) != 1 {
+		t.Fatalf("search=%+v err=%v", found, err)
+	}
+	return found[0].ID
+}
+
 func TestLinkRefusesWhatIsNotAFolder(t *testing.T) {
-	s, _, _ := makeService(t, nil)
+	item := catalog.MediaItem{ID: "show", Kind: catalog.KindSeries, Title: "Show", ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: "tt3"}}
+	s, _, _ := makeService(t, []catalog.MediaItem{item})
+	id := known(t, s, catalog.KindSeries, "Show")
 	file := writeVideo(t, t.TempDir(), "Show.S01E01.mkv")
 	for _, path := range []string{"relative/dir", file} {
-		if _, err := s.Link(context.Background(), "show", path); !errors.Is(err, ErrNotFolder) {
+		if _, err := s.Link(context.Background(), id, path); !errors.Is(err, ErrNotFolder) {
 			t.Fatalf("%s: err=%v", path, err)
 		}
 	}
-	if _, err := s.Link(context.Background(), "show", filepath.Join(t.TempDir(), "gone")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := s.Link(context.Background(), id, filepath.Join(t.TempDir(), "gone")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("missing: err=%v", err)
+	}
+}
+
+// A film is linked by its file, whatever the file is called.
+func TestLinkTakesAFilmsFile(t *testing.T) {
+	item := catalog.MediaItem{ID: "film", Kind: catalog.KindMovie, Title: "Night of the Living Dead", ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: "tt0063350"}}
+	s, m, _ := makeService(t, []catalog.MediaItem{item})
+	ctx := context.Background()
+	id := known(t, s, catalog.KindMovie, "Night of the Living Dead")
+	file := writeVideo(t, t.TempDir(), "notld_final.mkv")
+	if found, err := s.Link(ctx, id, file); err != nil || found != 1 {
+		t.Fatalf("found=%d err=%v", found, err)
+	}
+	rows := m.List(ctx)
+	if len(rows) != 1 || rows[0].ItemID != id || rows[0].FilePath != file || rows[0].Episode != 0 {
+		t.Fatalf("rows=%+v", rows)
+	}
+	if found, err := s.Link(ctx, id, file); err != nil || found != 1 || len(m.List(ctx)) != 1 {
+		t.Fatalf("again: found=%d err=%v rows=%d", found, err, len(m.List(ctx)))
+	}
+	notes := filepath.Join(t.TempDir(), "notes.txt")
+	if err := os.WriteFile(notes, []byte("notes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Link(ctx, id, notes); !errors.Is(err, ErrNotVideo) {
+		t.Fatalf("a text file: err=%v", err)
 	}
 }

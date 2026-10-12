@@ -376,11 +376,11 @@ func (s *Service) siblings(ctx context.Context, path string, opened release.Info
 }
 
 // Link makes the episodes of a series found in a folder its copies on this
-// machine, and returns how many it found. The folder is the viewer's pick for
-// this title, so a file is taken by its episode number however loosely its
-// name matches the catalogue's; one that names another show is left alone,
-// which is what makes picking the whole downloads folder safe. Season folders
-// one level down are looked into.
+// machine, or a film's file its copy, and returns how many it found. The
+// folder is the viewer's pick for this title, so a file is taken by its
+// episode number however loosely its name matches the catalogue's; one that
+// names another show is left alone, which is what makes picking the whole
+// downloads folder safe. Season folders one level down are looked into.
 func (s *Service) Link(ctx context.Context, itemID, dir string) (int, error) {
 	if !filepath.IsAbs(dir) {
 		return 0, ErrNotFolder
@@ -389,9 +389,6 @@ func (s *Service) Link(ctx context.Context, itemID, dir string) (int, error) {
 	stat, err := os.Stat(dir)
 	if err != nil {
 		return 0, err
-	}
-	if !stat.IsDir() {
-		return 0, ErrNotFolder
 	}
 	item, err := s.catalog.Item(ctx, itemID)
 	if err != nil {
@@ -402,6 +399,12 @@ func (s *Service) Link(ctx context.Context, itemID, dir string) (int, error) {
 		if row.Locator.Scheme == "file" {
 			known[row.FilePath] = row
 		}
+	}
+	if !stat.IsDir() {
+		if item.Kind != catalog.KindMovie {
+			return 0, ErrNotFolder
+		}
+		return 1, s.linkFilm(ctx, itemID, dir, stat, known)
 	}
 	found := 0
 	for _, path := range videosIn(dir, 1) {
@@ -432,6 +435,22 @@ func (s *Service) Link(ctx context.Context, itemID, dir string) (int, error) {
 		found++
 	}
 	return found, nil
+}
+
+// linkFilm makes a file a film's copy. The viewer named it, so its name is
+// not asked to match the title's.
+func (s *Service) linkFilm(ctx context.Context, itemID, path string, stat os.FileInfo, known map[string]acquire.Download) error {
+	if !stat.Mode().IsRegular() || !video(path) {
+		return ErrNotVideo
+	}
+	if row, ok := known[path]; ok {
+		if row.ItemID == itemID && row.Season == 0 && row.Episode == 0 {
+			return nil
+		}
+		return s.downloads.Identify(ctx, row.ID, itemID, 0, 0)
+	}
+	_, err := s.start(ctx, path, stat.Size(), parsed(path), itemID, 0, 0)
+	return err
 }
 
 // videosIn lists the videos in dir and in its folders down to depth more

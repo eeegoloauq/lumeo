@@ -7,10 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - One release menu for films and series: Automatic (checked by default,
-     "the best copy for each episode") first, then On disk, Available, and
-     "All copies…" and "File/Folder on this computer…" last, no icons. A
-     film's file on this computer needs the core's link to accept a film.
    - A setting "Ask every time": Play opens the copies list, the pick plays.
    - After adding a source from "Add one", a "Back to <title>" button.
    - The title is blank until the logo loads or finally fails: after 400 ms

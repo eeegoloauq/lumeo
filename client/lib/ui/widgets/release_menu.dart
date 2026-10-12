@@ -8,9 +8,10 @@ import '../theme.dart';
 import 'play_block.dart';
 import 'source_list.dart';
 
-/// Which release a series plays from: its folders on disk, a folder on this
-/// machine, the packs its providers offer for the current episode, every copy
-/// of that episode, or the best copy of each.
+/// Which release a title plays from: the best copy, which is the default and
+/// comes first; its releases on disk; the packs its providers offer for the
+/// current episode; every copy of it; or a folder (a film's file) on this
+/// machine. Films and series share it, a film being a title of one episode.
 ///
 /// A pick is the title's, kept by the core, so the next episode continues
 /// from the same release on every machine.
@@ -24,7 +25,7 @@ class ReleaseMenu extends StatefulWidget {
 
   final SourceChoice choice;
 
-  /// The title's episodes: what "13 of 26" counts against.
+  /// The title's episodes: what "13 of 26" counts against. None for a film.
   final List<Episode> episodes;
 
   /// The button, given what opens and closes the menu.
@@ -41,6 +42,8 @@ class _ReleaseMenuState extends State<ReleaseMenu> {
   TitleFolders? _folders;
 
   SourceChoice get _choice => widget.choice;
+
+  bool get _film => widget.episodes.isEmpty;
 
   void _toggle() {
     if (_menu.isOpen) {
@@ -71,17 +74,24 @@ class _ReleaseMenuState extends State<ReleaseMenu> {
     await _choice.load(follow: source != null);
   }
 
-  Future<void> _linkFolder() async {
+  Future<void> _linkHere() async {
     final l10n = context.l10n;
-    final path = await chooseFolder(
-      context,
-      title: l10n.itemReleaseFolderTitle,
-      start:
-          _folders?.folders
-              .map((f) => f.dir)
-              .firstWhere((d) => d.isNotEmpty, orElse: () => '') ??
-          '',
-    );
+    final start =
+        _folders?.folders
+            .map((f) => f.dir)
+            .firstWhere((d) => d.isNotEmpty, orElse: () => '') ??
+        '';
+    final path = _film
+        ? await chooseFile(
+            context,
+            title: l10n.itemReleaseFileTitle,
+            start: start,
+          )
+        : await chooseFolder(
+            context,
+            title: l10n.itemReleaseFolderTitle,
+            start: start,
+          );
     if (path == null) return;
     try {
       await _choice.api.linkFolder(_choice.itemId, path);
@@ -118,26 +128,35 @@ class _ReleaseMenuState extends State<ReleaseMenu> {
   List<Widget> _items(BuildContext context) {
     final l10n = context.l10n;
     final folders = _folders;
+    final onDisk = folders?.folders ?? const <DiskFolder>[];
     final sources = _choice.sources ?? const <MediaSource>[];
     final offered = _offered(sources);
     return [
-      _Heading(l10n.downloadsOnDisk),
-      for (final f in folders?.folders ?? const <DiskFolder>[])
+      MenuItemButton(
+        leadingIcon: _Check(on: folders != null && !folders.chosen),
+        onPressed: () => _pick(null),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.itemReleaseAutomatic),
+            Text(
+              _film ? l10n.itemReleaseBestFilm : l10n.itemReleaseBest,
+              style: Typo.data.copyWith(color: Palette.muted),
+            ),
+          ],
+        ),
+      ),
+      const Divider(height: 13),
+      if (onDisk.isNotEmpty) _Heading(l10n.downloadsOnDisk),
+      for (final f in onDisk)
         MenuItemButton(
           leadingIcon: _Check(on: f.current),
           trailingIcon: _Facts([
             if (f.directorsCut) l10n.downloadsDirectorsCut,
-            _have(f, l10n),
+            if (!_film) _have(f, l10n),
           ]),
           onPressed: () => _pick(f.source),
           child: Text(_folderName(f, l10n)),
-        ),
-      // The core reads the folder, so it has to be on the machine browsed.
-      if (_choice.api.isLocal)
-        MenuItemButton(
-          leadingIcon: const Icon(Icons.create_new_folder_outlined, size: 18),
-          onPressed: _linkFolder,
-          child: Text(l10n.itemReleaseFolder),
         ),
       _Heading(l10n.itemReleaseAvailable),
       if (offered.isNotEmpty)
@@ -145,6 +164,7 @@ class _ReleaseMenuState extends State<ReleaseMenu> {
           MenuItemButton(
             leadingIcon: _Check(on: s.lastUsed),
             trailingIcon: _Facts([
+              if (_film && s.size > 0) formatBytes(s.size, l10n),
               if (s.seeders > 0) l10n.downloadsSeedCount(s.seeders),
             ]),
             onPressed: () => _pick(s),
@@ -153,18 +173,25 @@ class _ReleaseMenuState extends State<ReleaseMenu> {
       else
         _why(context),
       const Divider(height: 13),
-      if (sources.isNotEmpty)
+      // Not when every copy is already a row under On disk.
+      if (sources.any((s) => s.local.isEmpty && s.providerId != 'local'))
         MenuItemButton(
           leadingIcon: const _Check(on: false),
           trailingIcon: _Facts(['${sources.length}']),
           onPressed: () => showSources(context, _choice),
-          child: Text(l10n.itemReleaseAllCopies(_choice.episode)),
+          child: Text(
+            _film
+                ? l10n.itemReleaseAllCopiesFilm
+                : l10n.itemReleaseAllCopies(_choice.episode),
+          ),
         ),
-      MenuItemButton(
-        leadingIcon: _Check(on: folders != null && !folders.chosen),
-        onPressed: () => _pick(null),
-        child: Text(l10n.itemReleaseBest),
-      ),
+      // The core reads the folder, so it has to be on the machine browsed.
+      if (_choice.api.isLocal)
+        MenuItemButton(
+          leadingIcon: const _Check(on: false),
+          onPressed: _linkHere,
+          child: Text(_film ? l10n.itemReleaseFile : l10n.itemReleaseFolder),
+        ),
     ];
   }
 

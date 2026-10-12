@@ -1,5 +1,6 @@
 // A title's page: seasons, episode cards, downloads and the sources drawer.
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -541,6 +542,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('source-chip')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('All copies…'));
+    await tester.pumpAndSettle();
     expect(
       find.text('no hevc here'),
       findsOneWidget,
@@ -618,6 +621,8 @@ void main() {
       what: 'the copies arrived',
     );
     await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All copies…'));
     await tester.pumpAndSettle();
 
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
@@ -779,7 +784,7 @@ void main() {
     expect(find.textContaining('Season 1'), findsWidgets);
     expect(find.text('2 of 6'), findsOneWidget, reason: 'of the season');
     expect(find.textContaining("Director's Cut"), findsOneWidget);
-    expect(find.text('All copies of E1'), findsOneWidget);
+    expect(find.text('All copies of E1…'), findsOneWidget);
     expect(
       find.text('Folder on this computer…'),
       findsNothing,
@@ -808,6 +813,40 @@ void main() {
     expect(started.single, contains('Shin Henshuu-ban/e01.mkv'));
   });
 
+  uiTest('a film has the release menu too, and takes its file from here', (
+    tester,
+  ) async {
+    // A film's line opened the table of every copy, and its file on this
+    // computer could only be opened, not made its copy.
+    final linked = <String>[];
+    final dir = Directory.systemTemp.createTempSync('lumeo-film');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/notld_final.mkv')..writeAsStringSync('x');
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(baseUrl: 'http://127.0.0.1:1', linked: linked),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PosterTile).first);
+    await waitFor(
+      tester,
+      () async =>
+          find.byKey(const ValueKey('source-chip')).evaluate().isNotEmpty,
+      what: 'the copies arrived',
+    );
+    await tester.tap(find.byKey(const ValueKey('source-chip')));
+    await tester.pumpAndSettle();
+    expect(find.text('The best copy'), findsOneWidget);
+    expect(find.text('All copies…'), findsOneWidget);
+    await tester.tap(find.text('File on this computer…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, file.path);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(linked, [file.path]);
+  });
+
   uiTest('best copy forgets the pick, and all copies opens the table', (
     tester,
   ) async {
@@ -815,13 +854,17 @@ void main() {
     await openSeries(tester, api: fakeCore(choicePatches: patches));
     await tester.tap(find.byKey(const ValueKey('source-chip')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Best copy for each episode'));
+    double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    // The default comes first, saying what it does.
+    expect(top('Automatic'), lessThan(top('Available')));
+    expect(find.text('The best copy for each episode'), findsOneWidget);
+    await tester.tap(find.text('Automatic'));
     await tester.pumpAndSettle();
     expect(jsonDecode(patches.single), {'source': null});
 
     await tester.tap(find.byKey(const ValueKey('source-chip')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('All copies of E1'));
+    await tester.tap(find.text('All copies of E1…'));
     await tester.pumpAndSettle();
     expect(find.text('2 copies'), findsOneWidget, reason: 'the table');
   });

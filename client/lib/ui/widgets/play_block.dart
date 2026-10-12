@@ -455,22 +455,15 @@ class _SummaryState extends State<_Summary> {
         : onDisk
         ? Icons.check
         : Icons.play_circle_outline;
-    final Widget button;
-    if (series) {
-      button = ReleaseMenu(
+    return Tooltip(
+      message: picked.rawName,
+      child: ReleaseMenu(
         choice: choice,
         episodes: widget.episodes,
         builder: (context, toggle) =>
             _SourceButton(icon: icon, text: text, onPressed: toggle),
-      );
-    } else {
-      button = _SourceButton(
-        icon: icon,
-        text: text,
-        onPressed: () => showSources(context, choice),
-      );
-    }
-    return Tooltip(message: picked.rawName, child: button);
+      ),
+    );
   }
 }
 

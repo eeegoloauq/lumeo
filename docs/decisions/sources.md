@@ -129,13 +129,18 @@ roadmap already carries the question of whether addon gaps ever justify it.
 
 ## Picking the release on the title's page
 
-Under a series' Play, the line that says what Play starts opens a menu of
-releases rather than the table of copies: the releases on disk, a folder on
-this computer, the packs the providers offer for the current episode, every
-copy of it (the table), and the best copy of each episode. The table answers
-"which file for this episode"; a series is watched from one release, and
-that is the question the line in front of Play should answer. A film has no
-releases to keep to, and its line opens the table as before.
+Under Play, the line that says what Play starts opens a menu of releases
+rather than the table of copies. First comes Automatic, the best copy of each
+episode, which is the default and says so; then the releases on disk, the
+packs the providers offer for the current episode, every copy of it (the
+table), and a folder on this computer. Automatic used to come last under a
+name that did not say it was the default. The table answers "which file for
+this episode"; a series is watched from one release, and that is the
+question the line in front of Play should answer. A film has the same menu,
+being a title of one episode: its copies on disk, the best three offered,
+every copy, and its file on this computer instead of a folder, so the two
+kinds of title are not two ways of choosing. A film with no copy listed keeps
+the line that says why, with its way to adding a source in sight.
 
 What is on disk is told apart the way a pick is: a pack and the folder in it,
 the pack named by the provider's group or by its torrent when it gave none,
@@ -155,7 +160,8 @@ the release already chosen leaves the choice as it was. The best copy of each
 episode forgets the release, and the ranking decides again.
 
 A folder on this computer is offered only when the core is on the machine
-being browsed, because the core reads it. Every file in it and in its folders
+being browsed, because the core reads it. For a film it is the file, taken
+whatever it is called, since the viewer named it. Every file in a folder and in its folders
 one level down that carries an episode number of the series becomes that
 episode's copy; a file whose name is another show's is left alone, so picking
 the whole downloads folder takes this series out of it. With no provider to
