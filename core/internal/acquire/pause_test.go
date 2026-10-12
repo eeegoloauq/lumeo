@@ -248,6 +248,85 @@ func TestWaitingSinceAndETA(t *testing.T) {
 	}
 }
 
+// packBackend runs one torrent: each episode gets a task of its own, and
+// every task reads the torrent's counters.
+type packBackend struct{ tasks map[int]*fakeTask }
+
+func (b *packBackend) Scheme() string { return "torrent" }
+func (b *packBackend) Close() error   { return nil }
+func (b *packBackend) Start(_ context.Context, loc sources.Locator, _ string) (Task, error) {
+	task := &fakeTask{file: &fakeFile{path: "episode.mkv", size: 1000}}
+	b.tasks[*loc.FileIndex] = task
+	return task, nil
+}
+
+// The episodes of a pack report their torrent's rates as they are, not a
+// share each that a client would add up, and the time left is for all of
+// them at that rate.
+func TestPackIsMeasuredOnce(t *testing.T) {
+	ctx := context.Background()
+	clock := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	backend := &packBackend{tasks: map[int]*fakeTask{}}
+	m, _, _ := testManager(t, backend)
+	m.now = func() time.Time { return clock }
+	var ids []string
+	for i := range 2 {
+		req := torrentRequest()
+		req.Episode = i + 1
+		req.Source.Locator.FileIndex = &i
+		d, err := m.Start(ctx, req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, d.ID)
+	}
+	// What the torrent has received and sent; 700 and 900 bytes of the two
+	// episodes are still to come.
+	set := func(received, sent int64) {
+		for i, completed := range []int64{300, 100} {
+			task := backend.tasks[i]
+			task.mu.Lock()
+			task.progress = Progress{Peers: 4, Total: 1000, Completed: completed, Received: received, Sent: sent}
+			task.mu.Unlock()
+		}
+	}
+	get := func(id string) Download {
+		d, err := m.Get(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return d
+	}
+
+	set(0, 0)
+	get(ids[0])
+	get(ids[1])
+	clock = clock.Add(2 * time.Second)
+	set(800, 200)
+	for _, id := range ids {
+		d := get(id)
+		if d.Transfer != "torrent:deadbeef" || d.Progress.Rate != 400 || d.Progress.Upload != 100 || d.Progress.ETA != 4 {
+			t.Fatalf("episode = transfer %q, rate %d, upload %d, eta %d; want torrent:deadbeef, 400, 100, 4",
+				d.Transfer, d.Progress.Rate, d.Progress.Upload, d.Progress.ETA)
+		}
+	}
+
+	// One paused, the other goes on at the torrent's rate with its own bytes
+	// left.
+	if _, err := m.SetPaused(ctx, ids[0], true); err != nil {
+		t.Fatal(err)
+	}
+	if d := get(ids[1]); d.Progress.Rate != 400 || d.Progress.ETA != 3 {
+		t.Fatalf("the other episode = rate %d, eta %d; want 400, 3", d.Progress.Rate, d.Progress.ETA)
+	}
+	if _, err := m.SetPaused(ctx, ids[1], true); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.flows) != 0 {
+		t.Fatalf("flows outlived the pack's tasks: %v", m.flows)
+	}
+}
+
 // A new download directory takes the downloads started after it; one already
 // made stays, and so does a pack already begun, and freeing either still
 // finds its bytes.

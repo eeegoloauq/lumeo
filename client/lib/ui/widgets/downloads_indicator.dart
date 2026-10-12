@@ -157,16 +157,15 @@ class _DownloadsIndicatorState extends State<DownloadsIndicator> {
 /// Everything arriving read as one: how much of it is here, and whether
 /// anybody is sending.
 ({double fraction, int rate, bool stalled}) _sum(Iterable<Download> list) {
-  var completed = 0, total = 0, rate = 0, peers = 0;
+  var completed = 0, total = 0, peers = 0;
   for (final d in list) {
     completed += d.progress.completed;
     total += d.progress.total;
-    rate += d.progress.rate;
     peers += d.progress.peers;
   }
   return (
     fraction: total == 0 ? 0 : completed / total,
-    rate: rate,
+    rate: perTransfer(list, (p) => p.rate),
     stalled: peers == 0,
   );
 }
@@ -288,10 +287,7 @@ class _PanelState extends State<_Panel> {
   Widget build(BuildContext context) {
     final groups = arrangeDownloads(widget.listed);
     final rate = _sum(widget.listed.where((d) => d.isActive)).rate;
-    final upload = widget.listed.fold(
-      0,
-      (int total, d) => total + d.progress.upload,
-    );
+    final upload = perTransfer(widget.listed, (p) => p.upload);
     final now = DateTime.now();
     return ConstrainedBox(
       // A season is many rows: without a ceiling the last are off screen.

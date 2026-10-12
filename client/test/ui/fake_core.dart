@@ -683,6 +683,8 @@ Map<String, dynamic> fakeDownload({
 }) => {
   ..._download,
   'id': id,
+  // A torrent of its own: the fixture's would make every download one pack.
+  'transfer': 'torrent:$id',
   'itemId': itemId,
   'name': name,
   'state': state,

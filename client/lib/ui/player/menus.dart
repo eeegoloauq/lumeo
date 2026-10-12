@@ -1228,11 +1228,10 @@ class DownloadPanel extends StatelessWidget {
             ),
         ];
       case 'active':
-        final left = p.rate > 0
-            ? l10n.downloadsAboutDuration(
-                formatTimeLeft((p.total - p.completed) ~/ p.rate, l10n),
-              )
-            : '';
+        final left = switch (p.eta) {
+          final eta? => l10n.downloadsAboutDuration(formatTimeLeft(eta, l10n)),
+          null => '',
+        };
         return [
           _Line(
             l10n.playerDownloading,

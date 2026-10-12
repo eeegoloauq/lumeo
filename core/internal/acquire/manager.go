@@ -67,7 +67,7 @@ type Manager struct {
 	dir   string
 	rows  map[string]Download
 	tasks map[string]Task
-	flows map[string]*flow
+	flows map[string]*flow // by transfer
 
 	// offline is kept by WatchNetwork.
 	offline atomic.Bool
@@ -274,7 +274,9 @@ func (m *Manager) startTask(ctx context.Context, row Download) error {
 	}
 	m.mu.Lock()
 	m.tasks[row.ID] = task
-	m.flows[row.ID] = &flow{arrived: m.now()}
+	if key := transfer(row); m.flows[key] == nil {
+		m.flows[key] = &flow{arrived: m.now(), left: make(map[string]int64)}
+	}
 	m.mu.Unlock()
 	return nil
 }
@@ -506,7 +508,7 @@ func (m *Manager) Remove(ctx context.Context, id string, deleteData bool) error 
 	task := m.tasks[id]
 	delete(m.rows, id)
 	delete(m.tasks, id)
-	delete(m.flows, id)
+	m.leaveFlow(id, transfer(row))
 	rest := make([]Download, 0, len(m.rows))
 	running := make(map[string]bool, len(m.tasks))
 	for _, other := range m.rows {
@@ -660,6 +662,31 @@ func sameTorrent(a, b sources.Locator) bool {
 	return a.Scheme == "torrent" && b.Scheme == "torrent" && a.InfoHash != "" && a.InfoHash == b.InfoHash
 }
 
+// transfer names what moves d's bytes: its torrent, which the episodes of a
+// pack share, or else the download alone.
+func transfer(d Download) string {
+	if d.Locator.Scheme == "torrent" && d.Locator.InfoHash != "" {
+		return "torrent:" + d.Locator.InfoHash
+	}
+	return d.ID
+}
+
+// leaveFlow takes a download whose task is gone out of its transfer's flow,
+// and drops the flow once no task of the transfer is left. m.mu is held.
+func (m *Manager) leaveFlow(id, key string) {
+	f := m.flows[key]
+	if f == nil {
+		return
+	}
+	delete(f.left, id)
+	for other := range m.tasks {
+		if transfer(m.rows[other]) == key {
+			return
+		}
+	}
+	delete(m.flows, key)
+}
+
 // Close stops everything without touching the data, so the next boot resumes.
 func (m *Manager) Close() error {
 	m.mu.Lock()
@@ -685,6 +712,7 @@ func (m *Manager) Close() error {
 // persists only when something worth persisting changed.
 func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	row.Release = release.Parse(row.Name)
+	row.Transfer = transfer(row)
 	row.Seeding = false
 	m.mu.Lock()
 	task := m.tasks[row.ID]
@@ -738,28 +766,41 @@ func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	// After persist: how the bytes are arriving is of this moment, and not
 	// something a stored row should carry.
 	m.mu.Lock()
-	updated.Seeding = updated.State == StateDone && updated.Locator.Scheme == "torrent" && m.tasks[row.ID] == task
-	if f := m.flows[row.ID]; f != nil && m.tasks[row.ID] == task && updated.State == StateActive {
+	running := m.tasks[row.ID] == task
+	updated.Seeding = updated.State == StateDone && updated.Locator.Scheme == "torrent" && running
+	if f := m.flows[updated.Transfer]; f != nil && running {
 		now := m.now()
-		f.sample(now, updated.Progress.Received)
-		if bad := f.badPieces(updated.Progress.BadPieces); bad > 0 {
-			m.log.Info("pieces failed hash check, fetching again", "download", row.ID, "name", row.Name, "pieces", bad)
+		f.sample(now, updated.Progress.Received, updated.Progress.Sent)
+		updated.Progress.Rate, updated.Progress.Upload = int64(f.rate), int64(f.upload)
+		if updated.State == StateActive {
+			f.left[row.ID] = max(updated.Progress.Total-updated.Progress.Completed, 0)
+			if bad := f.badPieces(updated.Progress.BadPieces); bad > 0 {
+				m.log.Info("pieces failed hash check, fetching again", "download", row.ID, "name", row.Name, "pieces", bad)
+			}
+			updated.WaitingSince, updated.Progress.ETA = f.report(now, updated)
+			updated.Offline = !updated.WaitingSince.IsZero() && m.offline.Load()
+		} else {
+			delete(f.left, row.ID)
 		}
-		updated.WaitingSince, updated.Progress.ETA = f.report(now, updated)
-		updated.Offline = !updated.WaitingSince.IsZero() && m.offline.Load()
 	}
 	m.mu.Unlock()
 	return updated
 }
 
-// flow is how the bytes of one running download have been arriving.
+// flow is how the bytes of one running transfer have been moving. The
+// counters it reads are the transfer's, so every download of it samples the
+// same flow, and a pack is measured once rather than once per episode.
 type flow struct {
 	primed   bool
-	sampled  time.Time // when received was read
+	sampled  time.Time // when received and sent were read
 	received int64
-	rate     float64   // bytes per second, smoothed
-	arrived  time.Time // when bytes last arrived, or the transfer started
-	bad      int64     // pieces that failed their hash check, as last seen
+	sent     int64
+	rate     float64          // bytes per second received over the last sample
+	upload   float64          // bytes per second sent over the last sample
+	smoothed float64          // rate, smoothed for the ETA
+	arrived  time.Time        // when bytes last arrived, or the transfer started
+	left     map[string]int64 // by download still arriving: bytes to come
+	bad      int64            // pieces that failed their hash check, as last seen
 	badSeen  bool
 }
 
@@ -775,16 +816,16 @@ func (f *flow) badPieces(total int64) int64 {
 	return n
 }
 
-// sample folds in the count of bytes received so far. The first reading is
-// only a baseline: a torrent another download already runs has counted
-// bytes before this one started.
-func (f *flow) sample(now time.Time, received int64) {
+// sample folds in the counts of bytes received and sent so far. The first
+// reading is only a baseline: a torrent that was already running has
+// counted bytes before this flow began.
+func (f *flow) sample(now time.Time, received, sent int64) {
 	if !f.primed {
-		f.primed, f.sampled, f.received = true, now, received
+		f.primed, f.sampled, f.received, f.sent = true, now, received, sent
 		return
 	}
-	// Two snapshots racing can read the counter out of order.
-	if received < f.received {
+	// Two snapshots racing can read the counters out of order.
+	if received < f.received || sent < f.sent {
 		return
 	}
 	if received > f.received {
@@ -794,29 +835,33 @@ func (f *flow) sample(now time.Time, received int64) {
 	if elapsed < rateSample {
 		return
 	}
-	instant := float64(received-f.received) / elapsed.Seconds()
-	if f.rate == 0 {
-		f.rate = instant
+	f.rate = float64(received-f.received) / elapsed.Seconds()
+	f.upload = float64(sent-f.sent) / elapsed.Seconds()
+	if f.smoothed == 0 {
+		f.smoothed = f.rate
 	} else {
 		// Weighted by the time the sample covers, so polling faster or
 		// slower does not change how smooth the rate is.
-		f.rate += (1 - math.Exp(-elapsed.Seconds()/rateSmoothing.Seconds())) * (instant - f.rate)
+		f.smoothed += (1 - math.Exp(-elapsed.Seconds()/rateSmoothing.Seconds())) * (f.rate - f.smoothed)
 	}
-	f.sampled, f.received = now, received
+	f.sampled, f.received, f.sent = now, received, sent
 }
 
-// report is when the download started waiting, if it is waiting, or else how
-// many seconds are left at the smoothed rate. Never both: an ETA is given
-// only while bytes arrive.
+// report is when the transfer started waiting, if it is waiting, or else how
+// many seconds its downloads still arriving need at the smoothed rate. Never
+// both: an ETA is given only while bytes arrive.
 func (f *flow) report(now time.Time, d Download) (waiting time.Time, eta int64) {
 	if !d.Resolved || d.Progress.Peers == 0 || now.Sub(f.arrived) >= stallAfter {
 		return f.arrived, 0
 	}
-	left := d.Progress.Total - d.Progress.Completed
-	if f.rate <= 0 || left <= 0 {
+	var left int64
+	for _, n := range f.left {
+		left += n
+	}
+	if f.smoothed <= 0 || left <= 0 {
 		return time.Time{}, 0
 	}
-	return time.Time{}, int64(math.Ceil(float64(left) / f.rate))
+	return time.Time{}, int64(math.Ceil(float64(left) / f.smoothed))
 }
 
 // persist stores what a snapshot learned from the backend. It holds the lock
@@ -860,7 +905,7 @@ func (m *Manager) stopTask(id string) {
 	m.mu.Lock()
 	task := m.tasks[id]
 	delete(m.tasks, id)
-	delete(m.flows, id)
+	m.leaveFlow(id, transfer(m.rows[id]))
 	m.mu.Unlock()
 	if task != nil {
 		if err := task.Close(); err != nil {

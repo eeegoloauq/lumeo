@@ -21,8 +21,10 @@ Download _d(
   bool resolved = true,
   String locatorScheme = '',
   bool offline = false,
+  String? transfer,
 }) => Download(
   id: id,
+  transfer: transfer,
   offline: offline,
   itemId: itemId,
   name: id,
@@ -189,6 +191,18 @@ void main() {
       expect(arriving.rows.first.rate, 300);
       expect(arriving.rows.last.eta, isNull);
       expect(arriving.eta, 720);
+    });
+
+    test('a pack counts its torrent once', () {
+      // Every running episode reports the torrent's rate; a paused one, none.
+      final pack = [
+        _d('c', state: 'paused', season: 1, episode: 3, transfer: 'pack'),
+        _d('a', season: 1, episode: 1, rate: 300, transfer: 'pack'),
+        _d('b', season: 1, episode: 2, rate: 300, transfer: 'pack'),
+        _d('film', rate: 50),
+      ];
+      expect(perTransfer(pack, (p) => p.rate), 350);
+      expect(arrangeDownloads(pack).first.rows.first.rate, 300);
     });
   });
 

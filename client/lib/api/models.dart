@@ -504,13 +504,19 @@ class Download {
     this.error = '',
     this.release = const Release(),
     this.locatorScheme = '',
-  });
+    String? transfer,
+  }) : transfer = transfer ?? id;
 
   final String id;
   final String itemId;
   final String name;
   final String state;
   final String locatorScheme;
+
+  /// What moves the bytes. The episodes of a pack share a torrent, and with
+  /// it the peers, rates and time left of [progress]: a sum counts each
+  /// transfer once ([perTransfer]).
+  final String transfer;
 
   /// The copy, read from its name by the core the way the source list is.
   final Release release;
@@ -564,6 +570,7 @@ class Download {
     state: json['state'] as String? ?? '',
     locatorScheme:
         (json['locator'] as Map<String, dynamic>?)?['scheme'] as String? ?? '',
+    transfer: json['transfer'] as String?,
     season: json['season'] as int? ?? 0,
     episode: json['episode'] as int? ?? 0,
     ready: json['ready'] as bool? ?? false,
@@ -579,6 +586,18 @@ class Download {
       json['progress'] as Map<String, dynamic>? ?? {},
     ),
   );
+}
+
+/// [value] summed over [downloads] with each transfer counted once. Every
+/// running download of a transfer reports the same figure, and one not
+/// running reports none, so a transfer's is the largest of them.
+int perTransfer(Iterable<Download> downloads, int Function(Progress) value) {
+  final byTransfer = <String, int>{};
+  for (final d in downloads) {
+    final v = value(d.progress);
+    if (v > (byTransfer[d.transfer] ?? 0)) byTransfer[d.transfer] = v;
+  }
+  return byTransfer.values.fold(0, (sum, v) => sum + v);
 }
 
 enum DownloadStage {
@@ -613,8 +632,8 @@ class Progress {
   final int upload;
   final int sent;
 
-  /// Seconds to completion at the core's smoothed rate; null unless bytes are
-  /// arriving.
+  /// Seconds until the transfer's downloads still arriving are all here, at
+  /// the core's smoothed rate; null unless bytes are arriving.
   final int? eta;
 
   /// 0 while the size is still unknown, so a fresh download shows an empty

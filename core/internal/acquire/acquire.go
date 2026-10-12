@@ -71,8 +71,12 @@ type Download struct {
 	Error    string `json:"error,omitempty"`
 	// PausedByUser tells a pause somebody asked for from a download that
 	// merely is not running; only the first stays paused until asked again.
-	PausedByUser bool     `json:"pausedByUser,omitempty"`
-	Progress     Progress `json:"progress"`
+	PausedByUser bool `json:"pausedByUser,omitempty"`
+	// Transfer names what moves the bytes. The episodes of one pack share a
+	// torrent, and with it its Peers, Seeders, Rate, Upload, Sent and ETA: a
+	// sum over downloads counts each transfer once. Derived on every read.
+	Transfer string   `json:"transfer"`
+	Progress Progress `json:"progress"`
 	// WaitingSince is when bytes last arrived, or the transfer started, while
 	// an active download is getting none: no metadata yet, no peers, or peers
 	// that have sent nothing for a while. A client says how long it has been
@@ -103,13 +107,14 @@ type Progress struct {
 	// check, so it never goes back when a bad piece is thrown away.
 	Completed int64 `json:"completed"`
 	Total     int64 `json:"total"`
-	Peers     int   `json:"peers,omitempty"`
-	Seeders   int   `json:"seeders,omitempty"`
-	Rate      int64 `json:"rate,omitempty"`   // bytes per second, download side
-	Upload    int64 `json:"upload,omitempty"` // bytes per second, upload side
-	Sent      int64 `json:"sent,omitempty"`   // payload bytes uploaded by the torrent
-	// ETA is whole seconds to the end at the smoothed rate, given only while
-	// bytes are arriving.
+	// The rest is the transfer's, shared by every download of it.
+	Peers   int   `json:"peers,omitempty"`
+	Seeders int   `json:"seeders,omitempty"`
+	Rate    int64 `json:"rate,omitempty"`   // bytes per second, download side
+	Upload  int64 `json:"upload,omitempty"` // bytes per second, upload side
+	Sent    int64 `json:"sent,omitempty"`   // payload bytes uploaded
+	// ETA is whole seconds until every download of the transfer still
+	// arriving is here, at the smoothed rate, given only while bytes arrive.
 	ETA int64 `json:"eta,omitempty"`
 	// Received counts the payload bytes the transfer has taken in so far,
 	// checked or not. It moves with every block, where Completed moves a

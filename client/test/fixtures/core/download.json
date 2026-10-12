@@ -5,6 +5,7 @@
   "state": "active",
   "ready": true,
   "resolved": true,
+  "transfer": "torrent:abc",
   "progress": {
     "completed": 2147483648,
     "total": 4294967296,

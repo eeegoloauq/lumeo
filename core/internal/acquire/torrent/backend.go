@@ -460,11 +460,6 @@ type task struct {
 	file   *torrentFile
 	closed bool
 
-	rateMu          sync.Mutex
-	lastRateAt      time.Time
-	lastRateBytes   int64
-	lastUploadBytes int64
-
 	closeOnce sync.Once
 	closeErr  error
 }
@@ -622,33 +617,14 @@ func (t *task) Progress() acquire.Progress {
 	progress := acquire.Progress{
 		Peers:     stats.ActivePeers,
 		Seeders:   stats.ConnectedSeeders,
+		Sent:      stats.BytesWrittenData.Int64(),
+		Received:  stats.BytesReadUsefulData.Int64(),
 		BadPieces: stats.PiecesDirtiedBad.Int64(),
 	}
 	if file != nil {
 		progress.Completed = verifiedBytes(file.file)
 		progress.Total = file.file.Length()
 	}
-
-	now := time.Now()
-	bytesRead := stats.BytesReadUsefulData.Int64()
-	bytesWritten := stats.BytesWrittenData.Int64()
-	progress.Received = bytesRead
-	progress.Sent = bytesWritten
-	t.rateMu.Lock()
-	if !t.lastRateAt.IsZero() {
-		elapsed := now.Sub(t.lastRateAt)
-		delta := bytesRead - t.lastRateBytes
-		if elapsed > 0 && delta > 0 {
-			progress.Rate = delta * int64(time.Second) / elapsed.Nanoseconds()
-		}
-		if delta := bytesWritten - t.lastUploadBytes; elapsed > 0 && delta > 0 {
-			progress.Upload = delta * int64(time.Second) / elapsed.Nanoseconds()
-		}
-	}
-	t.lastRateAt = now
-	t.lastRateBytes = bytesRead
-	t.lastUploadBytes = bytesWritten
-	t.rateMu.Unlock()
 	return progress
 }
 

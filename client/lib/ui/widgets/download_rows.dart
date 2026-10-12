@@ -95,8 +95,8 @@ class DownloadRow {
     return size <= 0 ? 0 : (completed / size).clamp(0, 1);
   }
 
-  int get rate => downloads.fold(0, (n, d) => n + d.progress.rate);
-  int get upload => downloads.fold(0, (n, d) => n + d.progress.upload);
+  int get rate => perTransfer(downloads, (p) => p.rate);
+  int get upload => perTransfer(downloads, (p) => p.upload);
 
   /// The episodes of a season arrive side by side, so the row is done when
   /// the slowest of them is. Null when none of them knows.

@@ -515,6 +515,7 @@ void main() {
               total: 4 << 30,
               rate: 4 << 20,
               upload: 310 << 10,
+              eta: 768,
               peers: 12,
               seeders: 7,
             ),
