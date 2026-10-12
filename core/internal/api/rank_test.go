@@ -140,3 +140,27 @@ func TestSourcesRankByTheStoredLanguages(t *testing.T) {
 		t.Fatalf("status %d, sources %+v, want dub first", rec.Code, body.Sources)
 	}
 }
+
+// Night of the Living Dead: a collection flagged English and Russian with ten
+// seeders took Play from a single film with a hundred and no flags, which
+// stayed without peers.
+func TestAMuchHealthierSwarmBeatsTheViewersFlags(t *testing.T) {
+	collection := src("1080p", 10, "collection")
+	collection.Languages = []string{"en", "ru"}
+	all := []sources.MediaSource{collection, src("1080p", 100, "film")}
+	rankSources(all, []string{"en"}, nil, nil)
+	if all[0].RawName != "film" {
+		t.Errorf("default is %q, want the film with a hundred seeders", all[0].RawName)
+	}
+}
+
+// No flags is the original release, not a copy lacking the viewer's language.
+func TestACopyWithoutFlagsGoesAheadOfAForeignOne(t *testing.T) {
+	dub := src("1080p", 40, "dub")
+	dub.Languages = []string{"it"}
+	all := []sources.MediaSource{dub, src("720p", 40, "original")}
+	rankSources(all, []string{"en"}, nil, nil)
+	if all[0].RawName != "original" {
+		t.Errorf("default is %q, want the copy naming no language", all[0].RawName)
+	}
+}

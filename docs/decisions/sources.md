@@ -36,17 +36,23 @@ look. Memory, not the database: a restart asking once more costs one request.
 
 Ranking health before resolution is the first rule: the sharpest copy in a
 list is often a remux nobody seeds, and starting it means watching a stalled
-bar. A source with a swarm therefore outranks one without, and only inside
-those groups does sharper win. This is what makes "Play needs no decision"
-true rather than a slogan.
+bar. Health comes in steps, fewer than 5 seeders, up to 19, and 20 or more,
+not as "a swarm or not": a hundred seeders are surer than ten, and with one
+threshold a collection with ten beat a film with a hundred on language. Only inside a step does sharper win. This is what makes "Play
+needs no decision" true rather than a slogan. Ahead of health goes room: a
+copy that does not fit the disk (downloads.md, Keep policy) cannot be
+watched either.
 
 Between health and resolution comes language: a copy carrying one of the
 viewer's subtitle or audio languages, by the provider's flags or a "Multi
 Subs" in its name, goes ahead of one that does not. A 1080p raw without
-subtitles is worse than a 720p copy with them. The flags cannot tell a dub
-from a subtitle track, so the rule asks only whether the language is there;
-it never overrides health, because a copy that stalls is not watchable in any
-language.
+subtitles is worse than a 720p copy with them. A copy with no flags at all is
+the original release, which may be in the viewer's language: it goes between
+the two, ahead of a copy flagged only with other languages. The catalogue
+does not say a title's original language, so it cannot be told for sure. The
+flags cannot tell a dub from a subtitle track, so the rule asks only whether
+the language is there; it never overrides health, because a copy that stalls
+is not watchable in any language.
 
 The ranking only decides among copies the library has not chosen yet. Ahead of
 it the core puts a copy already on disk (finished before one still arriving),

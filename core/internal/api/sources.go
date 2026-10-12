@@ -131,11 +131,6 @@ func failure(provider string, err error) failedProvider {
 	return failedProvider{Provider: provider, Reason: "no answer"}
 }
 
-// minStreamableSeeders is where "there is a swarm" starts. The number is not
-// about download time: with too few peers the reader outruns the pieces and
-// playback stalls, which is the one thing this product must not do.
-const minStreamableSeeders = 8
-
 // rankSources decides what Play uses when nobody chooses, which is the point
 // of the whole ranked list: room first, then health, then language, then
 // quality.
@@ -143,10 +138,10 @@ const minStreamableSeeders = 8
 // Resolution alone is the wrong answer and the reason this exists — a 56 GB
 // remux with three seeders wins on resolution and cannot be watched, and
 // neither can one larger than the disk. So a copy that fits always outranks
-// one that does not, a source that has a swarm one that does not, and only
-// inside those groups does a copy the viewer can follow beat one they cannot,
-// and bigger and sharper win after that. A 1080p raw without subtitles is
-// worse than a 720p copy with them. A nil fits fits everything.
+// one that does not, a healthier swarm a weaker one, and only inside those
+// groups does a copy the viewer can follow beat one they cannot, and sharper
+// win after that. A 1080p raw without subtitles is worse than a 720p copy
+// with them. A nil fits fits everything.
 func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sources.MediaSource) bool) {
 	sort.SliceStable(all, func(i, j int) bool {
 		if fits != nil {
@@ -154,13 +149,11 @@ func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sour
 				return fi
 			}
 		}
-		hi, hj := all[i].Seeders >= minStreamableSeeders, all[j].Seeders >= minStreamableSeeders
-		if hi != hj {
-			return hi
+		if hi, hj := health(all[i].Seeders), health(all[j].Seeders); hi != hj {
+			return hi > hj
 		}
-		li, lj := carriesAny(all[i], subs, audio), carriesAny(all[j], subs, audio)
-		if li != lj {
-			return li
+		if li, lj := speaks(all[i], subs, audio), speaks(all[j], subs, audio); li != lj {
+			return li > lj
 		}
 		ri, rj := resolutionRank(all[i].Release.Resolution), resolutionRank(all[j].Release.Resolution)
 		if ri != rj {
@@ -168,6 +161,46 @@ func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sour
 		}
 		return all[i].Seeders > all[j].Seeders
 	})
+}
+
+// health is how sure a swarm is to keep up with playback, in steps: with
+// too few peers the reader outruns the pieces and playback stalls, which is
+// the one thing this product must not do, and a hundred seeders are surer
+// than ten though both are a swarm. Zero is also what an addon without counts
+// sends, so it shares the lowest step with a few.
+func health(seeders int) int {
+	switch {
+	case seeders >= 20:
+		return 2
+	case seeders >= 5:
+		return 1
+	}
+	return 0
+}
+
+// speaks is whether the viewer can follow a copy: 2 when it has one of their
+// languages, 1 when it names no language at all, 0 when it names only
+// others. A copy naming none is the original release, which may well be in
+// the viewer's language; one naming only others is a dub or subtitles they
+// did not ask for. The provider's languages do not say whether a language is
+// the soundtrack or a subtitle track (a Crunchyroll rip with Japanese audio
+// is flagged English, Russian, Spanish...), so this can only ask "is it
+// there". A "Multi Subs" copy counts for a viewer who wants subtitles: it
+// usually names no languages, and what it carries is every track the
+// streaming service had. With no languages asked for, every copy is the same.
+func speaks(src sources.MediaSource, subs, audio []string) int {
+	if len(subs) == 0 && len(audio) == 0 {
+		return 0
+	}
+	if src.Release.MultiSub && len(subs) > 0 || slices.ContainsFunc(src.Languages, func(have string) bool {
+		return slices.Contains(subs, have) || slices.Contains(audio, have)
+	}) {
+		return 2
+	}
+	if len(src.Languages) == 0 {
+		return 1
+	}
+	return 0
 }
 
 // fitting is whether a copy fits the room a new download has, the free disk
@@ -190,22 +223,6 @@ func (s *Server) fitting(ctx context.Context) func(sources.MediaSource) bool {
 		_, begun := s.downloads.Find(ctx, src.Locator)
 		return begun
 	}
-}
-
-// carriesAny reports whether a copy has one of the viewer's languages
-// somewhere. The provider's languages do not say whether a language is the
-// soundtrack or a subtitle track (a Crunchyroll rip with Japanese audio is
-// flagged English, Russian, Spanish...), so this can only ask "is it there".
-// A "Multi Subs" copy counts for a viewer who wants subtitles: it usually
-// names no languages, and what it carries is every track the streaming
-// service had.
-func carriesAny(src sources.MediaSource, subs, audio []string) bool {
-	if src.Release.MultiSub && len(subs) > 0 {
-		return true
-	}
-	return slices.ContainsFunc(src.Languages, func(have string) bool {
-		return slices.Contains(subs, have) || slices.Contains(audio, have)
-	})
 }
 
 // viewerLanguages is the viewer's subtitle and audio languages as the bare

@@ -7,9 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - Play's pick: a copy without language flags counts as lacking the
-     viewer's language, though it is the film's original; seeders count
-     only as some or none; a whole collection outranks one film.
    - The player shows "0%" while the downloads panel says "Finding peers".
      Under the ring: the same stage, then peers and rate; after about 30 s
      with no peers a quiet "Try another copy" naming the next copy. The ring
