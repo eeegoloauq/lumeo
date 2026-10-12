@@ -10,7 +10,7 @@
 # The client and the release are not built here at all — they need a Flutter
 # SDK and a Fedora container, which is ten-plus minutes of a machine shared
 # with every other repository. Those run on GitHub against the push mirror.
-FROM golang:1.27-bookworm
+FROM golang:1.27.2-bookworm
 
 # actions/checkout is a JavaScript action: without a node binary in the
 # container every job dies with "node: executable file not found". Just the
