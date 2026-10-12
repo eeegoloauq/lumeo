@@ -532,16 +532,18 @@ LumeoApi fakeCore({
           sourceCalls?.add(request.url.query);
           if (sourcesUnanswered) return Completer<http.Response>().future;
           await Future<void>.delayed(sourcesDelay);
+          final providers = addonState
+              .where(
+                (a) =>
+                    a['enabled'] == true &&
+                    (a['resources'] as List).contains('stream'),
+              )
+              .length;
           return _json({
-            'sources': sources ?? fakeSources,
+            // Without a stream addon nobody is asked, so nothing is found.
+            'sources': providers == 0 ? const [] : sources ?? fakeSources,
             'failed': failed,
-            'providers': addonState
-                .where(
-                  (a) =>
-                      a['enabled'] == true &&
-                      (a['resources'] as List).contains('stream'),
-                )
-                .length,
+            'providers': providers,
           });
         case '/api/v1/subtitles':
           return _json({'subtitles': subtitles});

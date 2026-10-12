@@ -386,6 +386,49 @@ void main() {
     expect(started, hasLength(1));
   });
 
+  uiTest('a title played from the banner with no source addon does not '
+      'start itself once one is added', (tester) async {
+    // The banner's "start this" stayed in the history, so coming back from
+    // adding a source started the film unasked.
+    final started = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          started: started,
+          addons: [
+            for (final addon in fakeAddons)
+              if (!(addon['resources'] as List).contains('stream')) addon,
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await waitFor(
+      tester,
+      () async => find.text('Add one').evaluate().isNotEmpty,
+      what: 'the page said a source addon is missing',
+    );
+    await tester.tap(find.text('Add one'));
+    await tester.pumpAndSettle();
+    final field = find.widgetWithText(TextField, 'Addon address');
+    await reveal(tester, field);
+    await tester.enterText(field, 'https://pd.invalid/manifest.json');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Public Domain Movies'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await waitFor(
+      tester,
+      () async => find.text('Add one').evaluate().isEmpty,
+      what: 'the page found copies through the new addon',
+    );
+    expect(playing(tester), isNull);
+    expect(started, isEmpty);
+  });
+
   uiTest('a file the core refuses says why', (tester) async {
     await tester.pumpWidget(
       testApp(open: '/films/notes.txt', api: fakeCore(openFails: true)),

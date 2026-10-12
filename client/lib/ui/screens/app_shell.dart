@@ -295,6 +295,7 @@ class _AppShellState extends State<AppShell> {
 
   void _go(_Page page) {
     setState(() {
+      _spendAutoplay();
       _history.add(page);
       _scrolled.value = false;
     });
@@ -399,16 +400,20 @@ class _AppShellState extends State<AppShell> {
     _takeKeyboard();
   }
 
+  /// Play from the banner is a one-off: coming back to the page, out of the
+  /// film or from adding a source, must not start it again.
+  void _spendAutoplay() {
+    if (_page.kind == _PageKind.item && _page.autoplay) {
+      _history[_history.length - 1] = _Page.item(
+        _page.value,
+        episode: _page.episode,
+      );
+    }
+  }
+
   void _play(String downloadId, String title) {
     setState(() {
-      // Play from the banner is a one-off, or coming back out of the film would
-      // start it again.
-      if (_page.kind == _PageKind.item && _page.autoplay) {
-        _history[_history.length - 1] = _Page.item(
-          _page.value,
-          episode: _page.episode,
-        );
-      }
+      _spendAutoplay();
       _playing = _Playing(
         downloadId,
         title,

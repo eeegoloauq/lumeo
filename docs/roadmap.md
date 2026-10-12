@@ -7,9 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - Play from the banner with no source addon, then adding one and going
-     back, starts the film unasked: `autoplay` stays in the history until a
-     start succeeds. Drop it once the page has read it.
    - Play and Download check no free space: a 75 GB copy starts on a disk
      with 12 GB free, and the 50 GB default limit can exceed what is free.
      Check before starting, rank down what does not fit, derive the default
