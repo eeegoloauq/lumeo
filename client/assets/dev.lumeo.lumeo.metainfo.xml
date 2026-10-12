@@ -39,6 +39,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.8" date="2026-10-12" type="development">
+      <description>
+        <ul>
+          <li>Windows: after Lumeo is closed to the tray, the keyboard and mouse work in other windows again.</li>
+          <li xml:lang="ru">Windows: после закрытия Lumeo в трей клавиатура и мышь снова работают в других окнах.</li>
+          <li>Built on newer Go and Flutter, with their network security and Windows stability fixes.</li>
+          <li xml:lang="ru">Собран на новых Go и Flutter с их исправлениями сетевой безопасности и стабильности на Windows.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.7" date="2026-10-12" type="development">
       <description>
         <ul>
