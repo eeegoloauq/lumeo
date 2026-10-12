@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -52,7 +51,7 @@ func (s *Server) handlePatchPreferences(w http.ResponseWriter, r *http.Request) 
 	var changed map[string]json.RawMessage
 	if json.Unmarshal(body, &changed) == nil &&
 		(changed["keep"] != nil || changed["keepDays"] != nil || changed["diskLimit"] != nil) {
-		s.clean(r.Context())
+		s.clean()
 	}
 	writeJSON(w, http.StatusOK, prefs)
 }
@@ -70,18 +69,16 @@ func (s *Server) handleResetPreferences(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	s.clean(r.Context())
+	s.clean()
 	writeJSON(w, http.StatusOK, prefs)
 }
 
-// clean runs a pass of the keep policy before a change of it is answered, so
-// the Storage list a client reads next already shows what it freed.
-func (s *Server) clean(ctx context.Context) {
-	if s.library == nil {
-		return
-	}
-	if err := s.library.Clean(ctx); err != nil {
-		s.log.Warn("cleaning the library failed", "err", err)
+// clean asks for a pass of the changed keep policy without waiting for it: a
+// pass that frees many downloads takes longer than a client waits for an
+// answer, and the Storage list shows what it freed on its next refresh.
+func (s *Server) clean() {
+	if s.library != nil {
+		s.library.Kick()
 	}
 }
 

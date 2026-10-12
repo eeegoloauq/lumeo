@@ -147,9 +147,11 @@ that is playing, or stopped playing or was finished less than ten minutes
 ago, is left for the next pass (the finishing time is the progress row's, so
 a core started again right after still waits it out): a player reconnects on every seek, and the credits of an
 episode that already counts as watched are still on screen. Passes run at
-start, every ten minutes, and when something they look at changes; a change
-of the policy itself is cleaned before the core answers it, so the Storage
-list read next is the new one.
+start, every ten minutes, and when something they look at changes, a change
+of the policy itself included. The core answers that change before the pass
+runs: a pass freeing many downloads at once took longer than the client
+waits for an answer, and the setting hung until it timed out. Storage shows
+what the pass freed on its next refresh.
 
 One exception to "never unfinished": a half copy of an episode the viewer
 then played another copy of. Picking another copy is leaving this one, and

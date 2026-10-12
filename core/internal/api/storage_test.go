@@ -189,9 +189,26 @@ func TestClearStorageRemovesOnlyRequestedItem(t *testing.T) {
 	}
 }
 
-// Choosing a keep policy frees what it expires before the answer, so the
-// Storage list read next is already the new one.
-func TestKeepPolicyFreesBeforeItAnswers(t *testing.T) {
+// passes signals each pass of the library: a pass reads the preferences once.
+type passes struct {
+	library.Preferences
+	read chan struct{}
+}
+
+func (p passes) Get(ctx context.Context) (preferences.Preferences, error) {
+	defer func() {
+		select {
+		case p.read <- struct{}{}:
+		case <-ctx.Done():
+		}
+	}()
+	return p.Preferences.Get(ctx)
+}
+
+// Choosing a keep policy is answered at once and asks for a pass, which frees
+// what the policy expires: a pass freeing many downloads outlasted the
+// client's wait for the answer.
+func TestKeepPolicyAsksForAPass(t *testing.T) {
 	downloadDir := t.TempDir()
 	st := newFakeStore()
 	for episode := 1; episode <= 2; episode++ {
@@ -223,12 +240,30 @@ func TestKeepPolicyFreesBeforeItAnswers(t *testing.T) {
 	if _, err := db.UpsertProgress(context.Background(), "series", finished, &watched); err != nil {
 		t.Fatalf("mark watched: %v", err)
 	}
-	lib := library.New(manager, db, prefs, log)
+	read := make(chan struct{}, 1)
+	lib := library.New(manager, db, passes{prefs, read}, log)
 	h := New(Deps{Downloads: manager, Library: lib, Preferences: prefs, About: About{DownloadDir: downloadDir}, CacheDir: t.TempDir()}, log).Handler()
+	ctx, cancel := context.WithCancel(context.Background())
+	stopped := make(chan struct{})
+	go func() { lib.Run(ctx); close(stopped) }()
+	t.Cleanup(func() { cancel(); <-stopped })
+	pass := func() {
+		t.Helper()
+		select {
+		case <-read:
+		case <-time.After(10 * time.Second):
+			t.Fatal("no pass ran")
+		}
+	}
+	pass() // the one at start, under "forever"
 
 	if rec := requestJSON(t, h, http.MethodPatch, "/api/v1/preferences", `{"keep":"watched"}`); rec.Code != http.StatusOK {
 		t.Fatalf("patch status %d: %s", rec.Code, rec.Body)
 	}
+	pass()
+	// The pass frees after its read; the next one starts only once it is done.
+	lib.Kick()
+	pass()
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/storage", nil))
 	var got storageResponse
