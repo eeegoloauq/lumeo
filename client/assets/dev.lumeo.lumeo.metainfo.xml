@@ -39,6 +39,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.9" date="2026-10-12" type="development">
+      <description>
+        <ul>
+          <li>Windows: Lumeo in the tray no longer takes the keyboard from the window you are typing in.</li>
+          <li xml:lang="ru">Windows: Lumeo в трее больше не забирает клавиатуру у окна, в котором вы печатаете.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.8" date="2026-10-12" type="development">
       <description>
         <ul>
