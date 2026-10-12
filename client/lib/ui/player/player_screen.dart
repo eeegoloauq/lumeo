@@ -178,6 +178,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   MpvHost? _host;
   Thumbnails? _thumbnails;
   bool _coreDead = false;
+
+  /// mpv quit by itself, or [_teardown] has begun: media_kit throws on a call
+  /// to a disposed player, and events still arrive while the exit stops it.
+  bool get _mpvGone => _coreDead || _released != null;
   Set<String> _boundKeys = const {};
   final _focus = FocusNode();
 
@@ -949,7 +953,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _showChrome(bool show) => setState(() => _chrome = show);
 
   Future<void> _command(List<String> args) async {
-    if (_coreDead) return;
+    if (_mpvGone) return;
     final platform = _player.platform;
     if (platform is NativePlayer) await platform.command(args);
   }
@@ -1744,7 +1748,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> _mpvSet(String property, String value) async {
-    if (_coreDead) return;
+    if (_mpvGone) return;
     final platform = _player.platform;
     if (platform is NativePlayer) await platform.setProperty(property, value);
   }
