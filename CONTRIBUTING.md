@@ -12,7 +12,7 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
 ## What you need
 
 - Go (the version in `core/go.mod`).
-- Flutter 3.47.2, the version CI pins.
+- Flutter 3.47.6, the version CI pins.
 - Flutter's Linux toolchain and libmpv with its headers. On Debian and Ubuntu, as CI installs them:
   `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev`.
 - For the UI tests: `weston` and `ffmpeg`. `client/tool/build-mpv.sh` builds libmpv 0.41 into
