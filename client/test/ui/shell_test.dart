@@ -1,5 +1,6 @@
 // The shell: the bar, the window, the keyboard and Escape.
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 
@@ -344,6 +345,40 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
       isTrue,
       reason: 'the shell picked the keyboard back up on its own',
+    );
+  });
+
+  uiTest('a window that lost the focus leaves the keyboard where it is', (
+    tester,
+  ) async {
+    // On Windows the shell taking the keyboard back activated the window from
+    // the tray, and every other window lost its keyboard to it.
+    await openHome(tester);
+    void windowFocus(ViewFocusState state) =>
+        tester.binding.handleViewFocusChanged(
+          ViewFocusEvent(
+            viewId: tester.view.viewId,
+            state: state,
+            direction: ViewFocusDirection.undefined,
+          ),
+        );
+    windowFocus(ViewFocusState.unfocused);
+    await tester.pumpAndSettle();
+    expect(
+      FocusManager.instance.primaryFocus,
+      FocusManager.instance.rootScope,
+      reason: 'the focus stays parked while the window has none',
+    );
+    windowFocus(ViewFocusState.focused);
+    await tester.pumpAndSettle();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+      reason: 'the shell takes the keyboard when the window has it again',
     );
   });
 

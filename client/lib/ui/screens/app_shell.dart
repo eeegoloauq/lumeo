@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ViewFocusEvent, ViewFocusState;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +66,7 @@ class AppShell extends StatefulWidget {
 /// How long closing a newer release's notice keeps the next ones away.
 const updateQuiet = Duration(days: 7);
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final _scroll = ScrollController();
 
   /// Ctrl+F lands here. Owned by the shell, not the bar: the bar is rebuilt as
@@ -75,6 +76,12 @@ class _AppShellState extends State<AppShell> {
   /// Where the keyboard lives when nothing else has asked for it: the bottom
   /// of the climb key events make, so the shell's shortcuts are reachable.
   final _shellFocus = FocusNode(debugLabel: 'shell');
+
+  /// Whether the window has the system's keyboard focus. Taking the keyboard
+  /// while it has not asks the system to focus the window: on Windows that
+  /// activates it even hidden in the tray, and every other window loses the
+  /// keyboard to it.
+  bool _windowFocused = true;
 
   /// Stops "Open with Lumeo" from a later launch reaching this shell.
   late final void Function() _stopOpening;
@@ -107,6 +114,7 @@ class _AppShellState extends State<AppShell> {
     // focuses the window a beat after it opens, or the focused widget is
     // unmounted by the navigation it caused, and then no shortcut answers.
     FocusManager.instance.addListener(_keyboardOnTheFloor);
+    WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_configureBackground);
     if (widget.open case final path?) unawaited(_openFile(path));
     unawaited(_checkForUpdate());
@@ -267,7 +275,7 @@ class _AppShellState extends State<AppShell> {
   void _keyboardOnTheFloor() {
     // Not while a film is up: the player is not built inside this Focus, and
     // it owns the keyboard for as long as it is on screen.
-    if (!mounted || _playing != null) return;
+    if (!mounted || !_windowFocused || _playing != null) return;
     // Nor while a dialog or drawer is over the page: its own scope holding the
     // focus is where the keyboard belongs, and Escape there closes it.
     if (ModalRoute.of(context)?.isCurrent == false) return;
@@ -275,6 +283,11 @@ class _AppShellState extends State<AppShell> {
     // A scope rather than a node means the focus is nowhere in particular:
     // the root scope is where it lands when whatever held it went away.
     if (focus == null || focus is FocusScopeNode) _shellFocus.requestFocus();
+  }
+
+  @override
+  void didChangeViewFocus(ViewFocusEvent event) {
+    _windowFocused = event.state == ViewFocusState.focused;
   }
 
   (bool, bool, String)? _backgroundSent;
@@ -303,6 +316,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void dispose() {
     FocusManager.instance.removeListener(_keyboardOnTheFloor);
+    WidgetsBinding.instance.removeObserver(this);
     widget.settings.removeListener(_configureBackground);
     _stopOpening();
     _scroll.dispose();
@@ -326,7 +340,7 @@ class _AppShellState extends State<AppShell> {
   /// focus is still there while this frame is being built.
   void _takeKeyboard() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _shellFocus.requestFocus();
+      if (mounted && _windowFocused) _shellFocus.requestFocus();
     });
   }
 
