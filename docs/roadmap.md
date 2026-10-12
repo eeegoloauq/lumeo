@@ -43,6 +43,15 @@ set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to sett
   for long series it beats the strip. A different page, scrolled, with its
   own keyboard; mockup first (the canvas "Series page · release picker",
   page "Others' layouts").
+- Freeing an episode of a pack takes about 250 ms on an ext4 test disk with
+  16 MiB pieces, against 2 ms for a plain delete. Most of it is
+  `storedFile.shrink` copying the two boundary pieces into a new `.part` and
+  syncing it; the completion records cost about 20 ms. The pass runs in the
+  background, but `Manager.Remove` holds `startMu` throughout, so a Play,
+  pause or subtitle save at that moment waits for it. Punching holes in place
+  (`fallocate` with `PUNCH_HOLE`, `FSCTL_SET_ZERO_DATA` on Windows) would make
+  it a metadata change, with the copy kept for filesystems that cannot. Worth
+  it once such a wait is noticed.
 
 ## Player
 
