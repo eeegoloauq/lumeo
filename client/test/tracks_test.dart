@@ -134,4 +134,63 @@ void main() {
     expect(trackToRemember(tracks, 'sub', 'no')!.off, isTrue);
     expect(trackToRemember(tracks, 'sub', '3'), isNull);
   });
+
+  group('the answer for the soundtrack\'s language', () {
+    int rank(String language) => ['en', 'ru'].indexOf(language);
+    MpvTrack sub(
+      String id,
+      String language, {
+      bool selected = false,
+      bool forced = false,
+    }) => MpvTrack(
+      id: id,
+      type: 'sub',
+      language: language,
+      selected: selected,
+      forced: forced,
+    );
+
+    test('off turns off what mpv chose, but not a forced track', () {
+      expect(
+        subtitleForAudio(
+          [sub('1', 'en', selected: true)],
+          on: false,
+          rank: rank,
+        ),
+        'no',
+      );
+      expect(
+        subtitleForAudio(
+          [sub('1', 'en', selected: true, forced: true)],
+          on: false,
+          rank: rank,
+        ),
+        isNull,
+      );
+    });
+
+    test('on picks the first of the viewer\'s languages, or leaves mpv\'s', () {
+      expect(
+        subtitleForAudio(
+          [sub('2', 'ru'), sub('1', 'en')],
+          on: true,
+          rank: rank,
+        ),
+        '1',
+      );
+      expect(
+        subtitleForAudio(
+          [sub('2', 'ru', selected: true), sub('1', 'en')],
+          on: true,
+          rank: rank,
+        ),
+        isNull,
+      );
+      expect(
+        subtitleForAudio([sub('3', 'de')], on: true, rank: rank),
+        isNull,
+        reason: 'none in a language the viewer reads: the database is asked',
+      );
+    });
+  });
 }

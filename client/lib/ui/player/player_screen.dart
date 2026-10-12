@@ -222,6 +222,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   TitleChoice? _choice;
 
   final _titlesMatched = <String>{};
+
+  /// Whether the viewer's answer for the soundtrack's language has been
+  /// applied to this file.
+  bool _audioAnswered = false;
   final _trackChanges = TrackChanges();
 
   final _unsaved = <String, String>{};
@@ -538,6 +542,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
     });
     _matchTitles();
+    _answerForAudio();
     _subtitleOnceChosen();
     final loaded = _subtitleTracks
         .where((t) => t.external && t.externalFilename == _ownFound)
@@ -585,6 +590,49 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!_trackChanges.byViewer(property, value)) return;
     _unsaved[property] = value;
     _saveTracks();
+    if (property == 'sid') _rememberForAudio(value != 'no');
+  }
+
+  /// The soundtrack's language as the preferences name it; empty when the
+  /// file does not say.
+  String get _audioLanguage =>
+      widget.preferences.languages.canonical(_selectedAudio?.language ?? '');
+
+  /// The viewer's own answer for the language of the soundtrack playing.
+  bool? get _subtitlesForAudio =>
+      widget.preferences.current?.subtitlesWithAudio[_audioLanguage];
+
+  /// Subtitles turned on or off by hand are the answer for every title in
+  /// this soundtrack's language, as well as this title's track.
+  void _rememberForAudio(bool on) {
+    final prefs = widget.preferences.current;
+    final language = _audioLanguage;
+    if (prefs == null ||
+        language.isEmpty ||
+        prefs.subtitlesWithAudio[language] == on) {
+      return;
+    }
+    widget.preferences.remember('subtitlesWithAudio', {
+      ...prefs.subtitlesWithAudio,
+      language: on,
+    });
+  }
+
+  /// Once the soundtrack is known, the viewer's answer for its language
+  /// overrides the mode; a subtitle picked for this title overrides both.
+  void _answerForAudio() {
+    if (_audioAnswered || !_opened || _selectedAudio == null) return;
+    _audioAnswered = true;
+    final on = _subtitlesForAudio;
+    final prefs = widget.preferences.current;
+    if (on == null || prefs == null || _choice?.subtitle != null) return;
+    final languages = widget.preferences.languages;
+    final id = subtitleForAudio(
+      _tracks,
+      on: on,
+      rank: (language) => languages.rank(language, prefs.subtitleLanguages),
+    );
+    if (id != null) _selectOwn('sid', id);
   }
 
   void _saveTracks() {
@@ -885,6 +933,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _notice = null;
       _opened = false;
       _titlesMatched.clear();
+      _audioAnswered = false;
       _attempts = 0;
       _forgetChapters();
     });
@@ -1610,17 +1659,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final prefs = widget.preferences.current;
     if (prefs == null) return;
     final languages = widget.preferences.languages;
-    // A title-specific subtitle choice overrides the general mode.
+    // A title-specific subtitle choice overrides the viewer's answer for
+    // the soundtrack's language, which overrides the general mode.
     final picked = _choice?.subtitle;
     if (picked?.off ?? false) return;
+    final answer = picked == null ? _subtitlesForAudio : null;
+    if (answer == false) return;
     final wanted = [
       if (picked != null && picked.language.isNotEmpty)
         languages.canonical(picked.language),
-      if (prefs.subtitleMode != 'manual') ...prefs.subtitleLanguages,
+      if (answer == true || prefs.subtitleMode != 'manual')
+        ...prefs.subtitleLanguages,
     ];
     if (wanted.isEmpty) return;
     final audio = _selectedAudio?.language ?? '';
     if (picked == null &&
+        answer == null &&
         prefs.subtitleMode == 'foreign' &&
         languages.rank(audio, prefs.subtitleLanguages) >= 0) {
       return;

@@ -431,3 +431,23 @@ func TestDerivedDiskLimitIsTheDefaultAndAStoredOneWins(t *testing.T) {
 		t.Fatalf("limit %d, want the stored no limit", got.DiskLimit)
 	}
 }
+
+func TestSubtitlesWithAudioAreStoredByLanguage(t *testing.T) {
+	service := New(&fakeStore{}, Preferences{})
+	ctx := context.Background()
+	if got, _ := service.Get(ctx); len(got.SubtitlesWithAudio) != 0 {
+		t.Fatalf("unset = %#v, want none", got.SubtitlesWithAudio)
+	}
+	got, err := service.Patch(ctx, []byte(`{"subtitlesWithAudio":{"jpn":true,"en":false}}`))
+	if err != nil {
+		t.Fatalf("patch: %v", err)
+	}
+	if want := map[string]bool{"ja": true, "en": false}; !reflect.DeepEqual(got.SubtitlesWithAudio, want) {
+		t.Fatalf("stored %v, want %v", got.SubtitlesWithAudio, want)
+	}
+	for _, body := range []string{`{"subtitlesWithAudio":["ja"]}`, `{"subtitlesWithAudio":{"no language":true}}`} {
+		if _, err := service.Patch(ctx, []byte(body)); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%s: err = %v", body, err)
+		}
+	}
+}

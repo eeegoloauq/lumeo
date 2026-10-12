@@ -30,6 +30,10 @@ type Preferences struct {
 	// database has, "foreign" only when the soundtrack is not in one of the
 	// subtitle languages, "manual" for none until one is picked.
 	SubtitleMode string `json:"subtitleMode"`
+	// SubtitlesWithAudio is the viewer's own answer for a soundtrack's
+	// language, ahead of SubtitleMode: true for subtitles on, false for off,
+	// set by turning them on or off by hand while that language played.
+	SubtitlesWithAudio map[string]bool `json:"subtitlesWithAudio,omitempty"`
 	// SubtitleScale and SubtitlePosition are mpv's sub-scale and sub-pos: 1
 	// is the size mpv draws by default, and 100 sits the line on the bottom
 	// edge of the picture, with lower numbers lifting it and higher ones
@@ -167,6 +171,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "subtitleLanguages", &effective.SubtitleLanguages)
 	overlay(stored, "audioLanguages", &effective.AudioLanguages)
 	overlay(stored, "subtitleMode", &effective.SubtitleMode)
+	overlay(stored, "subtitlesWithAudio", &effective.SubtitlesWithAudio)
 	overlay(stored, "subtitleScale", &effective.SubtitleScale)
 	overlay(stored, "subtitlePosition", &effective.SubtitlePosition)
 	overlay(stored, "subtitleBackground", &effective.SubtitleBackground)
@@ -276,6 +281,8 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			changes[key], err = languageList(key, "audio", raw)
 		case "subtitleMode":
 			changes[key], err = oneOf(key, raw, SubtitleModes)
+		case "subtitlesWithAudio":
+			changes[key], err = languageSwitches(key, raw)
 		case "subtitleScale":
 			changes[key], err = number(key, raw, 0.5, 2)
 		case "subtitlePosition":
@@ -331,7 +338,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 
 func known(key string) bool {
 	switch key {
-	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitleScale",
+	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitlesWithAudio", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
 		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "checkUpdates",
 		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
@@ -396,6 +403,28 @@ func languageList(key, noun string, raw json.RawMessage) (json.RawMessage, error
 		}
 	}
 	encoded, _ := json.Marshal(languages)
+	return encoded, nil
+}
+
+// languageSwitches is an on or off for each of a few hundred languages at
+// most, the languages normalized the way the lists are.
+func languageSwitches(key string, raw json.RawMessage) (json.RawMessage, error) {
+	var entries map[string]bool
+	if err := json.Unmarshal(raw, &entries); err != nil || entries == nil {
+		return nil, invalidf("%s must be an object of true or false by language", key)
+	}
+	if len(entries) > 500 {
+		return nil, invalidf("%s holds more languages than there are", key)
+	}
+	switches := make(map[string]bool, len(entries))
+	for language, on := range entries {
+		normalized := subtitles.Language(language)
+		if !languageCode.MatchString(normalized) {
+			return nil, invalidf("invalid language %q in %s", language, key)
+		}
+		switches[normalized] = on
+	}
+	encoded, _ := json.Marshal(switches)
 	return encoded, nil
 }
 

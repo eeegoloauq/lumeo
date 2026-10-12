@@ -130,8 +130,10 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	subs := subtitles.NewService(installed.Subtitles, cfg.SubtitleLanguages, log)
 
 	prefs := preferences.New(db, preferences.Preferences{
-		SubtitleLanguages:   cfg.SubtitleLanguages,
-		SubtitleMode:        "always",
+		SubtitleLanguages: cfg.SubtitleLanguages,
+		// Subtitles for a soundtrack the viewer does not follow, not over one
+		// in their own language.
+		SubtitleMode:        "foreign",
 		SubtitleScale:       1,
 		SubtitlePosition:    100,
 		SubtitleBackground:  "none",

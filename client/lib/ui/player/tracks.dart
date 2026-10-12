@@ -121,3 +121,25 @@ TrackChoice? trackToRemember(List<MpvTrack> tracks, String type, String id) {
       ? null
       : TrackChoice(language: track.language, title: track.title);
 }
+
+/// What the viewer's own answer for the soundtrack's language does to the
+/// subtitle mpv chose: the id of the track to turn on, `no` to turn it off,
+/// or null to leave mpv's choice. On takes the file's track in the language
+/// [rank] puts first; off leaves a forced track, which carries the lines of
+/// the film that are not in the soundtrack's language.
+String? subtitleForAudio(
+  List<MpvTrack> tracks, {
+  required bool on,
+  required int Function(String language) rank,
+}) {
+  final subtitles = tracks.where((t) => t.type == 'sub');
+  final chosen = subtitles.where((t) => t.selected).firstOrNull;
+  if (!on) return chosen == null || chosen.forced ? null : 'no';
+  if (chosen != null) return null;
+  MpvTrack? best;
+  for (final t in subtitles) {
+    final r = rank(t.language);
+    if (r >= 0 && (best == null || r < rank(best.language))) best = t;
+  }
+  return best?.id;
+}

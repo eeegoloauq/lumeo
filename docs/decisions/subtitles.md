@@ -146,3 +146,15 @@ white picture. The settings page draws its sample from the same numbers and
 libass's way of sizing a font (by its win ascent plus descent, not its em),
 over the backdrop of the last title watched, since an edge is judged against
 a picture.
+
+## When subtitles come on by themselves
+
+The default mode is "Foreign audio": subtitles only for a soundtrack that is
+not in one of the viewer's subtitle languages. "Always" was the default, and
+an English film opened with English subtitles for a viewer who reads English.
+Subtitles turned on or off by hand are also kept as the viewer's answer for
+the soundtrack's language (`subtitlesWithAudio`, a core preference), and the
+next title in that language follows it ahead of the mode; a subtitle picked
+for one title still wins for that title. Off leaves a forced track, which
+carries the lines that are not in the soundtrack's language.
+

@@ -7,8 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - Subtitles: default "Foreign audio", and a subtitle turned on or off by
-     hand is remembered per audio language for the next titles.
    - Once per machine, on leaving the player the first time: a card where
      the update card sits, "Lumeo keeps what you watch", saying the title is
      in My list and on this computer and, from the keep setting, when it is

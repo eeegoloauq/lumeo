@@ -11,7 +11,8 @@ class Preferences {
   const Preferences({
     required this.subtitleLanguages,
     this.audioLanguages = const [],
-    this.subtitleMode = 'always',
+    this.subtitleMode = 'foreign',
+    this.subtitlesWithAudio = const {},
     this.subtitleScale = 1,
     this.subtitlePosition = 100,
     this.subtitleBackground = 'none',
@@ -43,6 +44,10 @@ class Preferences {
   /// language on offer, `foreign` only when the soundtrack is not in one of
   /// the subtitle languages, `manual` for never until picked.
   final String subtitleMode;
+
+  /// The viewer's own answer for a soundtrack's language, ahead of
+  /// [subtitleMode]: subtitles on or off, by canonical language code.
+  final Map<String, bool> subtitlesWithAudio;
 
   /// mpv's sub-scale and sub-pos: 1 is the size mpv draws by default; 100
   /// sits the line on the bottom edge and lower numbers lift it.
@@ -116,7 +121,11 @@ class Preferences {
           .cast<String>(),
       audioLanguages: (json['audioLanguages'] as List<dynamic>? ?? [])
           .cast<String>(),
-      subtitleMode: json['subtitleMode'] as String? ?? 'always',
+      subtitleMode: json['subtitleMode'] as String? ?? 'foreign',
+      subtitlesWithAudio:
+          (json['subtitlesWithAudio'] as Map<String, dynamic>? ?? const {}).map(
+            (language, on) => MapEntry(language, on == true),
+          ),
       subtitleScale: (json['subtitleScale'] as num?)?.toDouble() ?? 1,
       subtitlePosition: (json['subtitlePosition'] as num?)?.toInt() ?? 100,
       subtitleBackground: json['subtitleBackground'] as String? ?? 'none',
