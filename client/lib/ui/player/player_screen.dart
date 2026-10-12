@@ -211,7 +211,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _playing = false;
   bool _scrubWasPlaying = false;
   bool _progressInFlight = false;
-  bool _progressPending = false;
   bool _resumeAsked = false;
   Duration _lastReported = Duration.zero;
   double? _lastReportedDelay;
@@ -1028,10 +1027,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// makes flush spin microtasks and starves its HTTP response.
   Future<void>? _reporting;
 
+  /// The report that runs once the one in flight is done. Shared, so every
+  /// caller that needs the newest position saved, the exit among them, waits
+  /// for that and not for the older one.
+  Future<void>? _followUp;
+
   Future<void> _reportProgress({bool afterCurrent = false, bool? watched}) {
     if (_progressInFlight) {
-      if (afterCurrent) _progressPending = true;
-      return _reporting ?? Future<void>.value();
+      if (!afterCurrent) return _reporting!;
+      return _followUp ??= _reporting!.then((_) {
+        _followUp = null;
+        return _reportProgress();
+      });
     }
     return _reporting = _report(watched: watched);
   }
@@ -1067,10 +1074,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       debugPrint('progress report failed: $error');
     } finally {
       _progressInFlight = false;
-      if (_progressPending) {
-        _progressPending = false;
-        unawaited(_reportProgress());
-      }
     }
   }
 
@@ -1271,7 +1274,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     while (_progressInFlight) {
       await _reporting;
     }
-    _progressPending = false;
     await _reportProgress(watched: true);
   }
 
