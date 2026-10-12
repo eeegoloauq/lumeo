@@ -54,6 +54,12 @@ flags cannot tell a dub from a subtitle track, so the rule asks only whether
 the language is there; it never overrides health, because a copy that stalls
 is not watchable in any language.
 
+"Copy to play" in Settings can be "Ask every time" instead of Automatic: Play
+then opens the table of copies and the one picked plays. It is a preference
+of the viewer's, kept by the core like the rest. A finished copy on disk
+still plays at once, and Download and the next episode stay automatic: they
+are not a press of Play.
+
 The ranking only decides among copies the library has not chosen yet. Ahead of
 it the core puts a copy already on disk (finished before one still arriving),
 then a copy from the pack of the one started last for this title — the

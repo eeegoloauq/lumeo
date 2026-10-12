@@ -20,6 +20,7 @@ class Preferences {
     this.keep = 'forever',
     this.diskLimit = 0,
     this.prefetch = true,
+    this.askCopy = false,
     this.checkUpdates = true,
     this.betaUpdates = false,
     this.nextCountdown = 5,
@@ -72,6 +73,9 @@ class Preferences {
   /// disk. The core starts it only inside the disk limit and the free disk.
   final bool prefetch;
 
+  /// Whether Play asks which copy to start every time.
+  final bool askCopy;
+
   /// Whether the core asks GitHub for a newer release.
   final bool checkUpdates;
 
@@ -121,6 +125,7 @@ class Preferences {
       keep: json['keep'] as String? ?? 'forever',
       diskLimit: (json['diskLimit'] as num?)?.toInt() ?? 0,
       prefetch: json['prefetch'] as bool? ?? true,
+      askCopy: json['askCopy'] as bool? ?? false,
       checkUpdates: json['checkUpdates'] as bool? ?? true,
       betaUpdates: json['betaUpdates'] as bool? ?? false,
       nextCountdown: (json['nextCountdown'] as num?)?.toInt() ?? 5,

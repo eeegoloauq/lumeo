@@ -260,6 +260,10 @@
   "@settingsFileLanguage": {
     "description": "The file’s own in ui/screens/settings/playback_section.dart"
   },
+  "settingsCopyToPlay": "Copy to play",
+  "@settingsCopyToPlay": {"description": "Playback setting: whether Play starts the best copy (Automatic) or asks every time."},
+  "settingsAskEveryTime": "Ask every time",
+  "@settingsAskEveryTime": {"description": "Copy to play setting: Play opens the list of copies and the one picked plays."},
   "settingsShowNextEpisode": "Show next episode",
   "@settingsShowNextEpisode": {
     "description": "Show next episode in ui/screens/settings/playback_section.dart"

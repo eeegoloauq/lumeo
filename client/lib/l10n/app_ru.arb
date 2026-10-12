@@ -86,6 +86,8 @@
   "settingsPlayback": "Воспроизведение",
   "settingsAudioLanguages": "Языки звука",
   "settingsFileLanguage": "Как в файле",
+  "settingsCopyToPlay": "Какую копию играть",
+  "settingsAskEveryTime": "Спрашивать каждый раз",
   "settingsShowNextEpisode": "Показывать следующую серию",
   "settingsEarlier": "Раньше",
   "settingsLater": "Позже",

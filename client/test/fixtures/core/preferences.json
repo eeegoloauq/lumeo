@@ -8,6 +8,7 @@
   "keep": "forever",
   "diskLimit": 0,
   "prefetch": true,
+  "askCopy": false,
   "checkUpdates": true,
   "betaUpdates": false,
   "subtitleMode": "always",

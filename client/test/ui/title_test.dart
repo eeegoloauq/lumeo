@@ -813,6 +813,43 @@ void main() {
     expect(started.single, contains('Shin Henshuu-ban/e01.mkv'));
   });
 
+  uiTest('with Ask every time, Play opens the copies and the pick plays', (
+    tester,
+  ) async {
+    final started = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          started: started,
+          preferences: {...preferenceDefaults, 'askCopy': true},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PosterTile).first);
+    await waitFor(
+      tester,
+      () async =>
+          find.byKey(const ValueKey('source-chip')).evaluate().isNotEmpty,
+      what: 'the copies arrived',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.pumpAndSettle();
+    expect(started, isEmpty, reason: 'nothing starts before the pick');
+    final last = fakeSources.last;
+    // The table groups by resolution, the 1080p copy last.
+    await tester.tap(find.byType(ListTile).last);
+    await waitFor(
+      tester,
+      () async => started.isNotEmpty,
+      what: 'the pick started',
+    );
+    expect(
+      (jsonDecode(started.single)['source'] as Map)['rawName'],
+      last['rawName'],
+    );
+  });
+
   uiTest('a film has the release menu too, and takes its file from here', (
     tester,
   ) async {

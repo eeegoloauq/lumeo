@@ -501,6 +501,16 @@ void main() {
     expect(strip<int>(tester, '100 GB').selected, {100 << 30});
   });
 
+  uiTest('Playback sends asking for the copy every time', (tester) async {
+    final patched = <String>[];
+    await tester.pumpWidget(testApp(api: fakeCore(patched: patched)));
+    await tester.pumpAndSettle();
+    await openSettingsAt(tester, SettingsSection.playback);
+    await tester.tap(find.text('Ask every time'));
+    await tester.pumpAndSettle();
+    expect(jsonDecode(patched.last), {'askCopy': true});
+  });
+
   uiTest('Downloads sends prefetch switched off', (tester) async {
     final patched = await openDownloads(tester);
     await tester.tap(switchOf('Download next episode'));

@@ -62,6 +62,9 @@ type Preferences struct {
 	// Prefetch starts the next episode once the one playing is on disk,
 	// when it fits inside DiskLimit and the free disk.
 	Prefetch bool `json:"prefetch"`
+	// AskCopy has Play ask which copy to start every time, from the list of
+	// copies, instead of starting the best one.
+	AskCopy bool `json:"askCopy"`
 	// CheckUpdates lets the core ask GitHub whether a newer release is out.
 	// Off, it never asks.
 	CheckUpdates bool `json:"checkUpdates"`
@@ -174,6 +177,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "keepDays", &effective.KeepDays)
 	overlay(stored, "diskLimit", &effective.DiskLimit)
 	overlay(stored, "prefetch", &effective.Prefetch)
+	overlay(stored, "askCopy", &effective.AskCopy)
 	overlay(stored, "checkUpdates", &effective.CheckUpdates)
 	overlay(stored, "betaUpdates", &effective.BetaUpdates)
 	overlay(stored, "nextCountdown", &effective.NextCountdown)
@@ -279,7 +283,7 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			changes[key], err = oneOf(key, raw, SubtitleBackgrounds)
 		case "subtitleColor":
 			changes[key], err = oneOf(key, raw, SubtitleColors)
-		case "subtitleKeepStyling", "prefetch", "checkUpdates", "betaUpdates":
+		case "subtitleKeepStyling", "prefetch", "askCopy", "checkUpdates", "betaUpdates":
 			changes[key], err = boolean(key, raw)
 		case "episodeArtwork":
 			changes[key], err = oneOf(key, raw, []string{"show", "blur", "hide"})
@@ -326,7 +330,7 @@ func known(key string) bool {
 	switch key {
 	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
-		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "checkUpdates",
+		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "checkUpdates",
 		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
 		"uploadLimit", "downloadLimit":
 		return true

@@ -19,6 +19,7 @@ import '../widgets/horizontal_strip.dart';
 import '../widgets/library_actions.dart';
 import '../widgets/loading.dart';
 import '../widgets/play_block.dart';
+import '../widgets/source_list.dart' show showSources;
 
 /// Which episode the page opens on: the one to play next when there is one,
 /// the one a caught-up series goes on with when it has not aired, and
@@ -149,7 +150,8 @@ class _ItemScreenState extends State<ItemScreen> {
       return existing;
     }
     existing?.dispose();
-    final choice = SourceChoice(
+    late final SourceChoice choice;
+    choice = SourceChoice(
       api: widget.api,
       downloads: widget.downloads,
       itemId: widget.itemId,
@@ -161,6 +163,11 @@ class _ItemScreenState extends State<ItemScreen> {
       startWhenReady: widget.autoplay && existing == null,
       onStarted: (download) => widget.onPlay(download.id, _playTitle(episode)),
       onAddSource: widget.onAddSource,
+      ask: () async => !(widget.preferences.current?.askCopy ?? false)
+          ? choice.picked
+          : mounted
+          ? await showSources(context, choice)
+          : null,
     );
     _choice = choice;
     return choice;

@@ -29,6 +29,17 @@ class PlaybackSection extends StatelessWidget {
         SettingRows([
           if (current != null) ...[
             SettingRow(
+              label: context.l10n.settingsCopyToPlay,
+              value: Segments<bool>(
+                choices: [
+                  (false, context.l10n.itemReleaseAutomatic),
+                  (true, context.l10n.settingsAskEveryTime),
+                ],
+                selected: current.askCopy,
+                onSelected: (ask) => patch({'askCopy': ask}),
+              ),
+            ),
+            SettingRow(
               label: context.l10n.settingsShowNextEpisode,
               value: PreferenceStepper(
                 stored: current.nextNotice,

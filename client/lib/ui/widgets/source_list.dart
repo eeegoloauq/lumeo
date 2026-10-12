@@ -13,8 +13,10 @@ import 'play_block.dart';
 /// resolution, each group in the core's order. A row is the copy's name and
 /// its languages; the release name waits in a tooltip, because a wall of
 /// truncated file names is what every addon client shows.
-Future<void> showSources(BuildContext context, SourceChoice choice) =>
-    showGeneralDialog(
+/// The table of every copy; the copy picked from it, or null when it was
+/// closed without one.
+Future<MediaSource?> showSources(BuildContext context, SourceChoice choice) =>
+    showGeneralDialog<MediaSource>(
       context: context,
       barrierDismissible: true,
       barrierLabel: context.l10n.downloadsCloseSources,
@@ -121,7 +123,7 @@ class _SourceDrawer extends StatelessWidget {
                           current: identical(s, c.picked),
                           onPick: () {
                             c.pick(s);
-                            Navigator.pop(context);
+                            Navigator.pop(context, s);
                           },
                         ),
                     ],

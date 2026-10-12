@@ -31,6 +31,7 @@ class SourceChoice extends ChangeNotifier {
     this.released,
     this.onStarted,
     this.onAddSource,
+    this.ask,
     this.startWhenReady = false,
   }) {
     load();
@@ -53,6 +54,10 @@ class SourceChoice extends ChangeNotifier {
   /// Opens the Sources settings, for a list that is empty because no source
   /// addon is installed: none ships with the app.
   final VoidCallback? onAddSource;
+
+  /// Asked which copy Play starts, before it starts one from the list: the
+  /// copy, or null to start none. Absent, Play starts the one picked.
+  final Future<MediaSource?> Function()? ask;
 
   List<MediaSource>? sources;
   List<ProviderFailure> failed = const [];
@@ -134,7 +139,17 @@ class SourceChoice extends ChangeNotifier {
     _ping();
   }
 
-  Future<void> start() => _start(play: true);
+  Future<void> start() async {
+    final ask = this.ask;
+    // A press held for a list still on its way asks once the list is here,
+    // and a copy on disk with no list yet plays without one.
+    if (ask != null && !starting && (sources?.isNotEmpty ?? false)) {
+      final copy = await ask();
+      if (copy == null || _disposed) return;
+      pick(copy);
+    }
+    return _start(play: true);
+  }
 
   /// The same copy Play would start, fetched without opening the player.
   Future<void> download() => _start(play: false);

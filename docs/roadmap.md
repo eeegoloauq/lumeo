@@ -7,7 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - A setting "Ask every time": Play opens the copies list, the pick plays.
    - After adding a source from "Add one", a "Back to <title>" button.
    - The title is blank until the logo loads or finally fails: after 400 ms
      show the text in the logo's box, cross-fade the logo in when it comes.
