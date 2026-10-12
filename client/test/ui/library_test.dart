@@ -46,7 +46,8 @@ void main() {
 
     await tester.tap(tile);
     await tester.pumpAndSettle();
-    expect(libraryLit(tester), isTrue);
+    // A title lights no tab; the arrow before the wordmark leads back.
+    expect(libraryLit(tester), isFalse);
     await tester.tap(find.byKey(const ValueKey('list-button')));
     await tester.pumpAndSettle();
     expect(calls.last, 'DELETE /api/v1/list/tt0903747');

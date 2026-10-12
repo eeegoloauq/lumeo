@@ -188,6 +188,18 @@ on what waits, not on what arrives: a row with bytes flowing is paused first,
 so a download that is going well is never thrown away by one click beside the
 pause button.
 
+## Back is an arrow before the wordmark
+
+The wordmark is Home from anywhere, so a page with a way back has an arrow of
+its own, in the margin left of the wordmark, which stays where it is on every
+page. Escape, Alt+Left and the mouse's back button go the same way; before
+the arrow they were the only ways, and nothing on screen said so. The arrow
+has no fill at rest: a circle there would touch the wordmark.
+
+A tab is lit only on its own page. A title or a search lit the tab it was
+opened from, as if the window were still there; now it lights none, and the
+arrow says where the page leads back to.
+
 ## A season is a strip, not a page
 
 Episodes are a horizontal row of cards, the same gesture the shelves on the

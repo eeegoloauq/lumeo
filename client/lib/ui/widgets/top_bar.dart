@@ -31,6 +31,7 @@ class TopBar extends StatelessWidget {
     required this.api,
     required this.tab,
     required this.onTab,
+    required this.onBack,
     required this.searchController,
     required this.downloads,
     required this.onSearch,
@@ -40,10 +41,13 @@ class TopBar extends StatelessWidget {
   final ValueListenable<bool> scrolled;
   final LumeoApi api;
 
-  /// Which tab is lit: the part of the app the window is in, not how deep it
-  /// has gone. A title or a search opened from Home is still Home.
-  final AppTab tab;
+  /// Which tab is lit: the page on screen when it is one of them, none on
+  /// a title or a search, where the back arrow says where they lead back to.
+  final AppTab? tab;
   final void Function(AppTab) onTab;
+
+  /// Back to the page before; null on a page with none.
+  final VoidCallback? onBack;
 
   /// Held by the shell, which handles Ctrl+F.
   final SearchController searchController;
@@ -95,6 +99,31 @@ class TopBar extends StatelessWidget {
           const Positioned.fill(child: WindowDragArea()),
           // Tighter on the right than on the left: the window buttons belong to
           // the window's edge, the wordmark to the page's margin.
+          // The wordmark is Home from anywhere, so going back one page has a
+          // button of its own, in the margin before it, which leaves the
+          // wordmark where it is on every page.
+          if (onBack != null)
+            Positioned(
+              left: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  onPressed: onBack,
+                  tooltip: context.l10n.playerBackEsc,
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  color: Palette.text,
+                  hoverColor: Palette.hover,
+                  // No fill at rest: a circle in this margin would touch the
+                  // wordmark, which stays aligned with the page.
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size.square(34),
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             left: 48,
             top: 0,
@@ -162,7 +191,7 @@ class TopBar extends StatelessWidget {
 class _Tabs extends StatelessWidget {
   const _Tabs({required this.tab, required this.onTab, required this.onSearch});
 
-  final AppTab tab;
+  final AppTab? tab;
   final void Function(AppTab) onTab;
   final VoidCallback onSearch;
 

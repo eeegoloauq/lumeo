@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
+import 'package:lumeo/ui/widgets/top_bar.dart';
 import 'package:lumeo/platform/release_notes.dart';
 import 'package:lumeo/ui/widgets/release_notes_card.dart';
 import 'package:lumeo/ui/screens/app_shell.dart' show updateQuiet;
@@ -427,6 +428,36 @@ void main() {
     );
     expect(playing(tester), isNull);
     expect(started, isEmpty);
+  });
+
+  uiTest('a page with a way back has an arrow for it, and lights no tab', (
+    tester,
+  ) async {
+    // A title page could be left only by Escape, Alt+Left or the mouse's
+    // side button, and lit the tab it was opened from as if it were there.
+    await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
+    final back = find.byTooltip('Back (Esc)');
+    bool lit(String tab) => tester
+        .widget<PillTab>(
+          find.descendant(
+            of: find.byType(TopBar),
+            matching: find.widgetWithText(PillTab, tab),
+          ),
+        )
+        .selected;
+    expect(back, findsNothing, reason: 'Home is where back ends');
+    expect(lit('Home'), isTrue);
+
+    await tester.tap(find.byType(PosterTile).first);
+    await tester.pumpAndSettle();
+    expect(back, findsOneWidget);
+    expect(['Home', 'Library', 'Settings'].where(lit), isEmpty);
+
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+    expect(back, findsNothing);
+    expect(lit('Home'), isTrue);
   });
 
   uiTest('a file the core refuses says why', (tester) async {

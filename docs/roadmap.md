@@ -7,8 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - A back arrow left of the wordmark on pages with a way back; no tab lit
-     on pages that are not Home, Library or Settings.
    - mpv's `R` takes `sub-pos` past the core's 70–100, and Settings shows
      the raw error under Appearance.
    - Subtitles: default "Foreign audio", and a subtitle turned on or off by

@@ -369,24 +369,14 @@ class _AppShellState extends State<AppShell> {
     _takeKeyboard();
   }
 
-  /// Which tab is lit: the place the pages on top were opened from. A title
-  /// opened from the library is still the library, and one opened from a
-  /// search on the home screen is still home.
-  AppTab get _lit {
-    for (final page in _history.reversed) {
-      switch (page.kind) {
-        case _PageKind.home:
-          return AppTab.home;
-        case _PageKind.library:
-          return AppTab.library;
-        case _PageKind.settings:
-          return AppTab.settings;
-        case _PageKind.item || _PageKind.search:
-          continue;
-      }
-    }
-    return AppTab.home;
-  }
+  /// Which tab is lit: the page on screen, when it is one. A title or a
+  /// search lights none; the back arrow is the way to where it came from.
+  AppTab? get _lit => switch (_page.kind) {
+    _PageKind.home => AppTab.home,
+    _PageKind.library => AppTab.library,
+    _PageKind.settings => AppTab.settings,
+    _PageKind.item || _PageKind.search => null,
+  };
 
   /// Back lands at the top of the page it returns to: the pages share one
   /// ScrollController, so the one coming back is built from scratch.
@@ -595,6 +585,7 @@ class _AppShellState extends State<AppShell> {
                         searchController: _search,
                         tab: _lit,
                         onTab: _tab,
+                        onBack: _history.length > 1 ? _back : null,
                         // Every page starts under artwork or its own top margin, so the bar is
                         // transparent at the top of all of them.
                         scrolled: _scrolled,
