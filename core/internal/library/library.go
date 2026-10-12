@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -300,45 +301,79 @@ func (s *Service) dropReplaced(ctx context.Context) {
 	}
 }
 
-// Fits says whether a prefetch of size bytes stays inside the free disk and
-// the disk limit, after what unfinished downloads have still to fetch: a
-// season half way through would otherwise leave room it is about to fill.
-// Watched downloads count as room under the limit: over it, they are what
-// goes. A size nobody knows never fits.
-func (s *Service) Fits(ctx context.Context, size int64) (bool, error) {
-	if size <= 0 {
-		return false, nil
-	}
+// Room is what a new download may take: disk is the free disk after what
+// unfinished downloads have still to fetch, since a season half way through
+// would otherwise leave room it is about to fill; limit is what the disk
+// limit leaves, with watched downloads counted as room, since over it they
+// are what goes. limit is math.MaxInt64 with no limit.
+func (s *Service) Room(ctx context.Context) (disk, limit int64, err error) {
 	rows := s.downloads.List(ctx)
 	own, used := Usage(rows, s.downloads.Dirs)
+	free, err := DiskUsage(s.downloads.Dir())
+	if err != nil {
+		return 0, 0, err
+	}
+	disk = int64(min(free.Free, math.MaxInt64))
 	for _, row := range rows {
 		arriving := row.State == acquire.StateActive || row.State == acquire.StatePaused
 		if arriving && row.Locator.Scheme != "file" && row.Size > own[row.ID] {
-			size += row.Size - own[row.ID]
+			disk -= row.Size - own[row.ID]
+			used += row.Size - own[row.ID]
 		}
-	}
-	disk, err := DiskUsage(s.downloads.Dir())
-	if err != nil {
-		return false, err
-	}
-	if uint64(size) > disk.Free {
-		return false, nil
 	}
 	prefs, err := s.prefs.Get(ctx)
 	if err != nil {
-		return false, err
+		return 0, 0, err
 	}
 	if prefs.DiskLimit == 0 {
-		return true, nil
+		return disk, math.MaxInt64, nil
 	}
 	candidates, err := s.finished(ctx, rows)
 	if err != nil {
-		return false, err
+		return 0, 0, err
 	}
 	for _, c := range candidates {
 		used -= own[c.row.ID]
 	}
-	return used+size <= prefs.DiskLimit, nil
+	return disk, prefs.DiskLimit - used, nil
+}
+
+// Fits says whether a prefetch of size bytes stays inside the free disk and
+// the disk limit. A size nobody knows never fits.
+func (s *Service) Fits(ctx context.Context, size int64) (bool, error) {
+	if size <= 0 {
+		return false, nil
+	}
+	disk, limit, err := s.Room(ctx)
+	if err != nil {
+		return false, err
+	}
+	return size <= disk && size <= limit, nil
+}
+
+const (
+	gib = 1 << 30
+	// maxDefaultLimit caps the default disk limit on a large disk.
+	maxDefaultLimit = 50 * gib
+)
+
+// DefaultLimit is the disk limit nobody set: half of what the download disk
+// has for downloads, what they take now included so they do not shrink it,
+// in whole GiB, at least one (0 is no limit) and at most maxDefaultLimit.
+// The disk is shared with the user's own files, and a fixed default could be
+// more than it has free.
+func (s *Service) DefaultLimit(ctx context.Context) int64 {
+	free, err := DiskUsage(s.downloads.Dir())
+	if err != nil {
+		return maxDefaultLimit
+	}
+	_, used := Usage(s.downloads.List(ctx), s.downloads.Dirs)
+	return defaultLimit(free.Free, used)
+}
+
+func defaultLimit(free uint64, used int64) int64 {
+	half := (int64(min(free, math.MaxInt64/2)) + used) / 2
+	return max(gib, min(maxDefaultLimit, half/gib*gib))
 }
 
 type candidate struct {

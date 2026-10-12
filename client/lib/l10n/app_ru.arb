@@ -286,6 +286,7 @@
   "playerNoSourceAddons": "Нет аддонов-источников",
   "playerAddSource": "Добавить",
   "playerStream": "Смотреть онлайн",
+  "playerNoRoomForCopy": "Нет места для этой копии: {size}, свободно {free}",
   "playerOutTodayNoCopies": "Вышла сегодня, копий пока нет",
   "playerOutYesterdayNoCopies": "Вышла вчера, копий пока нет",
   "playerNoCopies": "Копий не найдено",

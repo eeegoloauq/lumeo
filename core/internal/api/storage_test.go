@@ -313,4 +313,44 @@ func TestPrefetchStartsOnlyInsideTheDiskLimit(t *testing.T) {
 	if code := start("asked", 4097, false); code != http.StatusCreated {
 		t.Fatalf("a download somebody asked for: status %d", code)
 	}
+
+	// Larger than any disk: refused, with the sizes for the client to say.
+	rec := requestJSON(t, h, http.MethodPost, "/api/v1/downloads",
+		`{"itemId":"film","source":{"size":1152921504606846976,"locator":{"scheme":"torrent","infoHash":"huge"}}}`)
+	var refusal struct{ Size, Free int64 }
+	if err := json.Unmarshal(rec.Body.Bytes(), &refusal); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if rec.Code != http.StatusInsufficientStorage || refusal.Size != 1<<60 || refusal.Free <= 0 {
+		t.Fatalf("a copy larger than the disk: status %d, %s", rec.Code, rec.Body)
+	}
+}
+
+// A copy that does not fit the room goes behind every copy that does, however
+// healthy and sharp; one already begun takes no new room.
+func TestACopyThatDoesNotFitGoesLast(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	backend := &fakeStreamBackend{task: &fakeStreamTask{file: &fakeStreamFile{name: "e.mkv", data: payload()}}}
+	manager := acquire.NewManager(t.TempDir(), []acquire.Backend{backend}, newFakeStore(), log)
+	db, err := store.Open(filepath.Join(t.TempDir(), "lumeo.db"), "test")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	prefs := preferences.New(db, preferences.Preferences{Keep: "forever", DiskLimit: 1 << 20})
+	lib := library.New(manager, db, prefs, log)
+	at := func(size int64, hash string) sources.MediaSource {
+		return sources.MediaSource{Size: size, Locator: sources.Locator{Scheme: "torrent", InfoHash: hash}}
+	}
+	begun := at(4<<20, "begun")
+	if _, err := manager.Start(context.Background(), acquire.Request{ItemID: "film", Source: begun}); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	remux, small := at(4<<20, "remux"), at(1024, "small")
+	remux.Seeders, remux.Release.Resolution = 300, "2160p"
+	all := []sources.MediaSource{remux, small, begun}
+	rankSources(all, nil, nil, New(Deps{Downloads: manager, Library: lib, Preferences: prefs}, log).fitting(context.Background()))
+	if all[2].Locator.InfoHash != "remux" {
+		t.Fatalf("ranked %+v, want the remux over the limit last", all)
+	}
 }

@@ -600,6 +600,26 @@ class LumeoApiException implements Exception {
     return body;
   }
 
+  /// The copy's size and the free disk, when the core refused a download
+  /// for room.
+  ({int size, int free})? get noRoom {
+    if (status != 507) return null;
+    try {
+      final json = jsonDecode(body);
+      if (json is Map<String, dynamic> &&
+          json['size'] is num &&
+          json['free'] is num) {
+        return (
+          size: (json['size'] as num).toInt(),
+          free: (json['free'] as num).toInt(),
+        );
+      }
+    } on FormatException {
+      // Not the core's refusal.
+    }
+    return null;
+  }
+
   @override
   String toString() => '$method $uri → $status';
 }

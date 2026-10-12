@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -54,6 +55,9 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if !req.Prefetch && !s.roomFor(r.Context(), w, req.Source) {
+		return
+	}
 	start := func() (acquire.Download, error) {
 		return s.downloads.Start(r.Context(), acquire.Request{
 			ItemID:  req.ItemID,
@@ -91,6 +95,35 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 		s.library.Kick()
 	}
 	writeJSON(w, http.StatusCreated, d)
+}
+
+// roomFor refuses a copy larger than the free disk: it would fill the disk
+// and fail part way. The disk limit is no reason to refuse one the viewer
+// asked for, since a file over it stays until it is watched, and a copy
+// already begun was let in when it started. The sizes go with the refusal
+// for the client to say in the viewer's language.
+func (s *Server) roomFor(ctx context.Context, w http.ResponseWriter, src sources.MediaSource) bool {
+	if s.library == nil || src.Size <= 0 || src.Locator.Scheme == "file" {
+		return true
+	}
+	if _, ok := s.downloads.Find(ctx, src.Locator); ok {
+		return true
+	}
+	disk, _, err := s.library.Room(ctx)
+	if err != nil {
+		// Not knowing the room is no reason to refuse a film.
+		s.log.Warn("measuring room for a download failed", "err", err)
+		return true
+	}
+	if src.Size <= disk {
+		return true
+	}
+	writeJSON(w, http.StatusInsufficientStorage, map[string]any{
+		"error": fmt.Sprintf("not enough free space: the copy needs %d bytes, %d are free", src.Size, max(disk, 0)),
+		"size":  src.Size,
+		"free":  max(disk, 0),
+	})
+	return false
 }
 
 func (s *Server) handleLocal(w http.ResponseWriter, r *http.Request) {

@@ -98,7 +98,7 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	subs, audio := s.viewerLanguages(r.Context())
-	rankSources(all, subs, audio)
+	rankSources(all, subs, audio, s.fitting(r.Context()))
 	listed := s.preferKnown(r.Context(), itemID, q.Kind == catalog.KindSeries, all)
 	// providers is how many source addons were asked: with none, an empty list
 	// means "add one", not "no copies".
@@ -137,16 +137,23 @@ func failure(provider string, err error) failedProvider {
 const minStreamableSeeders = 8
 
 // rankSources decides what Play uses when nobody chooses, which is the point
-// of the whole ranked list: health first, then language, then quality.
+// of the whole ranked list: room first, then health, then language, then
+// quality.
 //
 // Resolution alone is the wrong answer and the reason this exists — a 56 GB
-// remux with three seeders wins on resolution and cannot be watched. So a
-// source that has a swarm always outranks one that does not, and only inside
-// those groups does a copy the viewer can follow beat one they cannot, and
-// bigger and sharper win after that. A 1080p raw without subtitles is worse
-// than a 720p copy with them.
-func rankSources(all []sources.MediaSource, subs, audio []string) {
+// remux with three seeders wins on resolution and cannot be watched, and
+// neither can one larger than the disk. So a copy that fits always outranks
+// one that does not, a source that has a swarm one that does not, and only
+// inside those groups does a copy the viewer can follow beat one they cannot,
+// and bigger and sharper win after that. A 1080p raw without subtitles is
+// worse than a 720p copy with them. A nil fits fits everything.
+func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sources.MediaSource) bool) {
 	sort.SliceStable(all, func(i, j int) bool {
+		if fits != nil {
+			if fi, fj := fits(all[i]), fits(all[j]); fi != fj {
+				return fi
+			}
+		}
 		hi, hj := all[i].Seeders >= minStreamableSeeders, all[j].Seeders >= minStreamableSeeders
 		if hi != hj {
 			return hi
@@ -161,6 +168,28 @@ func rankSources(all []sources.MediaSource, subs, audio []string) {
 		}
 		return all[i].Seeders > all[j].Seeders
 	})
+}
+
+// fitting is whether a copy fits the room a new download has, the free disk
+// and the disk limit (library.Room); nil when that cannot be told. A copy
+// already begun or on disk, a file on this machine and a copy of unknown
+// size take no room anyone can count.
+func (s *Server) fitting(ctx context.Context) func(sources.MediaSource) bool {
+	if s.library == nil || s.downloads == nil {
+		return nil
+	}
+	disk, limit, err := s.library.Room(ctx)
+	if err != nil {
+		s.log.Warn("measuring room for the ranking failed", "err", err)
+		return nil
+	}
+	return func(src sources.MediaSource) bool {
+		if src.Size <= 0 || src.Locator.Scheme == "file" || src.Size <= min(disk, limit) {
+			return true
+		}
+		_, begun := s.downloads.Find(ctx, src.Locator)
+		return begun
+	}
 }
 
 // carriesAny reports whether a copy has one of the viewer's languages

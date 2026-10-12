@@ -422,3 +422,31 @@ func TestPrefetchLeavesRoomForWhatIsStillArriving(t *testing.T) {
 		t.Fatal("a prefetch did not fit beside a running download and three that stay")
 	}
 }
+
+func TestDefaultLimitIsHalfTheRoomUpToFiftyGiB(t *testing.T) {
+	for _, c := range []struct {
+		free uint64
+		used int64
+		want int64
+	}{
+		{free: 12 << 30, want: 6 << 30},
+		// What the downloads take is room too: filling the disk does not
+		// lower the limit they are held to.
+		{free: 4 << 30, used: 8 << 30, want: 6 << 30},
+		{free: 13 << 30, want: 6 << 30},
+		{free: 300 << 30, want: 50 << 30},
+		// 0 would mean no limit at all.
+		{free: 1 << 29, want: 1 << 30},
+	} {
+		if got := defaultLimit(c.free, c.used); got != c.want {
+			t.Errorf("free %d, used %d: limit %d, want %d", c.free, c.used, got, c.want)
+		}
+	}
+}
+
+func TestDiskUsageOfADirectoryNotMadeYet(t *testing.T) {
+	disk, err := DiskUsage(filepath.Join(t.TempDir(), "downloads", "lumeo"))
+	if err != nil || disk.Total == 0 {
+		t.Fatalf("disk %+v, err %v", disk, err)
+	}
+}

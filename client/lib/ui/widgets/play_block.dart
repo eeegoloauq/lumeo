@@ -130,6 +130,7 @@ class SourceChoice extends ChangeNotifier {
 
   void pick(MediaSource source) {
     picked = source;
+    error = null;
     _ping();
   }
 
@@ -159,6 +160,7 @@ class SourceChoice extends ChangeNotifier {
       return;
     }
     starting = true;
+    error = null;
     _ping();
     try {
       final download = await api.startDownload(
@@ -432,11 +434,27 @@ class _SummaryState extends State<_Summary> {
       sourceTitle(picked, context.l10n),
       if (picked.packFolder.isNotEmpty) picked.packFolder,
     ].where((e) => e.isNotEmpty).join(' · ');
-    final text = [
-      onDisk ? context.l10n.downloadsOnDisk : context.l10n.playerStream,
-      if (what.isNotEmpty) what,
-    ].join(' · ');
-    final icon = onDisk ? Icons.check : Icons.play_circle_outline;
+    // Said where the copy is named, which is also the way to a smaller one.
+    final noRoom = switch (choice.error) {
+      final LumeoApiException e => e.noRoom,
+      _ => null,
+    };
+    final text = noRoom != null
+        ? context.l10n.playerNoRoomForCopy(
+            formatBytes(noRoom.size, context.l10n),
+            noRoom.free > 0
+                ? formatBytes(noRoom.free, context.l10n)
+                : context.l10n.settingsGigabytes(0),
+          )
+        : [
+            onDisk ? context.l10n.downloadsOnDisk : context.l10n.playerStream,
+            if (what.isNotEmpty) what,
+          ].join(' · ');
+    final icon = noRoom != null
+        ? Icons.error_outline
+        : onDisk
+        ? Icons.check
+        : Icons.play_circle_outline;
     final Widget button;
     if (series) {
       button = ReleaseMenu(

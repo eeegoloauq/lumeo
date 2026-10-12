@@ -1339,6 +1339,18 @@
   "@playerStream": {
     "description": "Playback source selection status or action."
   },
+  "playerNoRoomForCopy": "No room for this copy: {size}, {free} free",
+  "@playerNoRoomForCopy": {
+    "description": "Play was refused: the copy is larger than the free disk. size is the copy, free what the disk has.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
   "playerOutTodayNoCopies": "Out today, no copies yet",
   "playerOutYesterdayNoCopies": "Out yesterday, no copies yet",
   "playerNoCopies": "No copies found",

@@ -19,6 +19,10 @@ LumeoApi fakeCore({
 
   /// Answers a prefetch with the core's 507, as when it is over the limit.
   bool prefetchRefused = false,
+
+  /// Answers every start with the core's 507 for a copy larger than the
+  /// free disk.
+  bool noRoom = false,
   List<String>? stopped,
   Map<String, dynamic>? preferences,
   List<String>? patched,
@@ -163,6 +167,13 @@ LumeoApi fakeCore({
         started?.add(request.body);
         if (prefetchRefused && request.body.contains('"prefetch":true')) {
           return _json({'error': 'no room'}, status: 507);
+        }
+        if (noRoom) {
+          return _json({
+            'error': 'not enough free space',
+            'size': 75 << 30,
+            'free': 12 << 30,
+          }, status: 507);
         }
         // Return the requested episode's download so the player gets its
         // matching id.

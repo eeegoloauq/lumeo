@@ -31,7 +31,7 @@ func TestPlayableSourceOutranksUnwatchableOne(t *testing.T) {
 		src("1080p", 199, "web-dl"),
 		src("720p", 40, "webrip"),
 	}
-	rankSources(all, nil, nil)
+	rankSources(all, nil, nil, nil)
 	if all[0].RawName != "web-dl" {
 		t.Errorf("default is %q, want the one with a swarm behind it", all[0].RawName)
 	}
@@ -45,7 +45,7 @@ func TestAmongHealthySourcesQualityWins(t *testing.T) {
 		src("1080p", 300, "1080"),
 		src("2160p", 60, "2160"),
 	}
-	rankSources(all, nil, nil)
+	rankSources(all, nil, nil, nil)
 	if all[0].RawName != "2160" {
 		t.Errorf("default is %q, want the sharper one — both are seeded", all[0].RawName)
 	}
@@ -57,7 +57,7 @@ func TestAmongEquallyUnhealthyOnesTheBestIsStillFirst(t *testing.T) {
 		src("2160p", 1, "2160"),
 		src("1080p", 3, "1080"),
 	}
-	rankSources(all, nil, nil)
+	rankSources(all, nil, nil, nil)
 	if all[0].RawName != "2160" {
 		t.Errorf("got %q — with no swarm anywhere, ordering falls back to quality", all[0].RawName)
 	}
@@ -70,7 +70,7 @@ func TestACopyTheViewerCanFollowOutranksASharperOne(t *testing.T) {
 	cr := src("720p", 40, "crunchyroll")
 	cr.Languages = []string{"en", "ru"}
 	all := []sources.MediaSource{raw, cr}
-	rankSources(all, []string{"ru"}, nil)
+	rankSources(all, []string{"ru"}, nil, nil)
 	if all[0].RawName != "crunchyroll" {
 		t.Errorf("default is %q, want the copy with the viewer's language", all[0].RawName)
 	}
@@ -80,7 +80,7 @@ func TestMultiSubCountsAsTheViewersLanguage(t *testing.T) {
 	multi := src("720p", 40, "multi")
 	multi.Release.MultiSub = true
 	all := []sources.MediaSource{src("1080p", 300, "raw"), multi}
-	rankSources(all, []string{"ru"}, nil)
+	rankSources(all, []string{"ru"}, nil, nil)
 	if all[0].RawName != "multi" {
 		t.Errorf("default is %q, want the Multi Subs copy", all[0].RawName)
 	}
@@ -91,7 +91,7 @@ func TestMultiSubDoesNotCountForAudioAlone(t *testing.T) {
 	multi := src("720p", 40, "multi")
 	multi.Release.MultiSub = true
 	all := []sources.MediaSource{multi, src("1080p", 300, "sharper")}
-	rankSources(all, nil, []string{"ru"})
+	rankSources(all, nil, []string{"ru"}, nil)
 	if all[0].RawName != "sharper" {
 		t.Errorf("default is %q, want the sharper copy", all[0].RawName)
 	}
@@ -102,7 +102,7 @@ func TestLanguageDoesNotBeatHealth(t *testing.T) {
 	dead := src("1080p", 2, "dead")
 	dead.Languages = []string{"ru"}
 	all := []sources.MediaSource{dead, src("720p", 50, "alive")}
-	rankSources(all, []string{"ru"}, nil)
+	rankSources(all, []string{"ru"}, nil, nil)
 	if all[0].RawName != "alive" {
 		t.Errorf("default is %q, want the seeded one", all[0].RawName)
 	}

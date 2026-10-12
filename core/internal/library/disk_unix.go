@@ -8,13 +8,7 @@ import (
 	"syscall"
 )
 
-// Disk is the filesystem a directory is on.
-type Disk struct {
-	Total uint64 `json:"total"`
-	Free  uint64 `json:"free"`
-}
-
-func DiskUsage(path string) (Disk, error) {
+func diskUsage(path string) (Disk, error) {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return Disk{}, err

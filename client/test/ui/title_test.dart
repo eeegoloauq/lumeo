@@ -287,6 +287,32 @@ void main() {
     expect(playing(tester), isNull);
   });
 
+  uiTest('a copy larger than the free disk says so where Play starts it', (
+    tester,
+  ) async {
+    // Play used to start a 75 GB copy on a disk with 12 GB free; the core
+    // now refuses it, and the refusal was not shown at all.
+    await tester.pumpWidget(testApp(api: fakeCore(noRoom: true)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PosterTile).first);
+    await waitFor(
+      tester,
+      () async =>
+          find.byKey(const ValueKey('source-chip')).evaluate().isNotEmpty,
+      what: 'the copies arrived',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await waitFor(
+      tester,
+      () async => find
+          .text('No room for this copy: 75.0 GB, 12.0 GB free')
+          .evaluate()
+          .isNotEmpty,
+      what: 'the refusal on the play line',
+    );
+    expect(playing(tester), isNull);
+  });
+
   uiTest('progress chooses and positions the current episode', (tester) async {
     await openSeries(
       tester,

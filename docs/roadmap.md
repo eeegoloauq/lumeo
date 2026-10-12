@@ -7,10 +7,6 @@ before code.
 ## Next
 
 1. What a first-time user runs into, in this order (mockups agreed):
-   - Play and Download check no free space: a 75 GB copy starts on a disk
-     with 12 GB free, and the 50 GB default limit can exceed what is free.
-     Check before starting, rank down what does not fit, derive the default
-     limit from the free space.
    - Play's pick: a copy without language flags counts as lacking the
      viewer's language, though it is the film's original; seeders count
      only as some or none; a whole collection outranks one film.

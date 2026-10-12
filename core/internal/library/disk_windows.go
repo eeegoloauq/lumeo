@@ -8,13 +8,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// Disk is the filesystem a directory is on.
-type Disk struct {
-	Total uint64 `json:"total"`
-	Free  uint64 `json:"free"`
-}
-
-func DiskUsage(path string) (Disk, error) {
+func diskUsage(path string) (Disk, error) {
 	name, err := windows.UTF16PtrFromString(path)
 	if err != nil {
 		return Disk{}, err

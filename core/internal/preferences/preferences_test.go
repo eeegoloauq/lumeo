@@ -415,3 +415,19 @@ func TestSubscribersFollowChanges(t *testing.T) {
 		t.Fatalf("subscriber saw %v, want %v", limits, want)
 	}
 }
+
+func TestDerivedDiskLimitIsTheDefaultAndAStoredOneWins(t *testing.T) {
+	store := &fakeStore{}
+	service := New(store, Preferences{})
+	service.DeriveDiskLimit(func(context.Context) int64 { return 6 << 30 })
+	ctx := context.Background()
+	if got, _ := service.Get(ctx); got.DiskLimit != 6<<30 {
+		t.Fatalf("default limit %d, want the derived one", got.DiskLimit)
+	}
+	if _, err := service.Patch(ctx, []byte(`{"diskLimit":0}`)); err != nil {
+		t.Fatalf("patch: %v", err)
+	}
+	if got, _ := service.Get(ctx); got.DiskLimit != 0 {
+		t.Fatalf("limit %d, want the stored no limit", got.DiskLimit)
+	}
+}

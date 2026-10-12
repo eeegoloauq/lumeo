@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
 )
@@ -113,6 +114,9 @@ type Store interface {
 type Service struct {
 	store    Store
 	defaults Preferences
+	// diskLimit works out the default DiskLimit on every read, when set: it
+	// depends on the disk the downloads go to.
+	diskLimit atomic.Pointer[func(context.Context) int64]
 
 	// mu orders changes, so subscribers see them in the order they were
 	// stored.
@@ -139,6 +143,12 @@ func New(store Store, defaults Preferences) *Service {
 	return &Service{store: store, defaults: defaults}
 }
 
+// DeriveDiskLimit has the default DiskLimit come from fn instead of the
+// fixed defaults. fn must not read the preferences.
+func (s *Service) DeriveDiskLimit(fn func(context.Context) int64) {
+	s.diskLimit.Store(&fn)
+}
+
 func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	effective := s.defaults
 	effective.SubtitleLanguages = append([]string(nil), s.defaults.SubtitleLanguages...)
@@ -146,6 +156,9 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	stored, err := s.store.Preferences(ctx)
 	if err != nil {
 		return Preferences{}, err
+	}
+	if derive := s.diskLimit.Load(); derive != nil {
+		effective.DiskLimit = (*derive)(ctx)
 	}
 	overlay(stored, "subtitleLanguages", &effective.SubtitleLanguages)
 	overlay(stored, "audioLanguages", &effective.AudioLanguages)

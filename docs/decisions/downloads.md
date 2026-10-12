@@ -137,9 +137,19 @@ by either: throwing away the film someone downloaded for the train is worse
 than going over a number. So a file larger than the ceiling stays until it is
 watched, and the ceiling never stops a download from starting. A small
 streaming cache that evicts anything is the other design, and it would
-contradict "keep, resume later". The defaults are thirty days
-and 50 GB: a player that fills the disk with films watched once is the worse
-surprise.
+contradict "keep, resume later". The defaults are thirty days and half of
+what the download disk has for downloads (its free space plus what they
+already take, so they do not shrink it), in whole GB, at most 50 GB: a player
+that fills the disk with films watched once is the worse surprise, and a
+fixed 50 GB was more than a small disk has free. The default is worked out on
+every read, so it follows a new download folder.
+
+The free disk is the hard edge. A copy larger than what the disk has left,
+once unfinished downloads are fetched, is refused when Play or Download asks
+for it (507, with both sizes for the client to say): it would fail part way
+after filling the disk. The ranking puts copies that do not fit the free disk
+or the limit behind every copy that does, ahead of health, so Play picks one
+that fits whenever there is one.
 
 Watched is the progress entry's latch with no position: a rewatch under way
 is not finished. The days count from when it was finished. A download

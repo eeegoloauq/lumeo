@@ -141,7 +141,6 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Accent:              "white",
 		Keep:                "days",
 		KeepDays:            30,
-		DiskLimit:           50 << 30,
 		Prefetch:            true,
 		CheckUpdates:        true,
 		BetaUpdates:         update.IsBeta(version),
@@ -172,6 +171,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	}
 	downloads := acquire.NewManager(downloadDir(current), []acquire.Backend{torrents, acquirelocal.Backend{}}, db, log)
 	lib := library.New(downloads, db, prefs, log)
+	prefs.DeriveDiskLimit(lib.DefaultLimit)
 	// The preferences only the core can apply follow every change of them.
 	prefs.Subscribe(func(p preferences.Preferences) {
 		torrents.SetLimits(p.UploadLimit, p.DownloadLimit)
