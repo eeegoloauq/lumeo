@@ -366,17 +366,18 @@ void playerTests() {
     await tester.tap(find.text('Play'));
     await playerKeysReady(tester);
     final mpv = mpvOnScreen(tester);
-    Future<double> position() async =>
-        double.tryParse(await mpv.getProperty('time-pos')) ?? 0;
+    // The position media_kit has observed, which is what the app saves: mpv's
+    // own time-pos runs ahead of it by an event.
+    Duration position() => mpv.state.position;
     await waitFor(
       tester,
-      () async => await position() > 0,
+      () async => position() > Duration.zero,
       what: 'the film playing',
     );
     await mpv.command(['seek', '5', 'absolute']);
     await waitFor(
       tester,
-      () async => await position() >= 5,
+      () async => position() >= const Duration(seconds: 5),
       what: 'the film past five seconds',
     );
     progressCalls.clear();
