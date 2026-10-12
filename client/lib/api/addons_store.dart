@@ -34,14 +34,14 @@ class AddonsStore extends ChangeNotifier {
   Future<void> load() => _apply(() async => _current = await _api.addons());
 
   /// Installs the addon at a URL, or re-points the one already installed
-  /// from it. Reports whether the core took it.
-  Future<bool> add(String url) async {
+  /// from it. The addon as the core took it, or null when it refused.
+  Future<Addon?> add(String url) async {
     _adding = true;
     _addError = null;
     notifyListeners();
     try {
       final addon = await _api.addAddon(url);
-      if (_disposed) return false;
+      if (_disposed) return null;
       final list = [..._current ?? const <Addon>[]];
       final index = list.indexWhere((a) => a.id == addon.id);
       if (index < 0) {
@@ -51,11 +51,11 @@ class AddonsStore extends ChangeNotifier {
       }
       _current = list;
       _error = null;
-      return true;
+      return addon;
     } on Object catch (error) {
-      if (_disposed) return false;
+      if (_disposed) return null;
       _addError = error;
-      return false;
+      return null;
     } finally {
       if (!_disposed) {
         _adding = false;

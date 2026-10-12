@@ -41,6 +41,8 @@ class SettingsScreen extends StatefulWidget {
     this.section,
     this.request = 0,
     this.notes = const [],
+    this.backTo,
+    this.onBack,
   });
 
   final LumeoApi api;
@@ -57,6 +59,10 @@ class SettingsScreen extends StatefulWidget {
 
   /// This version's release notes, for About.
   final List<String> notes;
+
+  /// The title Settings was opened from to add a source, and the way back.
+  final String? backTo;
+  final VoidCallback? onBack;
 
   /// The sections that have rows. General has only the language yet: its
   /// other mockup rows (closing to a tray, pausing when minimised) need
@@ -317,7 +323,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         patch: patch,
         error: _errorIn(section),
       ),
-      SettingsSection.sources => SourcesSection(addons: _addons),
+      SettingsSection.sources => SourcesSection(
+        addons: _addons,
+        backTo: widget.backTo,
+        onBack: widget.onBack,
+      ),
       SettingsSection.shortcuts => ShortcutsSection(preferences: preferences),
       SettingsSection.about => AboutSection(
         api: widget.api,

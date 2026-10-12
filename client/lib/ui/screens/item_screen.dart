@@ -95,8 +95,9 @@ class ItemScreen extends StatefulWidget {
   /// Hands the window over to the player once there is something to play.
   final void Function(String downloadId, String title) onPlay;
 
-  /// Opens the Sources settings, where a source addon is added.
-  final VoidCallback onAddSource;
+  /// Opens the Sources settings, where a source addon is added, with this
+  /// title's name to come back to.
+  final ValueChanged<String> onAddSource;
 
   @override
   State<ItemScreen> createState() => _ItemScreenState();
@@ -162,7 +163,7 @@ class _ItemScreenState extends State<ItemScreen> {
       // this title, not whichever episode gets selected later.
       startWhenReady: widget.autoplay && existing == null,
       onStarted: (download) => widget.onPlay(download.id, _playTitle(episode)),
-      onAddSource: widget.onAddSource,
+      onAddSource: () => widget.onAddSource(_lastTitle),
       ask: () async => !(widget.preferences.current?.askCopy ?? false)
           ? choice.picked
           : mounted

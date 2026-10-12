@@ -621,6 +621,10 @@
       }
     }
   },
+  "settingsSourceAdded": "{name} added",
+  "@settingsSourceAdded": {"description": "A source addon was just added from a title's Add one.", "placeholders": {"name": {"type": "String"}}},
+  "settingsBackTo": "Back to {title}",
+  "@settingsBackTo": {"description": "Button after adding a source: back to the title it was added for.", "placeholders": {"title": {"type": "String"}}},
   "settingsSourceError": "Not answering — {error}",
   "@settingsSourceError": {
     "description": "Status of an addon when it fails; the error text comes from the core.",

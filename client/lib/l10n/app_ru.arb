@@ -181,6 +181,8 @@
   "commonSecondUnit": "с",
   "settingsBottom": "внизу",
   "settingsPercentUp": "на {percent}% выше",
+  "settingsSourceAdded": "{name}: добавлено",
+  "settingsBackTo": "Назад к «{title}»",
   "settingsSourceError": "Не отвечает — {error}",
   "settingsUseAddon": "Использовать {name}",
   "settingsResetConfirm": "Вернуть все настройки к исходным? Загрузки, ваш список и история останутся.",

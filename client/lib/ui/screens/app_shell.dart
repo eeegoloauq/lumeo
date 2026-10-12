@@ -542,8 +542,11 @@ class _AppShellState extends State<AppShell> {
                             autoplay: _page.autoplay,
                             episode: _page.episode,
                             onPlay: _play,
-                            onAddSource: () =>
-                                openSettings(section: SettingsSection.sources),
+                            // A page of its own even with Settings further
+                            // back, so the title stays to come back to.
+                            onAddSource: (title) => _go(
+                              _Page.settings(SettingsSection.sources, title),
+                            ),
                           ),
                           _PageKind.search => SearchScreen(
                             key: ValueKey('search:${_page.value}'),
@@ -577,6 +580,8 @@ class _AppShellState extends State<AppShell> {
                             preferences: widget.preferences,
                             settings: widget.settings,
                             notes: _notes,
+                            backTo: _page.backTo,
+                            onBack: _back,
                           ),
                         },
                       ),
@@ -713,22 +718,26 @@ class _Page {
       value = '',
       autoplay = false,
       episode = null,
-      section = null;
+      section = null,
+      backTo = null;
   const _Page.item(this.value, {this.autoplay = false, this.episode})
     : kind = _PageKind.item,
-      section = null;
+      section = null,
+      backTo = null;
   const _Page.search(this.value)
     : kind = _PageKind.search,
       autoplay = false,
       episode = null,
-      section = null;
+      section = null,
+      backTo = null;
   const _Page.library()
     : kind = _PageKind.library,
       value = '',
       autoplay = false,
       episode = null,
-      section = null;
-  const _Page.settings([this.section])
+      section = null,
+      backTo = null;
+  const _Page.settings([this.section, this.backTo])
     : kind = _PageKind.settings,
       value = '',
       autoplay = false,
@@ -739,6 +748,9 @@ class _Page {
 
   /// Where a settings page opens; its top when null.
   final SettingsSection? section;
+
+  /// The title a settings page was opened from to add a source.
+  final String? backTo;
 
   /// Set when the page was opened by Play rather than by a poster.
   final bool autoplay;

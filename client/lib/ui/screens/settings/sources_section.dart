@@ -10,9 +10,19 @@ import 'controls.dart';
 /// The addons the core reads from. Their order breaks ties when two provide
 /// the same copy, so the list is dragged into order.
 class SourcesSection extends StatelessWidget {
-  const SourcesSection({super.key, required this.addons});
+  const SourcesSection({
+    super.key,
+    required this.addons,
+    this.backTo,
+    this.onBack,
+  });
 
   final AddonsStore addons;
+
+  /// The title whose "Add one" opened Settings: once a source is added, the
+  /// way back to it is offered.
+  final String? backTo;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +64,7 @@ class SourcesSection extends StatelessWidget {
                     ],
                   ),
                 const Divider(height: 1, thickness: 1, color: Palette.divider),
-                _AddAddon(addons: addons),
+                _AddAddon(addons: addons, backTo: backTo, onBack: onBack),
               ],
             );
           },
@@ -183,9 +193,11 @@ class _AddonRow extends StatelessWidget {
 
 /// The core checks the manifest before accepting an addon address.
 class _AddAddon extends StatefulWidget {
-  const _AddAddon({required this.addons});
+  const _AddAddon({required this.addons, this.backTo, this.onBack});
 
   final AddonsStore addons;
+  final String? backTo;
+  final VoidCallback? onBack;
 
   @override
   State<_AddAddon> createState() => _AddAddonState();
@@ -200,10 +212,18 @@ class _AddAddonState extends State<_AddAddon> {
     super.dispose();
   }
 
+  /// The source just added, while there is a title to go back to with it.
+  String? _added;
+
   Future<void> _add() async {
     final url = _url.text.trim();
     if (url.isEmpty) return;
-    if (await widget.addons.add(url)) _url.clear();
+    final addon = await widget.addons.add(url);
+    if (addon == null || !mounted) return;
+    _url.clear();
+    if (widget.backTo != null && addon.resources.contains('stream')) {
+      setState(() => _added = addon.name);
+    }
   }
 
   static const _edge = OutlineInputBorder(
@@ -218,6 +238,43 @@ class _AddAddonState extends State<_AddAddon> {
 
   @override
   Widget build(BuildContext context) {
+    final added = _added, backTo = widget.backTo;
+    if (added == null || backTo == null) return _field(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _field(context),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Palette.raised,
+            borderRadius: const BorderRadius.all(Shape.controlRadius),
+            border: Border.all(color: Palette.line),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.check, size: 18, color: Palette.up),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    context.l10n.settingsSourceAdded(added),
+                    style: Typo.cardTitle,
+                  ),
+                ),
+                FilledButton(
+                  onPressed: widget.onBack,
+                  child: Text(context.l10n.settingsBackTo(backTo)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _field(BuildContext context) {
     final addons = widget.addons;
     final error = addons.addError;
     return Padding(

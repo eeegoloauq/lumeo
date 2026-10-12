@@ -728,6 +728,44 @@ void main() {
     expect(top, inInclusiveRange(0, window.height));
   });
 
+  uiTest('a source added from Add one offers the way back to the title', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          addons: [
+            for (final addon in fakeAddons)
+              if (!(addon['resources'] as List).contains('stream')) addon,
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(PosterTile).first);
+    await waitFor(
+      tester,
+      () async => find.text('Add one').evaluate().isNotEmpty,
+      what: 'the missing addon in place of the source line',
+    );
+    await tester.tap(find.text('Add one'));
+    await tester.pumpAndSettle();
+    final field = find.widgetWithText(TextField, 'Addon address');
+    await reveal(tester, field);
+    await tester.enterText(field, 'https://pd.invalid/manifest.json');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Public Domain Movies added'), findsOneWidget);
+
+    await tester.tap(find.text('Back to Night of the Living Dead'));
+    await waitFor(
+      tester,
+      () async =>
+          find.byKey(const ValueKey('source-chip')).evaluate().isNotEmpty,
+      what: 'the title found copies through the new source',
+    );
+  });
+
   Map<String, dynamic> packCopy(String folder, int episode) => {
     'providerId': 'local',
     'rawName': '[Kaizoku] Show S01 [BD 1080p]',
