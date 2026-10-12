@@ -1,212 +1,160 @@
 # Roadmap
 
-The MVP workflow is search → select → acquire → play while acquiring → keep →
-resume later, and all of it runs end to end. Done work is in git and, where it
-set a rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle before code.
+What is next, not what was done: done work is in git and, where it set a
+rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle
+before code.
 
-## From the user's notes of 2026-09-27, in order
+## Next
 
-1. mpv renders at the view's size and owns fit, fill and stretch (`panscan`,
-   `keepaspect`), so its OSD is no longer cropped (patch 5 in the fork's
-   `LUMEO.md`). Left to check by hand: the picture modes on Windows.
-2. Windows. media_kit's libmpv is mpv 0.36 built with `-Dlua=disabled`, so
-   the console and statistics cannot work: ship a current libmpv with Lua,
-   pinned by hash. Then left click not pausing on Windows 10, the picture
-   frozen after the display sleeps (leaving fullscreen brings it back), and
-   whether the home banner still lags on scroll on Windows 10 now that its
-   scrim is one shader pass (0.1.70). The frozen picture is below
-   us: after the display turns back on, Flutter's raster thread still
-   presents frames and DWM does not show them (mpv and the sound go on);
-   resizing the FLUTTERVIEW child window by a pixel and back revives it,
-   `RedrawWindow` does not. A fix in the runner would do that resize on
-   `GUID_CONSOLE_DISPLAY_STATE` turning on, a workaround to agree first.
-   Tested with the CI build under Wine here and on the user's machine.
-3. A UX map of the user's journeys with the defaults of each, reviewed
-   against screenshots of the real app; mockups only for what changes.
-4. Opening and ending found by comparing a season's audio, for files whose
-   chapters are unnamed (`[?]`, after the rest).
+1. What a first-time user runs into, in this order (mockups agreed):
+   - Play from the banner with no source addon, then adding one and going
+     back, starts the film unasked: `autoplay` stays in the history until a
+     start succeeds. Drop it once the page has read it.
+   - Play and Download check no free space: a 75 GB copy starts on a disk
+     with 12 GB free, and the 50 GB default limit can exceed what is free.
+     Check before starting, rank down what does not fit, derive the default
+     limit from the free space.
+   - Play's pick: a copy without language flags counts as lacking the
+     viewer's language, though it is the film's original; seeders count
+     only as some or none; a whole collection outranks one film.
+   - The player shows "0%" while the downloads panel says "Finding peers".
+     Under the ring: the same stage, then peers and rate; after about 30 s
+     with no peers a quiet "Try another copy" naming the next copy. The ring
+     stays put; lines appear below it.
+   - One release menu for films and series: Automatic (checked by default,
+     "the best copy for each episode") first, then On disk, Available, and
+     "All copies…" and "File/Folder on this computer…" last, no icons. A
+     film's file on this computer needs the core's link to accept a film.
+   - A setting "Ask every time": Play opens the copies list, the pick plays.
+   - After adding a source from "Add one", a "Back to <title>" button.
+   - The title is blank until the logo loads or finally fails: after 400 ms
+     show the text in the logo's box, cross-fade the logo in when it comes.
+   - A back arrow left of the wordmark on pages with a way back; no tab lit
+     on pages that are not Home, Library or Settings.
+   - mpv's `R` takes `sub-pos` past the core's 70–100, and Settings shows
+     the raw error under Appearance.
+   - Subtitles: default "Foreign audio", and a subtitle turned on or off by
+     hand is remembered per audio language for the next titles.
+   - Once per machine, on leaving the player the first time: a card where
+     the update card sits, "Lumeo keeps what you watch", saying the title is
+     in My list and on this computer and, from the keep setting, when it is
+     deleted; Storage and close.
+2. Windows libmpv: media_kit's is mpv 0.36 built without Lua, so the console
+   and statistics do not work. Ship a current libmpv with Lua, pinned by hash.
+3. Skip the opening and ending of files whose chapters are unnamed, found by
+   the audio the episodes of a season share (`[?]`).
+
+## Remote core
+
+The client already speaks HTTP to the core, so a core on another machine is a
+deployment, not a rewrite. Before anyone runs one:
+
+- Pairing: the core shows a one-time code, the client trades it with the
+  address for a token of its own, revocable per device.
+- TLS in the core: a self-signed certificate whose fingerprint the client
+  pins at pairing (mpv gets it as `tls-ca-file`); a reverse proxy with a
+  real certificate also works.
+- A confined deployment shipped with the binary: a systemd unit and a
+  container, unprivileged, writing to the data directory only.
+- More than one core address in the client, switchable, each with its token
+  (`LumeoApi.baseUri` changing at runtime).
+
+Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
 ## Library and storage
 
-- Download folder: `$(xdg-user-dir VIDEOS)/Lumeo`, changeable, laid out
-  `Title (Year)/Season NN/<torrent name>/`. Files inside a torrent keep their
-  names or seeding and verification break; only the directories above are
-  ours.
-- Trakt import and export: the core keeps IMDb ids, the list, ratings and
-  watched entries, which is all it needs. `progress.updated_at` moves with a
-  rewatch, so a first-watched time needs a column of its own first.
-- Files the user already has (a folder of films outside Lumeo) as a library
-  of their own: on the home screen, not as a Library tab. A series' folder
-  can already be linked from its page; this is the scan of a whole folder.
-- A title's episodes as a vertical list under the banner, each with its
-  still, length and, for watched episodes and the next one only, a synopsis:
-  for long series it beats the strip. A different page, scrolled, with its
-  own keyboard; mockup first (the canvas "Series page · release picker",
-  page "Others' layouts").
-- Freeing an episode of a pack takes about 250 ms on an ext4 test disk with
-  16 MiB pieces, against 2 ms for a plain delete. Most of it is
-  `storedFile.shrink` copying the two boundary pieces into a new `.part` and
-  syncing it; the completion records cost about 20 ms. The pass runs in the
-  background, but `Manager.Remove` holds `startMu` throughout, so a Play,
-  pause or subtitle save at that moment waits for it. Punching holes in place
-  (`fallocate` with `PUNCH_HOLE`, `FSCTL_SET_ZERO_DATA` on Windows) would make
-  it a metadata change, with the copy kept for filesystems that cannot. Worth
-  it once such a wait is noticed.
+- Default download folder `Videos/Lumeo`, laid out
+  `Title (Year)/Season NN/<torrent name>/`. Only the directories above the
+  torrent's are ours: renaming its files breaks seeding.
+- Trakt import and export. A first-watched time needs a column of its own:
+  `progress.updated_at` moves with a rewatch.
+- A folder of films the user already has, scanned as a library of its own on
+  the home screen.
+- A series' episodes as a vertical list under the banner (still, length,
+  synopsis for watched and next only). Mockup first: canvas "Series page ·
+  release picker", page "Others' layouts".
+- Freeing a pack episode costs ~250 ms (copying the two boundary pieces) and
+  holds `startMu`, so a Play at that moment waits. Left as is until someone
+  notices; the fix then is punching holes in place (`fallocate`,
+  `FSCTL_SET_ZERO_DATA`) with the copy as fallback.
 
 ## Player
 
-- A copy whose swarm has nobody in it: the wait in the player says so after
-  a while with no peers and offers another copy. The seeder count on the
-  source list cannot say it: it is the addon's snapshot, and zero is also
-  what an addon that gives no count sends.
-- mpv's window requests (clipboard, window size, minimise, on-top): answer each
-  once through a property the host observes, as `fullscreen` is, or leave mpv's
-  "not available". mpv 0.41's NULL deref on an argument-less `keyup` is worth
-  an upstream report.
-- `video_output.cc` treats a failed `eglClientWaitSyncKHR` (`EGL_FALSE`) like
-  a signalled fence. Handle it like the timeout, in the next change to the
-  fence code, not alone.
-- "Open with": `[?]` Identify as… for a file nothing or the wrong title
-  matched (a search picked by hand).
+- A copy whose swarm is empty: after a while with no peers the player says so
+  and offers another copy. The addon's seeder count cannot tell: zero is also
+  what an addon without counts sends.
+- mpv's window requests (clipboard, window size, minimise, on-top): answer
+  each through an observed property, as `fullscreen` is.
+- `video_output.cc` treats a failed `eglClientWaitSyncKHR` as signalled;
+  handle it as the timeout, with the next change to the fence code.
+- "Identify as…" for a file matched to the wrong title or none (`[?]`).
+- A copy that is not the episode (another cut, a short), told by mpv's
+  `duration` against the catalogue runtime. Only if somebody asks.
 
 ## Application
 
-- Translations: community ones through a web editor (Weblate) that commits
-  `client/lib/l10n/app_<code>.arb`. It has to write to Forgejo, not to the
-  GitHub push mirror, which a push overwrites. The runtime ("112 min") is the
-  provider's text; the core could send minutes so the client says them in the
-  viewer's language.
-
-- Artwork on a throttled network (decisions/security.md): check on a
-  filtered line without a VPN that blank posters fill in within about 30 s.
-  Stalls after some kilobytes of a body rather than in the handshake are
-  routing, which no timeout or retry gets past.
-- A slow or blocked Cinemeta (no VPN), the client's half. The core now answers
-  a title opened before at once and refreshes it behind the answer, so what
-  still waits is a title never opened: the item page spins for up to the
-  addon client's 15 s with the catalog row's title, poster and rating already
-  in hand. Draw the page from the row and fill episodes and cast in when they
-  arrive. A poster that failed (the core's 502) stays blank until the page is
-  rebuilt; retry it with a backoff instead.
-- Settings still to add. General: what opens at startup, and pausing when minimised — GTK 3 on
-  Wayland is never told the window was minimised (xdg-shell has no such
-  state), so only our own minimise button could see it; on X11 and Windows
-  Flutter's `AppLifecycleState.hidden` does. Playback: an external player for
-  what our mpv cannot open, surround passthrough. Subtitles: outline. About:
-  whether a newer release exists. Downloads: the desktop's own folder chooser in place of the
-  one drawn in the app (a portal call on Linux, `IFileDialog` on Windows).
-- More than one core address, switchable, kept in `client.json`, each with
-  its token. Needs `LumeoApi.baseUri` to change at runtime. For a core on the
-  home server plus a local one on a laptop.
-- The home hero moves on to another title every ten seconds or so, paused
-  under the pointer, with arrows or dots to step (mockup first).
-- Settings for the defaults still built in (a list to go through first):
-  mpv's network timeout and cache, `hwdec`.
+- Community translations through Weblate, committing to Forgejo (the GitHub
+  mirror is overwritten by pushes). Runtime as minutes from the core, so the
+  client says it in the viewer's language.
+- A title never opened, on a slow Cinemeta: draw the page from the catalog
+  row at once and fill episodes and cast in later. Retry a failed poster with
+  a backoff.
+- Settings to add: what opens at startup; pausing when minimised (X11 and
+  Windows only: GTK on Wayland is never told); an external player for what
+  our mpv cannot open; surround passthrough; subtitle outline; whether a
+  newer release exists; mpv's network timeout and cache, `hwdec`.
+- The home hero rotates every ~10 s, paused under the pointer (mockup first).
 - Gamepad support.
 
 ## Metadata: TMDB
 
-`[?]` TMDB as an optional provider with the user's own key (decisions/foundations.md,
-Metadata). Cinemeta has no collections, recommendations, season art, original
-language, or more than one backdrop. Waiting on it:
+`[?]` TMDB as an optional provider with the user's own key
+(decisions/foundations.md, Metadata). It brings what Cinemeta lacks:
 
-- Collection shelf on the film page, by release date, watched ones checked.
-- Season posters where posters are shown (Continue watching shows the season
-  being watched).
-- More like this, from TMDB recommendations, not from genre.
-- Original-language audio as the default track.
-- Trailer: one button on the title page played by our mpv through yt-dlp
-  (recommended, not bundled). Cinemeta's `trailerStreams` are flat per title
-  and often not trailers; TMDB's `/videos` gives the open season's newest
-  official one. `[?]` Whether embedded libmpv loads its ytdl hook.
+- collection shelf on a film's page;
+- season posters, also in Continue watching;
+- More like this from recommendations;
+- original-language audio as the default track;
+- a trailer button played by our mpv through yt-dlp (`[?]` whether embedded
+  libmpv loads its ytdl hook).
 
 ## Sources and the swarm
 
-- anacrolix/torrent v1.61.0 loses connection writer wakeups
-  (anacrolix/torrent#1070): a download from few peers can freeze for up to a
-  minute. Fixed on master (`aa71e8d`, `70072f1`), not released yet. Update to
-  the first release that has it and drop the skip in
-  `TestBackendStreamsFromLocalPeer`.
-- Playback jumping to the end of an episode, so the next one starts, was seen
-  in real use and has no known cause: a bad piece only skips to the next
-  keyframe (decisions/downloads.md). A stream the core ends early looks exactly
-  like that to mpv. When it happens again, look for the core's `stream cut
-  short` warning (`journalctl --user` on Linux, `core.log` on Windows) and
-  `mpv.log` / `mpv.old.log` in `~/.local/state/lumeo`.
-- Anime by Kitsu. Cinemeta files a franchise under its first title's IMDb
-  entry: the sequels become seasons 2, 3 and on, and season 0 holds the
-  films, while releases number each part from episode 1. Copies go missing
-  where that mapping fails. Kitsu keeps each part a title of its own and
-  Torrentio answers `kitsu:<id>:<episode>`; the core looks up by IMDb id only
-  today.
-- A copy that is not the episode, told by its length once it plays. The
-  provider maps files to episodes by the number in the name, so another cut
-  or a two-minute short ("Break Time" for Re:Zero S1E9) arrives as the
-  episode; only a director's cut is caught by name before the download. mpv's
-  `duration` against the catalogue's runtime catches any of them: well off,
-  the player says it is not this episode and offers the next copy. Only when
-  somebody asks for it.
-- `[?]` Proxy per addon, beyond `HTTP_PROXY`.
-- `[?]` Whether ranking by language flags holds for live action, where the
-  flags are mostly dubs. Fresh anime episodes can have only raw copies for
-  hours; only another source provider fixes that.
-- Whether Cloudflare's 403 comes from our User-Agent or a burst: `curl -A
-  'Lumeo/0.1 …'` from a residential line (datacentre addresses get 403 for
-  any agent).
+- anacrolix/torrent v1.61.0 can freeze a download from few peers for up to a
+  minute (#1070, fixed on master). Update to the first release with the fix
+  and drop the skip in `TestBackendStreamsFromLocalPeer`.
+- Anime through Kitsu ids: Cinemeta folds sequels into seasons of the first
+  title, so episodes numbered per part go missing.
+- Playback jumping to the end of an episode, cause unknown. Next time: the
+  core's `stream cut short` warning and `mpv.log` in `~/.local/state/lumeo`.
+- `[?]` A proxy per addon, beyond `HTTP_PROXY`.
+- `[?]` Ranking by language flags for live action, where the flags are
+  mostly dubs.
 
-## Client debt: mechanics the framework already has
+## Client debt
 
-An entry is done when the hand-written version is gone, not wrapped.
-
-1. Go through what media_kit publishes (streams, state, configuration) against
-   what we ask mpv for or keep in fields, and delete the copies.
-
-Checked and kept: the episode card's `Focus`, `Shortcuts` and `MouseRegion`
-are its roving keyboard stop (the arrows walk the season, Enter plays) and
-the play button shown on hover; the window's caption buttons stay out of the
-tab order, as the system's own do, and draw their own hover without a ripple;
-the poster tile's `MouseRegion` lifts it for any mouse, where
-`FocusableActionDetector.onShowHoverHighlight` stays dark after a touch.
-
-The shell's own history duplicates a `Navigator`; it stays until it causes a
-defect.
-
-The folder picker (`folder_dialog.dart`) is ours on purpose: it matches the
-app and one folder is a small question. If someone asks for the system's
-chooser (bookmarks, network places), `file_selector` is the flutter.dev
-plugin for it on both systems.
+- Go through what media_kit publishes (streams, state, configuration) against
+  what we ask mpv for or keep in fields, and delete the copies.
 
 ## Shipping
 
-Copr repo, arm64, a self-hosted Flatpak remote.
+- Copr, arm64, a self-hosted Flatpak remote.
+- Windows: a signed installer if SmartScreen costs users; Snap Layouts on the
+  maximise button.
 
-Windows is built by the release since the first tag after 0.1.57 and has not
-yet run on a real machine. What to check there first, on Windows 10 and 11:
-the title bar (drag, snap, maximise, the Windows 10 top edge), fullscreen in
-and out, a second launch and "Open with", the core starting and stopping with
-the app (`%LOCALAPPDATA%\Lumeo\State\core.log`), playback and seeking on
-media_kit's libmpv (a 2023-09 build, older than any Linux one), subtitles and
-screenshots, and freeing one episode of a pack while the next one plays (the
-freed file is rewritten and renamed, which Windows refuses for an open file). Later: a signed installer, if SmartScreen's warning costs users;
-the Snap Layouts flyout on the maximise button, which needs the runner to know
-where the client draws it.
+## To check by hand
 
-## Before server mode
+Windows 10 and 11: the title bar (drag, snap, maximise, the Windows 10 top
+edge), fullscreen, a second launch and "Open with", the core starting and
+stopping with the app, playback and seeking, subtitles and screenshots, the
+picture modes, freeing one episode of a pack while the next plays, left click
+pausing, and the home banner on scroll. A picture frozen after the display
+sleeps is DWM not showing frames Flutter presents; resizing the view's child
+window by a pixel revives it, a workaround to agree first.
 
-Server mode is the same binary deployed separately, with a management web UI,
-more providers (HTTP, WebDAV), mobile and TV clients. These land first, because
-they cannot be added once someone runs it:
-
-- The API token over a network: TLS (a reverse proxy at least) and a way for
-  a remote client to be given the token, typed in or paired. On loopback the
-  client reads it from the data directory.
-- A confined deployment shipped with the binary: a systemd unit and a container,
-  unprivileged, no capabilities, write access to the data directory only.
+A filtered line without a VPN: blank posters fill in within about 30 s.
 
 ## Open questions
 
-- A demo source without copyrighted content: the Public Domain Movies addon URL
-  we had is dead.
-- How far Cinemeta falls short in practice, and whether that makes TMDB the
-  recommended setup.
+- A demo source without copyrighted content.
 - Whether a first-party indexer is worth writing once addon gaps are known.

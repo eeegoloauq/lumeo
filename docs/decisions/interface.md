@@ -347,3 +347,14 @@ The folder chooser is drawn by the app: the runners have none, and a native
 one per platform (a portal call on Linux, `IFileDialog` on Windows) is code
 nothing here can build or run. It walks this machine's folders, so Change on
 the download folder is offered only when the core is on this machine.
+
+## Hand-written on purpose
+
+Checked against what the framework has, and kept: the episode card's `Focus`,
+`Shortcuts` and `MouseRegion` are its roving keyboard stop (the arrows walk
+the season, Enter plays) and the play button shown on hover; the caption
+buttons stay out of the tab order, as the system's own do, and draw their
+hover without a ripple; the poster tile's `MouseRegion` lifts it for any
+mouse, where `FocusableActionDetector.onShowHoverHighlight` stays dark after
+a touch. The shell's own history duplicates a `Navigator` and stays until it
+causes a defect.
