@@ -28,6 +28,13 @@ deployment, not a rewrite. Before anyone runs one:
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
+Much later, after the apps: playback in that web UI without transcoding video.
+First, with no FFmpeg, offer a browser only the sources it plays as they are
+(MP4 with H.264 or AV1 and AAC, mostly film releases), with external subtitles
+as WebVTT. Then, if that proves too few: remux MKV and convert the audio
+through FFmpeg, where seeking is the hard part. Everything else opens in the
+app. This revises "No browser playback" in decisions/foundations.md.
+
 ## Library and storage
 
 - Default download folder `Videos/Lumeo`, laid out
