@@ -32,7 +32,9 @@ command after it waits too: a provider that kept silent held the switch to the
 next episode for as long as the core waited on it. The core gives up on a file
 once nothing of it has arrived for 5 s, well before the player's own 20 s,
 since a filtered route passes the first few KB of a body and then nothing; the
-player says the file did not download, and picking it again asks again.
+player says the file did not download, and picking it again asks again. The
+last pick wins: a file that arrives after the viewer picked another track, or
+none, is kept for the next pick and not put on screen.
 
 The picker itself does not distinguish where a track came from: the ones inside
 the file and the ones a database has for this copy are the same decision to

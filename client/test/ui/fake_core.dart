@@ -67,11 +67,12 @@ LumeoApi fakeCore({
   /// What every download keeps beside it, each file saying its own name.
   List<Map<String, dynamic>> keptSubtitles = const [],
 
-  /// Every subtitle file asked for; with [subtitlesSilent] none is answered,
-  /// as a provider that keeps silent, and with [subtitlesFail] each is a 502,
-  /// as the core answers when the provider stopped sending.
+  /// Every subtitle file asked for; with [subtitlesHeld] each is answered
+  /// once it completes (never, for a provider that keeps silent), and with
+  /// [subtitlesFail] each is a 502, as the core answers when the provider
+  /// stopped sending.
   List<String>? subtitleCalls,
-  bool subtitlesSilent = false,
+  Future<void>? subtitlesHeld,
   bool subtitlesFail = false,
 
   /// How long the source list takes, as a provider does on a real network.
@@ -322,7 +323,7 @@ LumeoApi fakeCore({
       }
       if (path.startsWith('/api/v1/subtitles/')) {
         subtitleCalls?.add(path);
-        if (subtitlesSilent) return Completer<http.Response>().future;
+        await subtitlesHeld;
         if (subtitlesFail) {
           return _json({'error': 'the provider stopped sending'}, status: 502);
         }

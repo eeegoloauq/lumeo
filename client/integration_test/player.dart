@@ -486,7 +486,7 @@ void playerTests() {
                 },
               ],
               subtitleCalls: subtitleCalls,
-              subtitlesSilent: silent,
+              subtitlesHeld: silent ? Completer<void>().future : null,
               subtitlesFail: fails,
             ),
           ),
@@ -566,6 +566,78 @@ void playerTests() {
       },
     );
   }
+
+  testWidgets('subtitles turned off while the picked ones download stay off', (
+    tester,
+  ) async {
+    // The file picked first arrived after the viewer had turned subtitles
+    // off, and put them back on.
+    final server = await serveFilm();
+    final held = Completer<void>();
+    final subtitleCalls = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        api: fakeCore(
+          downloads: [fakeDownload()],
+          baseUrl: 'http://127.0.0.1:${server.port}',
+          // Nothing comes on by itself: the pick is the viewer's.
+          preferences: {
+            'subtitleLanguages': ['en'],
+            'subtitleMode': 'manual',
+          },
+          subtitles: [
+            {
+              'id': 's1',
+              'language': 'en',
+              'name': 'Film',
+              'url': '/api/v1/subtitles/s1',
+            },
+          ],
+          subtitleCalls: subtitleCalls,
+          subtitlesHeld: held.future,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await playerKeysReady(tester);
+    final mpv = mpvOnScreen(tester);
+    final mouse = TestPointer(99, PointerDeviceKind.mouse);
+    var x = 400.0;
+    Future<void> pick(String label) async {
+      // The bar hides half a second after the mouse stops.
+      await tester.sendEventToBinding(mouse.hover(Offset(x += 10, 400)));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Subtitles (C)'));
+      await waitFor(
+        tester,
+        () async => find.widgetWithText(MenuRow, label).evaluate().isNotEmpty,
+        what: 'the $label row',
+      );
+      await tester.tap(find.widgetWithText(MenuRow, label));
+      await pumpFor(tester, const Duration(milliseconds: 100));
+    }
+
+    await pick('EN');
+    await waitFor(
+      tester,
+      () async => subtitleCalls.isNotEmpty,
+      what: 'the subtitle was asked for',
+    );
+    await pick('Off');
+    held.complete();
+    // Long enough for the file to reach mpv, had it been put on screen.
+    await pumpFor(tester, const Duration(milliseconds: 500));
+    expect(await mpv.getProperty('sid'), 'no');
+    // The file was fetched all the same, so the next pick takes no wait.
+    await pick('EN');
+    await waitFor(
+      tester,
+      () async => await mpv.getProperty('sid') != 'no',
+      what: 'the subtitle picked again',
+    );
+    expect(subtitleCalls, hasLength(1));
+  });
 
   testWidgets('a subtitle delay comes back with the episode it was set for', (
     tester,

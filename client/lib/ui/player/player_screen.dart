@@ -588,6 +588,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _onTrackChange(String property, String value) {
     if (!_trackChanges.byViewer(property, value)) return;
+    if (property == 'sid') _subtitlePicks++;
     _unsaved[property] = value;
     _saveTracks();
     if (property == 'sid') _rememberForAudio(value != 'no');
@@ -1656,6 +1657,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _subtitleFromDatabase() async {
     if (_subtitleFromDatabaseAsked) return;
     _subtitleFromDatabaseAsked = true;
+    final picks = _subtitlePicks;
     final prefs = widget.preferences.current;
     if (prefs == null) return;
     final languages = widget.preferences.languages;
@@ -1701,10 +1703,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
     final download = _download;
     final path = await _subtitleFile(best);
+    if (!mounted || _subtitlePicks != picks) return;
+    if (path == null) {
+      _showNotice(context.l10n.playerSubtitleFailed);
+      return;
+    }
     final now = _selectedSubtitle;
-    if (path == null ||
-        !mounted ||
-        _download?.id != download?.id ||
+    if (_download?.id != download?.id ||
         now != null && rank(now.language) <= rank(best.language)) {
       return;
     }
@@ -1754,13 +1759,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
           debugPrint('subtitle fetch failed: $error');
           // Asked again on the next pick: the provider may answer by then.
           _subtitleFiles.remove(found.url);
-          if (mounted) _showNotice(context.l10n.playerSubtitleFailed);
           return null;
         }
       }();
 
+  /// The viewer's subtitle picks, by menu or key. A file that arrives after
+  /// a later pick stays fetched for the next time and is not put on screen:
+  /// turning subtitles off must not wait for the ones picked before.
+  int _subtitlePicks = 0;
+
   void _pickSubtitle(MpvTrack? track) {
     _closeMenu();
+    _subtitlePicks++;
     _player.setSubtitleTrack(
       track == null
           ? SubtitleTrack.no()
@@ -1772,12 +1782,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// because mpv retains every external track added.
   void _pickFound(Subtitle found) {
     _closeMenu();
-    unawaited(_loadFound(found));
+    unawaited(_loadFound(found, ++_subtitlePicks));
   }
 
-  Future<void> _loadFound(Subtitle found) async {
+  Future<void> _loadFound(Subtitle found, int pick) async {
     final url = await _subtitleFile(found);
-    if (url == null || !mounted) return;
+    if (!mounted || pick != _subtitlePicks) return;
+    if (url == null) {
+      _showNotice(context.l10n.playerSubtitleFailed);
+      return;
+    }
     final loaded = _subtitleTracks
         .where((t) => t.external && t.externalFilename == url)
         .firstOrNull;
