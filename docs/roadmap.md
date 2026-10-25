@@ -75,6 +75,12 @@ app. This revises "No browser playback" in decisions/foundations.md.
   our mpv cannot open; surround passthrough; subtitle outline; whether a
   newer release exists; mpv's network timeout and cache, `hwdec`.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).
+- A web demo on the share site, to try the app without installing it: the
+  client built for the browser (an entry point without `dart:io`/`dart:ffi`)
+  over a fake core that replays answers recorded from the real core in CI:
+  the home rows, those titles' pages and artwork. Search runs over the
+  recording; My list, progress and settings stay in the browser; Play and
+  downloads open the title in an installed Lumeo.
 - Gamepad support.
 
 ## Metadata: TMDB
