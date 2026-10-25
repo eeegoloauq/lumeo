@@ -4,3 +4,6 @@
 
 # A fork of an upstream package: not ours to count in the repository's languages.
 client/third_party/** linguist-vendored
+
+# Anime4K's shaders, shipped as published: not ours to count either.
+client/assets/anime4k/** linguist-vendored
