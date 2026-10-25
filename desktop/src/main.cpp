@@ -1,3 +1,5 @@
+#include "language.h"
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
@@ -23,6 +25,7 @@ int main(int argc, char *argv[]) {
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setDesktopFileName("dev.lumeo.lumeo");
+  installTranslations(QLocale());
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
   std::setlocale(LC_NUMERIC, "C");

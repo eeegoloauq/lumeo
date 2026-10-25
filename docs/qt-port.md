@@ -30,7 +30,7 @@ Each step ends with the checks of the steps before it still passing.
 5. **Packages and CI.** Fedora, Arch and the Windows installer from
    `desktop/`, the release workflow and the client checks on the mirror.
 6. **Switch.** Walk this inventory against the new client, then delete
-   `client/` and this file, and rewrite what describes the client:
+   `client/`, `desktop/tool/arb2ts.py` and this file, and rewrite what describes the client:
    `CLAUDE.md`, `CONTRIBUTING.md`, `architecture.md`, `decisions/testing.md`,
    `decisions/video-output.md`, `decisions/shipping.md`.
 
@@ -87,8 +87,13 @@ both the QML theme and the share site read when they are built; today
 - The core and its API, the fixtures in `client/test/fixtures/core/` and the
   Go test that checks them (they move to `desktop/tests/`).
 - Every rule in `docs/decisions/`, except the ones listed below as Flutter's.
-- The interface's text: `app_en.arb` and `app_ru.arb` converted once by a
-  script to Qt's `.ts`, plurals to `%n`. Weblate takes `.ts` as well.
+- The interface's text: `desktop/i18n/lumeo_<code>.ts`, converted once from
+  `app_<code>.arb` by `desktop/tool/arb2ts.py` and the source since; a string
+  fixed in the Flutter client meanwhile is fixed in both. Ids are the arb
+  keys, for `qsTrId`; placeholders are `%1`, `%2` in the English order and
+  each message's comment names them; plurals are `%n`. Qt has no zero form
+  and one `%n` a message, so `=0` became `<key>Zero` and a second plural
+  `<key>_<variable>`, passed in as an argument. Weblate takes `.ts` as well.
 - The fonts, the icon, the AppStream file, the Anime4K shaders. The scrim
   shader is rewritten for `qsb`. The icon font is Material's, which Flutter
   ships inside its SDK: it goes into `desktop/` (Apache 2.0).
