@@ -2,12 +2,19 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QSurfaceFormat>
 #include <clocale>
 
 int main(int argc, char *argv[]) {
   // mpv draws through its render API in desktop GL, so the scene graph has
   // to be GL too rather than Vulkan.
   QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+  // And desktop GL rather than GLES, which Qt picks on Wayland with NVIDIA's
+  // driver: there mpv declares mediump textures and NVIDIA reads them at
+  // that precision (Anime4K's orange came out green under Flutter).
+  QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+  format.setRenderableType(QSurfaceFormat::OpenGL);
+  QSurfaceFormat::setDefaultFormat(format);
   QGuiApplication app(argc, argv);
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
