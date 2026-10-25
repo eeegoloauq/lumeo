@@ -97,7 +97,8 @@ are built (design/README.md). The Flutter client keeps its own copy in
   `<key>_<variable>`, passed in as an argument. Weblate takes `.ts` as well.
 - The fonts, the icon, the AppStream file, the Anime4K shaders. The scrim
   shader is rewritten for `qsb`. The icon font is Material's, which Flutter
-  ships inside its SDK: it goes into `desktop/` (Apache 2.0).
+  ships inside its SDK: it is in `desktop/fonts/`, with the licence Flutter
+  ships beside it (CC BY 4.0).
 - `client.json` and the folders the client writes to (`dirs.dart`): the same
   paths and keys, so an update keeps this machine's settings and the frames
   already taken.
@@ -237,11 +238,16 @@ The language follows the desktop's and changes without a restart.
 
 ## Tests
 
-The layers of decisions/testing.md stay; the tools change. Units are QtTest,
-app tests are Qt Quick Test over a fake core that answers with the same
-fixtures, and player tests run a real libmpv on headless Weston, as now. Qt
-has no fake clock, so an interval a test needs to run out is a property the
-test shortens, as `openPatience` is. The Dart suite (about 440 tests) is the
+The layers of decisions/testing.md stay; the tools change. Units are QtTest
+(`desktop/tests/*_test.cpp`), app tests are Qt Quick Test over the whole
+shell (`tests/app/`), and player tests run a real libmpv on headless Weston
+(`tests/player/`, through `tool/player-test.sh`). Units and app tests share
+`FakeCore`: QHttpServer on a real local socket, answering from the same
+fixtures what a test sets, holding a request in flight when told to, and
+refusing a wrong token. The real socket is what lets a unit see the client
+resend a refused connection or read the token again. Qt has no fake clock,
+so an interval a test needs to run out is a property the test shortens
+(`Core::patience`, `Preferences::rememberDelay`). The Dart suite (about 440 tests) is the
 checklist: each behaviour ports with its screen, at the lowest layer, once.
 
 ## Open questions
@@ -250,6 +256,3 @@ checklist: each behaviour ports with its screen, at the lowest layer, once.
   Fedora's release is below 6.12, build against it or bundle Qt.
 - `mpvqt` or our own `QQuickFramebufferObject` (Layout).
 - Where the Windows libmpv comes from, pinned by hash (roadmap, Next).
-- The fake core in app tests: in-process `QHttpServer` (tests are not
-  shipped, so its licence allows it) or a replacement for the network
-  manager's replies. Settled by the first app test.

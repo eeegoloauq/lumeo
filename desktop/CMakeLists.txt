@@ -21,7 +21,8 @@ set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 # Shared with the Flutter client until it goes (docs/qt-port.md); loaded
 # from :/qt/qml/Lumeo/fonts.
-file(GLOB fonts ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/fonts/*.ttf)
+file(GLOB fonts ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/fonts/*.ttf
+  ${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.otf)
 foreach(font ${fonts})
   get_filename_component(name ${font} NAME)
   set_source_files_properties(${font} PROPERTIES QT_RESOURCE_ALIAS fonts/${name})
@@ -35,7 +36,13 @@ qt_add_qml_module(lumeo
   OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Lumeo
   QML_FILES
     qml/Main.qml
+    qml/Bar.qml
     qml/Browse.qml
+    qml/Icon.qml
+    qml/IconButton.qml
+    qml/PillTab.qml
+    qml/Shell.qml
+    qml/ShellPage.qml
     qml/Player.qml
     qml/Theme.qml
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml

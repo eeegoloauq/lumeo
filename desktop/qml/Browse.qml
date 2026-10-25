@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import Lumeo
 
 // Search, a title, its copies: just enough to get a download playing.
-FocusScope {
+ShellPage {
     id: root
 
     property var films: []
@@ -16,6 +16,8 @@ FocusScope {
     property int asking: 0
     property var title: null
     property var copies: []
+    // Room left for the bar over the page.
+    property real topPadding: 0
 
     Connections {
         target: Prototype
@@ -30,7 +32,7 @@ FocusScope {
     }
 
     ColumnLayout {
-        anchors { fill: parent; margins: 24 }
+        anchors { fill: parent; margins: 24; topMargin: 24 + root.topPadding }
         spacing: 16
 
         TextField {

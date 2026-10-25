@@ -44,7 +44,7 @@ ApplicationWindow {
         player.stop()
         player.visible = false
         window.visibility = before
-        browse.forceActiveFocus()
+        shell.forceActiveFocus()
     }
 
     Connections {
@@ -61,8 +61,8 @@ ApplicationWindow {
             Prototype.openLocal(toOpen)
     }
 
-    Browse {
-        id: browse
+    Shell {
+        id: shell
         anchors.fill: parent
         visible: !player.visible
         focus: true
