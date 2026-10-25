@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 6.8 is the oldest LTS the distributions' own Qt might be; development and
 # CI run 6.12 (docs/qt-port.md, Open questions).
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network LinguistTools)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg LinguistTools)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 
@@ -19,13 +19,14 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml PROPERTIES
   QT_RESOURCE_ALIAS Tokens.qml QT_QML_SINGLETON_TYPE TRUE)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-# Shared with the Flutter client until it goes (docs/qt-port.md); loaded
+# Plex Sans speaks and Unbounded is the wordmark (decisions/interface.md);
+# shared with the Flutter client until it goes (docs/qt-port.md), and loaded
 # from :/qt/qml/Lumeo/fonts.
-file(GLOB fonts ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/fonts/*.ttf
-  ${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.otf)
-foreach(font ${fonts})
-  get_filename_component(name ${font} NAME)
-  set_source_files_properties(${font} PROPERTIES QT_RESOURCE_ALIAS fonts/${name})
+set(fonts)
+foreach(name IBMPlexSans-400 IBMPlexSans-500 IBMPlexSans-600 IBMPlexSans-700 Unbounded)
+  set(font ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/fonts/${name}.ttf)
+  set_source_files_properties(${font} PROPERTIES QT_RESOURCE_ALIAS fonts/${name}.ttf)
+  list(APPEND fonts ${font})
 endforeach()
 
 # Everything but main(), so the tests load the module the app does.
@@ -38,7 +39,6 @@ qt_add_qml_module(lumeo
     qml/Main.qml
     qml/Bar.qml
     qml/Browse.qml
-    qml/Icon.qml
     qml/IconButton.qml
     qml/PillTab.qml
     qml/Shell.qml
@@ -46,7 +46,11 @@ qt_add_qml_module(lumeo
     qml/Player.qml
     qml/Theme.qml
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
-  RESOURCES ${fonts}
+  RESOURCES
+    ${fonts}
+    # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
+    icons/arrow_back.svg
+    icons/search.svg
   SOURCES
     src/api/core.h src/api/core.cpp
     src/api/addons.h src/api/addons.cpp
@@ -67,7 +71,7 @@ target_compile_definitions(lumeo PRIVATE
 )
 
 target_link_libraries(lumeo PUBLIC
-  Qt6::Quick Qt6::QuickControls2 Qt6::Network PkgConfig::MPV
+  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg PkgConfig::MPV
 )
 
 # The interface's text, by id (qsTrId): the .ts files are the source, and

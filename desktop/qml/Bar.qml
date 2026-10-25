@@ -56,7 +56,7 @@ Item {
             x: 8
             anchors.verticalCenter: parent.verticalCenter
             visible: bar.canGoBack
-            glyph: 0xe092
+            glyph: "arrow_back"
             tip: qsTrId("playerBackEsc")
             onClicked: bar.back()
         }
@@ -85,7 +85,7 @@ Item {
 
             IconButton {
                 objectName: "search"
-                glyph: 0xe567
+                glyph: "search"
                 glyphSize: 19
                 tone: Tokens.dim
                 tip: qsTrId("searchShortcutTooltip")

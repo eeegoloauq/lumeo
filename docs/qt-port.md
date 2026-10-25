@@ -31,7 +31,8 @@ Each step ends with the checks of the steps before it still passing.
    `desktop/`, the release workflow and the client checks on the mirror.
 6. **Switch.** Walk this inventory against the new client, then delete
    `client/`, `desktop/tool/arb2ts.py` and this file, and rewrite what describes the client:
-   `CLAUDE.md`, `CONTRIBUTING.md`, `architecture.md`, `decisions/testing.md`,
+   `CLAUDE.md`, `CONTRIBUTING.md`, `architecture.md`, `decisions/interface.md`
+   (the fonts), `decisions/testing.md`,
    `decisions/video-output.md`, `decisions/shipping.md`.
 
 The Flutter client takes fixes meanwhile, no features.
@@ -95,10 +96,13 @@ are built (design/README.md). The Flutter client keeps its own copy in
   each message's comment names them; plurals are `%n`. Qt has no zero form
   and one `%n` a message, so `=0` became `<key>Zero` and a second plural
   `<key>_<variable>`, passed in as an argument. Weblate takes `.ts` as well.
-- The fonts, the icon, the AppStream file, the Anime4K shaders. The scrim
-  shader is rewritten for `qsb`. The icon font is Material's, which Flutter
-  ships inside its SDK: it is in `desktop/fonts/`, with the licence Flutter
-  ships beside it (CC BY 4.0).
+- IBM Plex Sans and Unbounded, the icon, the AppStream file, the Anime4K
+  shaders. The scrim shader is rewritten for `qsb`.
+- Not Plex Mono: what is set in monospace is what someone copies into a
+  terminal, and the system's monospace is the terminal's. Not Flutter's
+  Material icon font either: the icons are SVGs from Material Symbols
+  (Apache 2.0) in `desktop/icons/`, only the ones in use, drawn in a colour
+  by the button (`icon.color`).
 - `client.json` and the folders the client writes to (`dirs.dart`): the same
   paths and keys, so an update keeps this machine's settings and the frames
   already taken.

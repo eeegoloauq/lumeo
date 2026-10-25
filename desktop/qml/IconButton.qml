@@ -3,19 +3,24 @@ import QtQuick.Controls
 import Lumeo
 
 // An icon in a circle that only shows under the pointer, with its words in
-// the tooltip.
-AbstractButton {
+// the tooltip. The icon is one of icons/, drawn in [tone].
+ToolButton {
     id: button
 
-    property int glyph
+    property string glyph
     property real glyphSize: 18
     property color tone: Tokens.text
     property string tip
 
     implicitWidth: 34
     implicitHeight: 34
+    padding: 0
     focusPolicy: Qt.TabFocus
-    hoverEnabled: true
+    display: AbstractButton.IconOnly
+    icon.source: "qrc:/qt/qml/Lumeo/icons/" + glyph + ".svg"
+    icon.width: glyphSize
+    icon.height: glyphSize
+    icon.color: tone
     Accessible.name: tip
     ToolTip.text: tip
     ToolTip.visible: hovered && tip !== ""
@@ -26,10 +31,5 @@ AbstractButton {
         color: button.down || button.hovered ? Tokens.hover : "transparent"
         border.width: button.visualFocus ? 2 : 0
         border.color: Theme.accent
-    }
-    contentItem: Icon {
-        glyph: button.glyph
-        size: button.glyphSize
-        color: button.tone
     }
 }

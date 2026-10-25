@@ -5,7 +5,7 @@
 #include <QGuiApplication>
 
 void loadFonts() {
-  QDirIterator files(":/qt/qml/Lumeo/fonts", {"*.ttf", "*.otf"});
+  QDirIterator files(":/qt/qml/Lumeo/fonts", {"*.ttf"});
   while (files.hasNext())
     QFontDatabase::addApplicationFont(files.next());
   QFont sans("IBM Plex Sans");
