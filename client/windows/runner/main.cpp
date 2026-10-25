@@ -1,5 +1,6 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
+#include <wchar.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -91,8 +92,8 @@ void StartCore(const std::wstring& core) {
   }
 }
 
-// Hands this launch's file, if it has one, to the window of the instance
-// already running, and brings that window forward.
+// Hands this launch's file or title link, if it has one, to the window of the
+// instance already running, and brings that window forward.
 void ForwardToRunningInstance() {
   HWND window = FindWindowW(kWindowClassName, nullptr);
   if (window == nullptr) {
@@ -105,7 +106,10 @@ void ForwardToRunningInstance() {
   std::wstring path;
   int argc = 0;
   wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-  if (argv != nullptr && argc > 1) {
+  if (argv != nullptr && argc > 1 && _wcsnicmp(argv[1], L"lumeo:", 6) == 0) {
+    // A title link, which is not a path to resolve.
+    path = argv[1];
+  } else if (argv != nullptr && argc > 1) {
     // Absolute, because the running instance stands in another directory.
     const DWORD length = GetFullPathNameW(argv[1], 0, nullptr, nullptr);
     if (length > 0) {

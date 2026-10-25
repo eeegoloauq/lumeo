@@ -990,4 +990,31 @@ void main() {
       reason: 'the menu says what the empty list needs',
     );
   });
+
+  uiTest('share copies the link the title is shared by', (tester) async {
+    final copied = <String>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copied.add(
+          (call.arguments as Map<Object?, Object?>)['text']! as String,
+        );
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    await tester.pumpWidget(testApp(open: 'lumeo://title/movie/tt0063350'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+
+    expect(copied, [
+      'https://eeegoloauq.github.io/lumeo/movie/'
+          '?tt0063350-Night-of-the-Living-Dead-1968',
+    ]);
+    expect(find.text('Link copied'), findsOneWidget);
+  });
 }

@@ -1126,6 +1126,10 @@
   "homeNoCatalogueHint": "The core is running but no addon on its Sources list offers a catalogue to browse. Cinemeta does, needs no key, and is on the list of a fresh install.",
   "homeCatalogueUnavailable": "The catalogue is not answering",
   "homeCatalogueUnavailableHint": "The Lumeo core did not answer the catalogue request. Check that it is running, then try again.",
+  "commonUnknownLink": "Lumeo cannot open this link",
+  "@commonUnknownLink": {
+    "description": "A lumeo:// link that names no title Lumeo knows"
+  },
   "commonCouldNotOpen": "Could not open {name}: {reason}",
   "@commonCouldNotOpen": {
     "description": "Error opening a local file; reason is system or core text.",
@@ -1138,6 +1142,11 @@
       }
     }
   },
+  "itemShare": "Share",
+  "@itemShare": {
+    "description": "Tooltip of the share button on a title page; it copies a link"
+  },
+  "itemLinkCopied": "Link copied",
   "itemDownloadingPercent": "Downloading {percent}%",
   "@itemDownloadingPercent": {
     "description": "Season download button tooltip.",

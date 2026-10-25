@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
 import '../../l10n/l10n.dart';
-import '../theme.dart';
 import 'buttons.dart';
 import 'rating_button.dart';
 
@@ -176,15 +175,7 @@ class ListButton extends StatelessWidget {
           : context.l10n.libraryAddToList,
       onPressed: onPressed,
       isSelected: inList,
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(DownloadButton.size),
-        minimumSize: const Size.square(DownloadButton.size),
-        padding: EdgeInsets.zero,
-        backgroundColor: Palette.tint,
-        disabledBackgroundColor: Palette.tint,
-        foregroundColor: Palette.text,
-        disabledForegroundColor: Palette.muted,
-      ),
+      style: roundButtonStyle(),
       icon: const Icon(Icons.add, size: 20),
       selectedIcon: const Icon(Icons.check, size: 20),
     );

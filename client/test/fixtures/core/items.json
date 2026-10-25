@@ -4,6 +4,9 @@
     "kind": "movie",
     "title": "Night of the Living Dead",
     "year": 1968,
+    "externalIds": {
+      "imdb": "tt0063350"
+    },
     "imdbRating": 7.8,
     "overview": "Seven people take refuge in a farmhouse.",
     "runtime": "96 min",

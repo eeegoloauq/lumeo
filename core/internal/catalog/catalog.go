@@ -122,6 +122,8 @@ type ItemState struct {
 type Store interface {
 	UpsertItems(ctx context.Context, namespace string, items []MediaItem, detailed bool) ([]MediaItem, error)
 	Item(ctx context.Context, id string) (MediaItem, ItemState, error)
+	// ItemID returns our id for a provider's, when the title was ever seen.
+	ItemID(ctx context.Context, namespace, externalID string) (string, bool, error)
 	// ItemsByIDs returns the items that exist, in the order asked for.
 	ItemsByIDs(ctx context.Context, ids []string) ([]MediaItem, error)
 	SavePage(ctx context.Context, key string, itemIDs []string) error

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumeo</title>
+<meta property="og:title" content="Lumeo">
+<meta property="og:description" content="Open this title in Lumeo">
+<meta name="color-scheme" content="dark">
+<style>
+  @font-face { font-family: Unbounded; src: url(../fonts/Unbounded.ttf); font-weight: 600; }
+  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-400.ttf); font-weight: 400; }
+  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-500.ttf); font-weight: 500; }
+  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-600.ttf); font-weight: 600; }
+  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-700.ttf); font-weight: 700; }
+
+  :root {
+    --page: #000;
+    --raised: #17181c;
+    --rim: rgba(255, 255, 255, .07);
+    --text: #f3f5f9;
+    --dim: #c3cad8;
+    --muted: #8b8f9c;
+    --amber: #f2b441;
+    --control: 6px;
+    --gutter: 48px;
+    --over-art: 0 2px 18px rgba(0, 0, 0, .8);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--page);
+    color: var(--text);
+    font: 400 16px/1.45 Plex, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .stage { position: relative; min-height: 100svh; display: flex; flex-direction: column; }
+
+  .art {
+    position: absolute; inset: 0;
+    background: center 20% / cover no-repeat;
+    opacity: 0; transition: opacity .6s ease;
+  }
+  .art.shown { opacity: 1; }
+
+  /* The app's banner scrim: dark on the left where the text sits, a lift at
+     the top for the wordmark, and a fall into the page at the bottom. */
+  .scrim {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to right, rgba(0,0,0,.94) 0%, rgba(0,0,0,.70) 28%, rgba(0,0,0,0) 58%),
+      linear-gradient(to left, rgba(0,0,0,.34) 0%, rgba(0,0,0,0) 28%),
+      linear-gradient(to bottom, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 26%),
+      linear-gradient(to bottom, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 72%, #000 99.5%);
+  }
+
+  header, main, footer { position: relative; padding-inline: var(--gutter); }
+
+  header { padding-top: 30px; }
+  .wordmark {
+    font: 600 15px Unbounded, sans-serif;
+    letter-spacing: 4px;
+    color: var(--text);
+    text-decoration: none;
+    text-shadow: var(--over-art);
+  }
+
+  main { margin-top: auto; padding-bottom: 40px; max-width: calc(660px + 2 * var(--gutter)); }
+
+  .logo { display: block; max-width: min(520px, 100%); max-height: 150px; margin-bottom: 18px;
+          filter: drop-shadow(0 2px 18px rgba(0,0,0,.6)); }
+  h1 { margin: 0 0 14px; font-size: 52px; line-height: 1.05; font-weight: 700;
+       letter-spacing: -.5px; text-shadow: var(--over-art); }
+
+  .meta { margin: 0 0 14px; font-size: 15px; font-weight: 500; color: var(--dim);
+          text-shadow: var(--over-art); }
+  .meta .rating { color: var(--text); font-weight: 700; }
+  .meta .rating::before { content: "★ "; color: var(--amber); }
+
+  .overview { margin: 0 0 28px; max-width: 560px; color: var(--dim); text-shadow: var(--over-art);
+              display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .button {
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 52px; padding: 0 24px;
+    border-radius: var(--control);
+    font: 600 15px Plex, sans-serif;
+    text-decoration: none; cursor: pointer;
+    transition: background-color .15s ease, transform .15s ease;
+  }
+  .button:active { transform: scale(.98); }
+  .button:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .button svg { width: 18px; height: 18px; flex: none; }
+  .primary { background: var(--text); color: #000; border: 0; }
+  .primary:hover { background: #fff; }
+  .secondary { background: rgba(23, 24, 28, .72); color: var(--text); border: 1px solid var(--rim);
+               backdrop-filter: blur(12px); }
+  .secondary:hover { background: rgba(40, 41, 47, .8); }
+
+  .note { margin: 16px 0 0; min-height: 1.4em; font-size: 13px; color: var(--muted); }
+  .note a { color: var(--dim); }
+
+  footer { padding-bottom: 28px; display: flex; gap: 20px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--dim); }
+
+  .phone-only { display: none; }
+
+  @media (max-width: 720px) {
+    :root { --gutter: 20px; }
+    .art { inset: 0 0 auto; height: 62svh; background-position: center; }
+    .scrim {
+      height: 62svh; bottom: auto;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.6) 70%, #000 100%);
+    }
+    main { padding-top: 34svh; }
+    h1 { font-size: 36px; }
+    .logo { max-height: 100px; max-width: 80%; }
+    .button { flex: 1 1 100%; justify-content: center; }
+  }
+
+  @media (pointer: coarse) and (max-width: 1024px) {
+    .desktop-only { display: none; }
+    .phone-only { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="art" id="art"></div>
+  <div class="scrim"></div>
+
+  <header><a class="wordmark" href="../">LUMEO</a></header>
+
+  <main>
+    <img class="logo" id="logo" alt="" hidden>
+    <h1 id="title"></h1>
+    <p class="meta" id="meta"></p>
+    <p class="overview" id="overview" hidden></p>
+
+    <div class="actions">
+      <a class="button primary desktop-only" id="open">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+        <span data-t="open"></span>
+      </a>
+      <a class="button secondary" id="download" href="https://github.com/eeegoloauq/lumeo/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>
+        <span data-t="download"></span>
+      </a>
+    </div>
+    <p class="note desktop-only" id="note"></p>
+    <p class="note phone-only" data-t="phone"></p>
+  </main>
+
+  <footer>
+    <a id="imdb" target="_blank" rel="noopener">IMDb</a>
+    <a href="https://github.com/eeegoloauq/lumeo" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+</div>
+
+<script>
+const strings = {
+  en: {
+    open: 'Open in Lumeo',
+    download: 'Download Lumeo',
+    missed: 'Nothing opened? Install Lumeo first, then press Open again.',
+    phone: 'Lumeo runs on Linux and Windows. Open this link on your computer.',
+    min: 'min',
+  },
+  ru: {
+    open: 'Открыть в Lumeo',
+    download: 'Скачать Lumeo',
+    missed: 'Ничего не открылось? Установите Lumeo и нажмите «Открыть» ещё раз.',
+    phone: 'Lumeo работает на Linux и Windows. Откройте ссылку на компьютере.',
+    min: 'мин',
+  },
+};
+const lang = navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+const t = strings[lang];
+document.documentElement.lang = lang;
+document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t[el.dataset.t]; });
+
+// /movie/?tt0063350-Night-of-the-Living-Dead-1968: the folder is the kind, the
+// IMDb id addresses the title, and the words after it are what to show when
+// the catalogue does not answer.
+const kind = location.pathname.split('/').filter(Boolean).at(-1) ?? '';
+let query = location.search.slice(1);
+try { query = decodeURIComponent(query); } catch { /* shown as it came */ }
+const id = query.match(/^tt\d+/)?.[0] ?? '';
+const valid = (kind === 'movie' || kind === 'series') && id !== '';
+const words = query.slice(id.length).split('-').filter(Boolean);
+const slugYear = /^\d{4}$/.test(words.at(-1) ?? '') ? words.pop() : '';
+const slugTitle = words.join(' ');
+
+const $ = (id) => document.getElementById(id);
+const show = (title, year) => {
+  $('title').textContent = title || 'Lumeo';
+  document.title = title ? `${title}${year ? ` (${year})` : ''} · Lumeo` : 'Lumeo';
+};
+show(slugTitle, slugYear);
+$('meta').textContent = slugYear;
+
+if (valid) {
+  $('open').href = `lumeo://title/${kind}/${id}`;
+  $('imdb').href = `https://www.imdb.com/title/${id}/`;
+} else {
+  $('open').hidden = true;
+  $('imdb').hidden = true;
+}
+
+// A browser cannot tell whether an app took the link. If the page is still in
+// front a moment later, nothing did, and the note says what to do.
+$('open').addEventListener('click', () => {
+  const before = Date.now();
+  setTimeout(() => {
+    if (document.visibilityState === 'visible' && document.hasFocus() && Date.now() - before < 3000) {
+      $('note').textContent = t.missed;
+    }
+  }, 1600);
+});
+
+if (valid) {
+  fetch(`https://v3-cinemeta.strem.io/meta/${kind}/${id}.json`)
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then(({ meta }) => {
+      if (!meta) return;
+      const year = String(meta.releaseInfo ?? meta.year ?? slugYear).split(/[–-]/)[0];
+      show(meta.name, year);
+      const parts = [meta.releaseInfo || year, meta.runtime?.replace('min', t.min),
+        meta.genres?.slice(0, 3).join(' / ')].filter(Boolean);
+      const line = $('meta');
+      line.replaceChildren();
+      if (meta.imdbRating) {
+        const rating = document.createElement('span');
+        rating.className = 'rating';
+        rating.textContent = meta.imdbRating;
+        line.append(rating, parts.length ? ' · ' : '');
+      }
+      line.append(parts.join(' · '));
+      if (meta.description) {
+        $('overview').textContent = meta.description;
+        $('overview').hidden = false;
+      }
+      if (meta.background) {
+        const img = new Image();
+        img.onload = () => {
+          $('art').style.backgroundImage = `url(${JSON.stringify(meta.background)})`;
+          $('art').classList.add('shown');
+        };
+        img.src = meta.background;
+      }
+      if (meta.logo) {
+        const logo = $('logo');
+        logo.onload = () => { logo.hidden = false; $('title').hidden = true; };
+        logo.alt = meta.name;
+        logo.src = meta.logo;
+      }
+    })
+    .catch(() => {});
+}
+
+</script>
+</body>
+</html>

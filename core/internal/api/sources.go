@@ -46,6 +46,10 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "item or imdb parameter is required")
 		return
 	}
+	if !imdbID.MatchString(q.IMDbID) {
+		writeError(w, http.StatusBadRequest, "imdb is not an IMDb title id")
+		return
+	}
 
 	providers := s.sources()
 	found := make([][]sources.MediaSource, len(providers))

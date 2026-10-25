@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'core_client.dart';
 import 'core_token.dart';
 import 'models.dart';
+import 'title_link.dart';
 
 /// The only way the client talks to the core. Local mode and server mode are
 /// the same code with a different address and token, which is why those are
@@ -186,6 +187,12 @@ class LumeoApi {
 
   Future<MediaItem> item(String id) async =>
       MediaItem.fromJson(await _get('/api/v1/items/${_seg(id)}'));
+
+  /// The title a shared link names, added to this core's catalogue the first
+  /// time.
+  Future<MediaItem> find(TitleRef title) async => MediaItem.fromJson(
+    await _get('/api/v1/find', {'imdb': title.imdb, 'kind': title.kind}),
+  );
 
   /// Ranked ways to watch one thing, the providers that refused or did not
   /// answer, and how many were asked. The core does the ranking; the first is

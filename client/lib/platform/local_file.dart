@@ -2,22 +2,27 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-/// The file the desktop asked us to open (`Exec=lumeo %F`), if any.
-String? fileToOpen(List<String> args) {
+import '../api/title_link.dart';
+
+/// What the desktop asked us to open (`Exec=lumeo %U`), if anything: a file,
+/// or a `lumeo://` title link.
+String? toOpen(List<String> args) {
   for (final arg in args) {
+    if (isLink(arg)) return arg;
     if (FileSystemEntity.isFileSync(arg)) return File(arg).absolute.path;
   }
   return null;
 }
 
-/// Files opened while the app is already running. The app is one instance: a
-/// later "Open with Lumeo" hands its file to this one and exits
-/// (linux/runner/my_application.cc, windows/runner/main.cpp).
+/// Files and title links opened while the app is already running. The app is
+/// one instance: a later "Open with Lumeo" or link hands what it was given to
+/// this one and exits (linux/runner/my_application.cc,
+/// windows/runner/main.cpp).
 ///
 /// The returned function stops listening, unless a later call has taken the
 /// channel since: a shell replaced by another is disposed after the new one
 /// has started listening.
-void Function() onFileOpened(void Function(String path) handler) {
+void Function() onOpened(void Function(String target) handler) {
   Future<void> listener(MethodCall call) async {
     if (call.method == 'open' && call.arguments is String) {
       handler(call.arguments as String);

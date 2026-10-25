@@ -217,6 +217,10 @@ func (d *DB) Item(ctx context.Context, id string) (catalog.MediaItem, catalog.It
 	return item, catalog.ItemState{Found: true, Detailed: detailed, UpdatedAt: fetchedAt(updatedAt)}, nil
 }
 
+func (d *DB) ItemID(ctx context.Context, namespace, externalID string) (string, bool, error) {
+	return findItemID(ctx, d.db, namespace, externalID)
+}
+
 func (d *DB) ItemsByIDs(ctx context.Context, ids []string) ([]catalog.MediaItem, error) {
 	if len(ids) == 0 {
 		return []catalog.MediaItem{}, nil
@@ -301,9 +305,14 @@ func fetchedAt(unix int64) time.Time {
 	return time.Unix(unix, 0).UTC()
 }
 
-func findItemID(ctx context.Context, tx *sql.Tx, namespace, externalID string) (string, bool, error) {
+// rowQuerier is a transaction or the database itself.
+type rowQuerier interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+func findItemID(ctx context.Context, q rowQuerier, namespace, externalID string) (string, bool, error) {
 	var id string
-	err := tx.QueryRowContext(ctx, "SELECT item_id FROM external_ids WHERE namespace = ? AND external_id = ?", namespace, externalID).Scan(&id)
+	err := q.QueryRowContext(ctx, "SELECT item_id FROM external_ids WHERE namespace = ? AND external_id = ?", namespace, externalID).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false, nil
 	}

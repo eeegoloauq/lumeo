@@ -252,6 +252,41 @@ func (s *Service) fetchItem(ctx context.Context, id string, item MediaItem) (Med
 	return MediaItem{}, err
 }
 
+// Find returns the title a provider knows by externalID, adding it to the
+// catalog the first time. A shared link names a title by its IMDb id, which is
+// the same on every machine; ours are minted per core.
+func (s *Service) Find(ctx context.Context, namespace string, kind Kind, externalID string) (MediaItem, error) {
+	id, found, err := s.store.ItemID(ctx, namespace, externalID)
+	if err != nil {
+		return MediaItem{}, err
+	}
+	if found {
+		return s.Item(ctx, id)
+	}
+	err = ErrNoProviders
+	for _, p := range s.providers() {
+		if p.Namespace() != namespace {
+			continue
+		}
+		full, metaErr := p.Meta(ctx, kind, externalID)
+		if metaErr != nil {
+			s.log.Warn("meta fetch failed", "provider", p.ID(), "external_id", externalID, "err", metaErr)
+			err = metaErr
+			continue
+		}
+		if full == nil || full.ExternalIDs[namespace] != externalID {
+			err = ErrNotFound
+			continue
+		}
+		saved, err := s.store.UpsertItems(ctx, namespace, []MediaItem{*full}, true)
+		if err != nil {
+			return MediaItem{}, fmt.Errorf("cache item: %w", err)
+		}
+		return saved[0], nil
+	}
+	return MediaItem{}, err
+}
+
 func (s *Service) ItemsByIDs(ctx context.Context, ids []string) ([]MediaItem, error) {
 	return s.store.ItemsByIDs(ctx, ids)
 }

@@ -7,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lumeo/ui/screens/item_screen.dart';
 import 'package:lumeo/ui/widgets/poster_tile.dart';
 import 'package:lumeo/ui/widgets/top_bar.dart';
 import 'package:lumeo/platform/release_notes.dart';
@@ -536,6 +537,60 @@ void main() {
     await tester.pumpAndSettle();
     await playAndLeave();
     expect(find.text('Lumeo keeps what you watch'), findsNothing);
+  });
+
+  uiTest('a link opens a title page, at launch or later, and nothing else', (
+    tester,
+  ) async {
+    String? page() => tester
+        .widgetList<ItemScreen>(find.byType(ItemScreen))
+        .lastOrNull
+        ?.itemId;
+
+    final opened = <String>[];
+    final started = <String>[];
+    await tester.pumpWidget(
+      testApp(
+        open: 'lumeo://title/movie/tt0063350',
+        api: fakeCore(opened: opened, started: started),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(page(), 'tt0063350');
+
+    // A link opened while the app runs reaches it over the open channel.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'dev.lumeo/open',
+      const StandardMethodCodec().encodeMethodCall(
+        const MethodCall('open', 'lumeo://title/series/tt0903747'),
+      ),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+    expect(page(), 'tt0903747');
+
+    // A link from a page is only ever a title to show: one that names none,
+    // or smuggles a path, opens nothing, plays nothing and says so.
+    for (final link in [
+      'lumeo://title/movie/tt0063350/../../../home/me/film.mkv',
+      'lumeo://title/movie/tt0063350%2F..%2Ffilm.mkv',
+      'lumeo:///home/me/film.mkv',
+      'lumeo://play/movie/tt0063350',
+    ]) {
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'dev.lumeo/open',
+        const StandardMethodCodec().encodeMethodCall(MethodCall('open', link)),
+        (_) {},
+      );
+      await tester.pumpAndSettle();
+      expect(page(), 'tt0903747', reason: link);
+      expect(find.text('Lumeo cannot open this link'), findsOneWidget);
+      ScaffoldMessenger.of(tester.element(find.byType(ItemScreen).last))
+          .removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+    }
+    expect(opened, isEmpty, reason: 'no link is taken for a file');
+    expect(started, isEmpty, reason: 'no link starts a download');
   });
 
   uiTest('a file the core refuses says why', (tester) async {

@@ -160,6 +160,12 @@ func TestUpsertItemsAddsExternalIDsFromMeta(t *testing.T) {
 	if item.ExternalIDs[catalog.NamespaceTMDB] != "300" || item.ExternalIDs[catalog.NamespaceTVDB] != "400" {
 		t.Fatalf("external IDs = %+v, want tmdb and tvdb", item.ExternalIDs)
 	}
+	if id, found, err := db.ItemID(ctx, catalog.NamespaceTMDB, "300"); err != nil || !found || id != inserted[0].ID {
+		t.Fatalf("ItemID(tmdb 300) = %q, %v, %v; want %q", id, found, err, inserted[0].ID)
+	}
+	if _, found, err := db.ItemID(ctx, catalog.NamespaceIMDb, "tt-other"); err != nil || found {
+		t.Fatalf("ItemID of an unseen title = %v, %v; want not found", found, err)
+	}
 }
 
 func TestItemsByIDsPreservesRequestedOrder(t *testing.T) {

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../api/models.dart';
+import '../../api/title_link.dart';
+import '../../l10n/l10n.dart';
 import '../theme.dart';
 import 'download_glyph.dart';
 
@@ -84,21 +88,49 @@ class DownloadButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: done || running ? null : onPressed,
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(size),
-        minimumSize: const Size.square(size),
-        padding: EdgeInsets.zero,
-        backgroundColor: Palette.tint,
-        disabledBackgroundColor: Palette.tint,
-        foregroundColor: Palette.text,
-        disabledForegroundColor: Palette.text,
-      ),
+      style: roundButtonStyle(disabledForeground: Palette.text),
       icon: DownloadGlyph(
         fraction: fraction,
         done: done,
         size: 20,
         color: Palette.text,
       ),
+    );
+  }
+}
+
+/// The round icon buttons beside Play: download, My list, share.
+ButtonStyle roundButtonStyle({Color disabledForeground = Palette.muted}) =>
+    IconButton.styleFrom(
+      fixedSize: const Size.square(DownloadButton.size),
+      minimumSize: const Size.square(DownloadButton.size),
+      padding: EdgeInsets.zero,
+      backgroundColor: Palette.tint,
+      disabledBackgroundColor: Palette.tint,
+      foregroundColor: Palette.text,
+      disabledForegroundColor: disabledForeground,
+    );
+
+/// Copies the link a title is shared by. The desktop has no share sheet to
+/// hand it to; the person pastes it wherever they talk.
+class ShareButton extends StatelessWidget {
+  const ShareButton({super.key, required this.item});
+
+  final MediaItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: const ValueKey('share-button'),
+      tooltip: context.l10n.itemShare,
+      onPressed: () async {
+        await Clipboard.setData(ClipboardData(text: shareLink(item)));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.l10n.itemLinkCopied)));
+      },
+      style: roundButtonStyle(),
+      icon: const Icon(Icons.ios_share, size: 18),
     );
   }
 }

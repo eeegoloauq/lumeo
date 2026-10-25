@@ -63,6 +63,11 @@ Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; Val
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".ts"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".ogv"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".3gp"; ValueData: ""
+; lumeo:// title links, which the share page's Open button hands over.
+Root: HKA; Subkey: "Software\Classes\lumeo"; ValueType: string; ValueData: "URL:Lumeo"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\lumeo"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\lumeo\DefaultIcon"; ValueType: string; ValueData: """{app}\lumeo.exe"",0"
+Root: HKA; Subkey: "Software\Classes\lumeo\shell\open\command"; ValueType: string; ValueData: """{app}\lumeo.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\lumeo.exe"; Description: "{cm:LaunchProgram,Lumeo}"; Flags: nowait postinstall skipifsilent

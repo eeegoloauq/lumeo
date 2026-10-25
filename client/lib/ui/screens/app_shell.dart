@@ -10,6 +10,7 @@ import '../../api/client.dart';
 import '../../api/downloads_store.dart';
 import '../../api/models.dart';
 import '../../api/preferences_store.dart';
+import '../../api/title_link.dart';
 import '../../l10n/l10n.dart';
 import '../../platform/folders.dart';
 import '../../platform/local_file.dart';
@@ -56,7 +57,7 @@ class AppShell extends StatefulWidget {
   final LocalSettings settings;
   final PreferencesStore preferences;
 
-  /// A local file to play at once.
+  /// A local file to play at once, or a `lumeo://` title link to open.
   final String? open;
 
   @override
@@ -116,9 +117,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     FocusManager.instance.addListener(_keyboardOnTheFloor);
     WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_configureBackground);
-    if (widget.open case final path?) unawaited(_openFile(path));
+    if (widget.open case final target?) unawaited(_open(target));
     unawaited(_checkForUpdate());
-    _stopOpening = onFileOpened((path) => unawaited(_openFile(path)));
+    _stopOpening = onOpened((target) => unawaited(_open(target)));
   }
 
   @override
@@ -245,6 +246,30 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       );
     }
     return null;
+  }
+
+  /// A link only ever opens a title's page: nothing plays, downloads or
+  /// changes, so a page that hands one over can do no more than a click.
+  Future<void> _open(String target) async {
+    if (!isLink(target)) return _openFile(target);
+    if (titleOfLink(target) case final title?) return _openTitle(title);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(context.l10n.commonUnknownLink)));
+  }
+
+  Future<void> _openTitle(TitleRef title) async {
+    try {
+      final item = await widget.api.find(title);
+      if (mounted) _go(_Page.item(item.id));
+    } on Object catch (error) {
+      if (!mounted) return;
+      final reason = error is LumeoApiException ? error.message : '$error';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.commonCouldNotOpen(title.imdb, reason)),
+        ),
+      );
+    }
   }
 
   /// "Open with Lumeo": the core makes the file a download, and from there it

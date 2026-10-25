@@ -342,6 +342,7 @@ class MediaItem {
     this.directors = const [],
     this.runtime = '',
     this.imdbRating = 0,
+    this.imdb = '',
     this.episodes = const [],
   });
 
@@ -359,6 +360,9 @@ class MediaItem {
   final List<String> directors;
   final String runtime;
   final double imdbRating;
+
+  /// The IMDb id, which names the title the same on every machine.
+  final String imdb;
   final List<Episode> episodes;
 
   bool get isSeries => kind == 'series';
@@ -386,6 +390,9 @@ class MediaItem {
     directors: (json['directors'] as List<dynamic>? ?? []).cast<String>(),
     runtime: json['runtime'] as String? ?? '',
     imdbRating: (json['imdbRating'] as num?)?.toDouble() ?? 0,
+    imdb:
+        (json['externalIds'] as Map<String, dynamic>?)?['imdb'] as String? ??
+        '',
     episodes: (json['episodes'] as List<dynamic>? ?? [])
         .map((e) => Episode.fromJson(e as Map<String, dynamic>))
         .toList(),

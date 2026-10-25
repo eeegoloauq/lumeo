@@ -23,7 +23,7 @@ Future<void> main(List<String> args) async {
   // Nothing waits for it.
   unawaited(DeviceDecoders.instance.load());
   final settings = await LocalSettings.load();
-  runApp(LumeoApp(settings: settings, open: fileToOpen(args)));
+  runApp(LumeoApp(settings: settings, open: toOpen(args)));
 }
 
 class LumeoApp extends StatefulWidget {
@@ -46,7 +46,8 @@ class LumeoApp extends StatefulWidget {
   /// to observe its confirmed state directly.
   final PreferencesStore? preferences;
 
-  /// A file to play on start: "Open with Lumeo" on it.
+  /// What to open on start: a file to play ("Open with Lumeo" on it), or a
+  /// `lumeo://` title link.
   final String? open;
 
   @override

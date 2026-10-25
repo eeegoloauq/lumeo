@@ -14,6 +14,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/egress"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
+	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
 )
 
 // The API's own job is routing and translation — our ids in, IMDb ids out —
@@ -28,6 +29,9 @@ func (s *stubStore) Item(_ context.Context, id string) (catalog.MediaItem, catal
 		return catalog.MediaItem{}, catalog.ItemState{}, nil
 	}
 	return s.item, catalog.ItemState{Found: true, Detailed: true, UpdatedAt: time.Now()}, nil
+}
+func (s *stubStore) ItemID(_ context.Context, ns, ext string) (string, bool, error) {
+	return s.item.ID, s.item.ExternalIDs[ns] == ext, nil
 }
 func (s *stubStore) ItemsByIDs(_ context.Context, ids []string) ([]catalog.MediaItem, error) {
 	var items []catalog.MediaItem
@@ -136,6 +140,56 @@ func TestUnknownItem(t *testing.T) {
 	testServer(severance(), &recordingSource{}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/items/nope", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status %d, want 404", rec.Code)
+	}
+}
+
+func TestFindByIMDb(t *testing.T) {
+	h := testServer(severance(), &recordingSource{})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/find?imdb=tt11280740&kind=series", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+	var item catalog.MediaItem
+	if err := json.Unmarshal(rec.Body.Bytes(), &item); err != nil || item.ID != "abc123" {
+		t.Errorf("found %+v, %v; want abc123", item, err)
+	}
+}
+
+// An IMDb id becomes a path segment of a provider's URL, so whatever names one
+// is checked before any provider is asked: a shared link, a source list, a
+// subtitle search.
+func TestEveryIMDbIDIsCheckedBeforeAProviderSeesIt(t *testing.T) {
+	src, subs := &recordingSource{}, &recordingSubtitles{}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := New(Deps{
+		Catalog:   catalog.NewService(catalog.Fixed(stubMeta{}), &stubStore{item: severance()}, log),
+		Sources:   func() []sources.Provider { return []sources.Provider{src} },
+		Subtitles: subtitles.NewService(func() []subtitles.Provider { return []subtitles.Provider{subs} }, []string{"en"}, log),
+	}, log).Handler()
+
+	for _, endpoint := range []string{"/api/v1/find?kind=movie&", "/api/v1/sources?", "/api/v1/subtitles?"} {
+		for _, id := range []string{"tt1%2F..%2Fcatalog", "tt1%3Fx%3D1", "..%2Ftt1", "tt", "0063350"} {
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, endpoint+"imdb="+id, nil))
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("%simdb=%s: status %d, want 400", endpoint, id, rec.Code)
+			}
+		}
+	}
+	if src.got.IMDbID != "" || subs.got.IMDbID != "" {
+		t.Errorf("a provider was asked for %q, %q", src.got.IMDbID, subs.got.IMDbID)
+	}
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/find?imdb=tt11280740", nil))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("find without a kind: status %d, want 400", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/sources?imdb=tt0063350", nil))
+	if rec.Code != http.StatusOK || src.got.IMDbID != "tt0063350" {
+		t.Errorf("a real id: status %d, provider asked for %q", rec.Code, src.got.IMDbID)
 	}
 }
 

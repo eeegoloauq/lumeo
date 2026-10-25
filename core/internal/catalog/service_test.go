@@ -72,6 +72,13 @@ func (m *memStore) Item(_ context.Context, id string) (MediaItem, ItemState, err
 	return m.items[id], m.state[id], nil
 }
 
+func (m *memStore) ItemID(_ context.Context, ns, ext string) (string, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	id, ok := m.byExt[ns+"|"+ext]
+	return id, ok, nil
+}
+
 func (m *memStore) ItemsByIDs(_ context.Context, ids []string) ([]MediaItem, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -588,5 +595,52 @@ func TestKnownDoesNotAskTheProvider(t *testing.T) {
 	}
 	if p.metas.Load() != 0 {
 		t.Errorf("Known asked the provider %d times", p.metas.Load())
+	}
+}
+
+// A shared link names a title this core may never have seen, by its IMDb id.
+func TestFindAddsAnUnseenTitleOnce(t *testing.T) {
+	st := newMemStore(time.Unix(1_700_000_000, 0))
+	full := movie("tt0063350", "Night of the Living Dead")
+	full.Overview = "A group barricades itself in a farmhouse"
+	p := &fakeProvider{id: "meta", meta: &full}
+	svc := testService(t, p, st)
+
+	got, err := svc.Find(context.Background(), NamespaceIMDb, KindMovie, "tt0063350")
+	if err != nil {
+		t.Fatalf("find: %v", err)
+	}
+	if got.ID == "" || got.Overview == "" {
+		t.Fatalf("found %+v, want the stored details", got)
+	}
+	again, err := svc.Find(context.Background(), NamespaceIMDb, KindMovie, "tt0063350")
+	if err != nil || again.ID != got.ID {
+		t.Fatalf("second find = %+v, %v; want id %q", again, err, got.ID)
+	}
+	if p.metas.Load() != 1 {
+		t.Errorf("meta fetched %d times, want 1", p.metas.Load())
+	}
+}
+
+func TestFindReturnsTheTitleAlreadyInTheCatalog(t *testing.T) {
+	st := newMemStore(time.Unix(1_700_000_000, 0))
+	row := movie("tt0063350", "Night of the Living Dead")
+	p := &fakeProvider{id: "meta", items: []MediaItem{row}, meta: &row}
+	svc := testService(t, p, st)
+	page, err := svc.Browse(context.Background(), browseReq())
+	if err != nil {
+		t.Fatalf("browse: %v", err)
+	}
+
+	got, err := svc.Find(context.Background(), NamespaceIMDb, KindMovie, "tt0063350")
+	if err != nil || got.ID != page[0].ID {
+		t.Fatalf("find = %+v, %v; want id %q", got, err, page[0].ID)
+	}
+}
+
+func TestFindUnknownTitle(t *testing.T) {
+	svc := testService(t, &fakeProvider{id: "meta", meta: &MediaItem{}}, newMemStore(time.Unix(1_700_000_000, 0)))
+	if _, err := svc.Find(context.Background(), NamespaceIMDb, KindMovie, "tt0000000"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("got %v, want ErrNotFound", err)
 	}
 }

@@ -224,9 +224,15 @@ static void my_application_open(GApplication* application, GFile** files,
     return;
   }
   // The player plays one file: the first one on this machine's filesystem.
+  // Failing that, a lumeo:// title link, which Dart tells from a path.
   g_autofree gchar* path = nullptr;
   for (gint i = 0; i < n_files && path == nullptr; i++) {
     path = g_file_get_path(files[i]);
+  }
+  for (gint i = 0; i < n_files && path == nullptr; i++) {
+    if (g_file_has_uri_scheme(files[i], "lumeo")) {
+      path = g_file_get_uri(files[i]);
+    }
   }
   if (self->window == nullptr) {
     // The first launch: Dart reads it from its arguments in main().

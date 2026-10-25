@@ -70,6 +70,13 @@ client only ever sees ours — `/api/v1/sources?item=<our id>` translates to the
 IMDb id the source addons need — so swapping the metadata provider does not
 touch the library.
 
+A shared link is the one place a title travels between machines, so it names
+the title by its IMDb id. The app's Share button copies a link to the page in
+`site/` (`/movie/?tt0063350-Night-of-the-Living-Dead-1968`), whose Open button
+hands `lumeo://title/movie/tt0063350` to the desktop; the client turns that
+into ours with `GET /api/v1/find?imdb=…&kind=…`, which adds the title to the
+catalogue the first time.
+
 ## Caching
 
 Catalog pages and item metadata are cached in SQLite with a TTL (6h and 24h).

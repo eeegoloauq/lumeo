@@ -585,6 +585,12 @@ LumeoApi fakeCore({
             : episodes[index + 1];
         return _json({'next': following});
       }
+      // The fixtures' ids are IMDb ids, so a link finds its title by them.
+      if (path == '/api/v1/find') {
+        final item = itemFor(query['imdb'] ?? '');
+        if (item == null) return _json({'error': 'unknown item'}, status: 404);
+        return _json(item);
+      }
       if (path.startsWith('/api/v1/items/') && providerDown) {
         return Completer<http.Response>().future;
       }

@@ -282,6 +282,10 @@ class _ItemScreenState extends State<ItemScreen> {
                     children: [
                       if (!item.isSeries) _filmDownload(choice),
                       LibraryActions(api: widget.api, itemId: widget.itemId),
+                      if (item.imdb.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        ShareButton(item: item),
+                      ],
                     ],
                   ),
                 ),

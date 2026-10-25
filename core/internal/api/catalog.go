@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
@@ -78,6 +79,38 @@ func (s *Server) handleItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item, err := s.catalog.Item(r.Context(), r.PathValue("id"))
+	if err != nil {
+		s.writeItemError(w, err)
+		return
+	}
+	items := []catalog.MediaItem{item}
+	if err := s.rewriteItems(r, items); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, items[0])
+}
+
+// imdbID is the whole of an IMDb title id. Every id a request names is checked
+// against it, because it goes into the provider's URL as a path segment.
+var imdbID = regexp.MustCompile(`^tt[0-9]+$`)
+
+// handleFind opens a title by its IMDb id, as a shared link names it.
+func (s *Server) handleFind(w http.ResponseWriter, r *http.Request) {
+	if !s.haveCatalog(w) {
+		return
+	}
+	q := r.URL.Query()
+	id, kind := q.Get("imdb"), catalog.Kind(q.Get("kind"))
+	if !imdbID.MatchString(id) || (kind != catalog.KindMovie && kind != catalog.KindSeries) {
+		writeError(w, http.StatusBadRequest, "imdb and kind (movie or series) are required")
+		return
+	}
+	item, err := s.catalog.Find(r.Context(), catalog.NamespaceIMDb, kind, id)
+	if errors.Is(err, catalog.ErrNoProviders) {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
 	if err != nil {
 		s.writeItemError(w, err)
 		return

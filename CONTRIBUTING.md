@@ -115,3 +115,10 @@ told when its release is out. Publishing a beta or a release removes the older b
 releases page; their tags stay. Betas go out when there is something to try; the release follows
 once they are checked.
 `packaging/build-dist.sh` makes the bundle and tarball; `build-rpm.sh` and `build-arch.sh` package that tarball.
+
+## Share site
+
+`site/` is the page a shared title link opens, served by GitHub Pages from the mirror:
+`.github/workflows/site.yml` deploys it on every push to `main` that touches it (the repository's
+Pages source is GitHub Actions). `site/build.sh _site` assembles it locally; any static server on
+`_site` shows it.
