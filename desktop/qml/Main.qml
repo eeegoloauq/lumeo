@@ -47,7 +47,7 @@ ApplicationWindow {
     }
 
     Connections {
-        target: Core
+        target: Prototype
         function onPlayable(url) { window.play(url) }
     }
 
@@ -57,7 +57,7 @@ ApplicationWindow {
         if (toOpen.indexOf("://") > 0)
             play(toOpen)
         else
-            Core.openLocal(toOpen)
+            Prototype.openLocal(toOpen)
     }
 
     Browse {

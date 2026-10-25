@@ -81,17 +81,19 @@ changing it, and keep a `diff -r` against upstream equal to the patches listed t
 
 `desktop/` is the client that replaces `client/` ([docs/qt-port.md](docs/qt-port.md)); for now it
 is the prototype: search, a title's copies, and a download played with a bar over it. It needs Qt
-6.8 or later with Quick and QuickControls2, libmpv with its headers, CMake, Ninja, ccache and mold.
-On Fedora:
+6.8 or later with Quick and QuickControls2, libmpv with its headers, CMake, Ninja, ccache and mold;
+the tests also need Qt HTTP Server, for the fake core. On Fedora:
 
     sudo dnf install cmake ninja-build gcc-c++ ccache mold \
-      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland mpv-devel
+      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland mpv-devel \
+      qt6-qthttpserver-devel qt6-qtwebsockets-devel
 
 Then, from `desktop/`:
 
     cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
     cmake --build --preset dev
     build/dev/lumeo-desktop [file or address]
+    ctest --test-dir build/dev --output-on-failure
 
 It talks to the core on `127.0.0.1:7666`, the one a running Lumeo has started, with the token from
 the data directory; `LUMEO_MPV_LOG=<file>` writes mpv's log. On a headless Weston without a GPU,

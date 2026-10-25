@@ -3,7 +3,11 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QSurfaceFormat>
+#include <QtQml/QQmlExtensionPlugin>
 #include <clocale>
+
+// The module is a static library, shared with the tests.
+Q_IMPORT_QML_PLUGIN(LumeoPlugin)
 
 int main(int argc, char *argv[]) {
   // mpv draws through its render API in desktop GL, so the scene graph has

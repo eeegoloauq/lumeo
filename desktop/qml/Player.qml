@@ -136,7 +136,7 @@ FocusScope {
 
     Label {
         anchors { top: parent.top; horizontalCenter: parent.horizontalCenter; topMargin: 24 }
-        text: Core.status
+        text: Prototype.status
         color: "#c3cad8"
     }
 

@@ -18,7 +18,7 @@ FocusScope {
     property var copies: []
 
     Connections {
-        target: Core
+        target: Prototype
         function onSearched(query, kind, items) {
             if (query !== field.text)
                 return
@@ -50,13 +50,13 @@ FocusScope {
                     root.films = []
                     root.series = []
                     root.asking = 2
-                    Core.search(field.text)
+                    Prototype.search(field.text)
                 }
             }
         }
 
         Label {
-            text: root.asking > 0 ? "Searching…" : Core.status
+            text: root.asking > 0 ? "Searching…" : Prototype.status
             color: "#c3cad8"
             visible: text !== ""
         }
@@ -79,7 +79,7 @@ FocusScope {
                     onClicked: {
                         root.title = modelData
                         root.copies = []
-                        Core.sources(modelData.id, season.value, episode.value)
+                        Prototype.sources(modelData.id, season.value, episode.value)
                     }
                 }
             }
@@ -97,7 +97,7 @@ FocusScope {
                     SpinBox { id: episode; from: 1; to: 999; value: 1; focusPolicy: Qt.ClickFocus }
                     Button {
                         text: "Copies"
-                        onClicked: Core.sources(root.title.id, season.value, episode.value)
+                        onClicked: Prototype.sources(root.title.id, season.value, episode.value)
                     }
                 }
 
@@ -114,7 +114,7 @@ FocusScope {
                                modelData.name].join("  ·  ")
                         onClicked: {
                             const series = root.title.kind === "series"
-                            Core.play(root.title.id, index, series ? season.value : 0,
+                            Prototype.play(root.title.id, index, series ? season.value : 0,
                                       series ? episode.value : 0)
                         }
                     }
