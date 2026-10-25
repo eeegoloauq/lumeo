@@ -16,9 +16,9 @@ Each step ends with the checks of the steps before it still passing.
 1. **Prototype, the gate.** `desktop/` with a window, the core's token, one
    title's sources, and a download played through libmpv in Qt Quick with a
    bar over the picture. Checked on the NVIDIA/Wayland machine: 4K HEVC on
-   nvdec, scrubbing, an hour's pause, Anime4K's colours, the window (drag,
-   resize, maximise, edges, shadow) and Russian typed into a text field
-   without lag. Built for Windows with our own libmpv, where mpv's console
+   nvdec, scrubbing, an hour's pause, Anime4K's colours, fullscreen and the
+   system's title bar on GNOME, and Russian typed into a text field without
+   lag. Built for Windows with our own libmpv, where mpv's console
    and statistics open. If the picture fails here, the decision is reopened.
 2. **Foundation.** The API client, the stores, the translations, the theme,
    the shell with its bar, and the test layers with a first test in each.
@@ -57,6 +57,30 @@ own, which is what mpv's own Qt example does, or KDE's `mpvqt` over the same,
 if Fedora and Arch package it and it builds on Windows; the prototype
 decides. Properties are observed on mpv's event loop; nothing on the GUI
 thread waits on mpv, for the reason the Flutter client learned on GTK's.
+
+## How it is built and looked at
+
+The window has the system's title bar (decided 2026-10-25): KDE draws it,
+Windows draws it, and on GNOME, which leaves decorations to the client, Qt's
+Wayland decorations do. The bar under it keeps the wordmark, Back, the tabs,
+search and the downloads ring, without the window buttons and drag areas;
+that bar gets a mockup before code. The artwork no longer runs to the top
+edge, which was the reason for our own.
+
+A build is meant to be fast enough not to wait for: Ninja, ccache and mold,
+QML read from the source tree in a development build so a QML edit needs no
+rebuild, and Qt 6.12's QML hot reload where it works outside Qt Creator. It
+builds on the server, where the tests run, and on the desktop, against the
+system's Qt where it is new enough, to be looked at.
+
+The look is checked against the Flutter client, not redrawn as mockups: one
+screenshot per screen and state from `client/tool/dev.sh shot`, kept outside
+git (they are full of posters), with the rules in decisions/interface.md.
+Only what changes on purpose gets a mockup.
+
+Colours, radii, type sizes and fonts are written once, in a tokens file that
+both the QML theme and the share site read when they are built; today
+`site/title.html` copies the client's colours by hand.
 
 ## What carries over unchanged
 
@@ -100,7 +124,7 @@ thread waits on mpv, for the reason the Flutter client learned on GTK's.
   GApplication over D-Bus and a mutex with `WM_COPYDATA`.
 - Tray: `QSystemTrayIcon` (StatusNotifierItem on Linux). Stock GNOME has no
   tray and keeps the notification, over D-Bus.
-- The window: `showFullScreen`, `startSystemMove`, `startSystemResize`.
+- The window: the system's title bar, `showFullScreen`.
 - Links and folders: `QDesktopServices`. The Pictures folder:
   `QStandardPaths`, no `xdg-user-dir` and no Windows shell call.
 - HTTP: `QNetworkAccessManager`. AppStream: `QXmlStreamReader`.
@@ -131,13 +155,12 @@ returned (`addons_store.dart`). Artwork retries a 5xx after 2, 6 and 20 s, a
 (`artwork_image.dart`, `artwork_scrim.dart`). Language names and ranks
 (`languages.dart`).
 
-**Shell and bar.** decisions/interface.md: the bar is the title bar, Back is
-an arrow before the wordmark, a tab is lit only on its own page, the bar's
+**Shell and bar.** decisions/interface.md: Back is an arrow before the
+wordmark, a tab is lit only on its own page, the bar's
 ground arrives as the page scrolls. The keyboard always has somewhere to be,
 and Ctrl+F opens search (decisions/testing.md, App tests). Taking the
 keyboard while the window is not focused activates it on Windows, even from
-the tray (`app_shell.dart`). The window is dragged from the bar on the first
-move, not the press, so the wordmark stays a click (`window_controls.dart`).
+the tray (`app_shell.dart`).
 The corner cards: an update, what this version brought, and once per machine
 that Lumeo keeps what was watched (interface.md, Help). A file or link given
 at start or by a later launch; a link only opens a page (`app_shell.dart`).
@@ -217,10 +240,6 @@ checklist: each behaviour ports with its screen, at the lowest layer, once.
 
 ## Open questions
 
-- Our own title bar on Wayland: a frameless Qt window gets no shadow and no
-  resize edges from GNOME, so we would draw the edges and call
-  `startSystemResize`. The prototype shows whether that is acceptable or the
-  system's decorations are the answer.
 - The lowest Qt the packages build against: Fedora's and Arch's own. If
   Fedora's release is below 6.12, build against it or bundle Qt.
 - `mpvqt` or our own `QQuickFramebufferObject` (Layout).
