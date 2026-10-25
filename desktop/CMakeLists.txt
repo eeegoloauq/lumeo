@@ -24,6 +24,9 @@ qt_add_qml_module(lumeo
     qml/Player.qml
   SOURCES
     src/api/core.h src/api/core.cpp
+    src/api/addons.h src/api/addons.cpp
+    src/api/downloads.h src/api/downloads.cpp
+    src/api/preferences.h src/api/preferences.cpp
     src/player/mpvitem.h src/player/mpvitem.cpp
     src/prototype.h src/prototype.cpp
 )
