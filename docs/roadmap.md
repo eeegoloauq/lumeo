@@ -129,3 +129,10 @@ A filtered line without a VPN: blank posters fill in within about 30 s.
 
 - A demo source without copyrighted content.
 - Whether a first-party indexer is worth writing once addon gaps are known.
+- `[?]` The desktop client on Qt/QML instead of Flutter. It would put mpv on
+  desktop GL, so the GLES `mediump` texture bug cannot happen, replace our
+  media_kit_video fork with a maintained mpv integration, and leave Flutter's
+  Linux desktop gaps behind. It would not bring gpu-next or HDR: mpv still
+  draws through the render API. Android and TV stay a separate client either
+  way. The cost is the whole client and its tests. Reopen it if the
+  Flutter–mpv seam produces new bugs, not for the ones already fixed.

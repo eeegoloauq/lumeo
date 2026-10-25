@@ -26,12 +26,15 @@ the first commit — retrofitting a network boundary later never works.
 
 ## Flutter + media_kit for the client, not a webview
 
-libmpv cannot be embedded inside a webview, which rules out Tauri and Electron:
-they would leave mpv as a separate window floating over the UI, which is broken
-on Wayland and is a bodge regardless. media_kit renders libmpv directly into a
-widget, and the same UI code later reaches Android and Android TV. Qt/QML was
-the runner-up but is desktop-only in
-practice and a language nobody here writes.
+Tauri and Electron give a webview no way to draw libmpv's picture under the
+page: mpv would be a separate window floating over the UI, which is broken on
+Wayland and is a bodge regardless. A web UI over mpv is possible only inside a
+toolkit that composites both, such as Qt WebEngine over Qt Quick, and then the
+choice is that toolkit. media_kit renders libmpv directly into a widget, and
+the same UI code later reaches Android and Android TV. Qt/QML was the
+runner-up: mpv draws there in desktop GL through a maintained integration, but
+it is weak on Android and a language nobody here writes. What it would bring
+now is an open question in the roadmap.
 
 ## No browser playback, and therefore no transcoding
 
