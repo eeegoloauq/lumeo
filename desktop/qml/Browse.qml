@@ -9,15 +9,22 @@ import Lumeo
 FocusScope {
     id: root
 
-    property var results: []
+    property var films: []
+    property var series: []
+    readonly property var results: films.concat(series)
+    // The kinds still being asked for the word in the field.
+    property int asking: 0
     property var title: null
     property var copies: []
 
     Connections {
         target: Core
-        function onSearched(query, items) {
-            if (query === field.text)
-                root.results = items
+        function onSearched(query, kind, items) {
+            if (query !== field.text)
+                return
+            if (kind === "movie") root.films = items
+            else root.series = items
+            root.asking = Math.max(0, root.asking - 1)
         }
         function onSourcesListed(sources) { root.copies = sources }
     }
@@ -37,12 +44,19 @@ FocusScope {
             Timer {
                 id: wait
                 interval: 300
-                onTriggered: if (field.text.length > 1) Core.search(field.text)
+                onTriggered: {
+                    if (field.text.length < 2)
+                        return
+                    root.films = []
+                    root.series = []
+                    root.asking = 2
+                    Core.search(field.text)
+                }
             }
         }
 
         Label {
-            text: Core.status
+            text: root.asking > 0 ? "Searching…" : Core.status
             color: "#c3cad8"
             visible: text !== ""
         }

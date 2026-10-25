@@ -35,7 +35,7 @@ public:
 
 signals:
   void statusChanged();
-  void searched(const QString &query, const QVariantList &items);
+  void searched(const QString &query, const QString &kind, const QVariantList &items);
   void sourcesListed(const QVariantList &sources);
   void playable(const QString &url);
 

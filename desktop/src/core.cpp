@@ -47,18 +47,14 @@ QStringList Core::headers() const {
 }
 
 void Core::search(const QString &query) {
-  auto items = std::make_shared<QVariantList>();
-  auto collect = [this, query, items](const QString &kind, std::function<void()> next) {
+  for (const QString kind : {"movie", "series"})
     request("GET", "/api/v1/search", QUrlQuery{{"q", query}, {"kind", kind}}, nullptr,
-            [items, next](const QJsonValue &json) {
+            [this, query, kind](const QJsonValue &json) {
+              QVariantList items;
               for (const QJsonValue &item : json["items"].toArray())
-                items->append(item.toObject().toVariantMap());
-              next();
+                items.append(item.toObject().toVariantMap());
+              emit searched(query, kind, items);
             });
-  };
-  collect("movie", [this, query, items, collect] {
-    collect("series", [this, query, items] { emit searched(query, *items); });
-  });
 }
 
 void Core::sources(const QString &itemId, int season, int episode) {
