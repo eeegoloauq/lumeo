@@ -9,6 +9,7 @@ on:
       - site/**
       - client/assets/fonts/**
       - packaging/icon.svg
+      - design/tokens.json
       - .github/workflows/site.yml
   workflow_dispatch:
 

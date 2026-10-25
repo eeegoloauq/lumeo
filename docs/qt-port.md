@@ -78,9 +78,10 @@ screenshot per screen and state from `client/tool/dev.sh shot`, kept outside
 git (they are full of posters), with the rules in decisions/interface.md.
 Only what changes on purpose gets a mockup.
 
-Colours, radii, type sizes and fonts are written once, in a tokens file that
-both the QML theme and the share site read when they are built; today
-`site/title.html` copies the client's colours by hand.
+Colours, radii, type sizes and fonts are written once, in
+`design/tokens.json`, which the QML theme and the share site read when they
+are built (design/README.md). The Flutter client keeps its own copy in
+`theme.dart` until it goes.
 
 ## What carries over unchanged
 

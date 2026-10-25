@@ -1,3 +1,4 @@
+#include "fonts.h"
 #include "language.h"
 
 #include <QGuiApplication>
@@ -26,6 +27,7 @@ int main(int argc, char *argv[]) {
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setDesktopFileName("dev.lumeo.lumeo");
   installTranslations(QLocale());
+  loadFonts();
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
   std::setlocale(LC_NUMERIC, "C");

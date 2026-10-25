@@ -17,3 +17,15 @@ cp "$repo/packaging/icon.svg" "$out/"
 cp "$repo/site/title.html" "$out/movie/index.html"
 cp "$repo/site/title.html" "$out/series/index.html"
 cp "$repo/client/assets/fonts/Unbounded.ttf" "$out/fonts/"
+
+# The colours, radii and sizes the client has, one custom property each
+# (design/README.md).
+python3 - "$repo/design/tokens.json" >"$out/tokens.css" <<'EOF'
+import json, re, sys
+tokens = json.load(open(sys.argv[1]))
+print(":root {")
+for name, value in tokens.items():
+    kebab = re.sub(r"([A-Z])", r"-\1", name).lower()
+    print(f"  --{kebab}: {value}px;" if isinstance(value, (int, float)) else f"  --{kebab}: {value};")
+print("}")
+EOF

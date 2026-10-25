@@ -12,22 +12,23 @@ ApplicationWindow {
     height: 800
     visible: true
     title: "Lumeo"
-    color: "black"
+    color: Tokens.page
 
+    // The Basic style's controls read their colours from here.
     palette {
-        window: "#000000"
-        windowText: "#f3f5f9"
-        base: "#17181c"
-        alternateBase: "#0e0f12"
-        text: "#f3f5f9"
-        button: "#1e1f24"
-        buttonText: "#f3f5f9"
-        highlight: "#f3f5f9"
-        highlightedText: "#000000"
-        placeholderText: "#8b8f9c"
-        mid: "#26272e"
-        light: "#26272e"
-        dark: "#0e0f12"
+        window: Tokens.page
+        windowText: Tokens.text
+        base: Tokens.raised
+        alternateBase: Tokens.surface
+        text: Tokens.text
+        button: Tokens.floating
+        buttonText: Tokens.text
+        highlight: Theme.accent
+        highlightedText: Tokens.page
+        placeholderText: Tokens.muted
+        mid: Tokens.line
+        light: Tokens.line
+        dark: Tokens.surface
     }
 
     // How the window stood before a film took the screen, to give it back.
