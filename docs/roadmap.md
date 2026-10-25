@@ -6,8 +6,10 @@ before code.
 
 ## Next
 
-1. Windows libmpv: media_kit's is mpv 0.36 built without Lua, so the console
-   and statistics do not work. Ship a current libmpv with Lua, pinned by hash.
+1. The desktop client on Qt Quick, in the order [qt-port.md](qt-port.md)
+   sets: a prototype first, which decides. It brings a current libmpv with
+   Lua on Windows, where media_kit's mpv 0.36 has neither console nor
+   statistics. Client items below wait for it.
 2. Skip the opening and ending of files whose chapters are unnamed, found by
    the audio the episodes of a season share (`[?]`).
 
@@ -56,8 +58,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 - mpv's window requests (clipboard, window size, minimise, on-top): answer
   each through an observed property, as `fullscreen` is.
-- `video_output.cc` treats a failed `eglClientWaitSyncKHR` as signalled;
-  handle it as the timeout, with the next change to the fence code.
 - "Identify as…" for a file matched to the wrong title or none (`[?]`).
 - A copy that is not the episode (another cut, a short), told by mpv's
   `duration` against the catalogue runtime. Only if somebody asks.
@@ -75,12 +75,13 @@ app. This revises "No browser playback" in decisions/foundations.md.
   our mpv cannot open; surround passthrough; subtitle outline; whether a
   newer release exists; mpv's network timeout and cache, `hwdec`.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).
-- A web demo on the share site, to try the app without installing it: the
-  client built for the browser (an entry point without `dart:io`/`dart:ffi`)
-  over a fake core that replays answers recorded from the real core in CI:
-  the home rows, those titles' pages and artwork. Search runs over the
-  recording; My list, progress and settings stay in the browser; Play and
-  downloads open the title in an installed Lumeo.
+- A web demo on the share site, to try the app without installing it: a
+  page of its own in HTML and JS, as the share page is, over answers recorded
+  from the real core in CI: the home rows, those titles' pages and artwork.
+  Search runs over the recording; My list and progress stay in the browser;
+  Play and downloads open the title in an installed Lumeo. Neither client
+  builds for a browser well: Flutter's would need the platform code split
+  out, Qt's is a large WebAssembly download.
 - Gamepad support.
 
 ## Metadata: TMDB
@@ -108,11 +109,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - `[?]` Ranking by language flags for live action, where the flags are
   mostly dubs.
 
-## Client debt
-
-- Go through what media_kit publishes (streams, state, configuration) against
-  what we ask mpv for or keep in fields, and delete the copies.
-
 ## Shipping
 
 - Copr, arm64, a self-hosted Flatpak remote.
@@ -135,10 +131,3 @@ A filtered line without a VPN: blank posters fill in within about 30 s.
 
 - A demo source without copyrighted content.
 - Whether a first-party indexer is worth writing once addon gaps are known.
-- `[?]` The desktop client on Qt/QML instead of Flutter. It would put mpv on
-  desktop GL, so the GLES `mediump` texture bug cannot happen, replace our
-  media_kit_video fork with a maintained mpv integration, and leave Flutter's
-  Linux desktop gaps behind. It would not bring gpu-next or HDR: mpv still
-  draws through the render API. Android and TV stay a separate client either
-  way. The cost is the whole client and its tests. Reopen it if the
-  Flutter–mpv seam produces new bugs, not for the ones already fixed.

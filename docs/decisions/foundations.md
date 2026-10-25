@@ -24,17 +24,48 @@ Even in local mode, where both live in the same process tree. This is what makes
 server mode a deployment choice rather than a rewrite, and it has to hold from
 the first commit — retrofitting a network boundary later never works.
 
-## Flutter + media_kit for the client, not a webview
+## Qt Quick + libmpv for the desktop client, not Flutter or a webview
 
-Tauri and Electron give a webview no way to draw libmpv's picture under the
-page: mpv would be a separate window floating over the UI, which is broken on
-Wayland and is a bodge regardless. A web UI over mpv is possible only inside a
-toolkit that composites both, such as Qt WebEngine over Qt Quick, and then the
-choice is that toolkit. media_kit renders libmpv directly into a widget, and
-the same UI code later reaches Android and Android TV. Qt/QML was the
-runner-up: mpv draws there in desktop GL through a maintained integration, but
-it is weak on Android and a language nobody here writes. What it would bring
-now is an open question in the roadmap.
+Decided 2026-10-25; the Flutter client in `client/` ships until the Qt one
+replaces it, in the order [qt-port.md](../qt-port.md) sets out.
+
+The client is a video player first, and on the desktop the toolkit that
+players embedding libmpv are built on is Qt Quick: mpv renders through its
+render API on Qt Quick's own render thread, in desktop GL, through an
+integration other players maintain. Flutter was chosen first because
+media_kit drew libmpv into a widget and the same code would reach Android.
+Two months of it showed where that costs:
+
+- Everything between mpv and the compositor on Linux was one package's C++
+  with no newer version, so we own a fork of it (video-output.md): a
+  deadlock, stale frames after a long pause, a render thread of our own.
+- Flutter's Linux embedder runs Dart on the GTK thread, so any call that waits
+  on mpv stalls the whole interface, and mpv draws in GLES inside Flutter's
+  share group, where NVIDIA reads textures at `mediump` (Anime4K turns
+  orange green).
+- On Windows the libmpv is media_kit's: mpv 0.36 from 2023 without Lua, so
+  mpv's console and statistics cannot work.
+- Flutter's desktop is the part Google handed to Canonical at I/O 2026;
+  multi-window was still experimental in 3.44.
+
+Qt Quick brings desktop GL, a render thread that is not the one drawing the
+interface, our own current libmpv on Windows, and a tray, single instance,
+native folder dialogs and input methods that are the toolkit's rather than
+ours. It costs the whole client and its tests, which is why it is done now,
+at 24k lines, and not later. What it does not bring is gpu-next or HDR: mpv
+still draws through the render API.
+
+Qt Quick and not Qt Widgets: the player's bar floats over the picture, and
+the interface is drawn and animated like the one it replaces. Logic that
+holds state (the core's API, the stores, mpv) is C++; the views are QML.
+Qt 6.12, the LTS from 2026-09-30.
+
+Rejected with it: a webview (Tauri, Electron), because it cannot draw mpv's
+picture under the page and a separate mpv window over it is broken on
+Wayland; Rust toolkits (Slint, Iced), young and without an mpv integration;
+and a native client per platform, which is two or three clients. Phones and
+TVs stay open: Qt builds for Android, and a desktop on a TV is this client
+with a remote.
 
 ## No browser playback, and therefore no transcoding
 

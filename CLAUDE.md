@@ -6,6 +6,9 @@ talks to the core over HTTP, even on one machine. Commands, checks and release s
 `CONTRIBUTING.md`. Docs: `docs/architecture.md` (how it works), `docs/decisions/` (why — read the
 file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 
+The desktop client is moving to Qt Quick in `desktop/`, in the order and against the inventory
+in `docs/qt-port.md`; until it replaces `client/`, the Flutter client takes fixes, no features.
+
 ## Checks
 
 - The core gate (`CONTRIBUTING.md`, Checks) runs before merging any core change.
