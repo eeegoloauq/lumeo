@@ -82,12 +82,12 @@ changing it, and keep a `diff -r` against upstream equal to the patches listed t
 `desktop/` is the client that replaces `client/` ([docs/qt-port.md](docs/qt-port.md)); for now it
 is the shell with its bar, and the prototype's search page (Ctrl+F): a title's copies, and a download
 played with a bar over it. It needs Qt
-6.8 or later with Quick and QuickControls2, libmpv with its headers, CMake, Ninja, ccache and mold;
+6.8 or later with Quick, QuickControls2 and Linguist's tools, libmpv with its headers, CMake, Ninja, ccache and mold;
 the tests also need Qt HTTP Server, for the fake core, and the player tests Weston and ffmpeg. On
 Fedora:
 
     sudo dnf install cmake ninja-build gcc-c++ ccache mold \
-      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland mpv-devel \
+      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qttools-devel qt6-qtwayland mpv-devel \
       qt6-qthttpserver-devel qt6-qtwebsockets-devel
 
 Then, from `desktop/`:
