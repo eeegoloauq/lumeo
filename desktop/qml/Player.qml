@@ -37,6 +37,13 @@ FocusScope {
         id: mpv
         anchors.fill: parent
         onEndOfFile: reason => message.text = "mpv: " + reason
+        // Esc undoes one thing at a time: fullscreen, then the film.
+        onAction: name => {
+            if (name === "back" || (name === "escape" && !mpv.fullscreen))
+                root.back()
+            else if (name === "escape")
+                mpv.set("fullscreen", false)
+        }
     }
 
     // mpv's names for the keys that are not characters.
@@ -45,7 +52,7 @@ FocusScope {
         [Qt.Key_PageUp]: "PGUP", [Qt.Key_PageDown]: "PGDWN", [Qt.Key_Home]: "HOME",
         [Qt.Key_End]: "END", [Qt.Key_Backspace]: "BS", [Qt.Key_Delete]: "DEL",
         [Qt.Key_Return]: "ENTER", [Qt.Key_Enter]: "KP_ENTER", [Qt.Key_Tab]: "TAB",
-        [Qt.Key_Insert]: "INS", [Qt.Key_Space]: "SPACE",
+        [Qt.Key_Insert]: "INS", [Qt.Key_Space]: "SPACE", [Qt.Key_Escape]: "ESC",
         [Qt.Key_F1]: "F1", [Qt.Key_F2]: "F2", [Qt.Key_F3]: "F3", [Qt.Key_F4]: "F4",
         [Qt.Key_F5]: "F5", [Qt.Key_F6]: "F6", [Qt.Key_F7]: "F7", [Qt.Key_F8]: "F8",
         [Qt.Key_F9]: "F9", [Qt.Key_F10]: "F10", [Qt.Key_F11]: "F11", [Qt.Key_F12]: "F12",
@@ -83,16 +90,6 @@ FocusScope {
         event.accepted = true
         if (event.isAutoRepeat)
             return
-        // Esc undoes one thing at a time: fullscreen, then the film.
-        if (event.key === Qt.Key_Escape) {
-            if (mpv.fullscreen) mpv.set("fullscreen", false)
-            else root.back()
-            return
-        }
-        if (event.key === Qt.Key_Q && event.modifiers === Qt.NoModifier) {
-            root.back()
-            return
-        }
         const name = mpvName(event)
         if (name === "")
             return

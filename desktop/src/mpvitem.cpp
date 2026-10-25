@@ -186,6 +186,13 @@ MpvItem::MpvItem(QQuickItem *parent)
   mpv_observe_property(mpv, Fullscreen, "fullscreen", MPV_FORMAT_FLAG);
   mpv_observe_property(mpv, Hwdec, "hwdec-current", MPV_FORMAT_STRING);
   mpv_set_wakeup_callback(mpv, wakeup, m_shared.get());
+
+  // The player's own keys are bindings in a section of ours rather than
+  // keys taken before mpv sees them: the console's forced bindings win while
+  // it is open, and a user's input.conf can rebind ours.
+  command({"define-section", "lumeo",
+           "ESC script-message lumeo escape\nq script-message lumeo back", "default"});
+  command({"enable-section", "lumeo"});
 }
 
 MpvItem::~MpvItem() {
@@ -244,6 +251,12 @@ void MpvItem::drainEvents() {
     case MPV_EVENT_PROPERTY_CHANGE:
       onProperty(event->reply_userdata, static_cast<mpv_event_property *>(event->data));
       break;
+    case MPV_EVENT_CLIENT_MESSAGE: {
+      auto *message = static_cast<mpv_event_client_message *>(event->data);
+      if (message->num_args == 2 && qstrcmp(message->args[0], "lumeo") == 0)
+        emit action(QString::fromUtf8(message->args[1]));
+      break;
+    }
     case MPV_EVENT_END_FILE: {
       auto *end = static_cast<mpv_event_end_file *>(event->data);
       if (end->reason == MPV_END_FILE_REASON_ERROR)

@@ -67,6 +67,8 @@ signals:
   void hwdecChanged();
   void anime4kChanged();
   void endOfFile(const QString &reason);
+  // A `script-message lumeo <action>` from one of our bindings.
+  void action(const QString &name);
 
 private slots:
   void drainEvents();
