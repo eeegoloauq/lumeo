@@ -1,3 +1,4 @@
+#include "artwork.h"
 #include "fonts.h"
 #include "language.h"
 
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]) {
   QQuickStyle::setStyle("Basic");
 
   QQmlApplicationEngine engine;
+  Artwork::install(&engine);
   const QStringList args = app.arguments();
   engine.setInitialProperties({{"toOpen", args.size() > 1 ? args.at(1) : QString()}});
   QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,

@@ -102,6 +102,31 @@ private slots:
     QCOMPARE(ids(store), QStringList{"d active"});
   }
 
+  // Seen 2026-09-30: a ring nearly full sat on a series whose episode was on
+  // disk, summed with a copy left paused half way.
+  void aPosterMarksWhatIsArrivingElseWhatIsOnDisk() {
+    auto row = [](const QString &id, const QString &state, int episode, int got) {
+      return QJsonObject{{"id", id}, {"itemId", "tt1"}, {"season", 1}, {"episode", episode},
+                         {"state", state},
+                         {"progress", QJsonObject{{"completed", got}, {"total", 100}}}};
+    };
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads",
+                              QJsonArray{row("e1", "done", 1, 100), row("e2", "paused", 2, 50)}}});
+    Downloads store(core.get());
+    QTRY_VERIFY(!store.marks().isEmpty());
+    QCOMPARE(store.marks()["tt1"], QVariantMap({{"done", true}}));
+    QVERIFY2(!store.marks().contains("tt1/1/2"), "paused half way is not a state of the episode");
+    QVERIFY(!store.marks().contains("tt2"));
+
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads",
+                              QJsonArray{row("e1", "done", 1, 100), row("e2", "active", 2, 50)}}});
+    store.refresh();
+    QTRY_COMPARE(store.marks()["tt1"], QVariantMap({{"fraction", 0.5}}));
+    QCOMPARE(store.marks()["tt1/1/1"], QVariantMap({{"done", true}}));
+  }
+
   void aResetAsksTheCoreAndKeepsTheDocumentItAnswersWith() {
     fake->answer("PATCH", "/api/v1/preferences", 200, QJsonObject{{"accent", "red"}});
     fake->answer("DELETE", "/api/v1/preferences", 200, QJsonObject{{"accent", "white"}});

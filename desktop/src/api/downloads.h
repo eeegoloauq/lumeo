@@ -22,6 +22,13 @@ class Downloads : public QObject {
   // What is actually moving: a failed or stopped download is not "1
   // downloading" with a frozen percentage.
   Q_PROPERTY(int running READ running NOTIFY changed)
+  // The mark on a poster, by title and by "title/season/episode" for the one
+  // episode a card plays: {fraction} while any of it arrives, else {done}
+  // when any of it is on disk; no entry when neither. A download paused or
+  // given up on is not what the title is doing, and marks nothing. A corner
+  // mark rather than a bar, so the one bar along a picture's bottom edge is
+  // how much was watched (decisions/interface.md).
+  Q_PROPERTY(QVariantMap marks READ marks NOTIFY changed)
 
 public:
   explicit Downloads(Core *core, QObject *parent = nullptr);
@@ -29,6 +36,7 @@ public:
 
   QVariantList all() const { return m_downloads.toVariantList(); }
   int running() const;
+  QVariantMap marks() const { return m_marks; }
 
   // The download of a film or one episode: the copy on disk when there is
   // one among several. Empty when there is none.
@@ -63,6 +71,8 @@ signals:
 
 private:
   void setPaused(const QString &id, bool paused);
+  // Emits changed with the marks worked out again.
+  void update();
   void adopt(const QJsonObject &download);
   void resolveTitles();
   void schedule();
@@ -70,6 +80,7 @@ private:
   Core *m_core;
   QJsonArray m_downloads;
   QHash<QString, QJsonObject> m_items;
+  QVariantMap m_marks;
   QTimer m_poll;
   // Moves with every answer put in the list: a poll asked before it answers
   // without it, and must not put the old state back.

@@ -30,6 +30,11 @@ FocusScope {
             stack.pop()
     }
 
+    // A title's page; [play] starts it there, as the banner's Play does.
+    function open(item, play) {
+        stack.push(titlePage, {item: item, play: play})
+    }
+
     function search() {
         if (page !== "search")
             stack.push(pages.search)
@@ -74,7 +79,8 @@ FocusScope {
     TapHandler { acceptedButtons: Qt.BackButton; onTapped: shell.back() }
 
     // The screens of docs/qt-port.md, step 3, replace these.
-    Component { id: homePage; ShellPage { objectName: "home" } }
+    Component { id: homePage; HomePage { objectName: "home"; onOpen: (item, play) => shell.open(item, play) } }
+    Component { id: titlePage; ShellPage { objectName: "title"; property var item; property bool play } }
     Component { id: libraryPage; ShellPage { objectName: "library" } }
     Component { id: settingsPage; ShellPage { objectName: "settings" } }
     Component { id: searchPage; Browse { objectName: "search"; topPadding: 68 } }

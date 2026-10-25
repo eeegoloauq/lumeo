@@ -40,6 +40,7 @@ void write(QHttpServerResponder &responder, int status, const QJsonValue &body) 
 struct FakeCore::Held {
   QString key;
   QJsonValue body;
+  QUrlQuery query;
   QHttpServerResponder responder;
 };
 
@@ -59,10 +60,10 @@ FakeCore::FakeCore(QObject *parent) : QObject(parent) {
     const QString key = method + " " + path;
     if (m_holding.contains(key)) {
       m_held.push_back(std::unique_ptr<Held>(
-          new Held{key, parse(request.body()), std::move(responder)}));
+          new Held{key, parse(request.body()), request.query(), std::move(responder)}));
       return;
     }
-    respond(key, parse(request.body()), responder);
+    respond(key, parse(request.body()), request.query(), responder);
   });
 }
 
@@ -83,7 +84,18 @@ void FakeCore::answer(const QString &method, const QString &path, int status,
 }
 
 void FakeCore::on(const QString &method, const QString &path, Handler handler) {
-  m_handlers.insert(method + " " + path, std::move(handler));
+  m_handlers.insert(method + " " + path,
+                    [handler](const QJsonValue &body, const QUrlQuery &) { return handler(body); });
+}
+
+void FakeCore::onQuery(const QString &method, const QString &path, QueryHandler handler) {
+  m_handlers.insert(method + " " + path, [handler](const QJsonValue &, const QUrlQuery &query) {
+    return handler(query);
+  });
+}
+
+void FakeCore::file(const QString &path, const QByteArray &bytes, const QByteArray &type) {
+  m_files.insert("GET " + path, {bytes, type});
 }
 
 void FakeCore::hold(const QString &method, const QString &path) {
@@ -94,17 +106,21 @@ void FakeCore::release() {
   m_holding.clear();
   auto held = std::move(m_held);
   for (const auto &request : held)
-    respond(request->key, request->body, request->responder);
+    respond(request->key, request->body, request->query, request->responder);
 }
 
-void FakeCore::respond(const QString &key, const QJsonValue &body,
+void FakeCore::respond(const QString &key, const QJsonValue &body, const QUrlQuery &query,
                        QHttpServerResponder &responder) {
+  if (const auto file = m_files.constFind(key); file != m_files.constEnd()) {
+    responder.write(file->first, file->second);
+    return;
+  }
   const auto handler = m_handlers.constFind(key);
   if (handler == m_handlers.constEnd()) {
     write(responder, 404, QJsonObject{{"error", "not faked: " + key}});
     return;
   }
-  const auto [status, answer] = (*handler)(body);
+  const auto [status, answer] = (*handler)(body, query);
   write(responder, status, answer);
 }
 

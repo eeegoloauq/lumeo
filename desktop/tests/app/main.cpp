@@ -1,3 +1,4 @@
+#include "artwork.h"
 #include "fakecore.h"
 #include "fonts.h"
 #include "language.h"
@@ -31,12 +32,17 @@ public slots:
     fake->answer("GET", "/api/v1/preferences/languages", 200,
                 QJsonObject{{"languages", FakeCore::fixture("languages.json")}});
     fake->answer("GET", "/api/v1/downloads", 200, QJsonObject{{"downloads", QJsonArray()}});
+    fake->answer("GET", "/api/v1/catalogs", 200,
+                 QJsonObject{{"catalogs", FakeCore::fixture("catalogs.json")}});
+    fake->answer("GET", "/api/v1/catalog", 200, QJsonObject{{"items", FakeCore::fixture("items.json")}});
+    fake->answer("GET", "/api/v1/continue", 200, QJsonArray());
     installTranslations(QLocale(QLocale::English));
     loadFonts();
   }
 
   void qmlEngineAvailable(QQmlEngine *engine) {
     engine->rootContext()->setContextProperty("fakeCore", fake.get());
+    Artwork::install(engine);
   }
 };
 

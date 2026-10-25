@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 6.8 is the oldest LTS the distributions' own Qt might be; development and
 # CI run 6.12 (docs/qt-port.md, Open questions).
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg LinguistTools)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concurrent ShaderTools
+  LinguistTools)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 
@@ -39,20 +40,36 @@ qt_add_qml_module(lumeo
     qml/Main.qml
     qml/Bar.qml
     qml/Browse.qml
+    qml/DownloadMark.qml
+    qml/Glyph.qml
+    qml/HomePage.qml
+    qml/HeroLogo.qml
     qml/IconButton.qml
     qml/PillTab.qml
+    qml/PlayButton.qml
+    qml/PosterTile.qml
+    qml/QuietButton.qml
+    qml/ShelfRow.qml
     qml/Shell.qml
     qml/ShellPage.qml
+    qml/Strip.qml
     qml/Player.qml
     qml/Theme.qml
+    qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
   RESOURCES
     ${fonts}
     # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
     icons/arrow_back.svg
+    icons/chevron_left.svg
+    icons/chevron_right.svg
+    icons/download.svg
+    icons/play_arrow.svg
     icons/search.svg
   SOURCES
     src/api/core.h src/api/core.cpp
+    src/api/artwork.h src/api/artwork.cpp
+    src/api/home.h src/api/home.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp
@@ -71,7 +88,13 @@ target_compile_definitions(lumeo PRIVATE
 )
 
 target_link_libraries(lumeo PUBLIC
-  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg PkgConfig::MPV
+  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent PkgConfig::MPV
+)
+
+# The banner's scrim, compiled for every graphics API Qt might run on.
+qt_add_shaders(lumeo "shaders"
+  PREFIX /qt/qml/Lumeo
+  FILES shaders/scrim.frag
 )
 
 # The interface's text, by id (qsTrId): the .ts files are the source, and

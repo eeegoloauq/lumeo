@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QUrl>
+#include <QUrlQuery>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -35,6 +36,12 @@ public:
   // An answer worked out from the request's body.
   using Handler = std::function<std::pair<int, QJsonValue>(const QJsonValue &body)>;
   void on(const QString &method, const QString &path, Handler handler);
+  // An answer worked out from the request's query, as a page of a catalogue.
+  using QueryHandler = std::function<std::pair<int, QJsonValue>(const QUrlQuery &query)>;
+  void onQuery(const QString &method, const QString &path, QueryHandler handler);
+
+  // A picture served at [path] from now on, before any answer set for it.
+  Q_INVOKABLE void file(const QString &path, const QByteArray &bytes, const QByteArray &type);
 
   // Leaves [method] [path] unanswered until release(): a request in flight.
   Q_INVOKABLE void hold(const QString &method, const QString &path);
@@ -50,12 +57,15 @@ signals:
 
 private:
   struct Held;
-  void respond(const QString &key, const QJsonValue &body, QHttpServerResponder &responder);
+  using Answer = std::function<std::pair<int, QJsonValue>(const QJsonValue &, const QUrlQuery &)>;
+  void respond(const QString &key, const QJsonValue &body, const QUrlQuery &query,
+               QHttpServerResponder &responder);
 
   QHttpServer m_server;
   QTcpServer *m_tcp = nullptr;
   QStringList m_requests;
-  QHash<QString, Handler> m_handlers;
+  QHash<QString, Answer> m_handlers;
+  QHash<QString, std::pair<QByteArray, QByteArray>> m_files;
   QStringList m_holding;
   std::vector<std::unique_ptr<Held>> m_held;
 };

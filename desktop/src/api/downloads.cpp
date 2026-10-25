@@ -72,7 +72,7 @@ void Downloads::adopt(const QJsonObject &download) {
     }
   if (!known)
     m_downloads.prepend(download);
-  emit changed();
+  update();
   resolveTitles();
   // Polled at the pace of something moving from now, not after the idle
   // wait already running.
@@ -92,7 +92,7 @@ void Downloads::forget(const QString &id) {
   for (qsizetype i = 0; i < m_downloads.size(); ++i)
     if (m_downloads.at(i)["id"] == id) {
       m_downloads.removeAt(i);
-      emit changed();
+      update();
       return;
     }
 }
@@ -108,7 +108,7 @@ void Downloads::refresh() {
       // posters on screen.
       if (fresh != m_downloads) {
         m_downloads = fresh;
-        emit changed();
+        update();
       }
       resolveTitles();
     }
@@ -134,6 +134,41 @@ void Downloads::resolveTitles() {
                   emit changed();
                 });
   }
+}
+
+void Downloads::update() {
+  struct Mark {
+    bool arriving = false;
+    bool onDisk = false;
+    qint64 completed = 0;
+    qint64 total = 0;
+  };
+  QHash<QString, Mark> marks;
+  for (const QJsonValue &d : m_downloads) {
+    const QString itemId = d["itemId"].toString();
+    const QString episode =
+        QString("%1/%2/%3").arg(itemId).arg(d["season"].toInt()).arg(d["episode"].toInt());
+    for (const QString &key : {itemId, episode}) {
+      Mark &mark = marks[key];
+      if (d["state"] == "done")
+        mark.onDisk = true;
+      if (d["state"] == "active") {
+        mark.arriving = true;
+        mark.completed += d["progress"]["completed"].toInteger();
+        mark.total += d["progress"]["total"].toInteger();
+      }
+    }
+  }
+  m_marks.clear();
+  for (auto mark = marks.cbegin(); mark != marks.cend(); ++mark) {
+    if (mark->arriving) {
+      const double fraction = mark->total > 0 ? double(mark->completed) / mark->total : 0.0;
+      m_marks.insert(mark.key(), QVariantMap{{"fraction", fraction}});
+    }
+    else if (mark->onDisk)
+      m_marks.insert(mark.key(), QVariantMap{{"done", true}});
+  }
+  emit changed();
 }
 
 void Downloads::schedule() { m_poll.start(running() > 0 ? activeInterval : idleInterval); }
