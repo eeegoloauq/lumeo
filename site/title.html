@@ -7,19 +7,15 @@
 <meta property="og:title" content="Lumeo">
 <meta property="og:description" content="Open this title in Lumeo">
 <meta name="color-scheme" content="dark">
+<link rel="preload" href="../fonts/Unbounded.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
-<link rel="preload" href="../fonts/IBMPlexSans-400.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="../fonts/IBMPlexSans-500.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="../fonts/IBMPlexSans-600.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="../fonts/IBMPlexSans-700.ttf" as="font" type="font/ttf" crossorigin>
 <style>
   @font-face { font-family: Unbounded; src: url(../fonts/Unbounded.ttf); font-weight: 600; font-display: swap; }
-  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-400.ttf); font-weight: 400; font-display: swap; }
-  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-500.ttf); font-weight: 500; font-display: swap; }
-  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-600.ttf); font-weight: 600; font-display: swap; }
-  @font-face { font-family: Plex; src: url(../fonts/IBMPlexSans-700.ttf); font-weight: 700; font-display: swap; }
 
+  /* Text in the system's own font: nothing to download before the page reads.
+     Unbounded stays for the wordmark, which is the logo, not text. */
   :root {
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Cantarell, Ubuntu, sans-serif;
     --page: #000;
     --raised: #17181c;
     --rim: rgba(255, 255, 255, .07);
@@ -38,7 +34,7 @@
   body {
     background: var(--page);
     color: var(--text);
-    font: 400 16px/1.45 Plex, system-ui, sans-serif;
+    font: 400 16px/1.45 var(--sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
@@ -94,7 +90,7 @@
     display: inline-flex; align-items: center; gap: 10px;
     height: 52px; padding: 0 24px;
     border-radius: var(--control);
-    font: 600 15px Plex, sans-serif;
+    font: 600 15px var(--sans);
     text-decoration: none; cursor: pointer;
     transition: background-color .15s ease, transform .15s ease;
   }
