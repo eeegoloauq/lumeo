@@ -40,8 +40,9 @@ The Flutter client takes fixes meanwhile, no features.
 ## Layout
 
     desktop/
-      CMakeLists.txt     C++20, Qt 6.12 (Quick, QuickControls2, Network;
-                         DBus on Linux), libmpv
+      CMakeLists.txt     C++20, Qt 6.12 (Quick, QuickControls2, Network, Svg,
+                         Concurrent, ShaderTools; DBus on Linux; Image
+                         Formats at run time, for WebP), libmpv
       src/api/           the core over HTTP, the token, the stores
       src/player/        the mpv item, the headless mpv, the frame grabber
       src/platform/      the window, one instance, tray, folders, settings
@@ -117,8 +118,9 @@ are built (design/README.md). The Flutter client keeps its own copy in
   only what a decision names is set on top.
 - The Impeller and Skia section of video-output.md, the `mediump` bug if the
   prototype shows it gone, the icon-subset note.
-- Workarounds of Flutter's widgets: the wheel on horizontal rows (check what
-  a horizontal ListView does with a wheel before writing anything), the
+- Workarounds of Flutter's widgets: the wheel on horizontal rows (a
+  horizontal ListView in Qt already leaves the wheel to the page and takes a
+  trackpad's sideways gesture; only shift with the wheel is ours), the
   double-tap arena (TapHandler), `MenuAnchor` positioning, the shell's own
   navigation stack (a StackView under the bar that floats over it), the
   window notifier that defers to the end of a frame.
