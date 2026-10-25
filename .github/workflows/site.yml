@@ -8,6 +8,7 @@ on:
     paths:
       - site/**
       - client/assets/fonts/**
+      - packaging/icon.svg
       - .github/workflows/site.yml
   workflow_dispatch:
 
