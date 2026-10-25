@@ -77,6 +77,26 @@ Dart thread: on Linux it is GTK's, and the whole interface stalls during every s
 `client/third_party/media_kit_video` is a patched copy of upstream 2.0.1. Read its `LUMEO.md` before
 changing it, and keep a `diff -r` against upstream equal to the patches listed there.
 
+## The Qt client
+
+`desktop/` is the client that replaces `client/` ([docs/qt-port.md](docs/qt-port.md)); for now it
+is the prototype: search, a title's copies, and a download played with a bar over it. It needs Qt
+6.8 or later with Quick and QuickControls2, libmpv with its headers, CMake, Ninja, ccache and mold.
+On Fedora:
+
+    sudo dnf install cmake ninja-build gcc-c++ ccache mold \
+      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland mpv-devel
+
+Then, from `desktop/`:
+
+    cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
+    cmake --build --preset dev
+    build/dev/lumeo-desktop [file or address]
+
+It talks to the core on `127.0.0.1:7666`, the one a running Lumeo has started, with the token from
+the data directory; `LUMEO_MPV_LOG=<file>` writes mpv's log. On a headless Weston without a GPU,
+preload `client/tool/no-libva-wayland.c` as `tool/ui-test.sh` does.
+
 ## Translations
 
 The interface's text lives in `client/lib/l10n/`: `app_en.arb` is the source, every other
