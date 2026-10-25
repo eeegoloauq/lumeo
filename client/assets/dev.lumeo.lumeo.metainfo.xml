@@ -39,6 +39,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.10" date="2026-10-25" type="development">
+      <description>
+        <ul>
+          <li>Share on a film or series page copies a link to it. The link shows the title to anyone and opens it in Lumeo for whoever has it.</li>
+          <li xml:lang="ru">«Поделиться» на странице фильма или сериала копирует ссылку на него. По ссылке название видно любому, а у кого есть Lumeo, она открывает его в приложении.</li>
+          <li>Subtitles that finish downloading after you picked another track no longer replace it.</li>
+          <li xml:lang="ru">Субтитры, докачавшиеся после того, как вы выбрали другую дорожку, больше её не заменяют.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.9" date="2026-10-12" type="development">
       <description>
         <ul>
