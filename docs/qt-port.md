@@ -240,7 +240,11 @@ text field is typed into on the same machine.
 **Library.** decisions/library.md. The order of My list is this machine's,
 History pages in and a removed line forgets its progress, new episodes as a
 shelf (`library_screen.dart`), dates and lines as people say them
-(`library_text.dart`).
+(`library_text.dart`). Changed on purpose (decided 2026-10-26): no heading,
+since the lit tab names the page; History is grouped under the day it was
+watched rather than dating every line; and a line taken out waits five
+seconds for Undo before the core forgets it, where the Flutter client
+forgot it at once with no way back.
 
 **Settings.** interface.md, Settings. A stepped number shows each press and
 sends the last, a value from another client lights Custom, a refusal is said

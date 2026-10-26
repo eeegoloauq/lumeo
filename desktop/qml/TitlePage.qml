@@ -14,6 +14,9 @@ ShellPage {
     required property var item
     // Play was pressed on the way here: the first list of copies starts.
     property bool play
+    // The episode to open on, {season, episode}, in place of where watching
+    // goes on: a line of the history, a new episode.
+    property var at: null
 
     // Play started this download.
     signal watch(string downloadId, string name)
@@ -34,7 +37,7 @@ ShellPage {
     // A card chosen on this page.
     property var picked: null
     readonly property var resumed: {
-        const at = about.opening
+        const at = page.at ?? about.opening
         return episodes.find(e => e.season === at.season && e.number === at.episode) ?? null
     }
     readonly property int season: seasonPicked >= 0 ? seasonPicked : resumed?.season ?? seasons[0] ?? 0

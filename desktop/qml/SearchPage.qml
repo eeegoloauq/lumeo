@@ -76,56 +76,25 @@ ShellPage {
     }
 
     // The poster and its caption, one cell of the grid.
-    component Cell: Item {
+    component Cell: CaptionedTile {
         id: slot
 
         required property int index
         required property var modelData
-        readonly property alias button: tile
 
+        objectName: "result-" + modelData.id
         width: page.cell
-        height: page.poster + page.caption
-        // Over its neighbours while lifted, or the next one covers its shadow.
-        z: tile.lifted ? 1 : 0
-
-        PosterTile {
-            id: tile
-            objectName: "result-" + slot.modelData.id
-            width: parent.width
-            height: page.poster
-            item: slot.modelData
-            mark: Downloads.marks[slot.modelData.id]
-            onClicked: page.open(slot.modelData)
-            Keys.onLeftPressed: page.move(slot.index + 1, -1, 0)
-            Keys.onRightPressed: page.move(slot.index + 1, 1, 0)
-            Keys.onUpPressed: page.move(slot.index + 1, 0, -1)
-            Keys.onDownPressed: page.move(slot.index + 1, 0, 1)
-        }
-        Column {
-            y: page.poster + 8
-            width: parent.width
-            spacing: 2
-
-            Text {
-                width: parent.width
-                text: slot.modelData.title
-                color: Tokens.text
-                font.family: Tokens.fontSans
-                font.pixelSize: Tokens.textCard
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-            }
-            Text {
-                width: parent.width
-                text: qsTrId("searchYearKind").arg(Format.years(slot.modelData))
-                      .arg(slot.modelData.kind === "series" ? qsTrId("commonSeries") : qsTrId("commonFilm"))
-                      .trim()
-                color: Tokens.muted
-                font.family: Tokens.fontSans
-                font.pixelSize: Tokens.textData
-                elide: Text.ElideRight
-            }
-        }
+        posterHeight: page.poster
+        item: modelData
+        line: qsTrId("searchYearKind").arg(Format.years(modelData))
+              .arg(modelData.kind === "series" ? qsTrId("commonSeries") : qsTrId("commonFilm"))
+              .trim()
+        mark: Downloads.marks[modelData.id]
+        onClicked: page.open(modelData)
+        button.Keys.onLeftPressed: page.move(slot.index + 1, -1, 0)
+        button.Keys.onRightPressed: page.move(slot.index + 1, 1, 0)
+        button.Keys.onUpPressed: page.move(slot.index + 1, 0, -1)
+        button.Keys.onDownPressed: page.move(slot.index + 1, 0, 1)
     }
 
     scrolled: flick.contentY > 12

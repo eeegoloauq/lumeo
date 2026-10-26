@@ -41,6 +41,7 @@ qt_add_qml_module(lumeo
     qml/Banner.qml
     qml/Bar.qml
     qml/BestMatch.qml
+    qml/CaptionedTile.qml
     qml/DownloadButton.qml
     qml/DownloadMark.qml
     qml/DownloadPanel.qml
@@ -52,6 +53,7 @@ qt_add_qml_module(lumeo
     qml/HomePage.qml
     qml/HeroLogo.qml
     qml/IconButton.qml
+    qml/LibraryPage.qml
     qml/Loading.qml
     qml/PillTab.qml
     qml/PlayButton.qml
@@ -147,6 +149,7 @@ qt_add_qml_module(lumeo
     src/api/title.h src/api/title.cpp
     src/api/mine.h src/api/mine.cpp
     src/api/search.h src/api/search.cpp
+    src/api/library.h src/api/library.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp

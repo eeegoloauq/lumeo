@@ -23,13 +23,69 @@ QtObject {
         return qsTrId("downloadsTimeLeftHours", Math.floor(minutes / 60)).arg(padded(minutes % 60))
     }
 
+    // The catalogue's name for an episode, or empty when it is only "Episode 3".
+    function episodeTitle(episode) {
+        const title = episode?.title ?? ""
+        return title && title !== "Episode " + episode.number ? title : ""
+    }
+
     // "Episode 3 · The Title", or "Episode 3" when the catalogue's title is
     // only that.
     function episodeName(episode) {
-        const title = episode.title ?? ""
-        const named = title && title !== "Episode " + episode.number ? title : ""
+        const named = episodeTitle(episode)
         return named ? qsTrId("itemEpisodeNamed").arg(episode.number).arg(named)
                      : qsTrId("itemEpisodeNumber").arg(episode.number)
+    }
+
+    function count(n) {
+        return Number(n).toLocaleString(Qt.locale(), "f", 0)
+    }
+
+    // Under a poster on My list, what the poster cannot say: how far the
+    // viewer is, the kind only when there is neither that nor a score.
+    function listedCaption(listed) {
+        const watched = listed.seen?.watched ?? 0, released = listed.seen?.released ?? 0
+        const series = listed.item.kind === "series"
+        const seen = series ? (watched > 0 && released > 0
+                               ? (watched >= released ? qsTrId("libraryWatched")
+                                                      : qsTrId("libraryWatchedOf").arg(count(watched)).arg(count(released)))
+                               : "")
+                            : (watched > 0 ? qsTrId("libraryWatched") : "")
+        if (seen === "" && !listed.rating)
+            return series ? qsTrId("commonSeries") : qsTrId("commonFilm")
+        return seen
+    }
+
+    // Which episode is new and when it came out: "S4 E18 · Today", with how
+    // many there are when there are more.
+    function newEpisodeCaption(found) {
+        const e = found.episode, n = found.count ?? 1
+        // Released at the provider's midnight UTC: that day, and today as UTC
+        // has it, are the pair that belong together.
+        const date = e.released ? dayLabel(e.released.slice(0, 10), new Date().toISOString().slice(0, 10)) : ""
+        if (date && n > 1)
+            return qsTrId("libraryNewEpisodeDateCount", n).arg(e.season).arg(e.number).arg(date)
+        if (date)
+            return qsTrId("libraryNewEpisodeDate").arg(e.season).arg(e.number).arg(date)
+        if (n > 1)
+            return qsTrId("libraryNewEpisodeCount", n).arg(e.season).arg(e.number)
+        return qsTrId("libraryNewEpisode").arg(e.season).arg(e.number)
+    }
+
+    // A history line's title: the series and the episode, or the film.
+    function viewingTitle(item, entry, episode) {
+        if (item.kind !== "series")
+            return item.title
+        const named = episodeTitle(episode)
+        return named ? qsTrId("libraryViewingNamedTitle").arg(item.title).arg(entry.season).arg(entry.episode).arg(named)
+                     : qsTrId("libraryViewingTitle").arg(item.title).arg(entry.season).arg(entry.episode)
+    }
+
+    // Where a viewing was left: the time still to go, or that it was finished.
+    function viewingState(entry) {
+        if (entry.position > 0 && entry.duration > entry.position)
+            return timeLeft(entry.duration - entry.position)
+        return entry.watched ? qsTrId("libraryWatched") : qsTrId("libraryStarted")
     }
 
     // 4.2 GB: powers of 1024, one decimal under a hundred.
@@ -90,8 +146,32 @@ QtObject {
         // The provider dates a release at midnight UTC: that day, wherever
         // the reader is.
         const utc = new Date(iso)
-        const date = new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate())
-        const locale = Qt.locale()
-        return date.toLocaleDateString(locale, locale.name.startsWith("en") ? "MMM d" : "d MMM")
+        return dayMonth(new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate()), false)
+    }
+
+    function dayMonth(date, year) {
+        const english = Qt.locale().name.startsWith("en")
+        const format = english ? (year ? "MMM d, yyyy" : "MMM d") : (year ? "d MMM yyyy" : "d MMM")
+        return date.toLocaleDateString(Qt.locale(), format)
+    }
+
+    // A day as somebody says it: Today, Yesterday, the weekday within the
+    // last week, the date after that, and the year only when it is not this
+    // one. Both are calendar dates, "2026-10-26"; [today] is this machine's
+    // when not given.
+    function dayLabel(day, today) {
+        const date = (iso => new Date(iso.slice(0, 4), iso.slice(5, 7) - 1, iso.slice(8, 10)))
+        const now = new Date()
+        const base = today ? date(today) : new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const then = date(day)
+        // Rounded: a day that changes the clocks is an hour short or long.
+        const days = Math.round((base - then) / 86400000)
+        if (days === 0)
+            return qsTrId("libraryToday")
+        if (days === 1)
+            return qsTrId("libraryYesterday")
+        if (days > 1 && days < 7)
+            return then.toLocaleDateString(Qt.locale(), "ddd")
+        return dayMonth(then, then.getFullYear() !== base.getFullYear())
     }
 }

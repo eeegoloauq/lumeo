@@ -80,8 +80,7 @@ changing it, and keep a `diff -r` against upstream equal to the patches listed t
 ## The Qt client
 
 `desktop/` is the client that replaces `client/` ([docs/qt-port.md](docs/qt-port.md)); for now it
-is the shell with its bar, Home, a title's page, the player, and the prototype's search page
-(Ctrl+F). It needs Qt 6.8 or later with Quick, QuickControls2, Svg, Shader
+is the shell with its bar, Home, a title's page, the player, search, the library and settings. It needs Qt 6.8 or later with Quick, QuickControls2, Svg, Shader
 Tools, Linguist's tools and Image Formats (artwork arrives in WebP too), libmpv with its headers,
 CMake, Ninja, ccache and mold; the tests also need Qt HTTP Server, for the fake core, and the player
 tests Weston and ffmpeg. On Fedora:

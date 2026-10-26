@@ -27,6 +27,10 @@ class LocalSettings : public QObject {
   // system.
   Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
   Q_PROPERTY(QVariantList languages READ languages CONSTANT)
+  // The order of My list: "added", "title", "year" or "rating". A way of
+  // looking at the list on this screen, so not the core's
+  // (decisions/library.md).
+  Q_PROPERTY(QString listSort READ listSort WRITE setListSort NOTIFY changed)
 
 public:
   explicit LocalSettings(const QString &path, QObject *parent = nullptr);
@@ -43,6 +47,8 @@ public:
   QString language() const;
   void setLanguage(const QString &code);
   QVariantList languages() const { return m_languages; }
+  QString listSort() const;
+  void setListSort(const QString &order);
   // This machine's choices back to their defaults; the volume is not one.
   Q_INVOKABLE void resetChoices();
   // The language to show: the chosen one, else the system's.

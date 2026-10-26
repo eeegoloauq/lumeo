@@ -423,6 +423,16 @@
         <extracomment>Action on a history row.</extracomment>
         <translation>Remove from history</translation>
     </message>
+    <message id="libraryRemovedFromHistory">
+        <source>Removed from history</source>
+        <extracomment>Toast after a history row is taken out, beside Undo.</extracomment>
+        <translation>Removed from history</translation>
+    </message>
+    <message id="commonUndo">
+        <source>Undo</source>
+        <extracomment>Brings back what was just removed.</extracomment>
+        <translation>Undo</translation>
+    </message>
     <message id="libraryMoreLoadFailed">
         <source>The rest did not load</source>
         <translation>The rest did not load</translation>
@@ -1489,14 +1499,14 @@
         <translation>Yesterday</translation>
     </message>
     <message id="libraryWatched">
-        <source>watched</source>
+        <source>Watched</source>
         <extracomment>Viewing state in library history.</extracomment>
-        <translation>watched</translation>
+        <translation>Watched</translation>
     </message>
     <message id="libraryStarted">
-        <source>started</source>
+        <source>Started</source>
         <extracomment>Viewing state in library history.</extracomment>
-        <translation>started</translation>
+        <translation>Started</translation>
     </message>
     <message id="libraryWatchedOf">
         <source>%1 of %2 seen</source>

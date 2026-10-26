@@ -423,6 +423,16 @@
         <extracomment>Action on a history row.</extracomment>
         <translation>Убрать из истории</translation>
     </message>
+    <message id="libraryRemovedFromHistory">
+        <source>Removed from history</source>
+        <extracomment>Toast after a history row is taken out, beside Undo.</extracomment>
+        <translation>Убрано из истории</translation>
+    </message>
+    <message id="commonUndo">
+        <source>Undo</source>
+        <extracomment>Brings back what was just removed.</extracomment>
+        <translation>Вернуть</translation>
+    </message>
     <message id="libraryMoreLoadFailed">
         <source>The rest did not load</source>
         <translation>Остальное не загрузилось</translation>
@@ -1501,19 +1511,19 @@
         <translation>Вчера</translation>
     </message>
     <message id="libraryWatched">
-        <source>watched</source>
+        <source>Watched</source>
         <extracomment>Viewing state in library history.</extracomment>
-        <translation>просмотрено</translation>
+        <translation>Просмотрено</translation>
     </message>
     <message id="libraryStarted">
-        <source>started</source>
+        <source>Started</source>
         <extracomment>Viewing state in library history.</extracomment>
-        <translation>начато</translation>
+        <translation>Начато</translation>
     </message>
     <message id="libraryWatchedOf">
         <source>%1 of %2 seen</source>
         <extracomment>Progress caption for a series on My list. (%1 watched, %2 released)</extracomment>
-        <translation>просмотрено %1 из %2</translation>
+        <translation>Просмотрено %1 из %2</translation>
     </message>
     <message id="libraryNewEpisode">
         <source>S%1 E%2</source>

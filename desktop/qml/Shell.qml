@@ -33,9 +33,10 @@ FocusScope {
             stack.pop()
     }
 
-    // A title's page; [play] starts it there, as the banner's Play does.
-    function open(item, play) {
-        stack.push(titlePage, {item: item, play: play})
+    // A title's page; [play] starts it there, as the banner's Play does,
+    // and [at], {season, episode}, is the episode it opens on.
+    function open(item, play, at) {
+        stack.push(titlePage, {item: item, play: !!play, at: at ?? null})
     }
 
     // A search already in the stack is gone back to, its word kept and
@@ -113,7 +114,6 @@ FocusScope {
     Shortcut { sequence: "Ctrl+F"; enabled: shell.visible; onActivated: shell.search() }
     TapHandler { acceptedButtons: Qt.BackButton; onTapped: shell.back() }
 
-    // The screens of docs/qt-port.md, step 3, replace these.
     Component { id: homePage; HomePage { objectName: "home"; onOpen: (item, play) => shell.open(item, play) } }
     Component {
         id: titlePage
@@ -123,7 +123,10 @@ FocusScope {
             onAddSource: stack.push(settingsPage, {section: "sources", backTo: item.title})
         }
     }
-    Component { id: libraryPage; ShellPage { objectName: "library" } }
+    Component {
+        id: libraryPage
+        LibraryPage { objectName: "library"; onOpen: (item, at) => shell.open(item, false, at) }
+    }
     Component { id: settingsPage; SettingsPage { objectName: "settings"; onBack: shell.back() } }
     Component {
         id: searchPage

@@ -53,6 +53,18 @@ void LocalSettings::setLanguage(const QString &code) {
     }
 }
 
+static const QStringList listSorts = {"added", "title", "year", "rating"};
+
+QString LocalSettings::listSort() const {
+  const QString order = m_values.value("listSort").toString();
+  return listSorts.contains(order) ? order : listSorts.first();
+}
+
+void LocalSettings::setListSort(const QString &order) {
+  if (listSorts.contains(order))
+    set("listSort", order);
+}
+
 QLocale LocalSettings::locale() const {
   return language().isEmpty() ? QLocale() : QLocale(language());
 }
