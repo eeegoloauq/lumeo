@@ -99,7 +99,10 @@ Item {
             compare(findChild(player, "failure").text, "This copy would not start")
 
             const opens = requests().filter(r => r.startsWith("GET /api/v1/downloads/d2/stream")).length
-            mouseClick(findChild(player, "tryAgain"))
+            const again = findChild(player, "tryAgain")
+            // Laid out in its column, so the pointer lands where it is drawn.
+            verify(waitForPolish(again.parent))
+            mouseClick(again)
             tryVerify(() => requests().filter(r => r.startsWith("GET /api/v1/downloads/d2/stream")).length > opens,
                       10000, "Try again opens it again")
         }
