@@ -474,13 +474,23 @@ func followingEpisode(item *catalog.MediaItem, season, episode int) *catalog.Epi
 	return &following
 }
 
+// latestEntry is the entry a title goes on from: the one updated last, of
+// the story when any of it was watched. A special looked into is not where a
+// series stands, any more than NextEpisode hands one over after a story
+// episode; somebody watching only the specials goes on with them.
 func latestEntry(entries []Entry) *Entry {
-	var latest *Entry
+	var latest, story *Entry
 	for i := range entries {
 		entry := &entries[i]
 		if latest == nil || entry.UpdatedAt.After(latest.UpdatedAt) {
 			latest = entry
 		}
+		if entry.Season > 0 && (story == nil || entry.UpdatedAt.After(story.UpdatedAt)) {
+			story = entry
+		}
+	}
+	if story != nil {
+		return story
 	}
 	return latest
 }

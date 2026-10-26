@@ -61,6 +61,7 @@ func TestNextAfterMostRecentlyUpdatedWatchedEpisode(t *testing.T) {
 		{Season: 1, Number: 4},
 		{Season: 1, Number: 1},
 		{Season: 1, Number: 3},
+		{Season: 0, Number: 1},
 	}
 	for _, test := range []struct {
 		name    string
@@ -82,6 +83,21 @@ func TestNextAfterMostRecentlyUpdatedWatchedEpisode(t *testing.T) {
 				{ItemID: "series", Season: 1, Episode: 3, Watched: true, UpdatedAt: latest},
 			},
 			want: &Entry{ItemID: "series", Season: 1, Episode: 4, Position: 37, Duration: 50, UpdatedAt: old},
+		},
+		{
+			name: "a special looked into since is not where the series stands",
+			entries: []Entry{
+				{ItemID: "series", Season: 1, Episode: 3, Watched: true, UpdatedAt: old},
+				{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},
+			},
+			want: &Entry{ItemID: "series", Season: 1, Episode: 4, UpdatedAt: old},
+		},
+		{
+			name: "specials alone are gone on with",
+			entries: []Entry{
+				{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},
+			},
+			want: &Entry{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},
 		},
 		{
 			name: "last catalogued episode has no successor",
