@@ -24,8 +24,6 @@ jobs:
   # The client's checks, the player tests among them, which publish waits for.
   checks:
     uses: ./.github/workflows/ci.yml
-    with:
-      cache: false
 
   dist:
     runs-on: ubuntu-latest
