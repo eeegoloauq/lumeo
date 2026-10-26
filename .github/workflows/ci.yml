@@ -1,32 +1,27 @@
-# The half of the checks that needs a Flutter SDK. The core is not here: it is
-# gated in Forgejo, where the pull requests are, and running it again on the
-# mirror would spend a build on every commit to say what is already known.
+# The client's checks. The core is not here: it is gated in Forgejo, where
+# the pull requests are, and running it again on the mirror would spend a
+# build on every commit to say what is already known.
 #
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# Every push that touches the client runs the player suite on Weston, one job
-# per area at once; everything else is `flutter test` in the client job
-# (docs/decisions/testing.md). release.yml calls this too and publishes only
-# when it passes.
+# One job builds desktop/ once and runs every layer on it: units and app
+# tests offscreen, then the player tests on headless Weston with a real
+# libmpv (docs/decisions/testing.md). release.yml calls this too and
+# publishes only when it passes.
 name: ci
 
 on:
   push:
     branches: [main]
     paths:
-      - client/**
+      - desktop/**
+      - design/**
+      - packaging/install-qt.sh
       - .github/workflows/ci.yml
   workflow_dispatch:
-    inputs:
-      ui:
-        type: boolean
-        default: true
   workflow_call:
     inputs:
-      ui:
-        type: boolean
-        default: false
       cache:
         # release.yml restores no cache; it says why.
         type: boolean
@@ -40,60 +35,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  client:
+  desktop:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
-    steps:
-      - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: ${{ inputs.cache != false }}
-      - run: flutter pub get
-      # Not third_party/: the fork stays byte-for-byte upstream plus LUMEO.md's patches.
-      - run: dart format --output=none --set-exit-if-changed lib test integration_test
-      - run: flutter analyze
-      - run: flutter test
-
-  ui:
-    if: github.event_name == 'push' || inputs.ui
-    strategy:
-      # Every area's result, not just the first red one.
-      fail-fast: false
-      matrix:
-        # The groups in integration_test/app_test.dart.
-        area: [playback, player]
-    name: ui (${{ matrix.area }})
-    runs-on: ubuntu-latest
-    # A run takes about five minutes; a hung test would otherwise hold the
+    # A run takes about ten minutes; a hung test would otherwise hold the
     # runner for GitHub's default six hours.
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: client
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-          cache: ${{ inputs.cache != false }}
-      - run: flutter pub get
-      # What the Linux build needs, plus a screen to run on. The UI tests drive
-      # the real application: that means building it, which means the same
-      # toolchain the release uses (see release.yml for why libmpv-dev is in
-      # the list). Weston is the screen — headless Wayland, so that Flutter
-      # renders through EGL and mpv's render thread is the one under test
-      # (tool/ui-test.sh says why Xvfb was not).
+      # What building against Qt and running on a screen need from the
+      # machine: libmpv is the system's (decisions/shipping.md), Weston is
+      # the screen, ffmpeg makes the player tests' clips.
       - name: build dependencies
         # Seconds when the runner's apt mirror answers; a stalled one hangs.
         timeout-minutes: 10
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev \
-            weston ffmpeg
-      - run: tool/ui-test.sh --name '^${{ matrix.area }} '
+          sudo apt-get install -y cmake ninja-build pkg-config ccache mold \
+            libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 \
+            libmpv-dev weston ffmpeg
+      - uses: actions/cache@v6
+        if: inputs.cache != false
+        with:
+          path: ~/.cache/lumeo/qt
+          key: qt-${{ hashFiles('packaging/install-qt.sh') }}
+      - name: qt
+        run: |
+          [ -d ~/.cache/lumeo/qt/6.12.0 ] || packaging/install-qt.sh
+          echo "CMAKE_PREFIX_PATH=$HOME/.cache/lumeo/qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+      - run: cmake --preset dev
+        working-directory: desktop
+      - run: cmake --build --preset dev
+        working-directory: desktop
+      - run: ctest --test-dir build/dev --output-on-failure
+        working-directory: desktop
+      - run: tool/player-test.sh
+        working-directory: desktop

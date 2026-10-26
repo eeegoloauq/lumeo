@@ -31,7 +31,7 @@ ChangesAssociations=yes
 OutputDir=..\dist
 OutputBaseFilename=lumeo-{#Version}-windows-x86_64-setup
 SetupIconFile=..\client\windows\runner\resources\app_icon.ico
-UninstallDisplayIcon={app}\lumeo.exe
+UninstallDisplayIcon={app}\bin\lumeo.exe
 LicenseFile=..\LICENSE
 WizardStyle=modern
 SolidCompression=yes
@@ -39,18 +39,26 @@ SolidCompression=yes
 [Tasks]
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; Flags: unchecked
 
+; The Flutter client's layout before 0.1.79-beta.11, which an update over it
+; would otherwise leave beside bin\.
+[InstallDelete]
+Type: files; Name: "{app}\lumeo.exe"
+Type: files; Name: "{app}\lumeo-core.exe"
+Type: files; Name: "{app}\*.dll"
+Type: filesandordirs; Name: "{app}\data"
+
 [Files]
-Source: "..\client\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\bundle\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\Lumeo"; Filename: "{app}\lumeo.exe"
-Name: "{autodesktop}\Lumeo"; Filename: "{app}\lumeo.exe"; Tasks: desktopicon
+Name: "{autoprograms}\Lumeo"; Filename: "{app}\bin\lumeo.exe"
+Name: "{autodesktop}\Lumeo"; Filename: "{app}\bin\lumeo.exe"; Tasks: desktopicon
 
 ; "Open with Lumeo" for the containers the Linux desktop entry claims. Offered,
 ; not taken: no extension is made to open with Lumeo by default.
 [Registry]
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Lumeo"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\shell\open\command"; ValueType: string; ValueData: """{app}\lumeo.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\shell\open\command"; ValueType: string; ValueData: """{app}\bin\lumeo.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".mkv"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".mp4"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; ValueType: string; ValueName: ".m4v"; ValueData: ""
@@ -66,11 +74,11 @@ Root: HKA; Subkey: "Software\Classes\Applications\lumeo.exe\SupportedTypes"; Val
 ; lumeo:// title links, which the share page's Open button hands over.
 Root: HKA; Subkey: "Software\Classes\lumeo"; ValueType: string; ValueData: "URL:Lumeo"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\lumeo"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKA; Subkey: "Software\Classes\lumeo\DefaultIcon"; ValueType: string; ValueData: """{app}\lumeo.exe"",0"
-Root: HKA; Subkey: "Software\Classes\lumeo\shell\open\command"; ValueType: string; ValueData: """{app}\lumeo.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\lumeo\DefaultIcon"; ValueType: string; ValueData: """{app}\bin\lumeo.exe"",0"
+Root: HKA; Subkey: "Software\Classes\lumeo\shell\open\command"; ValueType: string; ValueData: """{app}\bin\lumeo.exe"" ""%1"""
 
 [Run]
-Filename: "{app}\lumeo.exe"; Description: "{cm:LaunchProgram,Lumeo}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\lumeo.exe"; Description: "{cm:LaunchProgram,Lumeo}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 // The app writes its own login entry (Settings, General); it goes with the app.

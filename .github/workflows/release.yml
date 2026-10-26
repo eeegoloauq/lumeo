@@ -1,5 +1,6 @@
 # What a tag produces: a tarball anyone can unpack, an RPM Fedora can install,
-# a package Arch can, and a Windows installer. All come out of packaging/, which is also what a
+# a package Arch can, and a Windows installer, each carrying the Qt the
+# client was tested with. All come out of packaging/, which is also what a
 # person runs by hand — the workflow is only the machine that runs those
 # scripts.
 #
@@ -20,11 +21,10 @@ permissions:
   contents: read
 
 jobs:
-  # The client checks and the full UI suite, which publish waits for.
+  # The client's checks, the player tests among them, which publish waits for.
   checks:
     uses: ./.github/workflows/ci.yml
     with:
-      ui: true
       cache: false
 
   dist:
@@ -35,25 +35,16 @@ jobs:
         with:
           go-version-file: core/go.mod
           cache: false
-      # What the Flutter Linux build needs from the machine. libmpv-dev is in
-      # the list because media_kit_video links PkgConfig::mpv in its own
-      # CMakeLists: the Dart side dlopen()s libmpv at runtime, but the plugin
-      # underneath it does not, and a machine without the headers fails at the
-      # CMake generate step. The RPM still names mpv-libs by hand — see the
-      # note in packaging/lumeo.spec.
+      # What building against Qt needs from the machine; libmpv is linked,
+      # not carried (decisions/shipping.md), and rsvg renders the icons.
       - name: build dependencies
         timeout-minutes: 10
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev \
-            librsvg2-bin
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-      - run: flutter pub get
-        working-directory: client
+          sudo apt-get install -y cmake ninja-build pkg-config \
+            libgl-dev libegl-dev libxkbcommon-dev libmpv-dev librsvg2-bin
+      - name: qt
+        run: echo "CMAKE_PREFIX_PATH=$(packaging/install-qt.sh)" >> "$GITHUB_ENV"
       - name: build
         run: packaging/build-dist.sh "${GITHUB_REF_NAME#v}"
       - uses: actions/upload-artifact@v7
@@ -114,14 +105,16 @@ jobs:
         with:
           go-version-file: core/go.mod
           cache: false
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.47.6
-      - run: flutter pub get
-        working-directory: client
-      # Inno Setup is on the image, but not on PATH.
-      - run: echo "C:\Program Files (x86)\Inno Setup 6" >> "$GITHUB_PATH"
+      # Qt, its MinGW and Ninja; Inno Setup is on the image, but not on PATH.
+      - name: qt
+        run: |
+          dir=$(cygpath -u "$RUNNER_TEMP")/qt
+          qt=$(packaging/install-qt.sh "$dir")
+          for path in "$qt/bin" "$dir/Tools/mingw1310_64/bin" "$dir/Tools/Ninja"; do
+            cygpath -w "$path"
+          done >> "$GITHUB_PATH"
+          echo 'C:\Program Files (x86)\Inno Setup 6' >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=$(cygpath -m "$qt")" >> "$GITHUB_ENV"
       - run: packaging/build-windows.sh "${GITHUB_REF_NAME#v}"
       - uses: actions/upload-artifact@v7
         with:
@@ -177,6 +170,8 @@ jobs:
               --json tagName,isPrerelease \
               --jq '.[] | select(.isPrerelease) | .tagName' |
           while read -r tag; do
+            # Lumeo's own: not the mirrored libmpv's (libmpv.yml).
+            case $tag in v*) ;; *) continue ;; esac
             base=${tag#v}; base=${base%%-*}
             [ "$tag" = "$TAG" ] && continue
             # Only betas of this version or an older one: not a newer line's.

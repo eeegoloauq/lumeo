@@ -94,7 +94,7 @@ Then, from `desktop/`:
 
     cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
     cmake --build --preset dev
-    build/dev/lumeo-desktop [file or address]
+    build/dev/bin/lumeo [file or address]
     ctest --test-dir build/dev --output-on-failure    # units and app tests
     tool/player-test.sh                               # libmpv on headless Weston
 

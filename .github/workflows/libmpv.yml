@@ -1,0 +1,51 @@
+# Mirrors one libmpv build for Windows into a release of this repository,
+# where packaging/build-windows.sh takes it from. Windows has no libmpv of its
+# own and mpv publishes none to build against, so the bundle carries
+# shinchiro's (mpv-winbuild-cmake), the build mpv's installation page names
+# first; that repository keeps about a month of daily builds, and a release
+# here keeps the pinned one for good. Run by hand when libmpv is bumped:
+#
+#   date:   the build's tag there, e.g. 20261021
+#   file:   mpv-dev-x86_64-<date>-git-<commit>.7z
+#   sha256: the digest its release page lists
+name: libmpv
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        required: true
+      file:
+        required: true
+      sha256:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: download and check
+        env:
+          DATE: ${{ inputs.date }}
+          FILE: ${{ inputs.file }}
+          SHA256: ${{ inputs.sha256 }}
+        run: |
+          curl -fsSL -o "$FILE" \
+            "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/$DATE/$FILE"
+          echo "$SHA256  $FILE" | sha256sum -c
+      # A pre-release, so neither the app's update check nor the page's
+      # latest release ever takes it for a version of Lumeo.
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE: ${{ inputs.date }}
+          FILE: ${{ inputs.file }}
+        run: |
+          gh release create "deps-libmpv-$DATE" "$FILE" --repo "$GITHUB_REPOSITORY" \
+            --prerelease --latest=false --title "libmpv $DATE for Windows builds" \
+            --notes "shinchiro/mpv-winbuild-cmake $DATE, mirrored for packaging/build-windows.sh."

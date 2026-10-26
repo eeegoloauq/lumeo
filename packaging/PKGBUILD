@@ -10,16 +10,17 @@ pkgdesc='Find, acquire and watch films and series'
 arch=(x86_64)
 url='https://github.com/eeegoloauq/lumeo'
 license=(MIT)
-# What the bundle links, read off its DT_NEEDED entries. mpv is named for
-# libmpv, which Dart opens with dlopen() (see lumeo.spec); on Arch the library
-# is in the mpv package, and Arch's ffmpeg keeps the patented decoders, so
-# nothing like Fedora's libavcodec-freeworld is needed beside it.
+# What the bundle links outside itself, read off its DT_NEEDED entries: Qt
+# and ICU are in the bundle (see lumeo.spec). mpv is named for libmpv; Arch's
+# ffmpeg keeps the patented decoders, so nothing like Fedora's
+# libavcodec-freeworld is needed beside it. openssl is the TLS that Qt's
+# network opens at run time.
 depends=(
-  at-spi2-core cairo fontconfig gcc-libs gdk-pixbuf2 glib2 glibc gtk3
-  harfbuzz libepoxy mpv pango zlib
+  brotli dbus fontconfig freetype2 gcc-libs glib2 glibc krb5 libglvnd libx11
+  libxcb libxkbcommon libxkbcommon-x11 mpv openssl wayland xcb-util
+  xcb-util-cursor xcb-util-image xcb-util-keysyms xcb-util-renderutil
+  xcb-util-wm zlib zstd
 )
-# Opened with dlopen() when "Keep running when closed" is on.
-optdepends=('libayatana-appindicator: tray icon while running in the background')
 # The files go in as the tarball has them, so the package ships the same
 # bytes as every other release file. The Go core is built stripped, and
 # nothing here carries debug information to split off.
@@ -28,8 +29,8 @@ source=("$pkgname-$_tarver-linux-x86_64.tar.gz")
 
 package() {
   cd "$pkgname-$_tarver-linux-x86_64"
-  # The bundle stays in one piece: the binary finds its libraries at
-  # $ORIGIN/lib and the core beside itself.
+  # The bundle stays in one piece: the binary finds Qt at $ORIGIN/../lib and
+  # the core beside itself.
   install -d "$pkgdir/usr/lib/$pkgname"
   cp -a bundle/. "$pkgdir/usr/lib/$pkgname/"
   install -Dm755 lumeo.sh "$pkgdir/usr/bin/$pkgname"

@@ -5,8 +5,8 @@
 # bundle/ beside this script in the tarball.
 here=$(dirname "$(readlink -f "$0")")
 for dir in "$here/../lib64/lumeo" "$here/../lib/lumeo" "$here/bundle"; do
-  if [ -x "$dir/lumeo" ]; then
-    exec "$dir/lumeo" "$@"
+  if [ -x "$dir/bin/lumeo" ]; then
+    exec "$dir/bin/lumeo" "$@"
   fi
 done
 echo "lumeo: no application bundle found from $here" >&2

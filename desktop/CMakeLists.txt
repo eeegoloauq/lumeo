@@ -11,8 +11,21 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concur
 if(LINUX)
   find_package(Qt6 6.8 REQUIRED COMPONENTS DBus)
 endif()
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
+# libmpv is the system's on Linux. Windows has none to find: a pinned build
+# is unpacked into MPV_DIR (packaging/build-windows.sh) and ships in the bundle.
+if(WIN32)
+  set(MPV_DIR "" CACHE PATH "An unpacked mpv-dev build: libmpv-2.dll, libmpv.dll.a, include/")
+  add_library(libmpv SHARED IMPORTED)
+  set_target_properties(libmpv PROPERTIES
+    IMPORTED_LOCATION ${MPV_DIR}/libmpv-2.dll
+    IMPORTED_IMPLIB ${MPV_DIR}/libmpv.dll.a
+    INTERFACE_INCLUDE_DIRECTORIES ${MPV_DIR}/include)
+  set(mpv libmpv)
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
+  set(mpv PkgConfig::MPV)
+endif()
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -205,18 +218,17 @@ qt_add_qml_module(lumeo
 target_include_directories(lumeo PUBLIC src src/api src/player src/platform)
 
 target_link_libraries(lumeo PUBLIC
-  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent Qt6::Widgets PkgConfig::MPV
+  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent Qt6::Widgets ${mpv}
 )
 if(LINUX)
   target_link_libraries(lumeo PUBLIC Qt6::DBus)
 endif()
 
-target_compile_definitions(lumeo PRIVATE
-  # mpv reads the shaders as files; they are the Flutter client's until it
-  # goes, and packages install them where the player reads them (docs/qt-port.md,
-  # step 5).
-  LUMEO_ANIME4K_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/anime4k"
-)
+# mpv reads the Anime4K shaders as files, at share/lumeo/anime4k beside the
+# binary's bin/: the build tree is laid out as the install is, so one path
+# serves the app, its tests (in tests/) and a package.
+set(anime4k ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/anime4k)
+file(COPY ${anime4k}/ DESTINATION ${CMAKE_BINARY_DIR}/share/lumeo/anime4k)
 
 # The banner's scrim, compiled for every graphics API Qt might run on.
 qt_add_shaders(lumeo "shaders"
@@ -238,6 +250,39 @@ set(LUMEO_VERSION "dev" CACHE STRING "The client's version")
 qt_add_executable(lumeo-desktop src/main.cpp)
 target_link_libraries(lumeo-desktop PRIVATE lumeo lumeoplugin)
 target_compile_definitions(lumeo-desktop PRIVATE LUMEO_VERSION="${LUMEO_VERSION}")
+set_target_properties(lumeo-desktop PROPERTIES
+  OUTPUT_NAME lumeo
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  WIN32_EXECUTABLE TRUE
+)
+if(WIN32)
+  # The icon Explorer, the taskbar and the window show.
+  target_sources(lumeo-desktop PRIVATE lumeo.rc)
+endif()
+
+# The install is the bundle a package carries whole: the binary, the Qt it
+# was built and tested with (lib/, plugins/, qml/), and the shaders. libmpv
+# stays the system's (decisions/shipping.md).
+install(TARGETS lumeo-desktop RUNTIME DESTINATION bin)
+install(DIRECTORY ${anime4k}/ DESTINATION share/lumeo/anime4k)
+# Qt's own translations are for its dialogs, which are the system's here.
+if(WIN32)
+  # windeployqt lays Qt out beside the binary, the compiler's runtime with it.
+  qt_generate_deploy_qml_app_script(TARGET lumeo-desktop OUTPUT_SCRIPT deploy NO_TRANSLATIONS)
+  install(FILES ${MPV_DIR}/libmpv-2.dll DESTINATION bin)
+else()
+  # Wayland alongside X11, which the deploy would leave as the only platform;
+  # not the QML debugger, nor the plugins for a device with no desktop, nor
+  # the GTK theme, which would pull GTK in where the portal's theme serves.
+  qt_generate_deploy_qml_app_script(TARGET lumeo-desktop OUTPUT_SCRIPT deploy NO_TRANSLATIONS
+    INCLUDE_PLUGINS qwayland
+    EXCLUDE_PLUGINS qgtk3
+    EXCLUDE_PLUGIN_TYPES qmltooling generic egldeviceintegrations networkinformation)
+  # What the deploy leaves out: the system's libraries, which it finds in the
+  # compiler's directories, and libmpv wherever pkg-config found it.
+  install(CODE "set(QT_DEPLOY_IGNORED_LIB_DIRS \"${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES};${MPV_LIBRARY_DIRS}\")")
+endif()
+install(SCRIPT ${deploy})
 
 include(CTest)
 if(BUILD_TESTING)

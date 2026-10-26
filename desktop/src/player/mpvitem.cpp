@@ -437,8 +437,9 @@ void MpvItem::setFit(int fit) {
 
 void MpvItem::setAnime4k(const QString &preset) {
   QStringList paths;
+  const QString dir = QCoreApplication::applicationDirPath() + "/../share/lumeo/anime4k";
   for (const QString &shader : anime4kPresets.value(preset))
-    paths << QString(LUMEO_ANIME4K_DIR "/Anime4K_%1.glsl").arg(shader);
+    paths << QString("%1/Anime4K_%2.glsl").arg(dir, shader);
   set("glsl-shaders", paths);
 }
 

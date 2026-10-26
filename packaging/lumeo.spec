@@ -1,8 +1,8 @@
-# The package is built from artefacts, not from source: the Flutter bundle and
-# the Go binary are produced by the release workflow (or by
-# packaging/build-rpm.sh locally) and arrive here as one tarball. Building
-# Flutter inside rpmbuild would mean pulling the SDK and the pub cache from
-# the network during %build, which no distribution build system allows.
+# The package is built from artefacts, not from source: the Qt client's
+# bundle and the Go binary are produced by the release workflow (or by
+# packaging/build-rpm.sh locally) and arrive here as one tarball. The bundle
+# carries the Qt it was built and tested with, so a Fedora upgrade cannot
+# leave it on a Qt it was never run against (decisions/shipping.md).
 Name:           lumeo
 Version:        %{?version}%{!?version:0.1.0}
 # The tarball's own version: a beta's is X.Y.Z-beta.N where Version has a ~.
@@ -18,11 +18,11 @@ ExclusiveArch:  x86_64
 BuildRequires:  desktop-file-utils
 BuildRequires:  libappstream-glib
 
-# libmpv is opened with dlopen() from Dart, so it leaves no DT_NEEDED entry
-# and rpm's automatic dependency generator cannot see it. Without this line
-# the package installs and the player fails at the first frame.
-Requires:       mpv-libs
-Requires:       gtk3
+# Qt and ICU are in the bundle: rpm neither offers them to other packages nor
+# looks for them in the system. Everything else the bundle links, libmpv
+# among it, rpm's dependency generator finds and requires.
+%global __provides_exclude_from ^%{_libdir}/%{name}/.*$
+%global __requires_exclude ^lib(Qt6|icu).*$
 # Fedora builds libavcodec without the patented decoders, so mpv-libs alone is
 # not enough to play most of what a swarm actually carries. Two different
 # failures, and the second is the worse one:
@@ -39,14 +39,10 @@ Requires:       gtk3
 # anyway for anyone who does not. The player says which decoder is missing, or
 # which one is going to lose the sound, and how to get it.
 Recommends:     libavcodec-freeworld
-# The tray icon of "Keep running when closed", opened with dlopen() like
-# libmpv. Without it the app runs the same and says so in a notification;
-# stock GNOME shows no tray icons anyway.
-Recommends:     libayatana-appindicator-gtk3
 
 %description
 Lumeo is a media library, acquisition and playback platform: one Go binary
-with SQLite behind a Flutter desktop client. It browses a catalogue that needs
+with SQLite behind a Qt Quick desktop client. It browses a catalogue that needs
 no API key, ranks the ways to watch a title by the health of the swarm before
 its resolution, and plays the file while it is still arriving.
 
@@ -62,9 +58,9 @@ its resolution, and plays the file while it is still arriving.
 # Nothing to build: see the note at the top.
 
 %install
-# The bundle stays in one piece. The Flutter binary looks for its engine and
-# plugin libraries at $ORIGIN/lib, and for the core it starts beside itself,
-# so splitting them apart breaks the app.
+# The bundle stays in one piece. The binary looks for Qt at $ORIGIN/../lib,
+# for its plugins and QML beside that, and for the core it starts beside
+# itself, so splitting them apart breaks the app.
 install -d %{buildroot}%{_libdir}/%{name}
 cp -a bundle/. %{buildroot}%{_libdir}/%{name}/
 install -Dm755 lumeo.sh %{buildroot}%{_bindir}/%{name}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds what a release is made of: the Go core, the Flutter bundle, and the
-# tarball that carries both plus the desktop files and icons. Everything
+# Builds what a release is made of: the Go core, the Qt client's bundle, and
+# the tarball that carries both plus the desktop files and icons. Everything
 # downstream — the RPM, the Arch package, the plain tarball on the release
 # page — starts here, so a package built by hand and one built by CI come
 # from the same commands.
@@ -13,16 +13,18 @@ stage="dist/lumeo-$version-linux-x86_64"
 rm -rf dist
 mkdir -p "$stage"
 
+# The client with the Qt it was built and tested with, from the Qt that
+# CMAKE_PREFIX_PATH (or PATH) names: bin/, lib/, plugins/, qml/
+# (desktop/CMakeLists.txt, install).
 echo "==> client"
-# The bundle's own version is numbers only: a beta's suffix travels in
-# LUMEO_VERSION alone.
-(cd client && flutter build linux --release --build-name="${version%%-*}" --dart-define="LUMEO_VERSION=$version")
-cp -a client/build/linux/x64/release/bundle "$stage/bundle"
+cmake -S desktop --preset release -DLUMEO_VERSION="$version"
+cmake --build desktop/build/release
+cmake --install desktop/build/release --prefix "$stage/bundle"
 
-# Into the bundle, beside the binary: that is where the app looks for the
-# core it starts (client/linux/runner/my_application.cc).
+# Beside the binary: that is where the app looks for the core it starts
+# (desktop/src/platform/instance.cpp).
 echo "==> core"
-(cd core && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$version" -o "../$stage/bundle/lumeo-core" ./cmd/lumeo)
+(cd core && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$version" -o "../$stage/bundle/bin/lumeo-core" ./cmd/lumeo)
 
 # The icons every package installs as they are. 16 and 24 are in the list
 # because desktops still use them — window lists and menus — and a desktop
