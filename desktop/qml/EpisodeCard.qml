@@ -40,7 +40,10 @@ AbstractButton {
                            : qsTrId("itemEpisodeNumber").arg(episode.number)
 
     onClicked: if (!upcoming) chosen()
-    onActiveFocusChanged: if (activeFocus && !upcoming) chosen()
+    // The keyboard arriving is the viewer's; the focus a ListView hands its
+    // first card whenever its model changes is not, and chose episode 1 of
+    // every season opened with the keyboard in the strip.
+    onActiveFocusChanged: if (activeFocus && focusReason !== Qt.OtherFocusReason && !upcoming) chosen()
     Keys.onLeftPressed: step(-1)
     Keys.onRightPressed: step(1)
     Keys.onReturnPressed: if (!upcoming) played()

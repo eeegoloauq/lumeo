@@ -111,14 +111,21 @@ Item {
             compare(posted().length, 0)
         }
 
-        // A series, opened on its first episode with the keyboard on it.
+        // A series never watched, opened on its first episode with the
+        // keyboard on it.
         function series() {
-            const show = fakeCore.read("items.json").find(item => item.kind === "series")
-            fakeCore.answer("GET", "/api/v1/items/" + show.id, 200, show)
-            fakeCore.answer("GET", "/api/v1/progress/" + show.id, 200, {})
-            shell.open(show, false)
+            const show = openSeries({}, null)
             const strip = findChild(shell, "episodes")
             tryVerify(() => strip.itemAtIndex(0)?.activeFocus, 5000, "the first episode has the keyboard")
+            return show
+        }
+
+        function openSeries(progress, at) {
+            const show = fakeCore.read("items.json").find(item => item.kind === "series")
+            fakeCore.answer("GET", "/api/v1/items/" + show.id, 200, show)
+            fakeCore.answer("GET", "/api/v1/progress/" + show.id, 200, progress)
+            shell.open(show, false, at)
+            tryVerify(() => !!findChild(shell, "titlePlay")?.text.includes(" S"), 5000, "the episodes")
             return show
         }
 
@@ -157,6 +164,16 @@ Item {
             const strip = findChild(shell, "episodes")
             compare(strip.count, 1)
             compare(findChild(shell, "titlePlay").text, "Play S2 E1")
+        }
+
+        // Opened on another season, as a new episode opens it, a season still
+        // goes on where it was left.
+        function test_aSeasonGoesOnWhereItWasLeft() {
+            openSeries({ entries: [{ season: 1, episode: 3, position: 0, duration: 2900, watched: true,
+                                     updatedAt: "2026-09-01T00:00:00Z" }] }, { season: 2, episode: 1 })
+            compare(findChild(shell, "titlePlay").text, "Play S2 E1")
+            mouseClick(findChild(shell, "season-1"))
+            compare(findChild(shell, "titlePlay").text, "Play S1 E4")
         }
 
         // A pick is the title's release, which the core keeps, so the next

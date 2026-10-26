@@ -43,9 +43,9 @@ ShellPage {
     readonly property int season: seasonPicked >= 0 ? seasonPicked : resumed?.season ?? seasons[0] ?? 0
     readonly property var inSeason: episodes.filter(e => e.season === season)
     // The one current episode: Play plays it and the copies are its. The one
-    // picked or resumed in the season shown, else its first aired; a season
-    // with nothing aired keeps the one before, its dated cards are there to
-    // read, not to play.
+    // picked or resumed in the season shown, else where that season was left,
+    // else its first aired; a season with nothing aired keeps the one before,
+    // its dated cards are there to read, not to play.
     readonly property var current: {
         if (!series)
             return null
@@ -53,7 +53,7 @@ ShellPage {
             return picked
         if (resumed?.season === season)
             return resumed
-        return inSeason.find(e => !upcoming(e)) ?? picked ?? resumed ?? inSeason[0]
+        return leftAt() ?? inSeason.find(e => !upcoming(e)) ?? picked ?? resumed ?? inSeason[0]
     }
     // The episode the copies are listed for: the current one, once a run of
     // clicks along the season has settled on it, so a provider is not asked
@@ -76,6 +76,21 @@ ShellPage {
 
     function same(a, b) {
         return !!a && !!b && a.season === b.season && a.number === b.number
+    }
+
+    // Where the season shown was left, by the core's rule for the whole
+    // title: the episode of it watched last while part way, else the one
+    // after, once it is out.
+    function leftAt() {
+        let last = null
+        for (const e of about.progress.entries ?? [])
+            if (e.season === season && (!last || e.updatedAt > last.updatedAt))
+                last = e
+        if (!last)
+            return null
+        const at = inSeason.find(e => e.number === last.episode)
+        const after = inSeason.find(e => e.number === last.episode + 1)
+        return last.watched && last.position === 0 && after && !upcoming(after) ? after : at ?? null
     }
 
     function entryOf(episode) {
