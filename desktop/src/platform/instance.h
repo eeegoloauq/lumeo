@@ -33,14 +33,15 @@ public:
   // over: exit at once.
   bool start();
   bool background() const { return m_background; }
+  bool ownsCore() const { return m_core; }
   // What the launch asked to open: a file, as an absolute path, or a
   // lumeo:// link; empty for neither.
   Q_INVOKABLE QString target() const { return m_target; }
 
-  // The last window is gone: a launch from now on starts its own instance,
-  // whose core waits for this one's to let go of the data directory, rather
-  // than handing its file to a process past handling it.
-  void release();
+  // The app is ending: a launch from now on starts its own instance, whose
+  // core waits for this one's to let go of the data directory, rather than
+  // handing its file to a process past handling it.
+  Q_INVOKABLE void release();
 
 signals:
   // A later launch: the window comes forward, with [target] to open.

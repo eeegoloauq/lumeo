@@ -1,11 +1,12 @@
 #include "artwork.h"
+#include "background.h"
 #include "fonts.h"
 #include "instance.h"
 #include "language.h"
 #include "mpvfacts.h"
 #include "settings.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -26,7 +27,9 @@ int main(int argc, char *argv[]) {
   QSurfaceFormat format = QSurfaceFormat::defaultFormat();
   format.setRenderableType(QSurfaceFormat::OpenGL);
   QSurfaceFormat::setDefaultFormat(format);
-  QGuiApplication app(argc, argv);
+  // QApplication rather than QGuiApplication for the tray's menu, which is a
+  // QMenu where the system has no menus of its own to offer.
+  QApplication app(argc, argv);
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setApplicationVersion(LUMEO_VERSION);
@@ -34,7 +37,8 @@ int main(int argc, char *argv[]) {
   Instance instance(app.arguments());
   if (!instance.start())
     return 0;
-  QObject::connect(&app, &QGuiApplication::lastWindowClosed, &instance, &Instance::release);
+  // Closing the window may only hide it; Main says when the app ends.
+  QGuiApplication::setQuitOnLastWindowClosed(false);
   loadFonts();
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
@@ -50,10 +54,12 @@ int main(int argc, char *argv[]) {
   // The chosen language from the first frame, and every text again when
   // another is chosen.
   auto *settings = engine.singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
-  const auto speak = [&engine, settings] {
+  Background background(settings, instance.ownsCore());
+  const auto speak = [&engine, &background, settings] {
     QLocale::setDefault(settings->locale());
     installTranslations(settings->locale());
     engine.retranslate();
+    background.retranslate();
   };
   speak();
   QObject::connect(settings, &LocalSettings::languageChanged, &engine, speak);

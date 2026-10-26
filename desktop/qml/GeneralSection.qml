@@ -37,5 +37,25 @@ SettingsBlock {
                 }
             }
         }
+        SettingRow {
+            visible: Background.available
+            label: qsTrId("settingsBackground")
+            SettingSwitch {
+                objectName: "background"
+                label: qsTrId("settingsBackground")
+                checked: LocalSettings.background
+                onToggled: LocalSettings.background = checked
+            }
+        }
+        SettingRow {
+            visible: Background.available
+            label: qsTrId("settingsAutostart")
+            SettingSwitch {
+                objectName: "autostart"
+                label: qsTrId("settingsAutostart")
+                checked: LocalSettings.autostart
+                onToggled: LocalSettings.autostart = checked
+            }
+        }
     }
 }

@@ -7,7 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 6.8 is the oldest LTS the distributions' own Qt might be; development and
 # CI run 6.12 (docs/qt-port.md, Open questions).
 find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concurrent ShaderTools
-  LinguistTools)
+  LinguistTools Widgets)
+if(LINUX)
+  find_package(Qt6 6.8 REQUIRED COMPONENTS DBus)
+endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 
@@ -29,6 +32,11 @@ foreach(name IBMPlexSans-400 IBMPlexSans-500 IBMPlexSans-600 IBMPlexSans-700 Unb
   set_source_files_properties(${font} PROPERTIES QT_RESOURCE_ALIAS fonts/${name}.ttf)
   list(APPEND fonts ${font})
 endforeach()
+
+# The tray's icon where the icon theme has no installed one to give: the
+# drawing made for small sizes.
+set(tray_icon ${CMAKE_CURRENT_SOURCE_DIR}/../packaging/icon-small.svg)
+set_source_files_properties(${tray_icon} PROPERTIES QT_RESOURCE_ALIAS icons/lumeo.svg)
 
 # Everything but main(), so the tests load the module the app does.
 qt_add_library(lumeo STATIC)
@@ -118,6 +126,7 @@ qt_add_qml_module(lumeo
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
   RESOURCES
     ${fonts}
+    ${tray_icon}
     # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
     icons/add.svg
     icons/arrow_back.svg
@@ -167,6 +176,7 @@ qt_add_qml_module(lumeo
     src/api/opening.h src/api/opening.cpp
     src/platform/desktop.h src/platform/desktop.cpp
     src/platform/folders.h src/platform/folders.cpp
+    src/platform/background.h src/platform/background.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/instance.h src/platform/instance.cpp
     src/platform/language.h src/platform/language.cpp
@@ -187,8 +197,11 @@ qt_add_qml_module(lumeo
 target_include_directories(lumeo PUBLIC src src/api src/player src/platform)
 
 target_link_libraries(lumeo PUBLIC
-  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent PkgConfig::MPV
+  Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent Qt6::Widgets PkgConfig::MPV
 )
+if(LINUX)
+  target_link_libraries(lumeo PUBLIC Qt6::DBus)
+endif()
 
 target_compile_definitions(lumeo PRIVATE
   # mpv reads the shaders as files; they are the Flutter client's until it

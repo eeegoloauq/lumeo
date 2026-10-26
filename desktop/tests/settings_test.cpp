@@ -51,6 +51,17 @@ private slots:
     QCOMPARE(LocalSettings(path).volume(), 100.0);
   }
 
+  // A login launch has no window to close, so it needs the background.
+  void startingAtLoginAndTheBackgroundCarryEachOther() {
+    LocalSettings settings(path);
+    settings.setAutostart(true);
+    QVERIFY(settings.background());
+    settings.setBackground(false);
+    QVERIFY(!settings.autostart());
+    settings.setBackground(true);
+    QVERIFY(!settings.autostart());
+  }
+
   void noFileIsTheDefaults() { QCOMPARE(LocalSettings(path).volume(), 100.0); }
 };
 

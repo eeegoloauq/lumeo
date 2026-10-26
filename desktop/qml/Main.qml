@@ -9,7 +9,9 @@ ApplicationWindow {
 
     width: 1280
     height: 800
-    visible: true
+    // A login launch starts hidden, unless the setting has since been
+    // turned off.
+    visible: !(Instance.background && Background.enabled)
     title: "Lumeo"
     color: Tokens.page
 
@@ -35,9 +37,24 @@ ApplicationWindow {
     // How a film found the window, to give it back that way.
     property bool wasFullscreen: false
     property Player player: null
-    // The window was asked to close while a film played: it closes once the
-    // film's position is saved.
+    // The app is ending, not going to the background; with a film up, the
+    // window closes once the film's position is saved.
     property bool quitting: false
+
+    // The window back from the background, or brought forward by a launch.
+    function present() {
+        show()
+        raise()
+        requestActivate()
+        Background.shown()
+    }
+
+    // Ends the app even where closing would only hide the window, the
+    // film's position saved first.
+    function quit() {
+        quitting = true
+        close()
+    }
 
     // A film takes the screen when it starts; leaving it gives the window
     // back as it was (decisions/player.md).
@@ -66,14 +83,31 @@ ApplicationWindow {
             player.mpv.set("fullscreen", full)
     }
 
+    // Into the background the film goes with the window: playing on behind
+    // none is nobody's wish (decisions/interface.md).
     onClosing: close => {
-        if (!player)
+        if (Background.enabled && !quitting) {
+            close.accepted = false
+            if (player) {
+                const leaving = player
+                player = null
+                leaving.close()
+            }
+            visibility = windowed
+            hide()
+            Background.hidden()
             return
-        close.accepted = false
-        quitting = true
-        const leaving = player
-        player = null
-        leaving.close()
+        }
+        if (player) {
+            close.accepted = false
+            quitting = true
+            const leaving = player
+            player = null
+            leaving.close()
+            return
+        }
+        Instance.release()
+        Qt.quit()
     }
 
     // A file or link from the launch that started the app, or from a later
@@ -81,13 +115,17 @@ ApplicationWindow {
     Connections {
         target: Instance
         function onOpened(target) {
-            window.show()
-            window.raise()
-            window.requestActivate()
+            window.present()
             if (target !== "")
                 Opening.open(target)
         }
-        function onReplaced() { window.close() }
+        function onReplaced() { window.quit() }
+    }
+
+    Connections {
+        target: Background
+        function onShow() { window.present() }
+        function onQuit() { window.quit() }
     }
 
     Connections {
@@ -99,7 +137,18 @@ ApplicationWindow {
         }
     }
 
-    Component.onCompleted: if (Instance.target() !== "") Opening.open(Instance.target())
+    Component.onCompleted: {
+        if (!visible)
+            Background.hidden()
+        if (Instance.target() !== "")
+            Opening.open(Instance.target())
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Q"
+        context: Qt.ApplicationShortcut
+        onActivated: window.quit()
+    }
 
     // The film has mpv's `f`; the rest of the app has F11, Esc being Back.
     Shortcut {
@@ -132,7 +181,10 @@ ApplicationWindow {
                 film.visible = false
                 if (film.handedOver)
                     return
-                window.visibility = window.wasFullscreen ? Window.FullScreen : window.windowed
+                // Closed with the window into the background, which keeps
+                // it hidden.
+                if (window.visible)
+                    window.visibility = window.wasFullscreen ? Window.FullScreen : window.windowed
                 shell.forceActiveFocus()
             }
             // mpv goes with the item, before the process ends: the GPU

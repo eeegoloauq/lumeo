@@ -32,6 +32,11 @@ class LocalSettings : public QObject {
   // looking at the list on this screen, so not the core's
   // (decisions/library.md).
   Q_PROPERTY(QString listSort READ listSort WRITE setListSort NOTIFY changed)
+  // Closing the window leaves the app running, and the app starts at login
+  // without one. Login needs the background, so either carries the other
+  // (decisions/interface.md).
+  Q_PROPERTY(bool background READ background WRITE setBackground NOTIFY changed)
+  Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY changed)
 
 public:
   explicit LocalSettings(const QString &path, QObject *parent = nullptr);
@@ -50,6 +55,10 @@ public:
   QVariantList languages() const { return m_languages; }
   QString listSort() const;
   void setListSort(const QString &order);
+  bool background() const { return m_values.value("background").toBool(); }
+  void setBackground(bool on);
+  bool autostart() const { return background() && m_values.value("autostart").toBool(); }
+  void setAutostart(bool on);
   // A finished download stays in the downloads panel for a day, or until
   // its Clear: a fact of this screen, not of the core's disk.
   Q_INVOKABLE void clearFinished();

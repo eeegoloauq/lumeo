@@ -65,6 +65,18 @@ void LocalSettings::setListSort(const QString &order) {
     set("listSort", order);
 }
 
+void LocalSettings::setBackground(bool on) {
+  if (!on)
+    m_values.remove("autostart");
+  set("background", on);
+}
+
+void LocalSettings::setAutostart(bool on) {
+  if (on)
+    m_values.insert("background", true);
+  set("autostart", on);
+}
+
 void LocalSettings::clearFinished() {
   set("downloadsClearedAt", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
 }
@@ -100,7 +112,7 @@ void LocalSettings::write() {
 
 void LocalSettings::resetChoices() {
   const QString language = this->language();
-  for (const char *key : {"timelinePreviews", "screenshotsDir", "language"})
+  for (const char *key : {"timelinePreviews", "screenshotsDir", "language", "background", "autostart"})
     m_values.remove(key);
   emit changed();
   if (!language.isEmpty())
