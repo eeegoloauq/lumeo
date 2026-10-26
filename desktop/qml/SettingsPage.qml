@@ -18,7 +18,7 @@ ShellPage {
 
     signal back()
 
-    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads", "sources"]
+    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads", "sources", "shortcuts"]
     readonly property var titles: ({
         general: qsTrId("settingsGeneral"),
         appearance: qsTrId("settingsAppearance"),
@@ -26,6 +26,7 @@ ShellPage {
         audioSubtitles: qsTrId("settingsAudioSubtitles"),
         downloads: qsTrId("settingsDownloads"),
         sources: qsTrId("settingsSources"),
+        shortcuts: qsTrId("settingsShortcuts"),
     })
     // The section a preference was last changed from: the core's refusal is
     // said there, not at the top of a page scrolled away.
@@ -139,6 +140,7 @@ ShellPage {
                 backTo: page.backTo
                 onBack: page.back()
             }
+            ShortcutsSection {}
         }
     }
 

@@ -446,3 +446,34 @@ QVariantList MpvFacts::shortcuts(const QVariantList &bindings, const QStringList
   }
   return lines;
 }
+
+QStringList MpvFacts::ownBindings(int seekStep) {
+  return {
+      "MBTN_LEFT cycle pause",
+      "ESC script-message lumeo escape",
+      "q script-message lumeo back",
+      "c script-message lumeo tracks",
+      "F11 cycle fullscreen",
+      QString("LEFT seek -%1").arg(seekStep),
+      QString("RIGHT seek %1").arg(seekStep),
+  };
+}
+
+QVariantList MpvFacts::shortcutLines(int seekStep, bool all) const {
+  // By mpv's names: what each does, and every other key that does the
+  // same, is read from the bindings; nothing about a key is written here.
+  static const QStringList everyday = {
+      "SPACE", "LEFT", "RIGHT", "Shift+LEFT", "Shift+RIGHT", "DOWN", "UP", "9", "0", "m",
+      "f", "F11", "c", "v", "[", "]", "s", "q", "ESC",
+  };
+  return shortcuts(m_bindings + ownBindingList(seekStep), all ? QStringList() : everyday);
+}
+
+QVariantList MpvFacts::ownBindingList(int seekStep) {
+  QVariantList list;
+  for (const QString &line : ownBindings(seekStep)) {
+    const qsizetype space = line.indexOf(' ');
+    list.append(QVariantMap{{"key", line.left(space)}, {"cmd", line.mid(space + 1)}, {"section", "lumeo"}});
+  }
+  return list;
+}

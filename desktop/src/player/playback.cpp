@@ -243,8 +243,7 @@ void Playback::resume() {
               });
 }
 
-// Our section: the player's own actions, and the arrows at the stored step so
-// that mpv does the seek. A section of the same name replaces the old one.
+// Our section over mpv's; a section of the same name replaces the old one.
 void Playback::defineBindings() {
   if (!m_mpv || !m_preferences)
     return;
@@ -252,15 +251,7 @@ void Playback::defineBindings() {
   if (step == m_seekStep)
     return;
   m_seekStep = step;
-  const QStringList bindings = {
-      "MBTN_LEFT cycle pause",
-      "ESC script-message lumeo escape",
-      "q script-message lumeo back",
-      "c script-message lumeo tracks",
-      "F11 cycle fullscreen",
-      QString("LEFT seek -%1").arg(step),
-      QString("RIGHT seek %1").arg(step),
-  };
+  const QStringList bindings = MpvFacts::ownBindings(step);
   m_mpv->command({"define-section", "lumeo", bindings.join('\n'), "default"});
   m_mpv->command({"enable-section", "lumeo"});
   m_mpv->get("input-bindings", this, [this](const QVariant &value) {

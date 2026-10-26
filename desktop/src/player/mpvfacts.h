@@ -74,6 +74,14 @@ public:
   // over its defaults for a key. With [only], the lines for what those keys
   // do, in that order.
   static QVariantList shortcuts(const QVariantList &bindings, const QStringList &only = {});
+  // The player's own bindings over mpv's, as `define-section` takes them:
+  // its actions, and the arrows at the stored step so that mpv seeks.
+  static QStringList ownBindings(int seekStep);
+  // The same as input-bindings lists them.
+  static QVariantList ownBindingList(int seekStep);
+  // The keyboard page of the settings: mpv's bindings and ours, the keys
+  // most people reach for unless [all].
+  Q_INVOKABLE QVariantList shortcutLines(int seekStep, bool all) const;
   // A key as its keycap reads; empty for media and power keys, whose purpose
   // is printed on them.
   static QString keyLabel(const QString &key);

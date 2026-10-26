@@ -51,6 +51,14 @@ private slots:
              QStringList({"Z = Show subtitles earlier", "Space, P = Pause or play"}));
   }
 
+  // The page lists the arrows at the stored step, as the player binds them.
+  void theArrowsAtTheStoredStep() {
+    const QVariantList bindings =
+        QVariantList{binding("LEFT", "seek -5"), binding("RIGHT", "seek 5")} + MpvFacts::ownBindingList(10);
+    QCOMPARE(lines(MpvFacts::shortcuts(bindings, {"LEFT", "RIGHT"})),
+             QStringList({"← = Seek 10 seconds backward", "→ = Seek 10 seconds forward"}));
+  }
+
   void keysAsTheirKeycapsRead() {
     QCOMPARE(MpvFacts::keyLabel("f"), "F");
     QCOMPARE(MpvFacts::keyLabel("F"), "Shift+F");

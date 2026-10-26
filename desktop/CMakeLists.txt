@@ -100,6 +100,7 @@ qt_add_qml_module(lumeo
     qml/SettingsBlock.qml
     qml/SettingsPage.qml
     qml/SettingsWait.qml
+    qml/ShortcutsSection.qml
     qml/SourcesSection.qml
     qml/Words.qml
     qml/format.js
