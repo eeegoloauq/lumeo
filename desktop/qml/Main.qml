@@ -63,6 +63,9 @@ ApplicationWindow {
 
     Shell {
         id: shell
+        // The prototype waits for the file; the player screen takes over in
+        // docs/qt-port.md, step 3.
+        onWatch: downloadId => Prototype.watch(downloadId)
         anchors.fill: parent
         visible: !player.visible
         focus: true

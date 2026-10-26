@@ -13,6 +13,9 @@ FocusScope {
 
     readonly property string page: stack.currentItem?.objectName ?? ""
 
+    // A download to play: the player takes the window.
+    signal watch(string downloadId, string name)
+
     function place(name) {
         if (name === "home") {
             stack.pop(null)
@@ -80,7 +83,14 @@ FocusScope {
 
     // The screens of docs/qt-port.md, step 3, replace these.
     Component { id: homePage; HomePage { objectName: "home"; onOpen: (item, play) => shell.open(item, play) } }
-    Component { id: titlePage; ShellPage { objectName: "title"; property var item; property bool play } }
+    Component {
+        id: titlePage
+        TitlePage {
+            objectName: "title"
+            onWatch: (downloadId, name) => shell.watch(downloadId, name)
+            onAddSource: shell.place("settings")
+        }
+    }
     Component { id: libraryPage; ShellPage { objectName: "library" } }
     Component { id: settingsPage; ShellPage { objectName: "settings" } }
     Component { id: searchPage; Browse { objectName: "search"; topPadding: 68 } }

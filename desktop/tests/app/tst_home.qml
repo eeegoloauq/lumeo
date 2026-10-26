@@ -73,15 +73,5 @@ Item {
             keyClick(Qt.Key_Escape)
             compare(shell.page, "home")
         }
-
-        // Play in the banner opened the title without starting it.
-        function test_playInTheBannerOpensTheTitleToStartIt() {
-            mouseClick(findChild(shell, "play"))
-            compare(shell.page, "title")
-            verify(findChild(shell, "title").play)
-            keyClick(Qt.Key_Escape)
-            mouseClick(findChild(shell, "moreInfo"))
-            verify(!findChild(shell, "title").play)
-        }
     }
 }

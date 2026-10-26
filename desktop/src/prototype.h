@@ -30,6 +30,8 @@ public:
   Q_INVOKABLE void sources(const QString &itemId, int season, int episode);
   Q_INVOKABLE void play(const QString &itemId, int index, int season, int episode);
   Q_INVOKABLE void openLocal(const QString &path);
+  // Plays a download once the front of its file is on disk.
+  Q_INVOKABLE void watch(const QString &downloadId) { waitForReady(downloadId); }
 
 signals:
   void statusChanged();

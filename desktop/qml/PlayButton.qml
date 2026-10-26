@@ -21,6 +21,8 @@ Button {
     icon.height: 22
     icon.color: Tokens.page
     palette.buttonText: Tokens.page
+    // Nothing to play: present, so the page does not shift, but out.
+    opacity: enabled ? 1 : 0.4
 
     background: Rectangle {
         radius: Tokens.radiusControl

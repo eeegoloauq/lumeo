@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 import Lumeo
 import "format.js" as Format
 
@@ -66,64 +65,19 @@ ShellPage {
 
     Home { id: home }
 
-    BusyIndicator {
+    Loading {
         anchors.centerIn: parent
-        width: 32
-        height: 32
-        palette.dark: Theme.accent
-        // Only past a wait worth showing, or it blinks on every fast answer.
-        visible: home.status === Home.Loading && !patience.running
-        running: visible
-
-        Timer {
-            id: patience
-            interval: 300
-            running: home.status === Home.Loading
-        }
+        waiting: home.status === Home.Loading
     }
 
-    // An empty screen is an invitation to act: what is missing, and the one
-    // thing that can help.
-    Column {
+    Trouble {
         anchors.centerIn: parent
-        width: Math.min(460, parent.width - 2 * Tokens.gutter)
         visible: home.status === Home.Failed || home.status === Home.Empty
-        spacing: 12
-
-        Text {
-            width: parent.width
-            text: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailable") : qsTrId("homeNoCatalogues")
-            color: "white"
-            font.family: Tokens.fontSans
-            font.pixelSize: 26
-            font.weight: Font.Bold
-            wrapMode: Text.Wrap
-        }
-        Text {
-            width: parent.width
-            text: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailableHint") : qsTrId("homeNoCatalogueHint")
-            color: Tokens.muted
-            font.family: Tokens.fontSans
-            font.pixelSize: 15
-            lineHeightMode: Text.FixedHeight
-            lineHeight: 15 * 1.5
-            wrapMode: Text.Wrap
-        }
-        Text {
-            width: parent.width
-            visible: home.status === Home.Failed
-            text: home.error
-            color: Tokens.muted
-            font.family: Tokens.fontSans
-            font.pixelSize: Tokens.textData
-            wrapMode: Text.Wrap
-        }
-        Item { width: 1; height: 10; visible: home.status === Home.Failed }
-        QuietButton {
-            visible: home.status === Home.Failed
-            text: qsTrId("commonTryAgain")
-            onClicked: home.load()
-        }
+        title: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailable") : qsTrId("homeNoCatalogues")
+        hint: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailableHint") : qsTrId("homeNoCatalogueHint")
+        detail: home.status === Home.Failed ? home.error : ""
+        action: home.status === Home.Failed ? qsTrId("commonTryAgain") : ""
+        onActed: home.load()
     }
 
     ListView {
@@ -197,20 +151,13 @@ ShellPage {
             readonly property alias lead: foot
             readonly property alias play: play
 
-            // Whole device pixels: a height inside a pixel antialiases that
-            // row and the scrim's, and the picture shows through as a line
-            // where the banner ends.
-            function whole(value) {
-                return Math.ceil(value * Screen.devicePixelRatio - 1e-6) / Screen.devicePixelRatio
-            }
-
             readonly property var item: home.hero
             // What the screen has left above one whole shelf, less the part
             // that lies over the artwork; a floor below which it stops being
             // a picture, and a ceiling past which the page is a screen with
             // nothing to pick (decisions/interface.md).
             readonly property real reveal: page.shelfHeight + page.shelfGap - page.overlap
-            readonly property real derived: whole(Math.max(420, Math.min(720, list.height - reveal)))
+            readonly property real derived: Theme.whole(Math.max(420, Math.min(720, list.height - reveal)), Screen.devicePixelRatio)
 
             width: list.width
             height: banner.height + reveal
@@ -219,26 +166,11 @@ ShellPage {
                 id: banner
                 width: parent.width
                 // The least it is; what it holds can make it taller.
-                height: Math.max(hero.derived, hero.whole(words.implicitHeight + page.barClearance + 128))
+                height: Math.max(hero.derived, Theme.whole(words.implicitHeight + page.barClearance + 128, Screen.devicePixelRatio))
 
-                Rectangle {
+                Banner {
                     anchors.fill: parent
-                    color: Tokens.surface
-                    visible: art.status !== Image.Ready
-                }
-                Image {
-                    id: art
-                    anchors.fill: parent
-                    source: Format.art(hero.item.background)
-                    // The window can grow to the screen; not past it.
-                    sourceSize.width: Screen.width
-                    fillMode: Image.PreserveAspectCrop
-                    verticalAlignment: Image.AlignTop
-                }
-                ShaderEffect {
-                    anchors.fill: parent
-                    property color ground: Tokens.page
-                    fragmentShader: "qrc:/qt/qml/Lumeo/shaders/scrim.frag.qsb"
+                    url: hero.item.background ?? ""
                 }
 
                 Column {
@@ -248,74 +180,12 @@ ShellPage {
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 128
 
-                    // Type over a frame we do not control keeps a shadow.
-                    Column {
+                    Heading {
                         width: parent.width
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: "#cc000000"
-                            shadowBlur: 0.55
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 2
-                        }
-
-                        // The title card the provider drew; set type is the
-                        // fallback.
-                        Loader {
-                            width: Math.min(640, parent.width)
-                            sourceComponent: hero.item.logo ? logo : name
-                        }
-                        Item { width: 1; height: 14 }
-                        Row {
-                            width: parent.width
-                            spacing: 6
-
-                            readonly property string rating: Format.rating(hero.item.imdbRating, Qt.locale())
-
-                            Text {
-                                visible: parent.rating !== ""
-                                text: parent.rating
-                                color: Tokens.text
-                                font.family: Tokens.fontSans
-                                font.pixelSize: Tokens.textMeta
-                                font.weight: Font.Bold
-                            }
-                            Text {
-                                visible: parent.rating !== ""
-                                text: "·"
-                                color: Tokens.dim
-                                font.family: Tokens.fontSans
-                                font.pixelSize: Tokens.textMeta
-                            }
-                            Text {
-                                width: Math.min(implicitWidth, parent.width - x)
-                                text: [Format.years(hero.item), hero.item.runtime ?? "",
-                                       (hero.item.genres ?? []).slice(0, 2).join(" / ")]
-                                      .filter(part => part !== "").join(" · ")
-                                color: Tokens.dim
-                                font.family: Tokens.fontSans
-                                font.pixelSize: Tokens.textMeta
-                                font.weight: Font.Medium
-                                font.letterSpacing: 0.1
-                                elide: Text.ElideRight
-                            }
-                        }
-                        Item { width: 1; height: 12; visible: overview.visible }
-                        Text {
-                            id: overview
-                            width: Math.min(520, parent.width)
-                            visible: text !== ""
-                            text: hero.item.overview ?? ""
-                            color: Tokens.text
-                            font.family: Tokens.fontSans
-                            font.pixelSize: Tokens.textBody
-                            lineHeightMode: Text.FixedHeight
-                            lineHeight: Tokens.textBody * 1.45
-                            wrapMode: Text.Wrap
-                            maximumLineCount: 3
-                            elide: Text.ElideRight
-                        }
+                        item: hero.item
+                        strongRating: true
+                        facts: [Format.years(hero.item), hero.item.runtime,
+                                (hero.item.genres ?? []).slice(0, 2).join(" / ")]
                     }
                     Item { width: 1; height: 22 }
                     Row {
@@ -334,25 +204,6 @@ ShellPage {
                             onClicked: page.open(hero.item, false)
                             onActiveFocusChanged: if (activeFocus) page.stop = 0
                         }
-                    }
-                }
-
-                Component {
-                    id: logo
-                    HeroLogo { url: hero.item.logo; title: hero.item.title }
-                }
-                Component {
-                    id: name
-                    Text {
-                        text: hero.item.title
-                        color: "white"
-                        font.family: Tokens.fontSans
-                        font.pixelSize: Tokens.textHero
-                        font.weight: Font.Bold
-                        font.letterSpacing: -1.2
-                        lineHeightMode: Text.FixedHeight
-                        lineHeight: Tokens.textHero * 1.05
-                        wrapMode: Text.Wrap
                     }
                 }
             }

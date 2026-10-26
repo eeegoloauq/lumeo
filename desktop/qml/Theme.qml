@@ -21,4 +21,11 @@ QtObject {
     readonly property int panel: 250
     // The bar's ground fading in as the page moves under it.
     readonly property int wash: 180
+
+    // A banner's height in whole device pixels: one inside a pixel
+    // antialiases that row and the scrim's, and the picture shows through as
+    // a line where the banner ends.
+    function whole(value, ratio) {
+        return Math.ceil(value * ratio - 1e-6) / ratio
+    }
 }
