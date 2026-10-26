@@ -39,12 +39,6 @@ void Storage::load() {
     m_error = reply.ok() ? QString() : reply.message();
     emit changed();
   });
-  m_core->get("/api/v1/about", {}, this, [this](const Core::Reply &reply) {
-    if (!reply.ok())
-      return;
-    m_downloadDir = reply.json()["downloadDir"].toString();
-    emit changed();
-  });
 }
 
 void Storage::free(const QString &key) {

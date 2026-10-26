@@ -73,3 +73,13 @@ void LocalSettings::write() {
       file.write(QJsonDocument(m_values).toJson(QJsonDocument::Compact)) < 0 || !file.commit())
     qWarning("settings: %s not written", qPrintable(m_path));
 }
+
+void LocalSettings::resetChoices() {
+  const QString language = this->language();
+  for (const char *key : {"timelinePreviews", "screenshotsDir", "language"})
+    m_values.remove(key);
+  emit changed();
+  if (!language.isEmpty())
+    emit languageChanged();
+  m_save.start();
+}

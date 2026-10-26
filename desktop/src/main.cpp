@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
+  QGuiApplication::setApplicationVersion(LUMEO_VERSION);
   QGuiApplication::setDesktopFileName("dev.lumeo.lumeo");
   loadFonts();
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt

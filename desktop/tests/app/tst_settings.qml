@@ -132,7 +132,7 @@ Item {
         function test_deleteAllAsksFirst() {
             onDisk()
             mouseClick(findChild(page, "deleteAll"))
-            const confirm = findChild(window.Overlay.overlay, "confirm")
+            const confirm = findChild(findChild(page, "confirmAll").footer, "confirm")
             tryVerify(() => confirm?.visible === true, 2000, "the question")
             compare(deletes().length, 0)
             mouseClick(confirm)
@@ -153,6 +153,27 @@ Item {
             keyClick(Qt.Key_Return)
             tryVerify(() => patches().length === 1, 2000)
             verify(patches()[0].includes('"diskLimit":268435456000'), patches()[0])
+        }
+    
+        // Reset asks first, and puts back this machine's choices as well as
+        // the core's.
+        function test_resetAsksAndPutsBackBothKinds() {
+            LocalSettings.timelinePreviews = false
+            fakeCore.answer("DELETE", "/api/v1/preferences", 200, fakeCore.read("preferences.json"))
+            // Pressed before the sections above have all answered: the page
+            // follows them as they grow.
+            mouseClick(findChild(page, "nav-about"))
+            const reset = findChild(page, "reset")
+            const view = findChild(page, "view")
+            tryVerify(() => reset.mapToItem(view, 0, 0).y + reset.height <= view.height, 3000, "in view")
+            waitForRendering(page)
+            mouseClick(reset)
+            const confirm = findChild(findChild(page, "confirmReset").footer, "confirm")
+            tryVerify(() => confirm?.visible === true, 2000, "the question")
+            verify(LocalSettings.timelinePreviews === false, "nothing before the answer")
+            mouseClick(confirm)
+            tryVerify(() => deletes().some(r => r.startsWith("DELETE /api/v1/preferences")), 2000)
+            verify(LocalSettings.timelinePreviews)
         }
     }
 }

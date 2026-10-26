@@ -78,6 +78,7 @@ qt_add_qml_module(lumeo
     qml/Theme.qml
     qml/TracksMenu.qml
     qml/WheelScroll.qml
+    qml/AboutSection.qml
     qml/AppearanceSection.qml
     qml/AudioSubtitlesSection.qml
     qml/LanguageList.qml
@@ -85,6 +86,7 @@ qt_add_qml_module(lumeo
     qml/SubtitleSample.qml
     qml/ColourDots.qml
     qml/Confirm.qml
+    qml/CopyButton.qml
     qml/DownloadsSection.qml
     qml/RowButton.qml
     qml/StorageBar.qml
@@ -147,6 +149,8 @@ qt_add_qml_module(lumeo
     src/api/preferences.h src/api/preferences.cpp
     src/api/languages.h src/api/languages.cpp
     src/api/storage.h src/api/storage.cpp
+    src/api/corestatus.h src/api/corestatus.cpp
+    src/platform/desktop.h src/platform/desktop.cpp
     src/platform/folders.h src/platform/folders.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/language.h src/platform/language.cpp
@@ -193,8 +197,11 @@ qt_add_translations(lumeo
   NO_GENERATE_PLURALS_TS_FILE
 )
 
+# What the client says it is; a release passes its tag's.
+set(LUMEO_VERSION "dev" CACHE STRING "The client's version")
 qt_add_executable(lumeo-desktop src/main.cpp)
 target_link_libraries(lumeo-desktop PRIVATE lumeo lumeoplugin)
+target_compile_definitions(lumeo-desktop PRIVATE LUMEO_VERSION="${LUMEO_VERSION}")
 
 include(CTest)
 if(BUILD_TESTING)

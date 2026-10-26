@@ -54,6 +54,7 @@ SettingsBlock {
                .replace(/^file:\/\//, "") + "/Lumeo"
 
     Storage { id: disk }
+    CoreStatus { id: coreStatus }
 
     Connections {
         id: policyChange
@@ -65,6 +66,7 @@ SettingsBlock {
             policyChange.pending = false
             Downloads.refresh()
             disk.load()
+            coreStatus.load()
         }
     }
 
@@ -148,12 +150,12 @@ SettingsBlock {
         // that is this one.
         SettingRow {
             label: qsTrId("settingsVideos")
-            hint: disk.downloadDir
+            hint: coreStatus.downloadDir
 
             RowButton {
-                visible: Core.onThisMachine && disk.downloadDir !== ""
+                visible: Core.onThisMachine && coreStatus.downloadDir !== ""
                 text: qsTrId("commonOpen")
-                onClicked: Qt.openUrlExternally("file://" + disk.downloadDir)
+                onClicked: Qt.openUrlExternally("file://" + coreStatus.downloadDir)
             }
             RowButton {
                 visible: Core.onThisMachine && block.known
@@ -161,7 +163,7 @@ SettingsBlock {
                 onClicked: {
                     folders.purpose = "videos"
                     folders.title = qsTrId("settingsDownloadFolderQuestion")
-                    folders.currentFolder = "file://" + disk.downloadDir
+                    folders.currentFolder = "file://" + coreStatus.downloadDir
                     folders.open()
                 }
             }
@@ -203,7 +205,7 @@ SettingsBlock {
             const path = block.localPath(selectedFolder)
             if (purpose === "screenshots")
                 LocalSettings.screenshotsDir = path
-            else if (path !== disk.downloadDir)
+            else if (path !== coreStatus.downloadDir)
                 block.setPolicy({ downloadDir: path })
         }
     }
@@ -241,6 +243,7 @@ SettingsBlock {
         }
         Confirm {
             id: confirmAll
+            objectName: "confirmAll"
             message: qsTrId("settingsDeleteAllConfirm").arg(Words.bytes(disk.used))
             action: qsTrId("commonDelete")
             onAccepted: disk.freeAll()

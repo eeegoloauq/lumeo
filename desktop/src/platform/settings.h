@@ -43,6 +43,8 @@ public:
   QString language() const;
   void setLanguage(const QString &code);
   QVariantList languages() const { return m_languages; }
+  // This machine's choices back to their defaults; the volume is not one.
+  Q_INVOKABLE void resetChoices();
   // The language to show: the chosen one, else the system's.
   QLocale locale() const;
 

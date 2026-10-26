@@ -10,15 +10,16 @@ import Lumeo
 ShellPage {
     id: page
 
-    // Where the page opens, held there until the viewer moves it: the
-    // sections above grow as their answers arrive.
+    // Where the page opens. It, or a section pressed in the list, is held in
+    // place until the viewer moves the page: the sections above grow as
+    // their answers arrive.
     property string section
     // The title Settings was opened from to add a source, and the way back.
     property string backTo
 
     signal back()
 
-    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads", "sources", "shortcuts"]
+    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads", "sources", "shortcuts", "about"]
     readonly property var titles: ({
         general: qsTrId("settingsGeneral"),
         appearance: qsTrId("settingsAppearance"),
@@ -27,6 +28,7 @@ ShellPage {
         downloads: qsTrId("settingsDownloads"),
         sources: qsTrId("settingsSources"),
         shortcuts: qsTrId("settingsShortcuts"),
+        about: qsTrId("settingsAbout"),
     })
     // The section a preference was last changed from: the core's refusal is
     // said there, not at the top of a page scrolled away.
@@ -95,8 +97,8 @@ ShellPage {
         }
         return found
     }
-    // A section pressed in the list stays lit until the page is moved: one
-    // too near the end never reaches the top to be read.
+    // Lit until the page is moved, since one too near the end never reaches
+    // the top to be read.
     property string pressed
     readonly property string lit: pressed || reading
 
@@ -106,8 +108,8 @@ ShellPage {
     Binding {
         target: view
         property: "contentY"
-        value: page.section !== "" ? page.scrollTo(page.section) : 0
-        when: page.section !== "" && page.pressed === page.section && !going.running
+        value: page.pressed !== "" ? page.scrollTo(page.pressed) : 0
+        when: page.pressed !== "" && !going.running
         restoreMode: Binding.RestoreNone
     }
 
@@ -141,6 +143,7 @@ ShellPage {
                 onBack: page.back()
             }
             ShortcutsSection {}
+            AboutSection { settings: page }
         }
     }
 

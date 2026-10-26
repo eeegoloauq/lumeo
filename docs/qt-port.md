@@ -244,6 +244,10 @@ card with their controls at its right edge. Text size waits for a scale the
 QML can apply, its sizes being set per item; the background and login rows
 come with step 4, and how long a finished download stays in the panel
 with the panel. The folders are chosen in the system's `FolderDialog`.
+Sources move with an arrow up and down rather than by dragging, which the
+keyboard reaches too. About's update switches and What's new come with the
+update card in step 4. The version is CMake's `LUMEO_VERSION`, `dev` when
+none is given.
 
 **Downloads panel.** interface.md, the panel grouped by what can be done; the
 rows, season rows, time left and what a row waits on (`download_rows.dart`);

@@ -10,7 +10,7 @@ class Core;
 class Downloads;
 
 // What is on the core's disk: its share of the filesystem, every title it
-// keeps, the artwork it caches, and the folder downloads go to. Freeing
+// keeps, and the artwork it caches. Freeing
 // goes one at a time, and the list is read again once the core has freed.
 class Storage : public QObject, public QQmlParserStatus {
   Q_OBJECT
@@ -26,8 +26,6 @@ class Storage : public QObject, public QQmlParserStatus {
   Q_PROPERTY(double cache READ cache NOTIFY changed)
   // {itemId, title, poster, kind, onDisk, downloads: [{id, state, ...}]}
   Q_PROPERTY(QVariantList titles READ titles NOTIFY changed)
-  // The folder the core downloads to, which it reports itself.
-  Q_PROPERTY(QString downloadDir READ downloadDir NOTIFY changed)
   // What is being freed: a title's key, "all" or "cache"; empty when nothing.
   Q_PROPERTY(QString freeing READ freeing NOTIFY changed)
 
@@ -44,7 +42,6 @@ public:
   double diskFree() const { return m_diskFree; }
   double cache() const { return m_cache; }
   QVariantList titles() const { return m_titles; }
-  QString downloadDir() const { return m_downloadDir; }
   QString freeing() const { return m_freeing; }
 
   Q_INVOKABLE void load();
@@ -69,6 +66,5 @@ private:
   QString m_error;
   double m_used = 0, m_diskTotal = 0, m_diskFree = 0, m_cache = 0;
   QVariantList m_titles;
-  QString m_downloadDir;
   QString m_freeing;
 };
