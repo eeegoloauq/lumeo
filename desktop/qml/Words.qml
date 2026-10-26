@@ -23,6 +23,17 @@ QtObject {
         return qsTrId("downloadsTimeLeftHours", Math.floor(minutes / 60)).arg(padded(minutes % 60))
     }
 
+    // A span as the downloads panel says it: "12 min", "1 h 5 min", "2 h";
+    // rounded up, so a few seconds away is never "0 min".
+    function minutes(seconds) {
+        const m = Math.max(1, Math.ceil(seconds / 60))
+        if (m < 60)
+            return qsTrId("downloadsMinutes", m)
+        return m % 60 === 0 ? qsTrId("downloadsHours", m / 60)
+                            : qsTrId("downloadsHoursMinutes", Math.floor(m / 60))
+                                  .arg(qsTrId("downloadsHoursMinutes_minutes", m % 60))
+    }
+
     // The catalogue's name for an episode, or empty when it is only "Episode 3".
     function episodeTitle(episode) {
         const title = episode?.title ?? ""

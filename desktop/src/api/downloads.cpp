@@ -3,6 +3,7 @@
 #include "core.h"
 
 #include <QQmlEngine>
+#include <QUrlQuery>
 
 Downloads::Downloads(Core *core, QObject *parent) : QObject(parent), m_core(core) {
   m_poll.setSingleShot(true);
@@ -88,13 +89,17 @@ void Downloads::setPaused(const QString &id, bool paused) {
                });
 }
 
-void Downloads::forget(const QString &id) {
+void Downloads::stop(const QString &id) {
+  // A poll already asked would put it back.
+  ++m_adopted;
   for (qsizetype i = 0; i < m_downloads.size(); ++i)
     if (m_downloads.at(i)["id"] == id) {
       m_downloads.removeAt(i);
       update();
-      return;
+      break;
     }
+  m_core->send("DELETE", "/api/v1/downloads/" + Core::segment(id), QUrlQuery{{"data", "true"}},
+               QJsonValue::Undefined, this, [](const Core::Reply &) {});
 }
 
 void Downloads::refresh() {

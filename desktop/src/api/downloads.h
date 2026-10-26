@@ -35,6 +35,7 @@ public:
   static Downloads *create(QQmlEngine *qml, QJSEngine *);
 
   QVariantList all() const { return m_downloads.toVariantList(); }
+  const QJsonArray &list() const { return m_downloads; }
   int running() const;
   QVariantMap marks() const { return m_marks; }
 
@@ -57,9 +58,9 @@ public:
   Q_INVOKABLE void pause(const QString &id) { setPaused(id, true); }
   // Fetches a paused download again, or retries a failed one.
   Q_INVOKABLE void resume(const QString &id) { setPaused(id, false); }
-  // Off the list now, so the click visibly lands; a stop that failed comes
-  // back with the next poll.
-  Q_INVOKABLE void forget(const QString &id);
+  // Stops a download and deletes what it fetched. Off the list now, so the
+  // click visibly lands; a stop that failed comes back with the next poll.
+  Q_INVOKABLE void stop(const QString &id);
   Q_INVOKABLE void refresh();
 
   // The polls' pace; tests shorten them.

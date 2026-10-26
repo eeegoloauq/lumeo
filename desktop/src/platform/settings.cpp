@@ -65,6 +65,18 @@ void LocalSettings::setListSort(const QString &order) {
     set("listSort", order);
 }
 
+void LocalSettings::clearFinished() {
+  set("downloadsClearedAt", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+}
+
+bool LocalSettings::showsFinished(const QDateTime &finishedAt) const {
+  const QDateTime cleared =
+      QDateTime::fromString(m_values.value("downloadsClearedAt").toString(), Qt::ISODateWithMs);
+  if (cleared.isValid() && finishedAt <= cleared)
+    return false;
+  return finishedAt.secsTo(QDateTime::currentDateTimeUtc()) < 24 * 3600;
+}
+
 QLocale LocalSettings::locale() const {
   return language().isEmpty() ? QLocale() : QLocale(language());
 }

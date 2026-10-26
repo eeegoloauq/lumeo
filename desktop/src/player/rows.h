@@ -13,7 +13,10 @@ class Rows : public QAbstractListModel {
   QML_UNCREATABLE("made by what fills it")
 
 public:
-  Rows(const QStringList &roles, QObject *parent = nullptr);
+  // With a [key] role, rows are told apart by it rather than by place: a
+  // row keeps its delegate when rows before it come or go, which a delegate
+  // chosen by the row's type needs.
+  Rows(const QStringList &roles, QObject *parent = nullptr, const QString &key = {});
 
   int rowCount(const QModelIndex &parent = {}) const override;
   QVariant data(const QModelIndex &index, int role) const override;
@@ -25,6 +28,9 @@ public:
   const QList<QVariantMap> &rows() const { return m_rows; }
 
 private:
+  void setByKey(const QList<QVariantMap> &rows);
+
   QList<QByteArray> m_roles;
+  QString m_key;
   QList<QVariantMap> m_rows;
 };

@@ -111,7 +111,7 @@ ApplicationWindow {
             onNext: (downloadId, name) => window.play(downloadId, name)
             onStorage: {
                 film.close()
-                shell.place("settings")
+                shell.storage()
             }
             onClosed: {
                 film.visible = false

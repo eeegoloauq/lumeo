@@ -28,6 +28,17 @@ FocusScope {
             stack.push(pages[name])
     }
 
+    // Settings at its Downloads, where the disk the downloads take is managed.
+    function storage() {
+        const at = stack.find(item => item.objectName === "settings")
+        if (at) {
+            stack.pop(at)
+            at.go("downloads")
+        } else {
+            stack.push(settingsPage, {section: "downloads"})
+        }
+    }
+
     function back() {
         if (stack.depth > 1)
             stack.pop()
@@ -84,9 +95,28 @@ FocusScope {
         lit: ["home", "library", "settings"].includes(shell.page) ? shell.page : ""
         canGoBack: stack.depth > 1
         scrolled: (stack.currentItem as ShellPage)?.scrolled ?? false
+        downloads: downloadList
+        downloadsOpen: downloadsPanel.opened
         onBack: shell.back()
         onPlace: name => shell.place(name)
         onSearch: shell.search()
+        onOpenDownloads: downloadsPanel.opened ? downloadsPanel.close() : downloadsPanel.open()
+    }
+
+    DownloadList { id: downloadList }
+
+    // Hangs from the ring, to its left: nothing is to its right.
+    DownloadsPanel {
+        id: downloadsPanel
+        objectName: "downloadsPanel"
+        parent: bar.ring
+        x: bar.ring.width - width
+        y: bar.ring.height + 10
+        list: downloadList
+        ceiling: shell.height
+        onWatch: (downloadId, name) => shell.watch(downloadId, name)
+        onOpenTitle: item => shell.open(item, false)
+        onStorage: shell.storage()
     }
 
     // The word and its titles outlive the page: a title opened from it and
@@ -110,7 +140,7 @@ FocusScope {
     }
 
     // Window shortcuts: they answer wherever the keyboard is.
-    Shortcut { sequences: ["Esc", "Alt+Left", "Back"]; enabled: shell.visible; onActivated: shell.back() }
+    Shortcut { sequences: ["Esc", "Alt+Left", "Back"]; enabled: shell.visible && !downloadsPanel.opened; onActivated: shell.back() }
     Shortcut { sequence: "Ctrl+F"; enabled: shell.visible; onActivated: shell.search() }
     TapHandler { acceptedButtons: Qt.BackButton; onTapped: shell.back() }
 

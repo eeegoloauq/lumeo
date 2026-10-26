@@ -255,16 +255,26 @@ order with the way back to a title, Shortcuts read from mpv, About with
 what a report needs in one copy (`settings/`). Each section's rows sit on a
 card with their controls at its right edge. Text size waits for a scale the
 QML can apply, its sizes being set per item; the background and login rows
-come with step 4, and how long a finished download stays in the panel
-with the panel. The folders are chosen in the system's `FolderDialog`.
+come with step 4. How long a finished download stays in the panel is no
+longer a setting (Downloads panel). The folders are chosen in the system's `FolderDialog`.
 Sources move with an arrow up and down rather than by dragging, which the
 keyboard reaches too. About's update switches and What's new come with the
 update card in step 4. The version is CMake's `LUMEO_VERSION`, `dev` when
 none is given.
 
 **Downloads panel.** interface.md, the panel grouped by what can be done; the
-rows, season rows, time left and what a row waits on (`download_rows.dart`);
-a ring of fixed size in the bar (`downloads_indicator.dart`).
+rows, time left and what a row waits on (`download_rows.dart`); the ring in
+the bar (`downloads_indicator.dart`). Changed on purpose (decided
+2026-10-26): a series is one row per state whatever its seasons, where each
+season was a row of its own with the same poster; the ring is always there,
+a plain arrow at rest, so the place does not come and go, and the panel then
+says nothing is downloading; a finished download stays a day or until Clear,
+no longer chosen in Settings; a row's own upload is not said, the header's
+total is; and what arrives fills in the accent, which marks how much is here
+(interface.md), where the Flutter panel drew it white. A finished series'
+Play opens the episode the core's progress names next, where the Flutter
+client worked it out from the entries. interface.md is rewritten to it at
+the switch.
 
 **The machine.** Background, tray, notification, start at login and Ctrl+Q
 (interface.md). One instance, the core as a child holding its stdin, a new

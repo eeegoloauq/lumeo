@@ -19,10 +19,15 @@ Item {
     // Search and the tabs; while search is the page its field stands there
     // instead.
     property bool tabs: true
+    required property DownloadList downloads
+    // The downloads ring, which its panel hangs from.
+    readonly property Item ring: downloadsRing
+    property bool downloadsOpen
 
     signal back()
     signal place(string name)
     signal search()
+    signal openDownloads()
 
     implicitHeight: 68
 
@@ -79,6 +84,17 @@ Item {
 
             TapHandler { onTapped: bar.place("home") }
             HoverHandler { cursorShape: Qt.PointingHandCursor }
+        }
+
+        // The wordmark's mirror at the other end: the arrow's ring sits on
+        // the gutter.
+        DownloadsRing {
+            id: downloadsRing
+            objectName: "downloads"
+            anchors { right: parent.right; rightMargin: Tokens.gutter - 6; verticalCenter: parent.verticalCenter }
+            list: bar.downloads
+            open: bar.downloadsOpen
+            onClicked: bar.openDownloads()
         }
 
         // Centred on the window, so nothing here moves when an end changes.

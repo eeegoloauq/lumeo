@@ -1756,10 +1756,15 @@
         <extracomment>Download progress in panel. (%1 percent)</extracomment>
         <translation>%1%</translation>
     </message>
+    <message id="downloadsNothing">
+        <source>Nothing is downloading</source>
+        <extracomment>The downloads panel when it lists nothing.</extracomment>
+        <translation>Nothing is downloading</translation>
+    </message>
     <message id="downloadsEpisodeNext">
-        <source>E%1 next</source>
-        <extracomment>Next episode to play from a downloaded season. (%1 episode)</extracomment>
-        <translation>E%1 next</translation>
+        <source>Next: %1</source>
+        <extracomment>Next episode to play from a downloaded series, as "S2 E1". (%1 episode)</extracomment>
+        <translation>Next: %1</translation>
     </message>
     <message id="downloadsStopDiscard">
         <source>Stop and discard %1</source>

@@ -45,6 +45,10 @@ qt_add_qml_module(lumeo
     qml/DownloadButton.qml
     qml/DownloadMark.qml
     qml/DownloadPanel.qml
+    qml/DownloadsPanel.qml
+    qml/DownloadsRing.qml
+    qml/DiskBar.qml
+    qml/ProgressRing.qml
     qml/EpisodeCard.qml
     qml/EpisodeStill.qml
     qml/EpisodesPanel.qml
@@ -124,6 +128,7 @@ qt_add_qml_module(lumeo
     icons/closed_caption.svg
     icons/closed_caption_outlined.svg
     icons/download.svg
+    icons/expand_more.svg
     icons/error.svg
     icons/fullscreen.svg
     icons/fullscreen_exit.svg
@@ -131,6 +136,7 @@ qt_add_qml_module(lumeo
     icons/pause.svg
     icons/play_arrow.svg
     icons/play_circle.svg
+    icons/refresh.svg
     icons/playlist_play.svg
     icons/remove.svg
     icons/search.svg
@@ -152,6 +158,7 @@ qt_add_qml_module(lumeo
     src/api/library.h src/api/library.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
+    src/api/downloadlist.h src/api/downloadlist.cpp
     src/api/preferences.h src/api/preferences.cpp
     src/api/languages.h src/api/languages.cpp
     src/api/storage.h src/api/storage.cpp

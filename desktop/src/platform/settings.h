@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDateTime>
 #include <QJsonObject>
 #include <QLocale>
 #include <QObject>
@@ -49,6 +50,10 @@ public:
   QVariantList languages() const { return m_languages; }
   QString listSort() const;
   void setListSort(const QString &order);
+  // A finished download stays in the downloads panel for a day, or until
+  // its Clear: a fact of this screen, not of the core's disk.
+  Q_INVOKABLE void clearFinished();
+  bool showsFinished(const QDateTime &finishedAt) const;
   // This machine's choices back to their defaults; the volume is not one.
   Q_INVOKABLE void resetChoices();
   // The language to show: the chosen one, else the system's.

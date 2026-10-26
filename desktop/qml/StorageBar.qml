@@ -12,8 +12,8 @@ Column {
     property real limit
 
     readonly property real total: storage.diskTotal
-    readonly property real used: Math.min(storage.used, total)
-    readonly property real other: Math.max(total - storage.diskFree, used) - used
+    readonly property real used: disk.used
+    readonly property real other: disk.other
 
     width: parent?.width ?? 0
     topPadding: 18
@@ -25,31 +25,7 @@ Column {
                       qsTrId("settingsStorageOther").arg(Words.bytes(other)),
                       qsTrId("settingsStorageFree").arg(Words.bytes(storage.diskFree))].join(", ")
 
-    Rectangle {
-        width: parent.width
-        height: 10
-        radius: 5
-        color: Tokens.raised
-        clip: true
-
-        Row {
-            height: parent.height
-            spacing: 2
-
-            Rectangle {
-                width: bar.total > 0 ? Math.max(bar.used > 0 ? 3 : 0, bar.used / bar.total * bar.width) : 0
-                height: parent.height
-                radius: 5
-                color: Theme.accent
-            }
-            Rectangle {
-                width: bar.total > 0 ? bar.other / bar.total * bar.width : 0
-                height: parent.height
-                radius: 5
-                color: "#3a3b42"
-            }
-        }
-    }
+    DiskBar { id: disk; width: parent.width; storage: bar.storage }
 
     Row {
         spacing: 20
