@@ -8,6 +8,13 @@ QtObject {
         return n < 10 ? "0" + n : String(n)
     }
 
+    // 1:05:09, or 4:07 under an hour.
+    function clock(seconds) {
+        const s = Math.max(0, Math.floor(seconds))
+        const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60)
+        return (h > 0 ? h + ":" + padded(m) : m) + ":" + padded(s % 60)
+    }
+
     // 4.2 GB: powers of 1024, one decimal under a hundred.
     function bytes(value) {
         if (value <= 0)

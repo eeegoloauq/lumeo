@@ -2,6 +2,7 @@
 
 #include "core.h"
 
+#include <QFileInfo>
 #include <QJsonObject>
 #include <QQmlEngine>
 
@@ -11,11 +12,7 @@ QString gib(double bytes) { return QString::number(bytes / (1 << 30), 'f', 1) + 
 
 } // namespace
 
-Prototype::Prototype(Core *core, QObject *parent) : QObject(parent), m_core(core) {
-  m_poll.setInterval(1000);
-  m_poll.setSingleShot(true);
-  connect(&m_poll, &QTimer::timeout, this, [this] { waitForReady(m_waitingFor); });
-}
+Prototype::Prototype(Core *core, QObject *parent) : QObject(parent), m_core(core) {}
 
 Prototype *Prototype::create(QQmlEngine *qml, QJSEngine *) {
   return new Prototype(qml->singletonInstance<Core *>("Lumeo", "Core"));
@@ -77,41 +74,21 @@ void Prototype::play(const QString &itemId, int index, int season, int episode) 
       {"source", m_sources[index]},
   };
   setStatus("Starting the download…");
-  m_core->send("POST", "/api/v1/downloads", {}, body, this, [this](const Core::Reply &reply) {
-    if (!failed("POST", "/api/v1/downloads", reply.status, reply.message()))
-      waitForReady(reply.json()["id"].toString());
+  const QString name = m_sources[index].toObject()["rawName"].toString();
+  m_core->send("POST", "/api/v1/downloads", {}, body, this, [this, name](const Core::Reply &reply) {
+    if (failed("POST", "/api/v1/downloads", reply.status, reply.message()))
+      return;
+    setStatus({});
+    emit started(reply.json()["id"].toString(), name);
   });
 }
 
 void Prototype::openLocal(const QString &path) {
   m_core->send("POST", "/api/v1/local", {}, QJsonObject{{"path", path}}, this,
-               [this](const Core::Reply &reply) {
+               [this, path](const Core::Reply &reply) {
                  if (!failed("POST", "/api/v1/local", reply.status, reply.message()))
-                   waitForReady(reply.json()["id"].toString());
+                   emit started(reply.json()["id"].toString(), QFileInfo(path).fileName());
                });
-}
-
-// The core says `ready` once the front of the file is on disk; before that
-// mpv would block on its first read (docs/decisions/player.md).
-void Prototype::waitForReady(const QString &downloadId) {
-  m_poll.stop();
-  m_waitingFor = downloadId;
-  const QString path = "/api/v1/downloads/" + Core::segment(downloadId);
-  m_core->get(path, {}, this, [this, downloadId, path](const Core::Reply &reply) {
-    if (downloadId != m_waitingFor || failed("GET", path, reply.status, reply.message()))
-      return;
-    const QJsonValue json = reply.json();
-    if (json["ready"].toBool()) {
-      setStatus({});
-      emit playable(m_core->url(path + "/stream").toString());
-      return;
-    }
-    const QJsonObject progress = json["progress"].toObject();
-    setStatus(QString("Waiting: %1 peers, %2 of %3")
-                  .arg(progress["peers"].toInt())
-                  .arg(gib(progress["completed"].toDouble()), gib(progress["total"].toDouble())));
-    m_poll.start();
-  });
 }
 
 void Prototype::setStatus(const QString &status) {

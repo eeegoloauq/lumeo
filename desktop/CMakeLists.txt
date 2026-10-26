@@ -65,6 +65,8 @@ qt_add_qml_module(lumeo
     qml/TitlePage.qml
     qml/Trouble.qml
     qml/Player.qml
+    qml/PlayerWaiting.qml
+    qml/Scrubber.qml
     qml/Theme.qml
     qml/Words.qml
     qml/format.js
@@ -81,12 +83,18 @@ qt_add_qml_module(lumeo
     icons/close.svg
     icons/download.svg
     icons/error.svg
+    icons/fullscreen.svg
+    icons/fullscreen_exit.svg
     icons/ios_share.svg
+    icons/pause.svg
     icons/play_arrow.svg
     icons/play_circle.svg
     icons/search.svg
     icons/star.svg
     icons/star_border.svg
+    icons/volume_down.svg
+    icons/volume_off.svg
+    icons/volume_up.svg
   SOURCES
     src/api/core.h src/api/core.cpp
     src/api/artwork.h src/api/artwork.cpp
@@ -98,17 +106,14 @@ qt_add_qml_module(lumeo
     src/api/preferences.h src/api/preferences.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/language.h src/platform/language.cpp
+    src/platform/settings.h src/platform/settings.cpp
     src/player/mpvitem.h src/player/mpvitem.cpp
+    src/player/playback.h src/player/playback.cpp
     src/prototype.h src/prototype.cpp
 )
 
 # The generated type registrations include the headers by their bare names.
 target_include_directories(lumeo PUBLIC src src/api src/player src/platform)
-
-target_compile_definitions(lumeo PRIVATE
-  # The prototype reads the shaders where the Flutter client keeps them.
-  LUMEO_ANIME4K_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/anime4k"
-)
 
 target_link_libraries(lumeo PUBLIC
   Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent PkgConfig::MPV

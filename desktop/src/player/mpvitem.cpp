@@ -1,10 +1,10 @@
 #include "mpvitem.h"
 
-#include <QDir>
 #include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QQuickOpenGLUtils>
+#include <QQuickWindow>
 #include <QtGui/qguiapplication_platform.h>
 #include <mpv/client.h>
 #include <mpv/render_gl.h>
@@ -17,14 +17,24 @@ MpvShared::~MpvShared() {
     mpv_terminate_destroy(mpv);
 }
 
+QString MpvItem::profile;
+
 namespace {
 
-enum Observed : uint64_t { Paused = 1, Position, Duration, Volume, Fullscreen, Hwdec };
-
-// Anime4K's high-end preset A, as the Flutter client lists it.
-const QStringList anime4kA = {
-    "Clamp_Highlights",   "Restore_CNN_VL",      "Upscale_CNN_x2_VL",
-    "AutoDownscalePre_x2", "AutoDownscalePre_x4", "Upscale_CNN_x2_M",
+enum Observed : uint64_t {
+  Paused = 1,
+  Position,
+  Duration,
+  Volume,
+  Muted,
+  Speed,
+  Fullscreen,
+  Hwdec,
+  Buffering,
+  Ended,
+  Picture,
+  Chapters,
+  Chapter,
 };
 
 // A QVariant as mpv's node, with the bytes it points at kept in [storage]
@@ -64,6 +74,125 @@ mpv_node toNode(const QVariant &value, std::list<QByteArray> &storage,
     node.u.string = storage.emplace_back(value.toString().toUtf8()).data();
   }
   return node;
+}
+
+QVariant fromNode(const mpv_node &node) {
+  switch (node.format) {
+  case MPV_FORMAT_STRING:
+    return QString::fromUtf8(node.u.string);
+  case MPV_FORMAT_FLAG:
+    return node.u.flag != 0;
+  case MPV_FORMAT_INT64:
+    return static_cast<qlonglong>(node.u.int64);
+  case MPV_FORMAT_DOUBLE:
+    return node.u.double_;
+  case MPV_FORMAT_NODE_ARRAY: {
+    QVariantList list;
+    for (int i = 0; i < node.u.list->num; ++i)
+      list.append(fromNode(node.u.list->values[i]));
+    return list;
+  }
+  case MPV_FORMAT_NODE_MAP: {
+    QVariantMap map;
+    for (int i = 0; i < node.u.list->num; ++i)
+      map.insert(QString::fromUtf8(node.u.list->keys[i]), fromNode(node.u.list->values[i]));
+    return map;
+  }
+  default:
+    return {};
+  }
+}
+
+// mpv's names for the keys that are not characters.
+const QHash<int, QString> namedKeys = {
+    {Qt::Key_Space, "SPACE"},
+    {Qt::Key_Return, "ENTER"},
+    {Qt::Key_Enter, "KP_ENTER"},
+    {Qt::Key_Tab, "TAB"},
+    {Qt::Key_Escape, "ESC"},
+    {Qt::Key_Backspace, "BS"},
+    {Qt::Key_Delete, "DEL"},
+    {Qt::Key_Insert, "INS"},
+    {Qt::Key_Home, "HOME"},
+    {Qt::Key_End, "END"},
+    {Qt::Key_PageUp, "PGUP"},
+    {Qt::Key_PageDown, "PGDWN"},
+    {Qt::Key_Left, "LEFT"},
+    {Qt::Key_Right, "RIGHT"},
+    {Qt::Key_Up, "UP"},
+    {Qt::Key_Down, "DOWN"},
+    {Qt::Key_F1, "F1"},
+    {Qt::Key_F2, "F2"},
+    {Qt::Key_F3, "F3"},
+    {Qt::Key_F4, "F4"},
+    {Qt::Key_F5, "F5"},
+    {Qt::Key_F6, "F6"},
+    {Qt::Key_F7, "F7"},
+    {Qt::Key_F8, "F8"},
+    {Qt::Key_F9, "F9"},
+    {Qt::Key_F10, "F10"},
+    {Qt::Key_F11, "F11"},
+    {Qt::Key_F12, "F12"},
+    {Qt::Key_MediaPlay, "PLAY"},
+    {Qt::Key_MediaPause, "PAUSE"},
+    {Qt::Key_MediaTogglePlayPause, "PLAYPAUSE"},
+    {Qt::Key_MediaStop, "STOP"},
+    {Qt::Key_MediaNext, "NEXT"},
+    {Qt::Key_MediaPrevious, "PREV"},
+    {Qt::Key_AudioForward, "FORWARD"},
+    {Qt::Key_AudioRewind, "REWIND"},
+    {Qt::Key_VolumeUp, "VOLUME_UP"},
+    {Qt::Key_VolumeDown, "VOLUME_DOWN"},
+    {Qt::Key_VolumeMute, "MUTE"},
+};
+
+// The keypad's digits, which Qt tells apart only by a modifier.
+const QHash<int, QString> keypad = {
+    {Qt::Key_0, "KP0"}, {Qt::Key_1, "KP1"}, {Qt::Key_2, "KP2"}, {Qt::Key_3, "KP3"},
+    {Qt::Key_4, "KP4"}, {Qt::Key_5, "KP5"}, {Qt::Key_6, "KP6"}, {Qt::Key_7, "KP7"},
+    {Qt::Key_8, "KP8"}, {Qt::Key_9, "KP9"}, {Qt::Key_Period, "KP_DEC"},
+};
+
+// The US layout's characters by PC scan code: a key's place on the board,
+// whatever layout is on. Linux reports XKB's codes, which are these plus 8.
+QChar usLayout(quint32 scanCode, bool shift) {
+#ifndef Q_OS_WIN
+  scanCode -= 8;
+#endif
+  struct Row {
+    quint32 first;
+    const char *plain;
+    const char *shifted;
+  };
+  static const Row rows[] = {
+      {0x02, "1234567890-=", "!@#$%^&*()_+"},
+      {0x10, "qwertyuiop[]", "QWERTYUIOP{}"},
+      {0x1e, "asdfghjkl;'`", "ASDFGHJKL:\"~"},
+      {0x2b, "\\zxcvbnm,./", "|ZXCVBNM<>?"},
+  };
+  for (const Row &row : rows) {
+    const quint32 at = scanCode - row.first;
+    if (scanCode >= row.first && at < qstrlen(row.plain))
+      return QLatin1Char((shift ? row.shifted : row.plain)[at]);
+  }
+  return {};
+}
+
+const std::pair<Qt::MouseButton, const char *> mouseButtons[] = {
+    {Qt::LeftButton, "MBTN_LEFT"},   {Qt::RightButton, "MBTN_RIGHT"},
+    {Qt::MiddleButton, "MBTN_MID"},  {Qt::BackButton, "MBTN_BACK"},
+    {Qt::ForwardButton, "MBTN_FORWARD"},
+};
+
+QString modifierPrefix(Qt::KeyboardModifiers modifiers) {
+  QString prefix;
+  if (modifiers & Qt::ControlModifier)
+    prefix += "Ctrl+";
+  if (modifiers & Qt::AltModifier)
+    prefix += "Alt+";
+  if (modifiers & Qt::MetaModifier)
+    prefix += "Meta+";
+  return prefix;
 }
 
 void wakeup(void *context) {
@@ -168,8 +297,11 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=30"},
       {"cache-pause-initial", "yes"},
       {"volume-max", "150"},
+      // mpv's bar would be drawn into the picture under ours; a seek shows
+      // its time, without the percentage the bar already shows.
       {"osd-bar", "no"},
       {"osd-on-seek", "msg"},
+      {"osd-msg3", "${osd-sym-cc} ${time-pos}${?duration: / ${duration}}"},
   };
   for (const auto &[name, value] : options)
     mpv_set_option_string(mpv, name, value);
@@ -178,21 +310,28 @@ MpvItem::MpvItem(QQuickItem *parent)
     mpv_set_option_string(mpv, "log-file", log.constData());
   if (mpv_initialize(mpv) < 0)
     qFatal("mpv_initialize failed");
+  if (!profile.isEmpty())
+    command({"apply-profile", profile});
+  mpv_request_log_messages(mpv, "error");
 
-  mpv_observe_property(mpv, Paused, "pause", MPV_FORMAT_FLAG);
-  mpv_observe_property(mpv, Position, "time-pos", MPV_FORMAT_DOUBLE);
-  mpv_observe_property(mpv, Duration, "duration", MPV_FORMAT_DOUBLE);
-  mpv_observe_property(mpv, Volume, "volume", MPV_FORMAT_DOUBLE);
-  mpv_observe_property(mpv, Fullscreen, "fullscreen", MPV_FORMAT_FLAG);
-  mpv_observe_property(mpv, Hwdec, "hwdec-current", MPV_FORMAT_STRING);
+  const std::pair<Observed, std::pair<const char *, mpv_format>> observed[] = {
+      {Paused, {"pause", MPV_FORMAT_FLAG}},
+      {Position, {"time-pos", MPV_FORMAT_DOUBLE}},
+      {Duration, {"duration", MPV_FORMAT_DOUBLE}},
+      {Volume, {"volume", MPV_FORMAT_DOUBLE}},
+      {Muted, {"mute", MPV_FORMAT_FLAG}},
+      {Speed, {"speed", MPV_FORMAT_DOUBLE}},
+      {Fullscreen, {"fullscreen", MPV_FORMAT_FLAG}},
+      {Hwdec, {"hwdec-current", MPV_FORMAT_STRING}},
+      {Buffering, {"paused-for-cache", MPV_FORMAT_FLAG}},
+      {Ended, {"eof-reached", MPV_FORMAT_FLAG}},
+      {Picture, {"video-out-params", MPV_FORMAT_NODE}},
+      {Chapters, {"chapter-list", MPV_FORMAT_NODE}},
+      {Chapter, {"chapter", MPV_FORMAT_INT64}},
+  };
+  for (const auto &[id, property] : observed)
+    mpv_observe_property(mpv, id, property.first, property.second);
   mpv_set_wakeup_callback(mpv, wakeup, m_shared.get());
-
-  // The player's own keys are bindings in a section of ours rather than
-  // keys taken before mpv sees them: the console's forced bindings win while
-  // it is open, and a user's input.conf can rebind ours.
-  command({"define-section", "lumeo",
-           "ESC script-message lumeo escape\nq script-message lumeo back", "default"});
-  command({"enable-section", "lumeo"});
 }
 
 MpvItem::~MpvItem() {
@@ -228,18 +367,103 @@ void MpvItem::set(const QString &name, const QVariant &value) {
   mpv_set_property_async(m_shared->mpv, 0, name.toUtf8().constData(), MPV_FORMAT_NODE, &node);
 }
 
-void MpvItem::key(const QString &name, bool down) {
-  command({down ? "keydown" : "keyup", name});
+void MpvItem::get(const QString &name, QObject *context,
+                  std::function<void(const QVariant &)> answer) {
+  const uint64_t id = m_nextGet++;
+  m_gets.insert(id, {context, std::move(answer)});
+  mpv_get_property_async(m_shared->mpv, id, name.toUtf8().constData(), MPV_FORMAT_NODE);
 }
 
-void MpvItem::toggleAnime4k() {
-  m_anime4k = !m_anime4k;
-  QStringList paths;
-  if (m_anime4k)
-    for (const QString &name : anime4kA)
-      paths << QDir(LUMEO_ANIME4K_DIR).filePath("Anime4K_" + name + ".glsl");
-  set("glsl-shaders", paths);
-  emit anime4kChanged();
+QString MpvItem::keyName(int key, const QString &text, Qt::KeyboardModifiers modifiers,
+                         quint32 scanCode, const QSet<QString> &bound) {
+  QString prefix = modifierPrefix(modifiers);
+  const bool shift = modifiers & Qt::ShiftModifier;
+  QString name = namedKeys.value(key);
+  if (name.isEmpty() && (modifiers & Qt::KeypadModifier))
+    name = keypad.value(key);
+  if (!name.isEmpty())
+    return prefix + (shift ? "Shift+" : "") + name;
+  QString character;
+  // With Ctrl or Alt the text is a control character or none, and Qt's key
+  // is the Latin one even on another layout.
+  if (modifiers & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier)) {
+    if (key > 0x20 && key < 0x7f)
+      character = QChar(key);
+    if (key >= Qt::Key_A && key <= Qt::Key_Z && !shift)
+      character = character.toLower();
+  } else if (text.size() == 1 && text[0] >= QChar(0x20) && text[0] != QChar(0x7f)) {
+    character = text;
+    if (text[0].unicode() >= 0x80 && !bound.contains(text)) {
+      const QChar us = usLayout(scanCode, shift);
+      if (!us.isNull())
+        character = us;
+    }
+  }
+  if (character.isEmpty())
+    return {};
+  if (character == "#")
+    character = "SHARP";
+  return prefix + character;
+}
+
+bool MpvItem::press(int key, const QString &text, int modifiers, quint32 scanCode,
+                    bool autoRepeat) {
+  // Qt's synthetic events, a test's among them, carry no scan code.
+  const qint64 physical = scanCode ? scanCode : (qint64(1) << 32) + key;
+  if (autoRepeat)
+    return m_held.contains(physical);
+  const QString name =
+      keyName(key, text, Qt::KeyboardModifiers(modifiers), scanCode, bound);
+  if (name.isEmpty())
+    return false;
+  m_held.insert(physical, name);
+  command({"keydown", name});
+  return true;
+}
+
+bool MpvItem::release(int key, quint32 scanCode, bool autoRepeat) {
+  const qint64 physical = scanCode ? scanCode : (qint64(1) << 32) + key;
+  if (autoRepeat)
+    return m_held.contains(physical);
+  const QString name = m_held.take(physical);
+  if (name.isEmpty())
+    return false;
+  command({"keyup", name});
+  return true;
+}
+
+void MpvItem::releaseKeys() {
+  if (m_held.isEmpty())
+    return;
+  m_held.clear();
+  // The empty name is "release all"; an omitted one reaches mpv 0.41's
+  // cmd_key as NULL and crashes it.
+  command({"keyup", ""});
+}
+
+void MpvItem::button(int button, bool down) {
+  for (const auto &[which, name] : mouseButtons)
+    if (which == button)
+      command({down ? "keydown" : "keyup", name});
+}
+
+void MpvItem::pointer(qreal x, qreal y) {
+  const qreal ratio = window() ? window()->effectiveDevicePixelRatio() : 1;
+  command({"mouse", QString::number(qRound(x * ratio)), QString::number(qRound(y * ratio))});
+}
+
+void MpvItem::wheel(QPointF angleDelta, int modifiers) {
+  QString key;
+  if (qAbs(angleDelta.y()) >= qAbs(angleDelta.x())) {
+    if (angleDelta.y() == 0)
+      return;
+    key = angleDelta.y() > 0 ? "WHEEL_UP" : "WHEEL_DOWN";
+  } else {
+    key = angleDelta.x() > 0 ? "WHEEL_LEFT" : "WHEEL_RIGHT";
+  }
+  const auto held = Qt::KeyboardModifiers(modifiers);
+  command({"keypress",
+           modifierPrefix(held) + (held & Qt::ShiftModifier ? "Shift+" : "") + key});
 }
 
 void MpvItem::drainEvents() {
@@ -251,18 +475,36 @@ void MpvItem::drainEvents() {
     case MPV_EVENT_PROPERTY_CHANGE:
       onProperty(event->reply_userdata, static_cast<mpv_event_property *>(event->data));
       break;
+    case MPV_EVENT_GET_PROPERTY_REPLY: {
+      const Pending pending = m_gets.take(event->reply_userdata);
+      auto *property = static_cast<mpv_event_property *>(event->data);
+      QVariant value;
+      if (event->error >= 0 && property->format == MPV_FORMAT_NODE)
+        value = fromNode(*static_cast<mpv_node *>(property->data));
+      if (pending.context && pending.answer)
+        pending.answer(value);
+      break;
+    }
     case MPV_EVENT_CLIENT_MESSAGE: {
       auto *message = static_cast<mpv_event_client_message *>(event->data);
       if (message->num_args == 2 && qstrcmp(message->args[0], "lumeo") == 0)
         emit action(QString::fromUtf8(message->args[1]));
       break;
     }
+    case MPV_EVENT_LOG_MESSAGE: {
+      auto *message = static_cast<mpv_event_log_message *>(event->data);
+      emit logged(QString::fromUtf8(message->text).trimmed());
+      break;
+    }
     case MPV_EVENT_END_FILE: {
       auto *end = static_cast<mpv_event_end_file *>(event->data);
       if (end->reason == MPV_END_FILE_REASON_ERROR)
-        emit endOfFile(QString::fromUtf8(mpv_error_string(end->error)));
+        emit loadFailed(QString::fromUtf8(mpv_error_string(end->error)));
       break;
     }
+    case MPV_EVENT_SHUTDOWN:
+      emit shutdown();
+      return;
     default:
       break;
     }
@@ -272,7 +514,11 @@ void MpvItem::drainEvents() {
 void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   const void *data = property->format == MPV_FORMAT_NONE ? nullptr : property->data;
   const bool flag = data && *static_cast<const int *>(data);
-  const double number = data ? *static_cast<const double *>(data) : 0.0;
+  const double number =
+      data && property->format == MPV_FORMAT_DOUBLE ? *static_cast<const double *>(data) : 0.0;
+  const QVariant node = data && property->format == MPV_FORMAT_NODE
+                            ? fromNode(*static_cast<const mpv_node *>(data))
+                            : QVariant();
   switch (id) {
   case Paused:
     m_paused = flag;
@@ -290,6 +536,14 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
     m_volume = number;
     emit volumeChanged();
     break;
+  case Muted:
+    m_muted = flag;
+    emit mutedChanged();
+    break;
+  case Speed:
+    m_speed = data ? number : 1;
+    emit speedChanged();
+    break;
   case Fullscreen:
     m_fullscreen = flag;
     emit fullscreenChanged();
@@ -297,6 +551,30 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   case Hwdec:
     m_hwdec = data ? QString::fromUtf8(*static_cast<char *const *>(data)) : QString();
     emit hwdecChanged();
+    break;
+  case Buffering:
+    m_buffering = flag;
+    emit bufferingChanged();
+    break;
+  case Ended:
+    m_ended = flag;
+    emit endedChanged();
+    break;
+  case Picture: {
+    const bool picture = node.toMap().value("w").toInt() > 0;
+    if (picture != m_hasPicture) {
+      m_hasPicture = picture;
+      emit hasPictureChanged();
+    }
+    break;
+  }
+  case Chapters:
+    m_chapters = node.toList();
+    emit chaptersChanged();
+    break;
+  case Chapter:
+    m_chapter = data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1;
+    emit chapterChanged();
     break;
   }
 }

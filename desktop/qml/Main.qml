@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import Lumeo
@@ -5,7 +7,7 @@ import Lumeo
 ApplicationWindow {
     id: window
 
-    // A file or address to play at once, from the command line.
+    // A file to play at once, from the command line.
     required property string toOpen
 
     width: 1280
@@ -33,49 +35,73 @@ ApplicationWindow {
 
     // How the window stood before a film took the screen, to give it back.
     property int before: Window.Windowed
+    property Player player: null
+    // The window was asked to close while a film played: it closes once the
+    // film's position is saved.
+    property bool quitting: false
 
-    function play(url) {
-        before = window.visibility === Window.FullScreen ? Window.Windowed : window.visibility
-        player.visible = true
-        player.open(url)
+    // A film takes the screen when it starts; leaving it gives the window
+    // back as it was (decisions/player.md).
+    function play(downloadId, name) {
+        if (player)
+            return
+        before = visibility === Window.FullScreen ? Window.Windowed : visibility
+        player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name})
+        player.forceActiveFocus()
+        player.mpv.set("fullscreen", true)
     }
 
-    function leave() {
-        player.stop()
-        player.visible = false
-        window.visibility = before
-        shell.forceActiveFocus()
+    // A window that leaves fullscreen by other means takes mpv along, so
+    // that its `f` goes the right way.
+    onVisibilityChanged: {
+        const full = window.visibility === Window.FullScreen
+        if (player && !player.playback.closing && player.mpv.fullscreen !== full)
+            player.mpv.set("fullscreen", full)
+    }
+
+    onClosing: close => {
+        if (!player)
+            return
+        close.accepted = false
+        quitting = true
+        player.close()
     }
 
     Connections {
         target: Prototype
-        function onPlayable(url) { window.play(url) }
+        function onStarted(downloadId, name) { window.play(downloadId, name) }
     }
 
-    Component.onCompleted: {
-        if (toOpen === "")
-            return
-        if (toOpen.indexOf("://") > 0)
-            play(toOpen)
-        else
-            Prototype.openLocal(toOpen)
-    }
+    Component.onCompleted: if (toOpen !== "") Prototype.openLocal(toOpen)
 
     Shell {
         id: shell
-        // The prototype waits for the file; the player screen takes over in
-        // docs/qt-port.md, step 3.
-        onWatch: downloadId => Prototype.watch(downloadId)
         anchors.fill: parent
-        visible: !player.visible
+        visible: !window.player?.visible
         focus: true
+        onWatch: (downloadId, name) => window.play(downloadId, name)
     }
 
-    Player {
-        id: player
-        anchors.fill: parent
-        visible: false
-        onFullscreenChanged: window.visibility = fullscreen ? Window.FullScreen : window.before
-        onBack: window.leave()
+    Component {
+        id: playerComponent
+
+        Player {
+            id: film
+            anchors.fill: parent
+            onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.before
+            onClosed: {
+                film.visible = false
+                window.visibility = window.before
+                shell.forceActiveFocus()
+            }
+            // mpv goes with the item, before the process ends: the GPU
+            // driver's exit handlers would tear down what it still uses.
+            onFinished: {
+                window.player = null
+                film.destroy()
+                if (window.quitting)
+                    window.close()
+            }
+        }
     }
 }

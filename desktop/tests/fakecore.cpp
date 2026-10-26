@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 
 namespace {
 
@@ -35,12 +36,42 @@ void write(QHttpServerResponder &responder, int status, const QJsonValue &body) 
     responder.write(QJsonDocument(body.toObject()), code);
 }
 
+// A file as the core streams one: whole, or the range asked for, so that
+// mpv can seek in it.
+void serve(QHttpServerResponder &responder, const QByteArray &bytes, const QByteArray &type,
+           const QByteArray &range) {
+  using Status = QHttpServerResponder::StatusCode;
+  QHttpHeaders headers;
+  headers.append(QHttpHeaders::WellKnownHeader::ContentType, type);
+  headers.append(QHttpHeaders::WellKnownHeader::AcceptRanges, "bytes");
+  static const QRegularExpression asked("^bytes=(\\d+)-(\\d*)$");
+  const QRegularExpressionMatch match = asked.match(QString::fromLatin1(range));
+  if (!match.hasMatch()) {
+    responder.write(bytes, headers, Status::Ok);
+    return;
+  }
+  const qint64 first = match.captured(1).toLongLong();
+  const qint64 last = match.captured(2).isEmpty()
+                          ? bytes.size() - 1
+                          : qMin<qint64>(match.captured(2).toLongLong(), bytes.size() - 1);
+  if (first > last) {
+    headers.append(QHttpHeaders::WellKnownHeader::ContentRange,
+                   QByteArray("bytes */") + QByteArray::number(bytes.size()));
+    responder.write(QByteArray(), headers, Status::RequestRangeNotSatisfiable);
+    return;
+  }
+  headers.append(QHttpHeaders::WellKnownHeader::ContentRange,
+                 QString("bytes %1-%2/%3").arg(first).arg(last).arg(bytes.size()).toLatin1());
+  responder.write(bytes.mid(first, last - first + 1), headers, Status::PartialContent);
+}
+
 } // namespace
 
 struct FakeCore::Held {
   QString key;
   QJsonValue body;
   QUrlQuery query;
+  QByteArray range;
   QHttpServerResponder responder;
 };
 
@@ -60,10 +91,11 @@ FakeCore::FakeCore(QObject *parent) : QObject(parent) {
     const QString key = method + " " + path;
     if (m_holding.contains(key)) {
       m_held.push_back(std::unique_ptr<Held>(
-          new Held{key, parse(request.body()), request.query(), std::move(responder)}));
+          new Held{key, parse(request.body()), request.query(), request.value("range"),
+                   std::move(responder)}));
       return;
     }
-    respond(key, parse(request.body()), request.query(), responder);
+    respond(key, parse(request.body()), request.query(), request.value("range"), responder);
   });
 }
 
@@ -106,13 +138,13 @@ void FakeCore::release() {
   m_holding.clear();
   auto held = std::move(m_held);
   for (const auto &request : held)
-    respond(request->key, request->body, request->query, request->responder);
+    respond(request->key, request->body, request->query, request->range, request->responder);
 }
 
 void FakeCore::respond(const QString &key, const QJsonValue &body, const QUrlQuery &query,
-                       QHttpServerResponder &responder) {
+                       const QByteArray &range, QHttpServerResponder &responder) {
   if (const auto file = m_files.constFind(key); file != m_files.constEnd()) {
-    responder.write(file->first, file->second);
+    serve(responder, file->first, file->second, range);
     return;
   }
   const auto handler = m_handlers.constFind(key);

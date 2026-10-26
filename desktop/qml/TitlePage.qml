@@ -133,12 +133,6 @@ ShellPage {
             .arg(Words.padded(current.season)).arg(Words.padded(current.number))
     }
 
-    function clock(seconds) {
-        const s = Math.max(0, Math.floor(seconds))
-        const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60)
-        return (h > 0 ? h + ":" + Words.padded(m) : m) + ":" + Words.padded(s % 60)
-    }
-
     scrolled: view.contentY > 12
 
     Title {
@@ -313,7 +307,7 @@ ShellPage {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: page.resume
                         text: page.resume ? qsTrId("playerClockLeft").arg(
-                                  page.clock(page.watched.duration - page.watched.position)) : ""
+                                  Words.clock(page.watched.duration - page.watched.position)) : ""
                         color: Tokens.dim
                         font.family: Tokens.fontSans
                         font.pixelSize: Tokens.textMeta

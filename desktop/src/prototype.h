@@ -2,7 +2,6 @@
 
 #include <QJsonArray>
 #include <QObject>
-#include <QTimer>
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
@@ -10,9 +9,8 @@ class Core;
 class QQmlEngine;
 class QJSEngine;
 
-// The prototype's way to a download playing: search, a title's copies, a
-// download started and waited on until mpv can open it, and a file on this
-// machine made a download. It goes as the screens of docs/qt-port.md, step 3,
+// The prototype's way to a download: search, a title's copies, a download
+// started, and a file on this machine made a download. It goes as the screens of docs/qt-port.md, step 3,
 // replace Browse.qml.
 class Prototype : public QObject {
   Q_OBJECT
@@ -30,24 +28,20 @@ public:
   Q_INVOKABLE void sources(const QString &itemId, int season, int episode);
   Q_INVOKABLE void play(const QString &itemId, int index, int season, int episode);
   Q_INVOKABLE void openLocal(const QString &path);
-  // Plays a download once the front of its file is on disk.
-  Q_INVOKABLE void watch(const QString &downloadId) { waitForReady(downloadId); }
 
 signals:
   void statusChanged();
   void searched(const QString &query, const QString &kind, const QVariantList &items);
   void sourcesListed(const QVariantList &sources);
-  void playable(const QString &url);
+  // A download to play, named as the player should say it until the core does.
+  void started(const QString &downloadId, const QString &name);
 
 private:
-  void waitForReady(const QString &downloadId);
   void setStatus(const QString &status);
   // The reply's message as the status when it failed.
   bool failed(const QByteArray &method, const QString &path, int status, const QString &message);
 
   Core *m_core;
   QJsonArray m_sources;
-  QTimer m_poll;
-  QString m_waitingFor;
   QString m_status;
 };

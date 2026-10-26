@@ -10,7 +10,7 @@ target_compile_definitions(fakecore PRIVATE
 )
 
 # Units: one executable per file under QtTest.
-foreach(name artwork core home l10n stores title)
+foreach(name artwork core home l10n mpv settings stores title)
   qt_add_executable(${name}_test ${name}_test.cpp)
   target_link_libraries(${name}_test PRIVATE lumeo fakecore Qt6::Test)
   add_test(NAME ${name} COMMAND ${name}_test)
@@ -32,5 +32,5 @@ set_tests_properties(app PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # Player tests: a real libmpv on headless Weston, through tool/player-test.sh.
 qt_add_executable(player_test player/main.cpp)
-target_link_libraries(player_test PRIVATE lumeo lumeoplugin Qt6::QuickTest)
+target_link_libraries(player_test PRIVATE lumeo lumeoplugin fakecore Qt6::QuickTest)
 target_compile_definitions(player_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/player")

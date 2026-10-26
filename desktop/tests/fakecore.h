@@ -40,7 +40,8 @@ public:
   using QueryHandler = std::function<std::pair<int, QJsonValue>(const QUrlQuery &query)>;
   void onQuery(const QString &method, const QString &path, QueryHandler handler);
 
-  // A picture served at [path] from now on, before any answer set for it.
+  // A file served at [path] from now on, before any answer set for it, in
+  // the ranges asked for.
   Q_INVOKABLE void file(const QString &path, const QByteArray &bytes, const QByteArray &type);
 
   // Leaves [method] [path] unanswered until release(): a request in flight.
@@ -61,7 +62,7 @@ private:
   struct Held;
   using Answer = std::function<std::pair<int, QJsonValue>(const QJsonValue &, const QUrlQuery &)>;
   void respond(const QString &key, const QJsonValue &body, const QUrlQuery &query,
-               QHttpServerResponder &responder);
+               const QByteArray &range, QHttpServerResponder &responder);
 
   QHttpServer m_server;
   QTcpServer *m_tcp = nullptr;
