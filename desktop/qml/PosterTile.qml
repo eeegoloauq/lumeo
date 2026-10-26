@@ -13,8 +13,6 @@ AbstractButton {
     required property var item
     // One of Downloads.marks, or undefined.
     property var mark
-    // The share watched, for a card of watch progress; undefined on others.
-    property var watched
 
     readonly property bool lifted: hovered || visualFocus
 
@@ -136,21 +134,6 @@ AbstractButton {
             anchors { top: parent.top; right: parent.right; margins: 8 }
             visible: tile.mark !== undefined
             mark: tile.mark ?? {}
-        }
-
-        // How much was watched: the player's timeline in small, white
-        // whatever the accent.
-        Rectangle {
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: 3
-            visible: tile.watched !== undefined
-            color: Tokens.watchTrack
-
-            Rectangle {
-                width: parent.width * (tile.watched ?? 0)
-                height: parent.height
-                color: Tokens.text
-            }
         }
 
         // The keyboard's ring, in the accent, findable on any artwork.

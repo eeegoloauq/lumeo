@@ -74,15 +74,30 @@ Column {
                     row.shelf.more()
             }
 
-            delegate: PosterTile {
+            delegate: row.progress ? resumeCard : posterTile
+        }
+
+        Component {
+            id: posterTile
+            PosterTile {
                 required property int index
                 required item
-                required property var season
-                required property var episode
-                required watched
+                mark: Downloads.marks[item.id]
+                onClicked: row.chosen(item)
+                onActiveFocusChanged: if (activeFocus) strip.focused = index
+            }
+        }
 
-                mark: row.progress ? Downloads.marks[item.id + "/" + season + "/" + episode]
-                                   : Downloads.marks[item.id]
+        Component {
+            id: resumeCard
+            ResumeCard {
+                required property int index
+                required item
+                required season
+                required episode
+                required watched
+                required remaining
+                mark: Downloads.marks[item.id + "/" + season + "/" + episode]
                 onClicked: row.chosen(item)
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
             }

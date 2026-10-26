@@ -80,6 +80,7 @@ private slots:
     QCOMPARE(ids(home.lead()), QStringList{"tt0013442"});
     const QModelIndex card = home.lead()->index(0);
     QCOMPARE(home.lead()->data(card, Shelf::WatchedRole).toDouble(), 900.0 / 5700);
+    QCOMPARE(home.lead()->data(card, Shelf::RemainingRole).toDouble(), 5700.0 - 900);
     QCOMPARE(names(home.shelves()).first(), "movie/top/");
   }
 

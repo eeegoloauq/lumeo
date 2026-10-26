@@ -462,13 +462,7 @@ ShellPage {
                                 sourceSize.width: 141
                                 fillMode: Image.PreserveAspectCrop
                             }
-                            Rectangle {
-                                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                height: 3
-                                visible: picture.share > 0
-                                color: Tokens.watchTrack
-                                Rectangle { width: parent.width * picture.share; height: parent.height; color: Tokens.text }
-                            }
+                            WatchBar { share: picture.share }
                         }
                     }
 

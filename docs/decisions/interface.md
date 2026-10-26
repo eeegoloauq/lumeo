@@ -169,6 +169,13 @@ Shelves are dense on purpose: eight pixels between posters, no captions under
 them. A poster is a title card already, and a caption under every one turns a
 shelf into a table.
 
+Continue watching is the one shelf of wide cards: a title's backdrop, named
+underneath with the episode and the time left ("S2 E5 · 22 min left"), since
+what decides a pick there is where one stopped, which a poster cannot say. The
+backdrop rather than the episode's still: the still is blurred until watched,
+and the episode a card plays is not watched yet, so the row would be a row of
+blurs.
+
 Hover adds only what the artwork cannot say — year and rating — and never the
 title, because nearly every poster prints its own and saying it twice reads as
 a mistake. The card lifts slightly instead of expanding: an expanding

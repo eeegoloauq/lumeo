@@ -88,6 +88,8 @@ qt_add_qml_module(lumeo
     qml/PlayButton.qml
     qml/PlayLine.qml
     qml/PosterTile.qml
+    qml/ResumeCard.qml
+    qml/WatchBar.qml
     qml/QuietButton.qml
     qml/RatingButton.qml
     qml/SettingsMenu.qml

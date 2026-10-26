@@ -29,10 +29,12 @@ class Shelf : public QAbstractListModel {
 public:
   enum Role {
     ItemRole = Qt::UserRole,
-    // Watch progress: the episode a card plays, and the share of it seen.
+    // Watch progress: the episode a card plays, the share of it seen and
+    // the seconds left, 0 when it is not started.
     SeasonRole,
     EpisodeRole,
     WatchedRole,
+    RemainingRole,
   };
 
   // A catalogue's shelf, [first] its first page when that is already here.

@@ -57,16 +57,5 @@ Item {
     }
 
     // Watched is a full bar, not a check, read the same as a half one.
-    Rectangle {
-        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 3
-        visible: still.bar > 0
-        color: Tokens.watchTrack
-
-        Rectangle {
-            width: parent.width * Math.min(1, still.bar)
-            height: parent.height
-            color: Tokens.text
-        }
-    }
+    WatchBar { share: still.bar }
 }

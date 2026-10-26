@@ -51,13 +51,19 @@ QVariant Shelf::data(const QModelIndex &index, int role) const {
     const double duration = next["duration"].toDouble();
     return duration > 0 ? std::clamp(next["position"].toDouble() / duration, 0.0, 1.0) : 0.0;
   }
+  case RemainingRole: {
+    if (m_core)
+      return {};
+    const double position = next["position"].toDouble();
+    return position > 0 ? std::max(0.0, next["duration"].toDouble() - position) : 0.0;
+  }
   }
   return {};
 }
 
 QHash<int, QByteArray> Shelf::roleNames() const {
   return {{ItemRole, "item"}, {SeasonRole, "season"}, {EpisodeRole, "episode"},
-          {WatchedRole, "watched"}};
+          {WatchedRole, "watched"}, {RemainingRole, "remaining"}};
 }
 
 void Shelf::more() {
