@@ -31,7 +31,9 @@ concurrency:
 
 jobs:
   desktop:
-    runs-on: ubuntu-latest
+    # Named, not latest: the runner's libmpv is the oldest one the tests
+    # cover, and moves only when we move it.
+    runs-on: ubuntu-24.04
     # A run takes about ten minutes; a hung test would otherwise hold the
     # runner for GitHub's default six hours.
     timeout-minutes: 40

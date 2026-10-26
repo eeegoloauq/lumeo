@@ -26,7 +26,9 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   dist:
-    runs-on: ubuntu-latest
+    # Named, not latest: the machine the bundle is built on sets the oldest
+    # glibc it runs on.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
