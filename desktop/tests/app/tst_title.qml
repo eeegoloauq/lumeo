@@ -29,6 +29,44 @@ Item {
             release: { resolution: "1080p", source: "BluRay", group: "GROUP" },
             locator: { scheme: "torrent", infoHash: "abc", fileIndex: 0 },
         })
+        readonly property var other: ({
+            providerId: "torrentio",
+            rawName: "Nosferatu 1922 720p WEB x264",
+            release: { resolution: "720p", source: "WEB", group: "OTHER" },
+            locator: { scheme: "torrent", infoHash: "def", fileIndex: 0 },
+        })
+
+        function cleanup() {
+            if (Preferences.current.askCopy) {
+                const prefs = fakeCore.read("preferences.json")
+                fakeCore.answer("PATCH", "/api/v1/preferences", 200, prefs)
+                Preferences.patch({ askCopy: false })
+                tryVerify(() => !Preferences.current.askCopy)
+            }
+        }
+
+        // The title page of a film from the banner, its copies listed: Play
+        // is on while they are asked for, the line under it only once here.
+        function film() {
+            mouseClick(findChild(shell, "moreInfo"))
+            tryVerify(() => !!findChild(shell, "playLineChoose")?.enabled, 5000, "the copies listed")
+        }
+
+        // A row of the copies' drawer, which lives over the window rather
+        // than in the page.
+        function row(name) {
+            const drawer = findChild(shell, "sourcesDrawer")
+            return drawer.opened ? findChild(drawer.contentItem, name) : null
+        }
+
+        function openDrawer() {
+            const line = findChild(shell, "playLineChoose")
+            verify(waitForPolish(line.parent))
+            mouseClick(line)
+            // Opened once its slide is over, and its rows are laid out by then.
+            tryVerify(() => !!row("copy-1"), 5000, "the drawer open")
+            return row("copy-1")
+        }
 
         function init() {
             const items = []
@@ -39,7 +77,9 @@ Item {
                 fakeCore.answer("GET", "/api/v1/progress/" + film.id, 200, {})
             }
             fakeCore.answer("GET", "/api/v1/catalog", 200, { items: items })
-            fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [copy], providers: 1 })
+            fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [copy, other], providers: 1 })
+            fakeCore.answer("PATCH", "/api/v1/choices/tt2001", 200, {})
+            fakeCore.answer("PATCH", "/api/v1/choices/tt2002", 200, {})
             fakeCore.answer("POST", "/api/v1/downloads", 201, { id: "d1", itemId: "tt2001", state: "active" })
             asked = fakeCore.requests.length
             shell = createTemporaryObject(shellComponent, window)
@@ -113,6 +153,42 @@ Item {
             const strip = findChild(shell, "episodes")
             compare(strip.count, 1)
             compare(findChild(shell, "titlePlay").text, "Play S2 E1")
+        }
+
+        // A pick is the title's release, which the core keeps, so the next
+        // episode goes on from it; nothing starts.
+        function test_aCopyPickedInTheDrawerIsTheTitlesRelease() {
+            film()
+            mouseClick(openDrawer())
+            tryVerify(() => requests().some(r => r.startsWith("PATCH /api/v1/choices/") && r.includes("720p WEB")))
+            tryVerify(() => !findChild(shell, "sourcesDrawer").visible, 2000, "the drawer closed")
+            compare(posted().length, 0)
+        }
+
+        function test_automaticForgetsTheRelease() {
+            film()
+            openDrawer()
+            mouseClick(row("best"))
+            tryVerify(() => requests().some(r => r.startsWith("PATCH /api/v1/choices/") && r.includes('{"source":null}')))
+        }
+
+        // "Ask every time": Play opens the copies, and the one picked plays.
+        function test_askEveryTimeOpensTheCopiesAndPlaysThePick() {
+            const prefs = fakeCore.read("preferences.json")
+            prefs.askCopy = true
+            fakeCore.answer("PATCH", "/api/v1/preferences", 200, prefs)
+            Preferences.patch({ askCopy: true })
+            tryVerify(() => Preferences.current.askCopy)
+            film()
+            mouseClick(findChild(shell, "titlePlay"))
+            tryVerify(() => !!row("copy-1"), 5000, "the drawer open")
+            compare(posted().length, 0)
+            // What the core answers once the pick is recorded.
+            const picked = Object.assign({ lastUsed: true }, other)
+            fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [copy, picked], providers: 1 })
+            mouseClick(row("copy-1"))
+            watched.wait(5000)
+            verify(posted()[0].includes("720p WEB"), posted()[0])
         }
 
         // None ships with the app: the empty list is the way to add one.

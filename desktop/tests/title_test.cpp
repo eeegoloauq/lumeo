@@ -56,7 +56,7 @@ private slots:
     fake->answer("GET", "/api/v1/items/tt1", 200, item);
     auto opening = [this](const QJsonObject &progress) {
       fake->answer("GET", "/api/v1/progress/tt1", 200, progress);
-      Title title(core.get(), "tt1");
+      Title title(core.get(), downloads.get(), "tt1");
       if (!QTest::qWaitFor([&] { return title.status() == Title::Ready; }))
         return QVariantMap{{"failed", true}};
       return title.opening();
@@ -74,7 +74,7 @@ private slots:
   void progressThatFailsLeavesThePageWithoutIt() {
     fake->answer("GET", "/api/v1/items/tt1", 200, QJsonObject{{"id", "tt1"}});
     fake->answer("GET", "/api/v1/progress/tt1", 500);
-    Title title(core.get(), "tt1");
+    Title title(core.get(), downloads.get(), "tt1");
     QTRY_COMPARE(title.status(), Title::Ready);
   }
 
@@ -182,6 +182,73 @@ private slots:
     QCOMPARE(c->picked(), 0);
     c->load(true);
     QTRY_COMPARE(c->picked(), 1);
+  }
+
+  // The pick is recorded first, and the list asked again follows it.
+  void aCopyChosenIsRecordedAndFollowed() {
+    fake->answer("PATCH", "/api/v1/choices/tt1", 200, QJsonObject());
+    auto c = choice();
+    c->load();
+    QTRY_VERIFY(c->listed());
+    QSignalSpy started(c.get(), &SourceChoice::started);
+    c->choose(1, true);
+    QTRY_COMPARE(started.size(), 1);
+    const QStringList patches = fake->requests().filter("PATCH /api/v1/choices/tt1");
+    QCOMPARE(patches.size(), 1);
+    QVERIFY(patches.first().contains("1080p"));
+  }
+
+  void aFolderWithNothingOfTheTitleIsRefusedInTheCoresWords() {
+    fake->answer("POST", "/api/v1/items/tt1/folders", 422,
+                 QJsonObject{{"error", "no episodes of this series there"}});
+    auto c = choice();
+    QSignalSpy refused(c.get(), &SourceChoice::refused);
+    c->link("/home/someone/Videos");
+    QTRY_COMPARE(refused.size(), 1);
+    QCOMPARE(refused.first().at(1).toInt(), 422);
+    QVERIFY(fake->requests().last().contains(R"({"path":"/home/someone/Videos"})"));
+  }
+
+  // One episode at a time, those already downloading passed over: a
+  // provider asked for seventeen lists at once answers 403.
+  void aSeasonIsDownloadedOneEpisodeAtATime() {
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{QJsonObject{
+                                               {"id", "e1"}, {"itemId", "tt1"}, {"season", 1},
+                                               {"episode", 1}, {"state", "done"}}}}});
+    downloads->refresh();
+    QTRY_COMPARE(downloads->all().size(), 1);
+    fake->answer("GET", "/api/v1/items/tt1", 200, QJsonObject{{"id", "tt1"}});
+    fake->answer("GET", "/api/v1/progress/tt1", 200, QJsonObject());
+    Title title(core.get(), downloads.get(), "tt1");
+    QTRY_COMPARE(title.status(), Title::Ready);
+    QVariantList season;
+    for (int n = 1; n <= 3; ++n)
+      season.append(QVariantMap{{"season", 1}, {"number", n}});
+    title.downloadSeason(season);
+    QVERIFY(title.queueing());
+    QTRY_VERIFY(!title.queueing());
+    const QStringList asked = fake->requests().filter(QRegularExpression("sources|POST"));
+    QCOMPARE(asked.size(), 4);
+    QVERIFY(asked[0].contains("episode=2") && asked[1].startsWith("POST"));
+    QVERIFY(asked[2].contains("episode=3") && asked[3].startsWith("POST"));
+  }
+
+  // The core not answering, or a provider refusing while it listed nothing:
+  // the rest would fail the same way.
+  void aSeasonStopsWhereAProviderRefuses() {
+    fake->answer("GET", "/api/v1/sources", 200,
+                 listed({}, 1, {QJsonObject{{"provider", "torrentio"}, {"reason", "403 Forbidden"}}}));
+    fake->answer("GET", "/api/v1/items/tt1", 200, QJsonObject{{"id", "tt1"}});
+    fake->answer("GET", "/api/v1/progress/tt1", 200, QJsonObject());
+    Title title(core.get(), downloads.get(), "tt1");
+    QTRY_COMPARE(title.status(), Title::Ready);
+    QSignalSpy failed(&title, &Title::seasonFailed);
+    title.downloadSeason({QVariantMap{{"season", 1}, {"number", 1}},
+                          QVariantMap{{"season", 1}, {"number", 2}}});
+    QTRY_COMPARE(failed.size(), 1);
+    QCOMPARE(failed.first().first().toString(), "torrentio: 403 Forbidden");
+    QCOMPARE(fake->requests().filter("/api/v1/sources").size(), 1);
   }
 };
 

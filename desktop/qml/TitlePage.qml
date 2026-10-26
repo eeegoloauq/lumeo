@@ -80,10 +80,16 @@ ShellPage {
         return (about.progress.entries ?? []).find(e => e.season === season && e.episode === number)
     }
 
-    // Plays [episode] now, its list on its way or not.
+    // Plays [episode] now, its list on its way or not. With "Ask every
+    // time" a list already here opens first, and the copy picked plays.
     function playEpisode(episode) {
         settle.stop()
         if (!episode || same(episode, listed)) {
+            if (Preferences.current.askCopy && copies.sources.length > 0) {
+                drawer.asking = true
+                drawer.open()
+                return
+            }
             copies.start()
             return
         }
@@ -150,6 +156,14 @@ ShellPage {
         released: page.listed?.released ?? ""
         startWhenReady: page.play
         onStarted: id => page.watch(id, page.playName())
+    }
+
+    SourcesDrawer {
+        id: drawer
+        objectName: "sourcesDrawer"
+        choice: copies
+        episodes: page.episodes
+        onAddSource: page.addSource()
     }
 
     Loading {
@@ -232,6 +246,20 @@ ShellPage {
                         }
                         onClicked: page.playEpisode(page.current)
                     }
+                    // A film's copy Play would start, fetched without
+                    // playing; once all of it is here the button goes, and
+                    // the line under Play says On disk.
+                    DownloadButton {
+                        objectName: "filmDownload"
+                        readonly property var mark: Downloads.marks[page.item.id]
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: !page.series && !mark?.done
+                        fraction: copies.starting ? 0 : mark?.fraction ?? -1
+                        enabled: copies.picked >= 0 && !running
+                        tip: running ? qsTrId("itemDownloadingPercent").arg(Math.floor(fraction * 100))
+                                     : qsTrId("commonDownload")
+                        onClicked: copies.download()
+                    }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: page.resume
@@ -248,6 +276,7 @@ ShellPage {
                     width: parent.width
                     choice: copies
                     onAddSource: page.addSource()
+                    onChoose: drawer.open()
                 }
             }
         }
@@ -255,6 +284,13 @@ ShellPage {
         Column {
             id: block
             y: banner.height
+            // Why the season's download stopped, until the next try.
+            property string trouble
+
+            Connections {
+                target: about
+                function onSeasonFailed(reason) { block.trouble = qsTrId("itemSeasonStartFailed").arg(reason) }
+            }
             width: view.width
             visible: page.series
 
@@ -266,14 +302,14 @@ ShellPage {
                 height: 54
 
                 Rectangle {
-                    anchors { left: parent.left; right: parent.right; verticalCenter: tabs.verticalCenter }
+                    anchors { left: parent.left; right: tabs.right; verticalCenter: tabs.verticalCenter }
                     height: 1
                     color: Tokens.line
                     visible: page.seasons.length === 1
                 }
                 Flow {
                     id: tabs
-                    width: parent.width
+                    width: parent.width - seasonDownload.width - 12
                     spacing: 8
                     visible: page.seasons.length > 1
 
@@ -310,6 +346,61 @@ ShellPage {
                         }
                     }
                 }
+
+                // Every released episode of the season, each the copy Play
+                // would start for it.
+                DownloadButton {
+                    id: seasonDownload
+                    objectName: "seasonDownload"
+                    readonly property var out: page.inSeason.filter(e => !page.upcoming(e))
+                    // This season's downloads by episode, failed ones aside.
+                    readonly property var rows: {
+                        const rows = {}
+                        for (const d of Downloads.all)
+                            if (d.itemId === page.item.id && d.season === page.season && d.state !== "failed")
+                                rows[d.episode] = d
+                        return rows
+                    }
+                    readonly property int have: out.filter(e => rows[e.number]?.state === "done").length
+                    readonly property bool queued: about.queueing
+                                                   || Object.values(rows).some(d => d.state === "active")
+                    readonly property string name: page.season === 0 ? qsTrId("itemSpecialsDownload")
+                                                                     : qsTrId("itemSeasonDownload").arg(page.season)
+                    readonly property string named: page.season === 0 ? qsTrId("itemSpecials")
+                                                                      : qsTrId("itemSeason").arg(page.season)
+
+                    anchors { right: parent.right; verticalCenter: tabs.verticalCenter }
+                    visible: out.length > 0
+                    done: have === out.length
+                    fraction: !queued ? -1 : out.map(e => {
+                        const d = rows[e.number]
+                        if (!d)
+                            return 0
+                        if (d.state === "done")
+                            return 1
+                        return d.progress?.total > 0 ? d.progress.completed / d.progress.total : 0
+                    }).reduce((a, b) => a + b, 0) / out.length
+                    tip: done ? qsTrId("itemDownloadOnDisk").arg(named)
+                       : queued ? qsTrId("itemDownloadProgress").arg(named).arg(have).arg(out.length)
+                       : have > 0 ? qsTrId("itemDownloadRest").arg(name)
+                       : qsTrId("itemDownloadNamed").arg(name)
+                    onClicked: {
+                        block.trouble = ""
+                        about.downloadSeason(out)
+                    }
+                }
+            }
+
+            Text {
+                x: Tokens.gutter
+                width: parent.width - 2 * Tokens.gutter
+                visible: block.trouble !== ""
+                bottomPadding: 8
+                text: block.trouble
+                color: Tokens.warn
+                font.family: Tokens.fontSans
+                font.pixelSize: Tokens.textData
+                wrapMode: Text.Wrap
             }
 
             // Which episode is current, above the strip so it stays put: its

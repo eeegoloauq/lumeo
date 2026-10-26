@@ -149,6 +149,14 @@ are built (design/README.md). The Flutter client keeps its own copy in
   one now.
 - One frame grabber for the seek bar's previews and the episode frames
   (`thumbnails.dart`, `frame_grabber.dart`).
+- One drawer for choosing what plays (decided 2026-10-26), in place of the
+  release menu under Play and the separate table of copies
+  (`release_menu.dart`, `source_list.dart`): Automatic, the releases on
+  disk, every copy by resolution, and a folder on this computer. A pick
+  anywhere in it is the title's release, kept by the core, so the next
+  episode goes on from it; the table's pick for one press of Play goes.
+  "Ask every time" opens the same drawer. decisions/sources.md is rewritten
+  to it at the switch.
 
 ## Inventory
 

@@ -6,14 +6,83 @@
 #include <QQmlEngine>
 #include <QTimer>
 
-Title::Title(Core *core, const QString &itemId, QObject *parent)
-    : QObject(parent), m_core(core), m_itemId(itemId) {
+Title::Title(Core *core, Downloads *downloads, const QString &itemId, QObject *parent)
+    : QObject(parent), m_core(core), m_downloads(downloads), m_itemId(itemId) {
   load();
 }
 
 void Title::componentComplete() {
   m_core = qmlEngine(this)->singletonInstance<Core *>("Lumeo", "Core");
+  m_downloads = qmlEngine(this)->singletonInstance<Downloads *>("Lumeo", "Downloads");
   load();
+}
+
+void Title::downloadSeason(const QVariantList &episodes) {
+  if (m_queueing)
+    return;
+  m_queue.clear();
+  for (const QVariant &e : episodes) {
+    const QVariantMap episode = e.toMap();
+    bool known = false;
+    for (const QVariant &d : m_downloads->all()) {
+      const QVariantMap download = d.toMap();
+      known = known || (download["itemId"] == m_itemId &&
+                        download["season"].toInt() == episode["season"].toInt() &&
+                        download["episode"].toInt() == episode["number"].toInt() &&
+                        download["state"] != "failed");
+    }
+    if (!known)
+      m_queue.append(episode);
+  }
+  m_queueing = true;
+  emit queueingChanged();
+  queueNext();
+}
+
+void Title::queueNext() {
+  if (m_queue.isEmpty()) {
+    m_queueing = false;
+    emit queueingChanged();
+    return;
+  }
+  const QVariantMap episode = m_queue.takeFirst().toMap();
+  const int season = episode["season"].toInt(), number = episode["number"].toInt();
+  const QUrlQuery query{{"item", m_itemId},
+                        {"season", QString::number(season)},
+                        {"episode", QString::number(number)}};
+  m_core->get("/api/v1/sources", query, this, [this, season, number](const Core::Reply &reply) {
+    if (!reply.ok()) {
+      stopQueue(reply.message());
+      return;
+    }
+    const QJsonArray sources = reply.json()["sources"].toArray();
+    if (sources.isEmpty()) {
+      // An empty list with a provider that refused says nothing about the
+      // copies.
+      QStringList failed;
+      for (const QJsonValue &f : reply.json()["failed"].toArray())
+        failed.append(f["provider"].toString() + ": " + f["reason"].toString());
+      if (failed.isEmpty())
+        queueNext();
+      else
+        stopQueue(failed.join(", "));
+      return;
+    }
+    m_downloads->start(m_itemId, sources.first().toObject(), season, number, false, this,
+                       [this](const QJsonObject &answer, int status) {
+                         if (status >= 200 && status < 300)
+                           queueNext();
+                         else
+                           stopQueue(answer["error"].toString());
+                       });
+  });
+}
+
+void Title::stopQueue(const QString &reason) {
+  m_queue.clear();
+  m_queueing = false;
+  emit queueingChanged();
+  emit seasonFailed(reason);
 }
 
 void Title::setItemId(const QString &itemId) {
@@ -237,10 +306,49 @@ void SourceChoice::load(bool follow) {
   });
 }
 
-void SourceChoice::pick(int index) {
-  m_picked = index;
-  m_errorStatus = -1;
-  emit changed();
+void SourceChoice::loadFolders() {
+  m_core->get("/api/v1/items/" + Core::segment(m_itemId) + "/folders", {}, this,
+              [this](const Core::Reply &reply) {
+                // The drawer still offers every copy without them.
+                const QJsonValue json = reply.ok() ? reply.json() : QJsonValue();
+                m_folders = json["folders"].toArray();
+                m_chosen = json["chosen"].toBool();
+                emit foldersChanged();
+              });
+}
+
+void SourceChoice::choose(int index, bool play) { record(m_sources.at(index), play); }
+
+void SourceChoice::chooseFolder(int index) { record(m_folders.at(index)["source"], false); }
+
+void SourceChoice::chooseBest() { record(QJsonValue::Null, false); }
+
+void SourceChoice::record(const QJsonValue &source, bool play) {
+  m_core->send("PATCH", "/api/v1/choices/" + Core::segment(m_itemId), {},
+               QJsonObject{{"source", source}}, this,
+               [this, source, play](const Core::Reply &reply) {
+                 if (!reply.ok()) {
+                   emit refused(reply.message(), reply.status);
+                   return;
+                 }
+                 m_startWhenReady = play;
+                 load(!source.isNull());
+                 loadFolders();
+               });
+}
+
+void SourceChoice::link(const QString &path) {
+  m_core->send("POST", "/api/v1/items/" + Core::segment(m_itemId) + "/folders", {},
+               QJsonObject{{"path", path}}, this, [this](const Core::Reply &reply) {
+                 if (!reply.ok()) {
+                   emit refused(reply.message(), reply.status);
+                   return;
+                 }
+                 m_folders = reply.json()["folders"].toArray();
+                 m_chosen = reply.json()["chosen"].toBool();
+                 emit foldersChanged();
+                 load(true);
+               });
 }
 
 void SourceChoice::start() { begin(true); }

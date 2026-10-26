@@ -25,13 +25,15 @@ class Title : public QObject, public QQmlParserStatus {
   // else the one a caught-up series goes on with, else the last one
   // watched; empty for a title never watched.
   Q_PROPERTY(QVariantMap opening READ opening NOTIFY changed)
+  // A season's download is being asked for, one episode at a time.
+  Q_PROPERTY(bool queueing READ queueing NOTIFY queueingChanged)
 
 public:
   enum Status { Loading, Failed, Ready };
   Q_ENUM(Status)
 
   explicit Title(QObject *parent = nullptr) : QObject(parent) {}
-  Title(Core *core, const QString &itemId, QObject *parent = nullptr);
+  Title(Core *core, Downloads *downloads, const QString &itemId, QObject *parent = nullptr);
 
   void classBegin() override {}
   void componentComplete() override;
@@ -43,15 +45,31 @@ public:
   QVariantMap item() const { return m_item.toVariantMap(); }
   QVariantMap progress() const { return m_progress.toVariantMap(); }
   QVariantMap opening() const;
+  bool queueing() const { return m_queueing; }
 
   Q_INVOKABLE void load();
+  // Downloads, for each of [episodes] ({season, number}) without a download
+  // yet, the copy Play would start. One at a time: a provider asked for
+  // seventeen lists at once answers 403. An episode nobody has a copy of is
+  // passed over.
+  Q_INVOKABLE void downloadSeason(const QVariantList &episodes);
 
 signals:
   void itemIdChanged();
   void changed();
+  void queueingChanged();
+  // The season's download stopped: the core did not answer, or a provider
+  // refused while it listed nothing, and the rest would fail the same way.
+  void seasonFailed(const QString &reason);
 
 private:
+  void queueNext();
+  void stopQueue(const QString &reason);
+
   Core *m_core = nullptr;
+  Downloads *m_downloads = nullptr;
+  QVariantList m_queue;
+  bool m_queueing = false;
   QString m_itemId;
   Status m_status = Loading;
   QString m_error;
@@ -107,6 +125,12 @@ class SourceChoice : public QObject, public QQmlParserStatus {
   // added), "failed" (a provider refused or did not answer), "today",
   // "yesterday" (out, no copies yet), "none"; empty while it is not empty.
   Q_PROPERTY(QString empty READ empty NOTIFY changed)
+  // The title's releases on disk, as loadFolders() last found them:
+  // {source, folder, dir, episodes, directorsCut, current}.
+  Q_PROPERTY(QVariantList folders READ folders NOTIFY foldersChanged)
+  // A release was picked by hand; false while Play takes the best copy of
+  // each episode.
+  Q_PROPERTY(bool chosen READ chosen NOTIFY foldersChanged)
 
 public:
   explicit SourceChoice(QObject *parent = nullptr) : QObject(parent) {}
@@ -138,11 +162,24 @@ public:
   QString errorMessage() const { return m_errorMessage; }
   QVariantMap noRoom() const;
   QString empty() const;
+  QVariantList folders() const { return m_folders.toVariantList(); }
+  bool chosen() const { return m_chosen; }
 
   // Asks for the list again. [follow]: Play takes the copy of the release
   // just picked, which the core marks, over the ranking's best.
   Q_INVOKABLE void load(bool follow = false);
-  Q_INVOKABLE void pick(int index);
+  // Asks the core which releases of the title are on disk; a download may
+  // have finished since the last look.
+  Q_INVOKABLE void loadFolders();
+  // Makes the release of copy [index] the title's, which the next episode
+  // goes on from; [play] starts it once the list is asked again.
+  Q_INVOKABLE void choose(int index, bool play = false);
+  // The same for release [index] on disk.
+  Q_INVOKABLE void chooseFolder(int index);
+  // Back to the best copy of each episode.
+  Q_INVOKABLE void chooseBest();
+  // Makes a folder on this machine, or a film's file, the title's copies.
+  Q_INVOKABLE void link(const QString &path);
   // Plays the copy picked, or the one on disk while the list is coming, or
   // holds the press until the list is here.
   Q_INVOKABLE void start();
@@ -158,6 +195,10 @@ signals:
   void changed();
   // Play started this download: watching begins here, before the file exists.
   void started(const QString &downloadId);
+  void foldersChanged();
+  // A pick the core refused, in its words; 422 is a folder with nothing of
+  // the title in it.
+  void refused(const QString &reason, int status);
 
 private:
   QDateTime now() const { return clock.isValid() ? clock : QDateTime::currentDateTimeUtc(); }
@@ -170,9 +211,14 @@ private:
   // there is none, or when another copy of it is arriving, which a pick
   // put first.
   QString onDisk() const;
+  // Records [source] (null for the best copy) as the title's release, then
+  // lists the copies again.
+  void record(const QJsonValue &source, bool play);
 
   Core *m_core = nullptr;
   Downloads *m_downloads = nullptr;
+  QJsonArray m_folders;
+  bool m_chosen = false;
   bool m_complete = false;
   bool m_reloadQueued = false;
   int m_load = 0;

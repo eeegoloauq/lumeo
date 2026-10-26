@@ -10,6 +10,8 @@ Row {
     required property SourceChoice choice
 
     signal addSource()
+    // The line was pressed: the way to another copy.
+    signal choose()
 
     // {icon, text, action, act}: what the line says now.
     readonly property var says: {
@@ -74,30 +76,64 @@ Row {
         running: line.choice.loading
     }
 
-    Row {
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
+    // What Play starts, quiet under the buttons beside it: drawn as a
+    // button only under the pointer, it opens the way to another copy.
+    AbstractButton {
+        id: what
+        objectName: "playLineChoose"
 
-        Glyph {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: !!line.says.icon
-            glyph: line.says.icon ?? "check"
-            size: 16
-            color: Tokens.dim
+        readonly property real iconSpace: line.says.icon ? 22 : 0
+        readonly property real arrowSpace: arrow.visible ? 20 : 0
+
+        anchors.verticalCenter: parent.verticalCenter
+        height: 32
+        // As wide as what it says, and no wider than the line leaves it.
+        implicitWidth: 4 + iconSpace + label.implicitWidth + 8 + arrowSpace
+        width: Math.min(implicitWidth, Math.max(0, line.width - (act.visible ? act.implicitWidth + line.spacing : 0)))
+        enabled: line.choice.listed && !line.choice.upcoming
+        hoverEnabled: true
+        focusPolicy: Qt.TabFocus
+        onClicked: line.choose()
+        ToolTip.text: line.choice.picked >= 0 ? line.choice.sources[line.choice.picked].rawName : ""
+        ToolTip.visible: hovered && ToolTip.text !== ""
+        ToolTip.delay: 500
+        HoverHandler { cursorShape: what.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
+
+        background: Rectangle {
+            radius: height / 2
+            color: what.enabled && (what.hovered || what.down) ? Tokens.hover : "transparent"
+            border.width: what.visualFocus ? 2 : 0
+            border.color: Theme.accent
         }
-        Text {
-            objectName: "playLine"
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(implicitWidth, line.width - 200)
-            text: line.says.text
-            color: Tokens.dim
-            font.family: Tokens.fontSans
-            font.pixelSize: Tokens.textData
-            elide: Text.ElideRight
-            ToolTip.text: line.choice.picked >= 0 ? line.choice.sources[line.choice.picked].rawName : ""
-            ToolTip.visible: hover.hovered && ToolTip.text !== ""
-            ToolTip.delay: 500
-            HoverHandler { id: hover }
+        contentItem: Item {
+            Glyph {
+                x: 4
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !!line.says.icon
+                glyph: line.says.icon ?? "check"
+                size: 16
+                color: Tokens.dim
+            }
+            Text {
+                id: label
+                objectName: "playLine"
+                x: 4 + what.iconSpace
+                anchors.verticalCenter: parent.verticalCenter
+                width: what.width - x - 8 - what.arrowSpace
+                text: line.says.text
+                color: Tokens.dim
+                font.family: Tokens.fontSans
+                font.pixelSize: Tokens.textData
+                elide: Text.ElideRight
+            }
+            Glyph {
+                id: arrow
+                anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
+                visible: what.enabled
+                glyph: "arrow_drop_down"
+                size: 20
+                color: Tokens.dim
+            }
         }
     }
 
@@ -108,7 +144,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: !!line.says.action
         implicitHeight: 32
-        implicitWidth: label.implicitWidth + 24
+        implicitWidth: actLabel.implicitWidth + 24
         focusPolicy: Qt.TabFocus
         onClicked: line.says.act()
 
@@ -119,7 +155,7 @@ Row {
             border.color: Theme.accent
         }
         contentItem: Text {
-            id: label
+            id: actLabel
             text: line.says.action ?? ""
             color: Tokens.text
             font.family: Tokens.fontSans

@@ -41,6 +41,7 @@ qt_add_qml_module(lumeo
     qml/Banner.qml
     qml/Bar.qml
     qml/Browse.qml
+    qml/DownloadButton.qml
     qml/DownloadMark.qml
     qml/EpisodeCard.qml
     qml/Glyph.qml
@@ -55,6 +56,7 @@ qt_add_qml_module(lumeo
     qml/PosterTile.qml
     qml/QuietButton.qml
     qml/ShelfRow.qml
+    qml/SourcesDrawer.qml
     qml/Shell.qml
     qml/ShellPage.qml
     qml/Strip.qml
@@ -69,9 +71,11 @@ qt_add_qml_module(lumeo
     ${fonts}
     # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
     icons/arrow_back.svg
+    icons/arrow_drop_down.svg
     icons/check.svg
     icons/chevron_left.svg
     icons/chevron_right.svg
+    icons/close.svg
     icons/download.svg
     icons/error.svg
     icons/play_arrow.svg

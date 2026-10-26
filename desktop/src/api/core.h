@@ -19,6 +19,9 @@ class Core : public QObject {
   Q_OBJECT
   QML_ELEMENT
   QML_SINGLETON
+  // The core reads the files and folders it is given, so a path picked here
+  // means something to it only when it runs on this machine.
+  Q_PROPERTY(bool onThisMachine READ onThisMachine CONSTANT)
 
 public:
   // What came back: the status, or 0 when no answer came, and why.
@@ -45,6 +48,9 @@ public:
   static QString dataDir();
 
   QUrl address() const { return m_address; }
+  bool onThisMachine() const {
+    return m_address.host() == "127.0.0.1" || m_address.host() == "localhost";
+  }
   QString tokenPath() const { return m_tokenPath; }
   // A path the core named, as an address mpv can open.
   QUrl url(const QString &path) const { return m_address.resolved(QUrl(path)); }
