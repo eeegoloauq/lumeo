@@ -12,6 +12,9 @@ Item {
     required property string label
     property string hint
     default property alias control: controls.data
+    // The control under the name across the card, for one that grows, such
+    // as a list of languages.
+    property bool stacked
 
     readonly property bool narrow: width < 560
 
@@ -30,13 +33,13 @@ Item {
     GridLayout {
         id: content
         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
-        columns: row.narrow ? 1 : 2
+        columns: row.narrow || row.stacked ? 1 : 2
         columnSpacing: 24
         rowSpacing: 10
 
         Column {
             Layout.fillWidth: true
-            Layout.preferredWidth: row.narrow ? content.width : 232
+            Layout.preferredWidth: row.narrow || row.stacked ? content.width : 232
             spacing: 3
 
             Text {
@@ -60,7 +63,8 @@ Item {
         }
         RowLayout {
             id: controls
-            Layout.alignment: row.narrow ? Qt.AlignLeft : Qt.AlignRight
+            Layout.alignment: row.narrow || row.stacked ? Qt.AlignLeft : Qt.AlignRight
+            Layout.fillWidth: row.stacked
             spacing: 12
         }
     }

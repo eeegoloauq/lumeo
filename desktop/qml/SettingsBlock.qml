@@ -1,14 +1,14 @@
 import QtQuick
 import Lumeo
 
-// A section of the settings page: its heading and its rows.
+// A section of the settings page: its heading, then its cards of rows.
 Column {
     id: block
 
     required property string title
     // Its name in SettingsPage.sections.
     required property string section
-    default property alias rows: list.data
+    default property alias content: parts.data
 
     // The air above a heading, which is also where a section scrolled to
     // puts it.
@@ -27,19 +27,9 @@ Column {
         font.letterSpacing: -0.2
         Accessible.role: Accessible.Heading
     }
-    // The rows on a card of their own, so a section reads as one thing.
-    Rectangle {
+    Column {
+        id: parts
         width: parent.width
-        height: list.height
-        visible: list.height > 0
-        radius: Tokens.radiusFloating
-        color: Tokens.surface
-        border.color: Tokens.rim
-
-        Column {
-            id: list
-            x: 20
-            width: parent.width - 40
-        }
+        spacing: 14
     }
 }

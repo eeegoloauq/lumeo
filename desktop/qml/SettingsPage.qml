@@ -10,11 +10,12 @@ import Lumeo
 ShellPage {
     id: page
 
-    readonly property var sections: ["general", "appearance", "playback"]
+    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles"]
     readonly property var titles: ({
         general: qsTrId("settingsGeneral"),
         appearance: qsTrId("settingsAppearance"),
         playback: qsTrId("settingsPlayback"),
+        audioSubtitles: qsTrId("settingsAudioSubtitles"),
     })
     // The section a preference was last changed from: the core's refusal is
     // said there, not at the top of a page scrolled away.
@@ -36,6 +37,8 @@ ShellPage {
             return "appearance"
         if (["askCopy", "nextNotice", "nextCountdown", "seekStep"].includes(key))
             return "playback"
+        if (key === "audioLanguages" || key.startsWith("subtitle"))
+            return "audioSubtitles"
         return ""
     }
 
@@ -101,6 +104,7 @@ ShellPage {
             GeneralSection {}
             AppearanceSection { settings: page }
             PlaybackSection { settings: page }
+            AudioSubtitlesSection { settings: page }
         }
     }
 

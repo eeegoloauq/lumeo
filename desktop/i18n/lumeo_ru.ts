@@ -1096,6 +1096,21 @@
         <extracomment>Storage row detail while a download is active. (%1 detail)</extracomment>
         <translation>%1 · скачивается</translation>
     </message>
+    <message id="settingsSubtitleYellow">
+        <source>Yellow</source>
+        <extracomment>Subtitle colour tooltip in Audio and subtitles settings.</extracomment>
+        <translation>Жёлтый</translation>
+    </message>
+    <message id="settingsSubtitleCream">
+        <source>Cream</source>
+        <extracomment>Subtitle colour tooltip in Audio and subtitles settings.</extracomment>
+        <translation>Кремовый</translation>
+    </message>
+    <message id="settingsSubtitleCyan">
+        <source>Cyan</source>
+        <extracomment>Subtitle colour tooltip in Audio and subtitles settings.</extracomment>
+        <translation>Голубой</translation>
+    </message>
     <message id="settingsAccentWhite">
         <source>White</source>
         <extracomment>Accent colour tooltip in Appearance settings.</extracomment>

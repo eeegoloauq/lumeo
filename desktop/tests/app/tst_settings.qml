@@ -73,5 +73,25 @@ Item {
             tryVerify(() => page.errorIn("playback") !== "", 2000)
             compare(page.errorIn("appearance"), "")
         }
+    
+        // A language is found by typing its name; Enter takes the first
+        // that matches, at the end of the list.
+        function test_aLanguageIsAddedByItsNameAndRemovedByItsChip() {
+            mouseClick(findChild(page, "nav-audioSubtitles"))
+            tryCompare(page, "reading", "audioSubtitles", 2000, "scrolled there")
+            const list = findChild(page, "subtitleLanguages")
+            mouseClick(findChild(list, "addLanguage"))
+            const filter = findChild(list, "filter")
+            tryVerify(() => filter.activeFocus, 2000, "the picker")
+            for (const letter of "germ")
+                keyClick(letter)
+            keyClick(Qt.Key_Return)
+            tryVerify(() => patches().length === 1, 2000)
+            verify(patches()[0].includes('"subtitleLanguages":["en","de"]'), patches()[0])
+
+            mouseClick(findChild(findChild(list, "language-en"), "remove"))
+            tryVerify(() => patches().length === 2, 2000)
+            verify(patches()[1].includes('"subtitleLanguages":[]'), patches()[1])
+        }
     }
 }

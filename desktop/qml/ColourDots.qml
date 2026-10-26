@@ -4,11 +4,13 @@ import QtQuick
 import QtQuick.Controls
 import Lumeo
 
-// The accents as round swatches, the chosen one ringed and checked; each is
+// Colours as round swatches, the chosen one ringed and checked; each is
 // named by its tooltip.
 Row {
     id: dots
 
+    // [{name, colour, tip}]
+    required property var colours
     property string selected
 
     signal picked(string name)
@@ -16,29 +18,22 @@ Row {
     spacing: 6
 
     Repeater {
-        model: ["white", "amber", "red", "violet", "blue", "teal"]
+        model: dots.colours
         delegate: AbstractButton {
             id: dot
-            required property string modelData
-            readonly property string tip: ({
-                white: qsTrId("settingsAccentWhite"),
-                amber: qsTrId("settingsAccentAmber"),
-                red: qsTrId("settingsAccentRed"),
-                violet: qsTrId("settingsAccentViolet"),
-                blue: qsTrId("settingsAccentBlue"),
-                teal: qsTrId("settingsAccentTeal"),
-            })[modelData]
-            objectName: "accent-" + modelData
+            required property var modelData
+            readonly property string tip: modelData.tip
+            objectName: "colour-" + modelData.name
             implicitWidth: 40
             implicitHeight: 40
-            checked: dots.selected === modelData
+            checked: dots.selected === modelData.name
             focusPolicy: Qt.TabFocus
             Accessible.role: Accessible.RadioButton
             Accessible.name: tip
             ToolTip.text: tip
             ToolTip.visible: hovered
             ToolTip.delay: 500
-            onClicked: dots.picked(modelData)
+            onClicked: dots.picked(modelData.name)
             HoverHandler { cursorShape: Qt.PointingHandCursor }
 
             background: Rectangle {
@@ -56,7 +51,7 @@ Row {
                     width: 24
                     height: 24
                     radius: 12
-                    color: Theme.accents[dot.modelData]
+                    color: dot.modelData.colour
                     scale: dot.hovered && !dot.checked ? 1.1 : 1
                     Behavior on scale { NumberAnimation { duration: 120 } }
 

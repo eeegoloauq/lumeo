@@ -79,6 +79,10 @@ qt_add_qml_module(lumeo
     qml/TracksMenu.qml
     qml/WheelScroll.qml
     qml/AppearanceSection.qml
+    qml/AudioSubtitlesSection.qml
+    qml/LanguageList.qml
+    qml/SettingsCard.qml
+    qml/SubtitleSample.qml
     qml/ColourDots.qml
     qml/ErrorRow.qml
     qml/GeneralSection.qml
