@@ -33,8 +33,10 @@ ApplicationWindow {
         dark: Tokens.surface
     }
 
-    // How the window stood before a film took the screen, to give it back.
-    property int before: Window.Windowed
+    // How the window stands out of fullscreen, to go back to.
+    property int windowed: Window.Windowed
+    // How a film found the window, to give it back that way.
+    property bool wasFullscreen: false
     property Player player: null
     // The window was asked to close while a film played: it closes once the
     // film's position is saved.
@@ -45,7 +47,7 @@ ApplicationWindow {
     function play(downloadId, name) {
         const sitting = player
         if (!sitting)
-            before = visibility === Window.FullScreen ? Window.Windowed : visibility
+            wasFullscreen = visibility === Window.FullScreen
         player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name})
         player.forceActiveFocus()
         // Another copy or episode in the same sitting keeps the window as it
@@ -60,6 +62,8 @@ ApplicationWindow {
     // A window that leaves fullscreen by other means takes mpv along, so
     // that its `f` goes the right way.
     onVisibilityChanged: {
+        if (window.visibility === Window.Windowed || window.visibility === Window.Maximized)
+            window.windowed = window.visibility
         const full = window.visibility === Window.FullScreen
         if (player && !player.playback.closing && player.mpv.fullscreen !== full)
             player.mpv.set("fullscreen", full)
@@ -82,6 +86,13 @@ ApplicationWindow {
 
     Component.onCompleted: if (toOpen !== "") Prototype.openLocal(toOpen)
 
+    // The film has mpv's `f`; the rest of the app has F11, Esc being Back.
+    Shortcut {
+        sequence: "F11"
+        enabled: !window.player
+        onActivated: window.visibility = window.visibility === Window.FullScreen ? window.windowed : Window.FullScreen
+    }
+
     Shell {
         id: shell
         anchors.fill: parent
@@ -96,7 +107,7 @@ ApplicationWindow {
         Player {
             id: film
             anchors.fill: parent
-            onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.before
+            onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.windowed
             onNext: (downloadId, name) => window.play(downloadId, name)
             onStorage: {
                 film.close()
@@ -106,7 +117,7 @@ ApplicationWindow {
                 film.visible = false
                 if (film.handedOver)
                     return
-                window.visibility = window.before
+                window.visibility = window.wasFullscreen ? Window.FullScreen : window.windowed
                 shell.forceActiveFocus()
             }
             // mpv goes with the item, before the process ends: the GPU

@@ -218,6 +218,21 @@ Item {
             tryVerify(() => win.player === null, 5000, "the player gone")
         }
 
+        // A window made fullscreen with F11 is fullscreen again after the film,
+        // and the film's own `f` leaves fullscreen for a window, not for it.
+        function test_aFilmGivesBackAFullscreenWindow() {
+            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            tryVerify(() => win.visible, 5000)
+            win.visibility = Window.FullScreen
+            tryVerify(() => win.visibility === Window.FullScreen, 5000)
+            win.play("d1", "Nosferatu")
+            tryVerify(() => win.player.mpv.hasPicture, 10000)
+            win.player.mpv.set("fullscreen", false)
+            tryVerify(() => win.visibility === Window.Windowed, 5000, "f leaves fullscreen")
+            win.player.close()
+            tryVerify(() => win.visibility === Window.FullScreen, 5000, "the window given back fullscreen")
+        }
+
         // Another copy or episode in the same sitting keeps the window as it
         // is; the one before goes, its position saved.
         function test_theNextDownloadTakesTheWindowInTheSameSitting() {
