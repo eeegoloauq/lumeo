@@ -285,6 +285,26 @@
         <source>The catalogue is not answering</source>
         <translation>The catalogue is not answering</translation>
     </message>
+    <message id="searchBestMatch">
+        <source>Best match</source>
+        <extracomment>Over the search result the word most likely means.</extracomment>
+        <translation>Best match</translation>
+    </message>
+    <message id="searchAll">
+        <source>All</source>
+        <extracomment>Search filter: films and series together; the count follows.</extracomment>
+        <translation>All</translation>
+    </message>
+    <message id="searchFilms">
+        <source>Films</source>
+        <extracomment>Search filter: films only; the count follows.</extracomment>
+        <translation>Films</translation>
+    </message>
+    <message id="searchSeries">
+        <source>Series</source>
+        <extracomment>Search filter: series only; the count follows.</extracomment>
+        <translation>Series</translation>
+    </message>
     <message id="searchRecent">
         <source>Recent</source>
         <extracomment>Recent in ui/widgets/search_box.dart</extracomment>

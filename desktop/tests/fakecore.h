@@ -39,6 +39,10 @@ public:
   // An answer worked out from the request's query, as a page of a catalogue.
   using QueryHandler = std::function<std::pair<int, QJsonValue>(const QUrlQuery &query)>;
   void onQuery(const QString &method, const QString &path, QueryHandler handler);
+  // The same for app tests: the body under the value of the query's [key]
+  // in [bodies], as each kind of a search; 404 for a value not there.
+  Q_INVOKABLE void answerBy(const QString &method, const QString &path, const QString &key,
+                            const QJsonObject &bodies);
 
   // A file served at [path] from now on, before any answer set for it, in
   // the ranges asked for.

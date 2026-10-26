@@ -57,7 +57,7 @@ Item {
 
         function test_aTabAlreadyInTheStackIsGoneBackTo() {
             mouseClick(findChild(shell, "tab-library"))
-            mouseClick(findChild(shell, "search"))
+            mouseClick(findChild(shell, "tab-settings"))
             mouseClick(findChild(shell, "tab-library"))
             compare(shell.page, "library")
             keyClick(Qt.Key_Escape)

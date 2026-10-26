@@ -159,6 +159,15 @@ are built (design/README.md). The Flutter client keeps its own copy in
   episode goes on from it; the table's pick for one press of Play goes.
   "Ask every time" opens the same drawer. decisions/sources.md is rewritten
   to it at the switch.
+- Search is one page (decided 2026-10-26), in place of the panel of five
+  rows under the field and the separate page of all results
+  (`search_box.dart`, `search_screen.dart`): the field stands where the
+  tabs are, the titles come as the word is typed, the best match first over
+  its backdrop with the grid beside and under it, All, Films and Series to
+  narrow it, and Enter opens the best match. An empty field offers the
+  searches from before and the popular films. A catalogue of films is
+  browsed by its posters, and five lines of text were a second interface
+  for the same question.
 
 ## Inventory
 
@@ -224,7 +233,7 @@ names are escaped (`screenshots.dart`). Copies this machine decodes badly
 answered apart, the ranking by how much of the title the word is, answers
 kept per word, five rows and the way to all of them, the recent searches
 remembered only when one is submitted or opened (`search_box.dart`); the
-results as a grid (`search_screen.dart`). Typing in the Flutter search lagged
+results as a grid (`search_screen.dart`); one page since (Simplifications). Typing in the Flutter search lagged
 on 2026-10-25, up to seconds per letter, cause unmeasured: the prototype's
 text field is typed into on the same machine.
 

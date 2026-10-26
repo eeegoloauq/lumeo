@@ -17,7 +17,7 @@ QtObject {
     })
     readonly property color accent: accents[Preferences.current.accent] ?? Tokens.accentWhite
 
-    // A panel arriving or leaving, such as the search answers unrolling.
+    // A panel arriving or leaving.
     readonly property int panel: 250
     // The bar's ground fading in as the page moves under it.
     readonly property int wash: 180

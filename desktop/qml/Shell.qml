@@ -38,9 +38,18 @@ FocusScope {
         stack.push(titlePage, {item: item, play: play})
     }
 
+    // A search already in the stack is gone back to, its word kept and
+    // selected; otherwise a fresh one.
     function search() {
-        if (page !== "search")
-            stack.push(pages.search)
+        const at = stack.find(item => item.objectName === "search")
+        if (at) {
+            stack.pop(at)
+            field.forceActiveFocus()
+            field.selectAll()
+            return
+        }
+        finder.open()
+        stack.push(pages.search)
     }
 
     readonly property var pages: ({
@@ -56,7 +65,8 @@ FocusScope {
         anchors.fill: parent
         focus: true
         initialItem: homePage
-        onCurrentItemChanged: currentItem?.forceActiveFocus()
+        // Search's keyboard is its field, which stands in the bar.
+        onCurrentItemChanged: (currentItem?.objectName === "search" ? field : currentItem)?.forceActiveFocus()
         // Pages change at once; the bar does not move.
         pushEnter: null
         pushExit: null
@@ -67,13 +77,35 @@ FocusScope {
     }
 
     Bar {
+        id: bar
         anchors { left: parent.left; right: parent.right; top: parent.top }
+        tabs: shell.page !== "search"
         lit: ["home", "library", "settings"].includes(shell.page) ? shell.page : ""
         canGoBack: stack.depth > 1
         scrolled: (stack.currentItem as ShellPage)?.scrolled ?? false
         onBack: shell.back()
         onPlace: name => shell.place(name)
         onSearch: shell.search()
+    }
+
+    // The word and its titles outlive the page: a title opened from it and
+    // left again comes back to the same search.
+    Search {
+        id: finder
+        objectName: "finder"
+        onPicked: item => shell.open(item, false)
+    }
+
+    // Over the bar, where its tabs are while search is the page.
+    SearchField {
+        id: field
+        objectName: "searchField"
+        search: finder
+        visible: shell.page === "search"
+        width: Math.min(640, shell.width - 2 * (Tokens.gutter + 140))
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: (bar.height - height) / 2
+        onDown: (stack.currentItem as SearchPage)?.enter()
     }
 
     // Window shortcuts: they answer wherever the keyboard is.
@@ -93,5 +125,16 @@ FocusScope {
     }
     Component { id: libraryPage; ShellPage { objectName: "library" } }
     Component { id: settingsPage; SettingsPage { objectName: "settings"; onBack: shell.back() } }
-    Component { id: searchPage; Browse { objectName: "search"; topPadding: 68 } }
+    Component {
+        id: searchPage
+        SearchPage {
+            objectName: "search"
+            search: finder
+            onOpen: item => {
+                finder.remember()
+                shell.open(item, false)
+            }
+            onUp: field.forceActiveFocus()
+        }
+    }
 }

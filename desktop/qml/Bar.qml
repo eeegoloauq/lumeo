@@ -16,6 +16,9 @@ Item {
     property string lit
     property bool canGoBack
     property bool scrolled
+    // Search and the tabs; while search is the page its field stands there
+    // instead.
+    property bool tabs: true
 
     signal back()
     signal place(string name)
@@ -81,6 +84,7 @@ Item {
         // Centred on the window, so nothing here moves when an end changes.
         Row {
             anchors.centerIn: parent
+            visible: bar.tabs
             spacing: 0
 
             IconButton {

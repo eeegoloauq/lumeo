@@ -126,6 +126,14 @@ void FakeCore::onQuery(const QString &method, const QString &path, QueryHandler 
   });
 }
 
+void FakeCore::answerBy(const QString &method, const QString &path, const QString &key,
+                        const QJsonObject &bodies) {
+  onQuery(method, path, [key, bodies](const QUrlQuery &query) {
+    const QJsonValue body = bodies[query.queryItemValue(key)];
+    return body.isUndefined() ? std::pair{404, QJsonValue()} : std::pair{200, body};
+  });
+}
+
 void FakeCore::file(const QString &path, const QByteArray &bytes, const QByteArray &type) {
   m_files.insert("GET " + path, {bytes, type});
 }

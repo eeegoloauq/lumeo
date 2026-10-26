@@ -46,6 +46,7 @@ Column {
     }
     Item { width: 1; height: 10; visible: trouble.action !== "" }
     QuietButton {
+        objectName: "action"
         visible: trouble.action !== ""
         text: trouble.action
         onClicked: trouble.acted()

@@ -40,7 +40,7 @@ qt_add_qml_module(lumeo
     qml/Main.qml
     qml/Banner.qml
     qml/Bar.qml
-    qml/Browse.qml
+    qml/BestMatch.qml
     qml/DownloadButton.qml
     qml/DownloadMark.qml
     qml/DownloadPanel.qml
@@ -60,6 +60,8 @@ qt_add_qml_module(lumeo
     qml/QuietButton.qml
     qml/RatingButton.qml
     qml/SettingsMenu.qml
+    qml/SearchField.qml
+    qml/SearchPage.qml
     qml/ShelfRow.qml
     qml/SourcesDrawer.qml
     qml/Shell.qml
@@ -144,6 +146,7 @@ qt_add_qml_module(lumeo
     src/api/home.h src/api/home.cpp
     src/api/title.h src/api/title.cpp
     src/api/mine.h src/api/mine.cpp
+    src/api/search.h src/api/search.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp
