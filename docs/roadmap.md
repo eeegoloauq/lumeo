@@ -6,11 +6,11 @@ before code.
 
 ## Next
 
-1. The desktop client on Qt Quick, in the order [qt-port.md](qt-port.md)
-   sets: a prototype first, which decides. It brings a current libmpv with
-   Lua on Windows, where media_kit's mpv 0.36 has neither console nor
-   statistics. Client items below wait for it.
-2. Skip the opening and ending of files whose chapters are unnamed, found by
+1. Check the Qt client on what nothing here runs: Windows (below), NVIDIA
+   under Wayland (an hour's pause, screenshots of an NVDEC film,
+   video-output.md, Open), KDE's tray and GNOME's notification.
+2. Text size in Settings, as a scale the whole interface follows.
+3. Skip the opening and ending of files whose chapters are unnamed, found by
    the audio the episodes of a season share (`[?]`).
 
 ## Remote core
@@ -26,7 +26,7 @@ deployment, not a rewrite. Before anyone runs one:
 - A confined deployment shipped with the binary: a systemd unit and a
   container, unprivileged, writing to the data directory only.
 - More than one core address in the client, switchable, each with its token
-  (`LumeoApi.baseUri` changing at runtime).
+  (`Core`'s address changing at runtime).
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
@@ -71,7 +71,7 @@ app. This revises "No browser playback" in decisions/foundations.md.
   row at once and fill episodes and cast in later. Retry a failed poster with
   a backoff.
 - Settings to add: what opens at startup; pausing when minimised (X11 and
-  Windows only: GTK on Wayland is never told); an external player for what
+  Windows only: Wayland never says); an external player for what
   our mpv cannot open; surround passthrough; subtitle outline; whether a
   newer release exists; mpv's network timeout and cache, `hwdec`.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).
@@ -79,9 +79,8 @@ app. This revises "No browser playback" in decisions/foundations.md.
   page of its own in HTML and JS, as the share page is, over answers recorded
   from the real core in CI: the home rows, those titles' pages and artwork.
   Search runs over the recording; My list and progress stay in the browser;
-  Play and downloads open the title in an installed Lumeo. Neither client
-  builds for a browser well: Flutter's would need the platform code split
-  out, Qt's is a large WebAssembly download.
+  Play and downloads open the title in an installed Lumeo. The client does
+  not build for a browser well: Qt's is a large WebAssembly download.
 - Gamepad support.
 
 ## Metadata: TMDB
@@ -117,13 +116,12 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## To check by hand
 
-Windows 10 and 11: the title bar (drag, snap, maximise, the Windows 10 top
-edge), fullscreen, a second launch and "Open with", the core starting and
-stopping with the app, playback and seeking, subtitles and screenshots, the
-picture modes, freeing one episode of a pack while the next plays, left click
-pausing, and the home banner on scroll. A picture frozen after the display
-sleeps is DWM not showing frames Flutter presents; resizing the view's child
-window by a pixel revives it, a workaround to agree first.
+Windows 10 and 11, on the Qt client: the installer over a Flutter-era
+install, the title bar and fullscreen, a second launch and "Open with", a
+`lumeo://` link, the core starting and stopping with the app, the tray, close
+to the background and login start, playback and seeking, mpv's console and
+statistics, subtitles and screenshots, the picture modes, and the keyboard
+after closing to the tray.
 
 A filtered line without a VPN: blank posters fill in within about 30 s.
 

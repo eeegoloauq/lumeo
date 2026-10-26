@@ -256,10 +256,9 @@ first, as the core does) when it talks to the default address, and never
 sends it to an address set by hand. It reads the file again after a 401 and
 retries once if the token changed: a core started for the first time writes
 it after the client may have looked. mpv gets it as `http-header-fields`,
-through `Media.httpHeaders` for the player and as an option for the frame
-grabbers.
+through `Core::headers()` for the player and the frame grabber.
 
-Artwork is the one route without it: an image widget fetches by address
+Artwork is the one route without it: an image fetches by address
 alone. The address is the credential instead, its key an HMAC of the
 picture's source address under the token, so it cannot be worked out from a
 poster URL and reaches only a client that listed the title.
@@ -391,17 +390,23 @@ its own results, not the list.
 
 ## Client
 
-Flutter, on Linux and Windows. media_kit hosts libmpv inside the widget tree, so
-the player chrome is entirely ours and the user never sees mpv's own UI.
+Qt Quick on Linux and Windows (`desktop/`). mpv renders through its render API
+into an item of the scene, under a bar that is entirely ours; the viewer never
+sees mpv's own interface. State lives in C++ objects that QML binds to: no
+request logic in QML, no layout in C++.
 
-    lib/api      the core over HTTP, and the shapes it sends
-    lib/ui/screens  home, item, search, library, settings, and the shell
-                    that holds them
-    lib/ui/player   the player: state and mpv wiring (player_screen), the bar
-                    (chrome), the menus (menus), the wait and failure screens
-                    (waiting), mpv's keys (bindings) and the second mpv
-                    behind the seek bar's previews (thumbnails)
-    lib/ui/widgets  everything shared between screens
-    lib/platform    the machine: folders, the window, local settings, decoders
-    linux/, windows/  the runners: start the core, one instance, the window
-                    channel (dev.lumeo/window) behind the client's own title bar
+    src/api       the core over HTTP and the token (core), the stores
+                  (downloads, preferences, addons) and one class per screen's
+                  data (home, title, search, library), files and links opened
+                  (opening), release notes and updates (releases)
+    src/player    the mpv item and its render path (mpvitem), a film's
+                  playback, tracks and next episode, the headless mpv that
+                  answers decoders and bindings (mpvfacts), the frame grabber
+                  behind the seek bar's previews and episode stills
+    src/platform  the machine: one instance and the core as a child
+                  (instance), tray and login (background), folders,
+                  client.json (settings), fonts, languages
+    qml/          the screens, the shell and its bar, the player, the theme
+                  (Theme.qml over the Tokens.qml design/tokens.json makes)
+    tests/        units, app tests and player tests (decisions/testing.md)
+

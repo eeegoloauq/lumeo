@@ -42,7 +42,7 @@ may control the core. It is kept across restarts rather than made per start:
 the artwork addresses derive from it and the cache behind them outlives a
 restart, and a new one per start protects nothing a same-user process could
 not read again. Artwork goes by an unguessable address instead of the
-header, because an image widget sends none (`architecture.md`, The API
+header, because an image on screen sends none (`architecture.md`, The API
 token). Server mode needs the same token over the network, and TLS under it:
 a bearer token on plain HTTP is readable on the way.
 

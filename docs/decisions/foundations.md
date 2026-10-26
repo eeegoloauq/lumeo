@@ -26,8 +26,8 @@ the first commit — retrofitting a network boundary later never works.
 
 ## Qt Quick + libmpv for the desktop client, not Flutter or a webview
 
-Decided 2026-10-25; the Flutter client in `client/` ships until the Qt one
-replaces it, in the order [qt-port.md](../qt-port.md) sets out.
+Decided 2026-10-25; the Qt client in `desktop/` replaced the Flutter one in
+0.1.79-beta.11.
 
 The client is a video player first, and on the desktop the toolkit that
 players embedding libmpv are built on is Qt Quick: mpv renders through its
@@ -37,8 +37,8 @@ media_kit drew libmpv into a widget and the same code would reach Android.
 Two months of it showed where that costs:
 
 - Everything between mpv and the compositor on Linux was one package's C++
-  with no newer version, so we own a fork of it (video-output.md): a
-  deadlock, stale frames after a long pause, a render thread of our own.
+  with no newer version, so we owned a fork of it: a deadlock, stale frames
+  after a long pause, a render thread of our own.
 - Flutter's Linux embedder runs Dart on the GTK thread, so any call that waits
   on mpv stalls the whole interface, and mpv draws in GLES inside Flutter's
   share group, where NVIDIA reads textures at `mediump` (Anime4K turns
@@ -48,7 +48,7 @@ Two months of it showed where that costs:
 - Flutter's desktop is the part Google handed to Canonical at I/O 2026;
   multi-window was still experimental in 3.44.
 
-Qt Quick brings desktop GL, a render thread that is not the one drawing the
+Qt Quick brings desktop GL, a render thread apart from the one running the
 interface, our own current libmpv on Windows, and a tray, single instance,
 native folder dialogs and input methods that are the toolkit's rather than
 ours. It costs the whole client and its tests, which is why it is done now,

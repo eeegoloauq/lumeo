@@ -64,9 +64,12 @@ it opens the title on that episode. The design's NEW badge on each poster is
 not there: the shelf is called New episodes.
 
 History is a query over watch progress, not a log of its own: an entry that
-is watched or stopped part way, the latest first, fifty at a time. Taking a
-line out forgets where it was left, position included, because that is what
-the line is. It is also where the viewer scores what they watched — an
+is watched or stopped part way, the latest first, fifty at a time, grouped
+under the day it was watched rather than dating every line. Taking a line out
+forgets where it was left, position included, because that is what the line
+is; so the line waits five seconds for Undo before the core is told, where it
+used to forget at once with no way back. The page has no heading: the lit tab
+names it. It is also where the viewer scores what they watched — an
 episode for a series, the film otherwise; the title itself is scored on its
 page, beside My list. Its still follows the spoiler rule of the season strip.
 

@@ -14,7 +14,7 @@ rejected option is usually the tempting one. How the code is laid out is in
 | [sources.md](sources.md) | The source table, how Play picks a copy, decoders asked of mpv |
 | [subtitles.md](subtitles.md) | Subtitles by file hash, the audio and subtitle panel, libass rendering |
 | [player.md](player.md) | Waiting for a playable file, the controls, keys and mouse, seek-bar previews |
-| [video-output.md](video-output.md) | The patched Linux half of media_kit_video, mpv's render thread, Impeller |
+| [video-output.md](video-output.md) | How mpv draws into the Qt Quick scene, and what nothing may wait on |
 | [interface.md](interface.md) | The look, the season strip, scrolling, settings |
 | [testing.md](testing.md) | The client's test layers, what goes where, what a test does not check |
 | [library.md](library.md) | Watch progress and "next" in the core, My list, history, ratings |

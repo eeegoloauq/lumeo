@@ -3,7 +3,7 @@
 ## The client's look: dark, poster-first, one accent, one signature
 
 The interface is translated; the data in it is not. Our labels come from
-`lib/l10n/*.arb` through Flutter's gen-l10n, while titles, genres, runtimes and
+`desktop/i18n/*.ts` through Qt's translations, by id, while titles, genres, runtimes and
 descriptions stay as Cinemeta sends them, in English. It was English-only at
 first on the argument that a half-translated screen reads worse than one
 language, but that made every viewer read English menus to spare them English
@@ -22,8 +22,8 @@ for nothing. The choices that are ours: the ground is black, and there is
 exactly one accent. It is white unless the viewer picks amber, red, violet,
 blue or teal under Settings → Appearance (the core's `accent` preference), because white
 is what the player's own bar already is and a second colour next to it read as
-a theme. Widgets read it as the theme's `primary`, never as a constant.
-Waiting is Material's spinner held back 300 ms, not a line of our own: a
+a theme. Controls read it as `Theme.accent`, never as a constant.
+Waiting is a spinner held back 300 ms, not a line of our own: a
 local core usually answers before anything would have flashed. A line that
 says what is being waited for, such as the sources under Play, is held back
 the same way and keeps what it said before until then.
@@ -78,9 +78,10 @@ year, size, speed, peers, quality — are Plex Sans too, smaller and dimmer.
 They were Plex Mono, to make parsed values look parsed; small grey monospace
 read as a terminal and made every panel look cheaper, and the reason for it
 does not hold: Plex Sans draws all ten digits one width, so a changing number
-does not jitter. Mono is left to strings someone might copy into a terminal:
-the download folder, the core's address, an addon URL, commands, codec names.
-Unbounded survives on one word, the wordmark, and ships as five glyphs.
+does not jitter. Monospace is left to strings someone might copy into a terminal: the
+download folder, the core's address, an addon URL, commands, codec names; it
+is the system's monospace, which is the terminal's, not a face we ship.
+Unbounded survives on one word, the wordmark.
 
 Title artwork is measured before it is trusted. A logo is usually white
 lettering on transparency, but some titles ship one drawn dark for a light
@@ -110,7 +111,7 @@ poster and a scrollbar. So the banner is what the screen has left over above
 the block that has to stay visible under it — on a series the row of seasons,
 the line about the current episode and a whole card of the strip; on the home
 screen one entire shelf, label and posters. Every number in those blocks is
-asked of the widget that draws it, so changing the episode card moves the
+asked of the item that draws it, so changing the episode card moves the
 banner and nothing has to be re-tuned.
 
 Two numbers stay chosen, because they cannot be derived from anything: a floor,
@@ -150,9 +151,11 @@ straight across the page, exactly where the banner ends. It shipped twice, and
 the second attempt moved the gradient's stops, which was never where it came
 from.
 
-The bar is the window's title bar — the runner hides the desktop's — so it
-cannot scroll away or hide itself on the way down the page: Close would go
-with it. What it can stop doing is reading as a separate slab. It has no fill
+The window keeps the system's title bar (decided 2026-10-25): KDE and Windows
+draw it, and on GNOME, which leaves decorations to the client, Qt's Wayland
+decorations do. The bar under it carries the wordmark, Back, the tabs, search
+and the downloads ring, and it does not scroll away: what it can stop doing
+is reading as a separate slab. It has no fill
 and no edge of its own; over artwork it is nothing at all, and once the page
 scrolls under it the ground arrives as a wash that fades out downwards. The
 hairline under a flat panel is what the eye reads as "another thing", and a
@@ -182,8 +185,13 @@ you are part-way through is content.
 The panel it opens is grouped by what can be done, not by title: Ready to
 watch (Play), Arriving (Pause), Waiting (Resume, Retry, Stop). One list sorted
 by title made every row carry every button and said nothing at a glance about
-whether the evening's film was here yet. The episodes of a season in the same
-state are still one row, which opens into them. Stop and discard is offered
+whether the evening's film was here yet. A series in the same state is one row
+whatever its seasons, which opens into its episodes; each season was a row of
+its own with the same poster. The ring in the bar is always there, a plain
+arrow at rest, so its place does not come and go, and what arrives fills in
+the accent, which marks how much is here. A finished download stays in the
+panel a day or until Clear; how long was a setting nobody needed. A finished
+series' Play opens the episode the core's progress names next. Stop and discard is offered
 on what waits, not on what arrives: a row with bytes flowing is paused first,
 so a download that is going well is never thrown away by one click beside the
 pause button.
@@ -231,10 +239,10 @@ on the chosen card, so the arrows work without a click (a TV has nothing to
 click with). Tab enters it on the chosen card only (a roving tab stop), the
 arrows walk the season and on past either end into the next or previous one
 (specials aside), being on a card chooses it, and Enter or Space plays it.
-Up and down are Flutter's directional focus. Cards not out yet are reached but not chosen.
-The strip scrolls so a whole neighbour stays in sight on either side of the
-card the keyboard is on; left to Flutter's default it stopped at the very
-edge, where the ring was hard to see. The ring is white, 2 px and outside the
+Cards not out yet are reached but not chosen. The strip scrolls so a whole
+neighbour stays in sight on either side of the card the keyboard is on;
+scrolled only to the card, it stopped at the very edge, where the ring was
+hard to see. The ring is white, 2 px and outside the
 still, so it reads over any picture.
 
 A card answers "which episode is this" and nothing more: "17 · Title" (or
@@ -269,13 +277,13 @@ column.
 
 ## Rows scroll the way a desktop expects
 
-A horizontal row in Flutter is fed only the horizontal part of a scroll event,
-and a mouse wheel produces the vertical part — so a shelf could be dragged and
-not scrolled. Making the row eat the wheel fixes that and breaks something
-worse: the page stops scrolling wherever the pointer happens to rest. So the
-wheel keeps belonging to the page, and sideways movement comes from the three
-things that mean it — an arrow at each end on hover, shift with the wheel, and
-a trackpad's own horizontal gesture.
+A row that eats the mouse wheel stops the page scrolling wherever the pointer
+happens to rest. So the wheel belongs to the page, and sideways movement comes
+from the three things that mean it — an arrow at each end on hover, shift with
+the wheel, and a trackpad's own horizontal gesture. The page moves a long step
+per notch and glides to a stop, notches that come quickly adding up
+(`WheelScroll.qml`); left to the list's own wheel, a quick spin dropped what
+was left of each notch and scrolled less the faster it went.
 
 Selecting an episode does not fetch its sources immediately. Clicking along a
 season would otherwise fire one provider request per card; the list is fetched
@@ -304,6 +312,17 @@ option to discover. The placeholder a card falls back to when there is no
 still is never blurred: there is nothing in it to spoil, and the episode
 number on it has to stay readable.
 
+## Search is one page
+
+The search field stands where the tabs are, and the titles come as the word is
+typed: films and series asked at once and answered apart, the best match first
+over its backdrop with the grid beside and under it, All, Films and Series to
+narrow it, and Enter opens the best match. An empty field offers the searches
+from before and the popular films; a search is remembered only when one is
+submitted or opened. It replaced a panel of five rows under the field and a
+separate page of all results: a catalogue of films is browsed by its posters,
+and five lines of text were a second interface for the same question.
+
 ## Settings: one page, and which choices stay on this machine
 
 Settings is one page that scrolls, with its sections listed beside it: a press
@@ -311,17 +330,17 @@ scrolls there, and the section being read is lit as the page moves. It was a
 rail of separate pages, and most visits are "where was that": a page to
 scroll answers it by looking, a rail by guessing which page to open. The
 downloads panel's Storage link opens it scrolled to Downloads
-(`openSettings(section:)` on the shell).
+(`storage()` on the shell).
 
 Where a setting lives follows the rule `preferences.go` already had: a choice
 that should follow the person to another client is a core preference (accent,
 subtitles, the arrow step, when the next episode is offered, what is kept and
 where downloads go), and so is anything only the core can apply (the disk,
 seeding and rate limits). A fact about one machine or one screen is
-`client.json`: text size (a screen and the distance to it), timeline
-previews (whether this machine can afford a second decoder), where
-screenshots go (a folder on this machine), and how long a finished download
-stays in the panel, and the interface's language. Reset puts back both
+`client.json`: timeline previews (whether this machine can afford a second
+decoder), where screenshots go (a folder on this machine), the background and
+login, and the interface's language. Text size waits for a scale the whole
+interface can follow (roadmap). Reset puts back both
 kinds; downloads, the list and history are not settings.
 
 A preference the core would not store is said in the section where it is
@@ -341,34 +360,35 @@ A row that does nothing is not shown. General has the language, and the
 background: "Keep running when closed" and, under it, "Start with the system", both
 off by default and both this machine's (`client.json`). Login needs the
 background, so turning one on or the other off carries the other with it.
-Pausing when minimised waits for a minimised state GTK on Wayland does not
-report (roadmap, Application).
+Pausing when minimised waits for a minimised state Wayland does not report
+(roadmap, Application).
 
 Running in the background is the window hidden, not the app minimised: the
 process and its core stay, closing the window takes a film with it (playing on
 behind no window is nobody's wish, and an open stream keeps its torrent
 sharing), and launching the app again shows the same window. Sharing follows
 the same rule as with the window open (downloads.md), so the background never
-turns the player into a seedbox. The runner keeps the window and is told the
-settings and the words it needs over `dev.lumeo/window`:
+turns the player into a seedbox (`Background`, `desktop/src/platform/`):
 
 - A tray icon (Open, Quit) where the desktop shows one: Windows, KDE and most
-  others. On Linux it is libayatana-appindicator, opened with dlopen like
-  libmpv, so a machine without it still runs; the packages recommend it.
-- Stock GNOME has no tray, so a notification stands in for it while the window
-  is hidden: clicking it opens the window, its button quits.
+  others. On Linux it is a StatusNotifierItem over D-Bus, Qt's own.
+- Stock GNOME has no tray, so a notification (`org.freedesktop.Notifications`)
+  stands in for it while the window is hidden: clicking it opens the window,
+  its button quits.
 - Ctrl+Q quits from the window, and quitting goes through the same close as
   before, so the player saves its position first.
 - Login starts the app with `--background`, from an XDG autostart entry on
   Linux and the per-user Run key on Windows, both rewritten at every start so
-  they follow a copy that moved. A login launch that finds the app running,
-  or whose setting has since been turned off, shows nothing extra.
+  they follow a copy that moved. A login launch that finds the app running shows
+  nothing extra, and one whose setting has since been turned off shows the
+  window. A build with no core beside it has neither row: another launch of
+  it would not bring a hidden window back.
 
 The Shortcuts section is read, not written: mpv's own bindings, asked of an
 mpv started for the page, with ours (`ownBindings`) over them — the arrows at
 the stored step among them. A key's label is mpv's comment on its binding, so
 the page cannot drift from what the keys do. The arrow step is itself a
-binding in our section rather than a Dart seek: the key goes to mpv as every
+binding in our section rather than a seek of ours: the key goes to mpv as every
 other key does, and mpv seeks.
 
 Show next episode (`nextNotice`) is when the next-episode card appears before
@@ -378,18 +398,8 @@ last frame, and credits marked as a chapter still decide on their own. A file
 shorter than twice the notice gets the card at its end, or a short one would
 carry it from its first minute.
 
-The folder chooser is drawn by the app: the runners have none, and a native
-one per platform (a portal call on Linux, `IFileDialog` on Windows) is code
-nothing here can build or run. It walks this machine's folders, so Change on
-the download folder is offered only when the core is on this machine.
-
-## Hand-written on purpose
-
-Checked against what the framework has, and kept: the episode card's `Focus`,
-`Shortcuts` and `MouseRegion` are its roving keyboard stop (the arrows walk
-the season, Enter plays) and the play button shown on hover; the caption
-buttons stay out of the tab order, as the system's own do, and draw their
-hover without a ripple; the poster tile's `MouseRegion` lifts it for any
-mouse, where `FocusableActionDetector.onShowHoverHighlight` stays dark after
-a touch. The shell's own history duplicates a `Navigator` and stays until it
-causes a defect.
+The folder chooser is the system's (`FolderDialog`: the portal on Linux,
+`IFileDialog` on Windows). It names this machine's folders, so Change on the
+download folder is offered only when the core is on this machine. Sources
+move with an arrow up and down rather than by dragging, which the keyboard
+reaches too.

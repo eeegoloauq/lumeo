@@ -1,97 +1,75 @@
 # How the client is tested
 
 A test lives in the lowest layer that can show the behaviour it is about, and a
-behaviour is tested once. `client/test/suite_test.dart` checks what of this a
-machine can check; the rest is for whoever adds a test.
+behaviour is tested once.
 
 ## The layers
 
 | Layer | Where | Runs with | For |
 | --- | --- | --- | --- |
-| Unit | `client/test/*_test.dart` | `flutter test` | a function, a model, a store: ranking, parsing, what plays next |
-| Widget | `client/test/*_test.dart` | `flutter test` | one widget on its own: a panel's rows, a card's marks, a painter |
-| App | `client/test/ui/<area>_test.dart` | `flutter test` | the whole app over the fake core: the shell, focus and keys, navigation, what reaches the core |
-| Player | `client/integration_test/` | `tool/ui-test.sh` (Weston) | anything that needs a real libmpv: playback, mpv's keys and properties, the render thread |
+| Unit | `desktop/tests/*_test.cpp` | `ctest` | a class on its own: ranking, parsing, what plays next, a store against the fake core |
+| App | `desktop/tests/app/tst_<area>.qml` | `ctest` (offscreen) | the whole shell over the fake core: focus and keys, navigation, what reaches the core |
+| Player | `desktop/tests/player/tst_<area>.qml` | `tool/player-test.sh` (Weston) | anything that needs a real libmpv: playback, mpv's keys and properties, the render thread, frames |
 
-The first three run in about two minutes together. The player layer builds the
-Linux app and runs it on a headless Weston: about four minutes for 30 tests, so
-nothing goes there that the other three can show.
+Units are QtTest and app tests Qt Quick Test, all under a minute together. The
+player layer runs a real libmpv on a headless Weston, about two minutes, so
+nothing goes there that the other two can show.
+
+Units and app tests share `FakeCore` (`tests/fakecore.h`): QHttpServer on a
+real local socket, answering with the core's JSON from `tests/fixtures/`, which
+`core/internal/api/fixtures_test.go` checks against the types the handlers
+write, so the two cannot drift. It keeps none of the core's rules: what is
+next, Continue watching and the history are what the test sets. It holds a
+request in flight when told to and refuses a wrong token, and the real socket
+is what lets a unit see the client send a refused connection again or read the
+token again. Its request log is shared across a test file: a test reads it from
+where it began.
 
 ### App tests
 
-The app tests drive `LumeoApp`, the way the Weston suite does, but under
-`flutter test`: fake time, the default window size (1440×900), Linux as the
-platform (it decides scrolling, scrollbars and shortcuts), and no GPU. Every
-defect this client shipped in its first years was of this kind and invisible to
-a unit test: a wordmark printed twice, a panel clipped by the bar it hung from,
-a shortcut with nothing focused to deliver it, a Backspace binding that took
-the key from the search field, text outside a Material in Flutter's
-yellow-underlined fallback style. One test walks the render tree for that
-fallback style and catches the whole class, not the instance.
+An app test builds `Shell` as the window holds it, over the fake core, with
+`XDG_CONFIG_HOME`, `XDG_CACHE_HOME` and `XDG_STATE_HOME` in a temporary folder
+(`tests/app/main.cpp`): nothing it runs reads or writes the desktop user's
+settings. It presses keys and clicks rather than calling handlers, and reads
+what reached the core from `fakeCore`.
 
-The focus is the class that keeps coming back. Keys are delivered by climbing
-from whatever holds it, so a window whose focus landed nowhere answers no
-shortcut and says nothing about why. It has cost F11 on a window nobody had
-clicked yet, and later back, fullscreen and search together. The shell takes
-the keyboard back whenever the page changes under it, and the app tests press
-the keys rather than call the handlers.
+The focus is the class of defect that keeps coming back. Keys are delivered by
+climbing from whatever holds the focus, so a window whose focus landed nowhere
+answers no shortcut and says nothing about why. It has cost F11 on a window
+nobody had clicked yet, and later back, fullscreen and search together. The
+page the stack changes to takes the keyboard, and the app tests press the keys.
 
-Everything goes through `test/ui/app.dart`:
+What Qt Quick Test asks of a test, learned the hard way:
 
-- `uiTest` in place of `testWidgets`: the platform, the window size, a window
-  channel that records calls in `windowCalls`, a machine that decodes
-  everything (`DeviceDecoders`), mpv's facts, a Pictures folder that is not
-  asked of `xdg-user-dir` (`picturesFolderAnswer`), and a stand-in for the
-  player. Nothing an app test runs launches a program.
-- `testApp` in place of `LumeoApp`: settings in a temporary file. `LumeoApp`
-  without settings of its own reads and writes the desktop user's
-  `client.json`.
-- `fakeCore` (`test/ui/fake_core.dart`) answers with the core's JSON from
-  `test/fixtures/core/`, which `core/internal/api/fixtures_test.go` checks
-  against the types the handlers write, so the two cannot drift. It keeps none
-  of the core's rules: what is next, Continue watching and the history are
-  what the test sets, and switches give the failures a test needs.
-- The player is a stand-in, `PlayerStandIn`, through `playerLayer` in
-  `app_shell.dart`: the real screen needs libmpv and a GPU texture. An app test
-  checks what Play asked the core for and which download the player was opened
-  on (`playing(tester)`); what the player then does is the player layer's.
-- Real I/O (a folder listing, a file decoded, a socket) does not advance in
-  fake time. `waitForIo` waits for it; everything else is fake and costs
-  nothing, including the app's own timers, which `uiTest` runs out after the
-  test.
-
-No test, at any layer, waits out one of the app's own timers: a timeout it
-needs to see run out is a `@visibleForTesting` value it shortens
-(`openPatience`, `picturesAskTimeout`). A unit test that waited two real
-seconds for a timeout went unnoticed until the run was timed.
-`flutter test --reporter json | dart run tool/slow_tests.dart` lists the
-slowest tests; after the first of each file, which compiles what it opens, a
-test of a second or more is waiting for something.
-
-A picture over HTTP cannot be loaded in an app test: flutter test stubs
-`HttpClient`, and `ArtworkImage` keeps the first client it made. What depends
-on a decoded picture is tested on the widget, with the picture from a file
-(`test/episode_card_test.dart`).
+- `tryVerify` wants a function returning a boolean; `tryCompare` a property.
+- `waitForRendering` times out when no frame is pending: wait for a
+  positioner with `waitForPolish`, or for a popup's `opened`.
+- A popup's content is not a child of the page: find it under
+  `popup.contentItem`.
+- Offscreen, `grabImage` draws neither a `MultiEffect` layer nor an animated
+  node, so an empty circle or a missing ring in a grab proves nothing.
 
 ### Player tests
 
 What only a real libmpv can show: a film opened, played, sought and run to its
 end; mpv's keys and mouse buttons; the properties mpv is given and reports
-back; the render thread and screenshots. The screen is Weston, not Xvfb: GTK 3
-on X11 gives Flutter a GLX context, the media_kit plugin then finds no EGL
-display to share and takes its software path, and the render thread is never
-exercised. 0.1.19 shipped with every film frozen on its first frame under a
-green suite on Xvfb. Weston on llvmpipe is Wayland and EGL, which is what the
-application meets on a desktop.
+back; the render thread, frames and screenshots. The screen is Weston, not
+Xvfb: X11 gives the scene graph a GLX context where a desktop gives EGL, and
+the path under test is not the one people run. 0.1.19 shipped with every film
+frozen on its first frame under a green suite on Xvfb. Weston on llvmpipe is
+Wayland and EGL, which is what the application meets on a desktop.
+`player-test.sh` makes its clips with ffmpeg, preloads
+`tool/no-libva-wayland.c` (libva crashes probing a compositor without
+`wl_drm`) and sends sound to ALSA's null device.
 
-A player test waits for mpv with `waitFor`, and a setting or the pause is read back
-from mpv rather than proved by waiting for its effect or read off the bar,
-which hides itself. `pumpFor` counts the binding's clock: on Weston each pump
-also waits for a frame, and counted pumps ran four times as long as written.
+A setting or the pause is read back from mpv rather than proved by waiting for
+its effect or read off the bar, which hides itself. A screenshot taken through
+mpv's `screenshot-raw` has alpha 0: check a pixel's alpha, not whether it
+looks white.
 
-Not covered by any layer: the window itself (the absent title bar, dragging,
-maximising, real fullscreen), a real GPU, and Windows. Those are checked by
-hand against the built bundle.
+Not covered by any layer: the window itself (the system's title bar, real
+fullscreen), the tray and the notification, a real GPU, and Windows. Those are
+checked by hand against the built bundle.
 
 ## What a test checks
 
@@ -104,44 +82,12 @@ hand against the built bundle.
 - **Once.** Before adding a test, find the ones that already touch the
   behaviour. A higher layer does not repeat a lower one: an app test covers
   the wiring between screens (the Storage link opens Settings at Downloads),
-  not what a screen does on its own (the rows of the downloads panel). Two
-  tests on the same path are one test.
+  not what a screen does on its own. Two tests on the same path are one test.
 - **A regression test says what shipped.** A fix for a visible defect comes
   with a test in the lowest layer that shows it, with a comment on what
   happened.
-
-## What is checked mechanically
-
-`client/test/suite_test.dart`, part of `flutter test`:
-
-- no two tests share a name (a test copied to another layer instead of moved);
-- nothing but `test/ui/app.dart` builds `LumeoApp`;
-- every test in `integration_test/` reaches the player.
-
-A duplicate behaviour under two names is not caught; the rule above is.
-
-## The 2026-09 split
-
-The suite used to be 98 tests on Weston, over ten minutes. 61 moved to app
-tests, 31 stayed on Weston, and 8 went:
-
-| Test | Why it went |
-| --- | --- |
-| escape comes back from a title | covered by the same key from a fullscreen window |
-| the field opens on the line the tabs stand on | alignment |
-| the answers fold up with the panel instead of blinking out | an animation; the empty field on reopening moved into the Escape test |
-| the downloads panel's Storage link opens Settings at Downloads | covered by Storage in the downloads panel, which now presses it twice |
-| a download is paused from the panel and resumed | `downloads_panel_test.dart` checks the same |
-| a season is on screen without scrolling | a proportion of the page |
-| escape works while the film is still arriving | the same keys on a film that never arrives, in "a film takes the screen" |
-| a back message closes the player | that is what `q` sends, in "leaving a film started from the banner" |
-
-"Episode marks read over a real still" lost its screenshot and became a check
-of the marks. The blur over an arrived still moved to the card's widget test.
-
-The fake core used to repeat the core's rules in Dart (what is next, the
-watched latch) and had drifted from them: a scored film was not marked
-watched, downloads lacked fields, and Torrentio sat among a fresh core's
-addons. It now answers what a test sets, from fixtures the Go tests check.
-The real core binary cannot serve app tests: they run in fake time, and HTTP
-to another process is real I/O.
+- **No real waiting.** Qt has no fake clock, so no test waits out one of the
+  app's own timers: an interval a test needs to run out is a property it
+  shortens (`Core::patience`, `Next.second`, `Preferences::rememberDelay`). A
+  check that something did not happen waits one or two cycles of the timer
+  behind it.

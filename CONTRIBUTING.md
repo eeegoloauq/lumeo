@@ -1,8 +1,8 @@
 # Contributing
 
-Lumeo is a Go core (`core/`, one binary and SQLite, listening on `127.0.0.1:7666`) and a Flutter
-client for Linux and Windows (`client/`) that plays through embedded libmpv. The client talks to the
-core over HTTP, even on one machine.
+Lumeo is a Go core (`core/`, one binary and SQLite, listening on `127.0.0.1:7666`) and a Qt Quick
+client for Linux and Windows (`desktop/`) that plays through embedded libmpv. The client talks to
+the core over HTTP, even on one machine.
 
 Read [docs/architecture.md](docs/architecture.md) for how it fits together and
 [docs/decisions/](docs/decisions/README.md) before changing something that was decided on purpose:
@@ -12,22 +12,29 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
 ## What you need
 
 - Go (the version in `core/go.mod`).
-- Flutter 3.47.6, the version CI pins.
-- Flutter's Linux toolchain and libmpv with its headers. On Debian and Ubuntu, as CI installs them:
-  `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev`.
-- For the UI tests: `weston` and `ffmpeg`. `client/tool/build-mpv.sh` builds libmpv 0.41 into
-  `~/.cache/lumeo` when your distribution's is older; the UI tests use it when it is there.
+- Qt 6.12 with Image Formats (artwork arrives in WebP too), Shader Tools, HTTP Server and
+  WebSockets (the fake core in the tests). `packaging/install-qt.sh` installs that Qt into
+  `~/.cache/lumeo/qt`, as CI does; a distribution's Qt 6.8 or later builds too.
+- libmpv with its headers, CMake, Ninja, ccache and mold. On Fedora:
+  `sudo dnf install cmake ninja-build gcc-c++ ccache mold mpv-devel`; on Debian and Ubuntu, as CI
+  installs them: `cmake ninja-build pkg-config ccache mold libgl-dev libegl-dev libxkbcommon-dev
+  libmpv-dev`.
+- For the player tests: `weston` and `ffmpeg`. `desktop/tool/build-mpv.sh` builds libmpv 0.41 into
+  `~/.cache/lumeo` when your distribution's is older; the player tests use it when it is there.
 
 ## Running it
 
-    client/tool/dev.sh start      # a core and the client, with hot reload
-    client/tool/dev.sh reload     # after an edit
-    client/tool/dev.sh stop
+From `desktop/`:
 
-Or each half on its own:
+    cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
+    cmake --build --preset dev
+    build/dev/bin/lumeo [file or lumeo:// link]
 
-    cd core && LUMEO_DATA=./data go run ./cmd/lumeo
-    cd client && flutter run -d linux
+It talks to the core on `127.0.0.1:7666` with the token from the data directory: start one with
+`cd core && LUMEO_DATA=./data go run ./cmd/lumeo`, or leave a running Lumeo's. With a `lumeo-core`
+beside the binary, as installed, it starts that one itself and is one instance per session
+(decisions/shipping.md). mpv's log is `mpv.log` in the state folder (`~/.local/state/lumeo`), the
+previous one beside it, unless `LUMEO_MPV_LOG=<file>` names another.
 
 ## Checks
 
@@ -43,77 +50,46 @@ Core:
 
 Code for one OS goes in `_unix.go` / `_windows.go` files, which is why the Windows vet is in the list.
 
-Client:
+Client, from `desktop/`:
 
-    cd client
-    dart format --output=none --set-exit-if-changed lib test integration_test
-    flutter analyze
-    flutter test                        # unit, widget and app tests, about two minutes
-    tool/ui-test.sh                     # the player on a headless Weston, about four
+    cmake --build --preset dev
+    ctest --test-dir build/dev --output-on-failure    # units and app tests, under a minute
+    tool/player-test.sh                               # the player on a headless Weston, about two
 
-`dart format lib test integration_test` fixes what the first line complains about; format on save
-in your editor and it never does. `third_party/` is left alone: it stays upstream's code.
-
-Tests go in the lowest layer that can show the behaviour, once: unit and widget tests in
-`client/test/`, the whole app over the fake core in `client/test/ui/`, and only what needs a real
-libmpv in `client/integration_test/`. [docs/decisions/testing.md](docs/decisions/testing.md) says
-what goes where, what a test does not check, and which helpers every app test uses;
-`client/test/suite_test.dart` fails on what of that a machine can see. A fix for a visible defect
-comes with a test. `tool/ui-test.sh` runs one area with `--name '^player '` or one test with
-`--plain-name "<test name>"`, and `flutter test --reporter json | dart run tool/slow_tests.dart`
-lists the slowest tests, which is where a test waiting for a real timer shows; GitHub CI runs it on every push to `main` that touches the client and
-on every tag, and the release is published only when it passes.
+Tests go in the lowest layer that can show the behaviour, once: units under QtTest in
+`desktop/tests/*_test.cpp`, the whole app over the fake core in `desktop/tests/app/`, and only what
+needs a real libmpv in `desktop/tests/player/`. [docs/decisions/testing.md](docs/decisions/testing.md)
+says what goes where and what a test does not check. A fix for a visible defect comes with a test.
+`tool/player-test.sh` takes Qt Quick Test's options, `-input tests/player/tst_gear.qml` for one
+file. GitHub CI runs all of it on every push to `main` that touches the client and on every tag,
+and the release is published only when it passes. On a headless Weston without a GPU,
+`tool/no-libva-wayland.c` is preloaded, as `player-test.sh` does.
 
 Nothing here builds or runs the Windows client (`packaging/build-windows.sh` runs on Windows only),
-so a change to `client/windows/` or to a Windows branch in Dart needs checking on a Windows machine.
+so a change to a Windows branch (`Q_OS_WIN`) or to the installer needs checking on a Windows
+machine; the release workflow is its first build.
 
 ## The player
 
 mpv owns the player's behaviour: keys and mouse buttons go to it as `keydown`/`keyup`, and seeks and
 settings are mpv commands and properties observed back. A new player feature is an mpv property or
-command first, and Dart only where embedded mpv cannot do it. Never make a blocking mpv call on the
-Dart thread: on Linux it is GTK's, and the whole interface stalls during every seek.
-
-`client/third_party/media_kit_video` is a patched copy of upstream 2.0.1. Read its `LUMEO.md` before
-changing it, and keep a `diff -r` against upstream equal to the patches listed there.
-
-## The Qt client
-
-`desktop/` is the client that replaces `client/` ([docs/qt-port.md](docs/qt-port.md)); for now it
-is the shell with its bar, Home, a title's page, the player, search, the library and settings. It needs Qt 6.8 or later with Quick, QuickControls2, Svg, Shader
-Tools, Linguist's tools and Image Formats (artwork arrives in WebP too), libmpv with its headers,
-CMake, Ninja, ccache and mold; the tests also need Qt HTTP Server, for the fake core, and the player
-tests Weston and ffmpeg. On Fedora:
-
-    sudo dnf install cmake ninja-build gcc-c++ ccache mold \
-      qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel qt6-qttools-devel qt6-qtwayland \
-      qt6-qtimageformats qt6-qtshadertools-devel \
-      mpv-devel qt6-qthttpserver-devel qt6-qtwebsockets-devel
-
-Then, from `desktop/`:
-
-    cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
-    cmake --build --preset dev
-    build/dev/bin/lumeo [file or address]
-    ctest --test-dir build/dev --output-on-failure    # units and app tests
-    tool/player-test.sh                               # libmpv on headless Weston
-
-It talks to the core on `127.0.0.1:7666`, the one a running Lumeo has started, with the token from
-the data directory; with a `lumeo-core` beside the binary it starts that one and is one instance per
-session, as installed (decisions/shipping.md); mpv's log is `mpv.log` in the state folder (`~/.local/state/lumeo`), the previous one beside it, unless `LUMEO_MPV_LOG=<file>` names another. On a headless Weston without a GPU,
-preload `client/tool/no-libva-wayland.c` as `tool/ui-test.sh` does.
+command first, and C++ or QML only where embedded mpv cannot do it. Never make a blocking mpv call on
+the GUI thread: properties are observed on mpv's event loop and posted to it, and a synchronous call
+there stalls the whole interface during every seek.
 
 ## Translations
 
-The interface's text lives in `client/lib/l10n/`: `app_en.arb` is the source, every other
-`app_<code>.arb` a translation of it, and `flutter pub get` generates `AppLocalizations` from them.
-A string on screen is `context.l10n.someKey`, never a literal; counts are ICU plurals, and a sentence
-is one message with placeholders, never pieces joined in code, so a translation can reorder it.
+The interface's text lives in `desktop/i18n/`: `lumeo_en.ts` is the source, every other
+`lumeo_<code>.ts` a translation of it. A string on screen is `qsTrId("someId")` (`qtTrId` in C++),
+never a literal; each message's comment says where it appears and names its placeholders, `%1`, `%2`
+in the English order. Counts are `%n` plurals, and a sentence is one message with placeholders,
+never pieces joined in code, so a translation can reorder it.
 
-A new language is one file: copy `app_en.arb` to `app_<code>.arb`, set `@@locale`, translate the
-values (the `@key` descriptions say where each one appears) and drop the `@` entries. It appears
-under Settings → General by its `languageName`. A key left out falls back to English. Titles,
-descriptions and genres come from the metadata provider and stay as it sends them.
+A new language is one file: copy `lumeo_en.ts` to `lumeo_<code>.ts`, set its `language`, translate
+the `<translation>`s (Qt Linguist opens it) and list it under `TS_FILES` in
+`desktop/CMakeLists.txt`. It appears under Settings → General by its `languageName`. A message left
+out falls back to English. Titles, descriptions and genres come from the metadata provider and stay
+as it sends them.
 
 ## Commits
 
@@ -124,7 +100,8 @@ in git.
 ## Releases
 
 The release notes are written once, as a `<release>` in
-`client/assets/dev.lumeo.lumeo.metainfo.xml`: the app shows them after an update (a `<li
+`client/assets/dev.lumeo.lumeo.metainfo.xml`, the one file left under `client/`: every released
+core reads a newer release's notes from that path. The app shows them after an update (a `<li
 xml:lang="ru">` beside each English one translates it), `packaging/release-notes.py` makes the
 RPM `%changelog` and the GitHub release's items from them. Then push `main` and an annotated
 `vX.Y.Z` tag in one push; the tag message is one line, the release's headline. Each item is one
@@ -140,7 +117,11 @@ download it, and the app offers it only to those who turned on "Offer betas" in 
 told when its release is out. Publishing a beta or a release removes the older betas from the
 releases page; their tags stay. Betas go out when there is something to try; the release follows
 once they are checked.
-`packaging/build-dist.sh` makes the bundle and tarball; `build-rpm.sh` and `build-arch.sh` package that tarball.
+`packaging/build-dist.sh` makes the bundle and tarball, with the Qt of `install-qt.sh` in it;
+`build-rpm.sh` and `build-arch.sh` package that tarball, `build-windows.sh` the Windows installer.
+The Windows libmpv is a pinned build mirrored into this repository's releases by
+`.github/workflows/libmpv.yml`; a bump is that workflow run once and the three lines in
+`build-windows.sh`.
 
 ## Share site
 

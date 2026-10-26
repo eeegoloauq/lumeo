@@ -97,11 +97,10 @@ the mode promises. That is the one lookup made without the menu being
 opened, and it is made only then: looking costs the swarm the last 64 KiB of
 the file, and a viewer whose file already carries the language never pays it.
 
-The list itself is read from mpv's `track-list`, not from media_kit's copy of
-it. media_kit's current-track stream only repeats what it was told to select,
-so a track mpv chose by itself never reached the menu and nothing was lit
-while a subtitle was on screen; and its track model drops `external`,
-`forced` and `selected`, which are the three facts the menu is built on.
+The list itself is read from mpv's `track-list`, observed, and nothing else:
+a track mpv chose by itself is lit like one picked from the menu, and
+`external`, `forced` and `selected`, the three facts the menu is built on,
+come with it.
 
 Size and height are preferences the core keeps, with the languages: a line
 that had to be made bigger for this screen has to be bigger for the next film
@@ -111,11 +110,9 @@ one finds it in sync again.
 
 ## Subtitles are drawn by mpv, and they move for the bar
 
-media_kit's default is to switch libass off, read mpv's `sub-text` property
-and draw the line as a Flutter `Text`. That loses everything a styled track
-carries — position, typesetting, karaoke — and turns an ASS release into a
-plain caption. So `libass: true` is set explicitly and media_kit's own
-subtitle layer is switched off; mpv composites into the picture, which is the
+Drawing the line ourselves from mpv's `sub-text` property loses everything a
+styled track carries — position, typesetting, karaoke — and turns an ASS
+release into a plain caption. So mpv composites into the picture, which is the
 reference implementation for this, and size and position become mpv's
 properties (`sub-scale`, `sub-pos`, `sub-margin-y`) rather than our text
 style.

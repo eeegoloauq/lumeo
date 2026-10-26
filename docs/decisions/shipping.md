@@ -7,16 +7,20 @@ is one package: the client, the core, a desktop entry and an icon. The client
 speaks HTTP to the core even on the same machine, and a desktop launcher is not
 going to start a server for you, so the app starts it:
 
-- The app is one instance per session (GApplication). A second launch raises
-  the window and hands it the file it was asked to open, over D-Bus, then
-  exits. There is never a second window with a claim on the core.
+- The app is one instance per session: the first listens on a local socket
+  (`QLocalServer`, a Unix socket in the session's runtime directory or a
+  named pipe on Windows), and a second launch raises the window and hands it
+  the file or link it was asked to open, with the desktop's activation token
+  so Wayland lets the window come forward, then exits. There is never a
+  second window with a claim on the core.
 - The first instance starts `lumeo-core` from beside its own binary as a child
-  and holds its stdin. Nothing is written to it; the core
+  (`QProcess`, never deleted: destroying one kills its child) and holds its
+  stdin. Nothing is written to it; the core
   (`LUMEO_EXIT_ON_STDIN_EOF=1`) stops when the pipe closes, and the kernel
   closes it however the app ends, `kill -9` included. Our end is
   close-on-exec, so nothing the app starts keeps it open.
-- The instance gives up its name (the D-Bus name, the mutex on Windows) when
-  its last window goes, not when the process exits: tearing down the engine
+- The instance gives up its name when the app decides to end, not when the
+  process exits: tearing down the engine
   and the player takes a while, and a launch in that time handed its file to
   a process past handling it and exited with nothing on screen.
 - The core locks its data directory. The app reopened at once starts a core
@@ -26,6 +30,9 @@ going to start a server for you, so the app starts it:
   refused the connection for again, for as long as a request may take
   (`CoreClient`): the new core listens only once it has the lock, and a
   refused request never reached it, so any method is safe to repeat.
+- A launch that finds the running instance's binary replaced on disk, a
+  package upgraded under an app kept in the background, closes that instance
+  and starts the new version, which is what the person launching asked for.
 - `/usr/bin/lumeo` only execs the bundle.
 
 The rejected design is a launcher script that starts a core when nothing
@@ -33,32 +40,36 @@ answers on the port: it reuses whatever answers, so after an update a window
 talks to the previous release's core, closing the first of two windows takes
 the core from the second, and `kill -9` of the script orphans the core.
 
-A build without a core beside it (`flutter run`, the UI tests) starts none and
-stays non-unique: it talks to whatever answers on its address, which is how a
+A build without a core beside it (a development build, the tests) starts none
+and stays non-unique: it talks to whatever answers on its address, which is how a
 dev core started by hand is reached, and it runs beside an installed copy
 instead of handing itself over to it.
 
-libmpv comes from the distribution (`Requires: mpv-libs`) rather than being
-bundled: it is the one dependency where the distribution's build is better
-than anything we would ship, and Fedora already has it. It is also the one
-dependency worth naming by hand — the Dart side opens it with `dlopen`, and a
-`dlopen` leaves nothing for rpm's dependency generator to find. (The bundled
-plugin does link it too, so the soname dependency happens to appear anyway;
-the explicit line is what keeps that true if the plugin changes.)
+The bundle carries the Qt it was built and tested with: `bin/lumeo`, Qt's
+libraries, ICU, plugins and QML modules under `lib/`, `plugins/` and `qml/`
+(Qt's own deploy script, `desktop/CMakeLists.txt`), with `RUNPATH=$ORIGIN/../lib`.
+The distribution's Qt was the alternative: a smaller package, but an rpm built
+against Fedora 44's Qt is not one Fedora 45's runs, a rolling Arch moves Qt
+under a binary between our releases, and Ubuntu's Qt is too old for the
+tarball at all. The cost is that Qt's fixes reach people with our releases. The deploy leaves out
+the system's libraries, the QML debugger, the plugins for devices with no
+desktop and the GTK theme, which would pull GTK in where the portal's theme
+serves. About 30 MB compressed.
+
+libmpv comes from the distribution rather than being bundled: it is the one
+dependency where the distribution's build is better than anything we would
+ship, and on Fedora it is the one that RPM Fusion's codecs reach. The RPM's
+dependency generator finds it and every other system library the bundle
+links; Qt and ICU are kept out of what the package provides and requires.
 
 Arch gets a package on the release page too (`packaging/PKGBUILD`, built by
 `build-arch.sh` in Arch's container). It is the same tarball laid out the Arch
 way; an AUR entry would need the release files somewhere public to download
 from. Makepkg has no dependency generator, so the PKGBUILD lists what the
-bundle links, with `mpv` for libmpv. Arch's ffmpeg keeps the patented
-decoders, so nothing there plays the part of `libavcodec-freeworld`. The icon
-sizes are rendered once, in `build-dist.sh`, and the tarball carries them.
-
-Every library in the bundle has `RUNPATH=$ORIGIN` from the build itself.
-Flutter's template copies plugin libraries into the bundle as built, with the
-absolute build-tree path to `flutter/ephemeral` that CMake gives a build
-RUNPATH. `client/linux/CMakeLists.txt` builds them with their install RUNPATH,
-so no package has to rewrite the copies with `patchelf`.
+bundle links outside itself, with `mpv` for libmpv. Arch's ffmpeg keeps the
+patented decoders, so nothing there plays the part of `libavcodec-freeworld`.
+The icon sizes are rendered once, in `build-dist.sh`, and the tarball carries
+them.
 
 No systemd unit. Starting at login is the desktop's autostart entry for the
 app itself (interface.md), which keeps the one rule that the app owns its
@@ -72,7 +83,7 @@ project whose difference is the catalogue and the acquisition, not video
 decoding. A self-hosted Flatpak remote stays possible and needs none of that.
 
 Windows gets an installer (`packaging/lumeo.iss`, Inno Setup, built by
-`build-windows.sh` on GitHub's Windows runner). It installs per user, without
+`build-windows.sh` on GitHub's Windows runner, with Qt's MinGW build). It installs per user, without
 administrator rights, into `%LOCALAPPDATA%\Programs\Lumeo`: the core needs
 nothing the account does not have, as on Linux. MSIX was rejected because an
 unsigned one cannot be installed at all, and a bare zip because it gives no
@@ -80,31 +91,22 @@ Start menu entry, no uninstaller and no "Open with". The installer is unsigned,
 so SmartScreen asks once; a certificate is a cost to take on only if that
 turns out to lose users.
 
-The Windows runner (`client/windows/runner`) is the Linux one in Win32 terms,
-so the Dart side does not know which it is on:
+On Windows the same code does the same things in Win32's terms, through
+Qt: the core is a child with a pipe on its stdin, detached so it gets no
+console, logging to `core.log` in `%LOCALAPPDATA%\Lumeo\State`; the instance
+listens on a named pipe; the window has the system's title bar; the Pictures
+folder is `QStandardPaths`'s, which follows OneDrive. Qt's deploy (windeployqt)
+lays Qt and the compiler's runtime out beside the binary.
 
-- The core is the app's child with a pipe on its stdin, which Windows closes
-  however the app ends. Only the pipe and the log (`core.log` in
-  `%LOCALAPPDATA%\Lumeo\State`) are inherited, through an explicit handle
-  list.
-- One instance: a named mutex instead of GApplication, and the file of a
-  second launch goes over `WM_COPYDATA` instead of D-Bus.
-- The client's own title bar, over the same `dev.lumeo/window` channel. The
-  system caption was the simpler option (VLC and mpv keep it) and was
-  rejected for the reason GTK's was: the artwork runs to the top edge. The
-  borders, the shadow and snapping stay the system's; what is lost is the
-  Snap Layouts flyout on the maximise button (Win+Z still opens it).
-- `dev.lumeo/shell` answers what `xdg-user-dir` answers on Linux: the
-  Pictures known folder, which OneDrive moves. Links and folders open through
-  url_launcher on both systems: on Wayland only the focused app may hand focus
-  on, and a bare `xdg-open` left the browser behind the window.
-
-libmpv is the exception to "from the distribution": Windows has none, so it
-is media_kit's own build, downloaded by its CMake at build time. That build is
-from 2023-09, older than the libmpv of any Linux release, and the Windows half
-of `media_kit_video` is upstream's: none of the patches in our fork apply to
-it. The MSVC runtime goes into the bundle through CMake's
-`InstallRequiredSystemLibraries`, because a clean Windows 10 does not have it.
+libmpv is the exception to "from the distribution": Windows has none, and mpv
+publishes no libmpv to build against (its own Windows builds are the player
+alone, or a rolling CI build meant for testing). The bundle carries
+shinchiro's `mpv-winbuild-cmake` build, the one mpv's installation page names
+first for Windows: one static `libmpv-2.dll` with ffmpeg inside. That
+repository keeps about a month of daily builds, so the pinned one is mirrored
+into a release of ours by `.github/workflows/libmpv.yml` and checked against
+its digest at every build; a bump is the date, the file and the digest in
+`build-windows.sh` and one run of that workflow.
 
 ## Updates: the app says a release is out, the system installs it
 
@@ -128,9 +130,9 @@ would be a signed installer run silently, which waits on signing.
 The split follows the machines. Pull requests live in Forgejo, and the core is
 seconds of work there — `go vet`, gofmt, `go test -race`, a build — so that is
 the pre-merge gate, in `.forgejo/workflows/ci.yml`, on our own image
-(`packaging/ci/Containerfile`, built by `ci-image.yml`). Anything that needs a
-Flutter SDK is ten-plus minutes on a runner that also builds every other
-repository, so the client's checks and the release build run on GitHub against
+(`packaging/ci/Containerfile`, built by `ci-image.yml`). Anything that needs Qt,
+Weston and a Fedora container is ten-plus minutes on a runner that also builds
+every other repository, so the client's checks and the release build run on GitHub against
 the push mirror, in `.github/workflows/`. The path filter there means a commit
 touching only the core, docs or packaging builds nothing on that side.
 
@@ -145,13 +147,14 @@ runs; the comment at the top of each says which half it is.
   workflow on the mirror, which is why `release.yml` also takes
   `workflow_dispatch`: the release can be run by hand against a tag that is
   already there.
-- The Flutter SDK is pinned by `subosito/flutter-action`'s version input rather
-  than baked into an image: a release built by CI and one built by hand have
-  to come out of the same toolchain, and the version lives in one line of the
-  workflow.
+- Qt is pinned in `packaging/install-qt.sh` rather than baked into an image:
+  a release built by CI and one built by hand come out of the same Qt, and the
+  version lives in one line of one script. aqtinstall is pinned to a commit of
+  its master, whose last release cannot read Qt's repository for Windows
+  from 6.11 on.
 - A release builds without caches; `ci.yml` on main keeps them. A cache saved
-  by a tag run is readable by that tag alone, so the release runs saved 2.4 GB
-  on Windows every time (six of its fourteen minutes) for no later run to read.
+  by a tag run is readable by that tag alone, so the release runs saved gigabytes
+  every time for no later run to read.
   A cache is also state from another run going into a published artifact,
   which zizmor's `cache-poisoning` audit flags. Warming them on main instead
   would mean a Windows build on every commit to save two minutes per release.

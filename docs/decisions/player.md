@@ -2,8 +2,9 @@
 
 ## The player
 
-libmpv renders into the widget tree, so the chrome is entirely ours — which is
-the reason the client is Flutter rather than a webview, and the reason the
+libmpv renders into the scene under our own bar, so the chrome is entirely
+ours — which is the reason the client is native rather than a webview, and the
+reason the
 scrubber can carry something no other player shows: a band behind the played
 position marking how much of the film exists on disk. You can see where it is
 safe to jump to.
@@ -14,16 +15,13 @@ known *and* the whole pieces at the front of it are on disk. That is what
 the source before a single byte has been asked for, and the name of the file
 arrives with the metadata, seconds later, still over nothing. Handed a file on
 the strength of its name, mpv blocks on its first read, gives up when its
-patience runs out — five seconds, which is what media_kit sets, and not a
-number anybody should be waiting behind a swarm with — and reports a copy that
-will not play. That was an episode at 3% with two peers feeding it, told across
+patience runs out and reports a copy that will not play. That was an episode at 3% with two peers feeding it, told across
 the whole screen that it had no picture.
 
 Each of the three parts answers for what it can see, and none of them holds the
 whole clock. The core does not say ready until the beginning of the file
-exists. mpv is then given mpv's own sixty seconds on a read instead of
-media_kit's five, and told to reconnect rather than end the film if the
-connection drops. And the screen, once mpv has actually given up on something,
+exists. mpv then has its own sixty seconds on a read, and is told to reconnect
+rather than end the film if the connection drops. And the screen, once mpv has actually given up on something,
 keeps handing the file back for another half minute before it says so — a
 stream can be dropped in the middle of being opened, and one line from mpv is
 not an answer. A file that hangs rather than refuses therefore takes minutes to
@@ -36,8 +34,8 @@ a few kilobytes of the episode before it. So the message at the end of all that
 says only what is known: this copy would not start. That it has no picture is
 said only where a codec was actually named.
 
-Closing the window stops mpv before the process ends. The embedder asks the
-app first, and the player saves the position, stops both mpvs and frees the
+Closing the window stops mpv before the process ends. The window's close
+waits for the player, which saves the position, stops both mpvs and frees the
 video output, then lets it go. Ending with them running crashed every close
 during playback: the GPU driver's exit handlers tear down what a decoder or
 the render thread still uses.
@@ -69,15 +67,14 @@ held space bar pauses once — a `keypress` for every keyboard repeat was tried
 for an evening and toggled pause thirty times a second. The cost is that both
 travel to the core thread as commands, and a `keyup` that gets there late is
 a key mpv still holds and auto-repeats after 200 ms. So nothing between the
-release and mpv may wait on mpv's core (video-output.md, "No thread of
-Flutter's waits on mpv").
+release and mpv may wait on mpv's core (video-output.md, "Nothing that draws
+the interface waits on mpv").
 
 No key is ours. The player's own actions are bindings in an mpv input
 section (`ESC` → `script-message lumeo escape`, `q` → `script-message lumeo
 back`, `c` → `script-message lumeo tracks`, `F11` → `cycle fullscreen`,
 `MBTN_LEFT` → `cycle pause`), and the
-player answers the `client-message` through a second libmpv client of its own
-(`mpv_host.dart`), because media_kit does not pass those events on. mpv's
+player answers the `client-message` it reads among mpv's events. mpv's
 precedence then decides: the console's forced bindings win while it is open,
 and a user's input.conf can rebind our actions. The same client hears the
 core's shutdown, so any binding to `quit` closes the player instead of leaving
@@ -114,36 +111,32 @@ on a keyframe, and with keyframes 5–10 s apart a 5 s arrow moved 15 s, or
 nothing, or a minute — read as a bug, and every streaming player seeks
 exactly. Measured on an NVIDIA GPU (4K HEVC, nvdec): exact is a
 68 ms median against 24 ms, p95 under 310 ms, landing within a frame instead
-of 2.6 s off. An earlier delay blamed on `yes` was a blocking call on the Dart
+of 2.6 s off. An earlier delay blamed on `yes` was a blocking call on the GUI
 thread, fixed since. There is no setting: nobody would choose the inexact
 seek. The bar seeks by keyframes as it is dragged and exactly on release,
 which is what mpv's own controller does and what makes the picture follow the
 thumb.
 
-mpv's own defaults rule everything else. media_kit starts every player with
-mpv's `fast` profile (bilinear scaling, no dithering, no HDR peak detection)
-plus a 32 MiB cache, a 5 s network timeout and no OSD, for phones. The player
-hands each back to the default of the mpv that runs
-(`option-info/<name>/default-value`), so no value of ours goes stale when mpv
-changes its mind. Any GPU draws the defaults; software rendering cannot, and
-the player suite, which runs on llvmpipe, applies `fast` for that reason
-(`mpvProfile`). What is set on top is a decision written here, not a taste.
+mpv's own defaults rule everything else: mpv starts with them, so no value of
+ours goes stale when mpv changes its mind. Any GPU draws the defaults;
+software rendering cannot, and the player suite, which runs on llvmpipe,
+applies mpv's `fast` profile for that reason (`MpvItem::profile`). What is set
+on top is a decision written here, not a taste.
 
 Anime4K is offered in Picture, off by default: it sharpens lines and wipes
 grain and fine texture, which some like and others call damage, and its
 high-end presets need a discrete GPU at 4K. The shaders are Anime4K 4.0.1's
 (`Anime4K_v4.0.zip`, MIT, sha256
 `139cd282086457c5adc79caf7b75b8b825091d71c9b54958c18745fea62d7ed7`), only the
-files of its high-end A, B and C presets, in `client/assets/anime4k`. The doubled modes
+files of its high-end A, B and C presets, in `desktop/anime4k`. The doubled modes
 (A+A and the like) are left out: they oversharpen on almost any source. mpv
 runs them as `glsl-shaders`, so the choice is read back from mpv.
 
-On NVIDIA (GTX 1660 Ti) Anime4K turns orange into green, and it is offered
-anyway, the bug known. mpv on GLES, the only API it can draw in inside
-Flutter's share group, declares `precision mediump sampler2D`, and NVIDIA
-reads textures at that precision; the same mpv with `highp`, desktop GL and
-gpu-next are clean. The fix is mpv reading textures at `highp` where the
-driver has it.
+On NVIDIA (GTX 1660 Ti) the Flutter client's Anime4K turned orange into
+green: mpv on GLES, the only API it could draw in inside Flutter's share
+group, declared `precision mediump sampler2D`, and NVIDIA read textures at that
+precision. The Qt client draws in desktop GL (video-output.md), where it is
+clean.
 
 The chrome follows the mouse and nothing else: up when the pointer moves,
 gone half a second after it stops, as mpv's controller does. A key, a pause or
@@ -156,12 +149,10 @@ Three of the decisions inside the bar are ours rather than inherited.
 and the one time anybody wants that is a film mixed so quietly the dialogue
 disappears. The slider goes there.
 
-**Fullscreen is the window's, not a route's.** media_kit can push a second
-`Video` into a fullscreen route; that rebuilds the tree under a player which
-is already playing, and there is a known upstream bug in exactly that path for
-non-trivial trees. Asking the toplevel GTK window to go fullscreen — the call
-is already in media_kit's Linux plugin — keeps this widget, this mpv instance
-and this state where they are, and costs no dependency.
+**Fullscreen is the window's.** The window goes fullscreen and the player
+stays the item it was, with its mpv and its state; `f` toggles mpv's
+`fullscreen` property and the window follows it, and a window that leaves
+fullscreen by other means tells mpv, so `f` keeps going the right way.
 
 **A film takes the screen.** Playing left the window exactly as it was, which
 on a maximised window means the desktop's own panel sits across the top of the
@@ -171,56 +162,28 @@ closing it hands the window back in the state it was taken in; that second half
 is what makes taking it acceptable, and it is the half with a test on it. When
 settings exist this becomes one of them, with this as the default.
 
-That change is also why the window notifier defers: its listeners are widgets,
-and both calls happen inside a frame — the screen asks as it is built and gives
-back as it is unmounted. A ChangeNotifier that notifies there is a setState
-against a locked tree, so `AppWindow` announces a change made during a frame at
-the end of it, once, rather than every caller remembering a post-frame callback.
+**The icons are Material Symbols, in white:** SVGs in `desktop/icons/`, only
+the ones in use, tinted by the button. The bar is the plain one people
+expect: one button size, white icons, no colour on hover, the accent only on
+the progress bar.
 
-**The icons are Material Symbols, in white.** They were `CustomPainter`
-paths because Flutter subsets the icon font and a stale subset once shipped an
-empty box. Flutter 3.47.2 rebuilds the subset when the icons in the code
-change (an icon added to an incremental release build was in its font,
-checked), so the reason is gone, and the bar is the plain one people expect: one
-button size, white icons, no colour on hover, the accent only on the progress
-bar.
+**A menu takes the click that closes it.** A menu hangs over the picture,
+and the click that dismissed it used to carry on to the film and pause it: one
+gesture, a menu closed and a film stopped that nobody asked to stop. A click
+on the picture while a menu is open only closes the menu, and a menu's panel
+and the bar's bands take every click and wheel that misses their controls.
+Escape closes a menu before anything else.
 
-**The menus are the framework's.** They hung from a fixed `Positioned(right: 24, bottom: 96)` inside the
-chrome. That corner was right only by coincidence — the panel happens to be
-the width that makes it look aligned — and, worse, there was nothing between
-the panel and the picture, so the click that dismissed a menu carried on to the
-film and paused it: one gesture, a menu closed and a film stopped that nobody
-asked to stop. Each of the two buttons is a `MenuAnchor` now.
-`consumeOutsideTap` eats that click, the panel is tied to the button and
-flipped above the bar by the menu's own layout rather than by our arithmetic,
-Escape closes it, and what is inside is inside a Material and a focus scope —
-which is what the next item on the list, the rows in the panel, needs before it
-has anywhere to send the focus. Which menu is open is still the screen's, since
-the `c` key writes to it too; the anchor is told, in one place, rather than
-asked in several. Every panel, the download popover included, ends 24 px from the
-window's right edge whichever button opens it (`openAtRightEdge`), so Escape
-and the outside click behave the same for all of them.
+**The mouse buttons are mpv's too.** Each button goes to mpv as it goes down
+and up, so its bindings decide: a double click goes fullscreen, mpv's own, and
+a click pauses, ours in the input section above, as every mainstream player
+does; mpv's answer, the right button pausing and the left doing nothing, is
+one nobody outside mpv would find. Not before there is a picture, or a click would pause a
+film nobody has seen.
 
-**The double click is the picture's alone.** The `GestureDetector` that
-pauses on a tap and goes fullscreen on a double tap wrapped the whole stack,
-chrome included, and a double-tap recognizer holds the gesture arena for 300
-ms after every click to see whether a second one is coming. Every button, the
-scrubber and the volume waited that out before answering, while the keys —
-which never enter the arena — answered at once, and two quick clicks on any
-button went fullscreen. It sits on the picture layer now and nothing else,
-and it is a `SerialTapGestureRecognizer` rather than onTap + onDoubleTap, so
-the pause does not wait either: the first click pauses as it lands and the
-second, within the interval, takes the pause back and goes fullscreen — what
-every mainstream player does. mpv's own answer is that the left button does nothing
-and the right one pauses, which nobody outside mpv would find.
-
-**A held button holds the chrome.** While a mouse button is down the pointer
-sends moves, not hovers: `MouseRegion.onHover`, which is what keeps the
-controls up, goes quiet, and `MouseTracker` re-hit-tests every move, so a
-drag along the bar that wandered above it left the band, the band said the
-hand was gone, and the idle timer hid the controls under a thumb still being
-dragged. One flag on the screen, from pointer down to pointer up, and the
-half second starts at the release.
+**A held button holds the chrome.** While a button is down the controls stay,
+so a drag along the bar that wanders above it does not hide them under the
+thumb still being dragged; the half second starts at the release.
 
 **Chapters are marks on the bar, not a button.** Most films have none; an
 anime release has an opening and an ending. What every player that has them
@@ -229,9 +192,9 @@ starts, the chapter's name in the bubble over the pointer, and PgUp/PgDn,
 which are mpv's already. The list to jump by is a section of the Playback
 menu, under speed and picture so that those two never move, and it is not
 there at all for a file with none. A button of its own on the bar would be a
-bar that changes shape for one file in twenty. The marks are drawn by the
-Slider's own track shape, which is the one thing that knows where the track
-is and is exposed to be replaced for exactly this.
+bar that changes shape for one file in twenty. The marks are drawn by
+the seek bar's own background, which is the one thing that knows where the
+track is.
 
 ## Preview frames on the seek bar come from a second mpv
 
@@ -239,9 +202,9 @@ Streaming services pre-generate their previews on a server, as a sprite sheet
 or an index of frames per film; there is no server here to do it. mpv's answer is `thumbfast`, a script that runs a second mpv,
 seeks it to the keyframe under the pointer and passes the frame back through a
 file. The player does the same with libmpv's own means: an mpv instance of its
-own on the same stream (`thumbnails.dart`), a keyframe seek, and
-`screenshot-raw`, the command libmpv has for handing a frame to its client. mpv
-scales the frame to 480 pixels before it reaches Dart. libmpv's other way out,
+own on the same stream (`FrameGrabber`, which the episode frames share), a
+keyframe seek, and `screenshot-raw`, the command libmpv has for handing a frame
+to its client. mpv scales the frame to 480 pixels before it reaches us. libmpv's other way out,
 the software renderer, is described in `render.h` as very slow and something
 "you probably don't want to use".
 

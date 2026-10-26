@@ -30,8 +30,8 @@ you watch with them is your responsibility.
 
 ## Development
 
-A Go core with SQLite and a Flutter client that plays through libmpv; `client/tool/dev.sh start`
-runs both. [CONTRIBUTING.md](CONTRIBUTING.md) has the setup and the checks; see also
+A Go core with SQLite and a Qt Quick client that plays through libmpv.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the setup and the checks; see also
 [architecture](docs/architecture.md), [decisions](docs/decisions/README.md),
 [the core and its API](docs/core.md) and the [roadmap](docs/roadmap.md).
 

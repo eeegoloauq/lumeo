@@ -55,7 +55,7 @@ the language is there; it never overrides health, because a copy that stalls
 is not watchable in any language.
 
 "Copy to play" in Settings can be "Ask every time" instead of Automatic: Play
-then opens the table of copies and the one picked plays. It is a preference
+then opens the sources drawer and the one picked plays. It is a preference
 of the viewer's, kept by the core like the rest. A finished copy on disk
 still plays at once, and Download and the next episode stay automatic: they
 are not a press of Play.
@@ -96,7 +96,7 @@ The tracks picked in the player go into the same record, for the whole title
 rather than the episode, as a language and a title: mpv's ids are per file,
 and the title is what tells "English Full" from "English Honorifics". Only the
 viewer's picks are kept, and whose a change is is told by its cause, not its
-time (`TrackChanges` in `client/lib/ui/player/tracks.dart`): mpv reports
+time (`Tracks` in `desktop/src/player/tracks.cpp`): mpv reports
 property changes in no fixed order, and its own pick at load arrived after the
 first picture as often as not.
 
@@ -135,17 +135,17 @@ roadmap already carries the question of whether addon gaps ever justify it.
 
 ## Picking the release on the title's page
 
-Under Play, the line that says what Play starts opens a menu of releases
-rather than the table of copies. First comes Automatic, the best copy of each
-episode, which is the default and says so; then the releases on disk, the
-packs the providers offer for the current episode, every copy of it (the
-table), and a folder on this computer. Automatic used to come last under a
-name that did not say it was the default. The table answers "which file for
-this episode"; a series is watched from one release, and that is the
-question the line in front of Play should answer. A film has the same menu,
-being a title of one episode: its copies on disk, the best three offered,
-every copy, and its file on this computer instead of a folder, so the two
-kinds of title are not two ways of choosing. A film with no copy listed keeps
+Under Play, the line that says what Play starts opens one drawer for
+choosing what plays: Automatic, the best copy of each episode, which is the
+default and says so; then the releases on disk, every copy offered for the
+current episode by resolution, and a folder on this computer. It replaced a
+menu of releases and a separate table of copies, two ways to answer one
+question. A pick anywhere in it is the title's release, kept by the core, so
+the next episode goes on from it: a series is watched from one release, and a
+pick that lasted one press of Play was the table's alone. "Ask every time"
+opens the same drawer. A film has the same drawer, being a title of one
+episode, with its file on this computer instead of a folder, so the two kinds
+of title are not two ways of choosing. A film with no copy listed keeps
 the line that says why, with its way to adding a source in sight.
 
 What is on disk is told apart the way a pick is: a pack and the folder in it,
@@ -207,7 +207,7 @@ screen twenty seconds into a download. Play does not pick a marked row.
 The names have to be translated, because a release calls it x265 and mpv calls
 it hevc, and there is no canonical table between the two — FFmpeg knows its own
 codec ids and nothing about what a scene group writes in a filename. So ours is
-one table in `client/lib/platform/decoders.dart`, with tests, and a name it
+one table in `desktop/src/player/mpvfacts.cpp`, with tests, and a name it
 does not know means *unknown*, never *unsupported*. It is a claim about the
 name of a copy rather than about the copy: the file itself is not on disk yet,
 and nobody — not us, not Stremio, not the addon — knows what is really in it
