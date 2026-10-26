@@ -2,7 +2,7 @@
 # check has to be here; it runs the core, which is seconds of work on a 2 GB
 # LXC.
 #
-# The client's checks and the release build need a Flutter SDK and a Fedora
+# The client's checks and the release build need Qt, Weston and a Fedora
 # container, which on this runner is ten-plus minutes of a machine that also
 # builds every other repository. Those run on GitHub, against the push mirror
 # — see .github/workflows and docs/decisions/shipping.md.

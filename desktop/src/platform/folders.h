@@ -4,8 +4,8 @@
 
 // Where the client keeps what it writes, in the app's own folder: the XDG
 // base directories on Linux; on Windows settings in %APPDATA% and the rest in
-// %LOCALAPPDATA%\Lumeo, beside the core's Data. The Flutter client's, so an
-// update keeps them (docs/qt-port.md).
+// %LOCALAPPDATA%\Lumeo, beside the core's Data. The paths are the earlier
+// Flutter client's, so an update from it keeps them.
 namespace Folders {
 QString config();
 QString cache();

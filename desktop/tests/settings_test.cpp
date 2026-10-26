@@ -31,7 +31,7 @@ class SettingsTest : public QObject {
 private slots:
   void init() { path = dir.filePath("client.json"); QFile::remove(path); }
 
-  // The Flutter client's file: what this one does not read yet stays.
+  // A file an earlier version wrote: what this one does not read stays.
   void keysItDoesNotReadAreKept() {
     write(path, {{"volume", 40}, {"listSort", "title"}, {"lastSeenVersion", "0.1.79"}});
     {

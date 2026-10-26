@@ -16,7 +16,7 @@ cp "$repo/site/index.html" "$out/"
 cp "$repo/packaging/icon.svg" "$out/"
 cp "$repo/site/title.html" "$out/movie/index.html"
 cp "$repo/site/title.html" "$out/series/index.html"
-cp "$repo/client/assets/fonts/Unbounded.ttf" "$out/fonts/"
+cp "$repo/desktop/fonts/Unbounded.ttf" "$out/fonts/"
 
 # The colours, radii and sizes the client has, one custom property each
 # (design/README.md).

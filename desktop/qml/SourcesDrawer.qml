@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import Lumeo
 
-// What plays, chosen in one place (docs/qt-port.md, Simplifications): the
+// What plays, chosen in one place (decisions/sources.md): the
 // best copy of each episode, the releases on disk, every copy of the
 // current one by resolution, and a folder on this computer. A pick is the
 // title's release, which the next episode goes on from.

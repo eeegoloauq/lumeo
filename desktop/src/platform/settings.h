@@ -11,9 +11,9 @@
 class QQmlEngine;
 class QJSEngine;
 
-// Facts that belong only to this machine, kept in client.json beside the
-// Flutter client's: the same file and keys, so an update keeps them. Keys
-// this client does not read yet are written back as they were. A choice
+// Facts that belong only to this machine, kept in client.json: the file and
+// keys the earlier Flutter client wrote, so an update keeps them. Keys this
+// client does not read are written back as they were. A choice
 // that should follow somebody to another client belongs in the core.
 class LocalSettings : public QObject {
   Q_OBJECT

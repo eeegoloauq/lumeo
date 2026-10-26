@@ -132,6 +132,7 @@ func (c *Checker) fetch(ctx context.Context, running [4]int, betas bool) (*Relea
 	if !newer(version, running) {
 		return nil, nil
 	}
+	// Where every released core reads it from, so the file stays there.
 	notes, err := c.get(ctx, c.Raw+"/"+repo+"/"+release.Tag+"/client/assets/dev.lumeo.lumeo.metainfo.xml")
 	if err != nil {
 		return nil, err

@@ -12,7 +12,7 @@
 #include <vector>
 
 // A core for tests, on a real socket: it answers what a test sets, from the
-// core's JSON in client/test/fixtures/core/, which
+// core's JSON in tests/fixtures/, which
 // core/internal/api/fixtures_test.go checks against the types the handlers
 // write. It keeps none of the core's rules (docs/decisions/testing.md).
 class FakeCore : public QObject {

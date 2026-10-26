@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths:
       - site/**
-      - client/assets/fonts/**
+      - desktop/fonts/**
       - packaging/icon.svg
       - design/tokens.json
       - .github/workflows/site.yml

@@ -4,8 +4,8 @@ project(lumeo-desktop LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 6.8 is the oldest LTS the distributions' own Qt might be; development and
-# CI run 6.12 (docs/qt-port.md, Open questions).
+# 6.8 is the oldest LTS a distribution's Qt might be, for a build against
+# it; development, CI and the packages run 6.12 (packaging/install-qt.sh).
 find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concurrent ShaderTools
   LinguistTools Widgets)
 if(LINUX)
@@ -36,12 +36,11 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml PROPERTIES
   QT_RESOURCE_ALIAS Tokens.qml QT_QML_SINGLETON_TYPE TRUE)
 set_source_files_properties(qml/Theme.qml qml/Words.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-# Plex Sans speaks and Unbounded is the wordmark (decisions/interface.md);
-# shared with the Flutter client until it goes (docs/qt-port.md), and loaded
-# from :/qt/qml/Lumeo/fonts.
+# Plex Sans speaks and Unbounded is the wordmark (decisions/interface.md),
+# loaded from :/qt/qml/Lumeo/fonts.
 set(fonts)
 foreach(name IBMPlexSans-400 IBMPlexSans-500 IBMPlexSans-600 IBMPlexSans-700 Unbounded)
-  set(font ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/fonts/${name}.ttf)
+  set(font ${CMAKE_CURRENT_SOURCE_DIR}/fonts/${name}.ttf)
   set_source_files_properties(${font} PROPERTIES QT_RESOURCE_ALIAS fonts/${name}.ttf)
   list(APPEND fonts ${font})
 endforeach()
@@ -51,7 +50,8 @@ endforeach()
 set(tray_icon ${CMAKE_CURRENT_SOURCE_DIR}/../packaging/icon-small.svg)
 set_source_files_properties(${tray_icon} PROPERTIES QT_RESOURCE_ALIAS icons/lumeo.svg)
 
-# This version's release notes, shown after an update.
+# This version's release notes, shown after an update. The file stays at
+# client/assets/, where released cores read a newer release's notes from.
 set(metainfo ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/dev.lumeo.lumeo.metainfo.xml)
 set_source_files_properties(${metainfo} PROPERTIES QT_RESOURCE_ALIAS dev.lumeo.lumeo.metainfo.xml)
 
@@ -227,7 +227,7 @@ endif()
 # mpv reads the Anime4K shaders as files, at share/lumeo/anime4k beside the
 # binary's bin/: the build tree is laid out as the install is, so one path
 # serves the app, its tests (in tests/) and a package.
-set(anime4k ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/anime4k)
+set(anime4k ${CMAKE_CURRENT_SOURCE_DIR}/anime4k)
 file(COPY ${anime4k}/ DESTINATION ${CMAKE_BINARY_DIR}/share/lumeo/anime4k)
 
 # The banner's scrim, compiled for every graphics API Qt might run on.

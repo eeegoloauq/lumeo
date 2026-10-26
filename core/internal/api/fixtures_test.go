@@ -35,7 +35,7 @@ func TestClientFixturesMatchResponses(t *testing.T) {
 		{"update.json", &update.Release{}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
-			path := filepath.Join("..", "..", "..", "client", "test", "fixtures", "core", tc.file)
+			path := filepath.Join("..", "..", "..", "desktop", "tests", "fixtures", tc.file)
 			data, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatalf("%s: read: %v", tc.file, err)

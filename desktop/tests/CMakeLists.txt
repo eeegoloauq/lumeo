@@ -5,8 +5,7 @@ add_library(fakecore STATIC fakecore.h fakecore.cpp)
 target_link_libraries(fakecore PUBLIC Qt6::HttpServer)
 target_include_directories(fakecore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(fakecore PRIVATE
-  # Shared with the Flutter client until it goes (docs/qt-port.md).
-  LUMEO_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/../../client/test/fixtures/core"
+  LUMEO_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
 )
 
 # Units: one executable per file under QtTest.

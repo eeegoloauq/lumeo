@@ -39,11 +39,11 @@ done
 export WAYLAND_DISPLAY=$socket QT_QPA_PLATFORM=wayland
 
 # libva crashes inside mpv's vaapi probe on a compositor without wl_drm
-# (client/tool/no-libva-wayland.c).
-cc -shared -fPIC -o "$log/no-libva-wayland.so" ../client/tool/no-libva-wayland.c
+# (tool/no-libva-wayland.c).
+cc -shared -fPIC -o "$log/no-libva-wayland.so" tool/no-libva-wayland.c
 export LD_PRELOAD=$log/no-libva-wayland.so
 
-# The test desktop's mpv when client/tool/build-mpv.sh has built it; CI runs
+# The test desktop's mpv when tool/build-mpv.sh has built it; CI runs
 # the system's.
 mpv_lib=${XDG_CACHE_HOME:-$HOME/.cache}/lumeo/mpv-0.41.0/lib/x86_64-linux-gnu
 if [[ -e $mpv_lib/libmpv.so.2 ]]; then
