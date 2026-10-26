@@ -85,16 +85,17 @@ func TestNextAfterMostRecentlyUpdatedWatchedEpisode(t *testing.T) {
 			want: &Entry{ItemID: "series", Season: 1, Episode: 4, Position: 37, Duration: 50, UpdatedAt: old},
 		},
 		{
-			name: "a special looked into since is not where the series stands",
+			name: "a special watched to the end goes back to the story",
 			entries: []Entry{
 				{ItemID: "series", Season: 1, Episode: 3, Watched: true, UpdatedAt: old},
-				{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},
+				{ItemID: "series", Season: 0, Episode: 1, Watched: true, UpdatedAt: latest},
 			},
 			want: &Entry{ItemID: "series", Season: 1, Episode: 4, UpdatedAt: old},
 		},
 		{
-			name: "specials alone are gone on with",
+			name: "a special stopped part way is gone on with",
 			entries: []Entry{
+				{ItemID: "series", Season: 1, Episode: 3, Watched: true, UpdatedAt: old},
 				{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},
 			},
 			want: &Entry{ItemID: "series", Season: 0, Episode: 1, Position: 120, Duration: 1400, UpdatedAt: latest},

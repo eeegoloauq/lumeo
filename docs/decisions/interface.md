@@ -309,10 +309,10 @@ episode has no next episode until the following one is out: it leaves
 "Continue watching", and its page opens on the episode last watched. It used to stay in the row with
 the unaired episode, which pointed Play at an empty list.
 
-Specials are not where a series stands either. What goes on is counted from
-the story episode watched last; a special looked into after it leaves Continue
-watching on the story, and only a series of which nothing but specials was
-watched goes on with them.
+A special is an aside. One stopped part way is what goes on, as anything
+left part way is; one watched to the end hands back to the story, the episode
+after the last of it watched, and only a series of which nothing but specials
+was watched goes on through them.
 
 ## Stills are blurred until watched, by default
 

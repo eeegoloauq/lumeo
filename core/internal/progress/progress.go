@@ -474,23 +474,35 @@ func followingEpisode(item *catalog.MediaItem, season, episode int) *catalog.Epi
 	return &following
 }
 
-// latestEntry is the entry a title goes on from: the one updated last, of
-// the story when any of it was watched. A special looked into is not where a
-// series stands, any more than NextEpisode hands one over after a story
-// episode; somebody watching only the specials goes on with them.
 func latestEntry(entries []Entry) *Entry {
-	var latest, story *Entry
+	var latest *Entry
 	for i := range entries {
 		entry := &entries[i]
 		if latest == nil || entry.UpdatedAt.After(latest.UpdatedAt) {
 			latest = entry
 		}
-		if entry.Season > 0 && (story == nil || entry.UpdatedAt.After(story.UpdatedAt)) {
-			story = entry
+	}
+	return latest
+}
+
+// goesOnFrom is the entry a title goes on from: the one updated last, unless
+// that is a special watched to the end. A special is an aside, so once it is
+// over the series goes on from the story, as NextEpisode never hands one
+// over after a story episode; one stopped part way is still being watched,
+// and a series of which only specials were watched goes on through them.
+func goesOnFrom(entries []Entry) *Entry {
+	latest := latestEntry(entries)
+	if latest == nil || latest.Season != 0 || !latest.Watched || latest.Position > 0 {
+		return latest
+	}
+	var story []Entry
+	for _, entry := range entries {
+		if entry.Season > 0 {
+			story = append(story, entry)
 		}
 	}
-	if story != nil {
-		return story
+	if found := latestEntry(story); found != nil {
+		return found
 	}
 	return latest
 }
@@ -498,7 +510,7 @@ func latestEntry(entries []Entry) *Entry {
 // upcoming is the episode a caught-up series goes on with while it has not
 // aired: there is no next to play, and the title page opens on it, dated.
 func upcoming(entries []Entry, item *catalog.MediaItem, now time.Time) *catalog.Episode {
-	latest := latestEntry(entries)
+	latest := goesOnFrom(entries)
 	if latest == nil || !latest.Watched || latest.Position > 0 {
 		return nil
 	}
@@ -510,7 +522,7 @@ func upcoming(entries []Entry, item *catalog.MediaItem, now time.Time) *catalog.
 }
 
 func next(entries []Entry, item *catalog.MediaItem, now time.Time) *Entry {
-	latest := latestEntry(entries)
+	latest := goesOnFrom(entries)
 	if latest == nil {
 		return nil
 	}
