@@ -46,17 +46,29 @@ jobs:
         # Seconds when the runner's apt mirror answers; a stalled one hangs.
         timeout-minutes: 10
         run: |
+          # A stalled mirror connection is dropped and tried again rather
+          # than left to hang the job.
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30"; Acquire::https::Timeout "30";' |
+            sudo tee /etc/apt/apt.conf.d/99lumeo-retries >/dev/null
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build pkg-config ccache mold \
             libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 \
             libmpv-dev weston ffmpeg
+      # Not when release.yml calls this (it restores no cache, and says
+      # why): a called workflow carries the caller's name.
       - uses: actions/cache@v6
-        # Not when release.yml calls this (it restores no cache, and says
-        # why): a called workflow carries the caller's name.
         if: github.workflow == 'ci'
         with:
           path: ~/.cache/lumeo/qt
           key: qt-${{ hashFiles('packaging/install-qt.sh') }}
+      # ccache's objects from the last run: a build from scratch is most of
+      # the job, and a commit changes a few files.
+      - uses: actions/cache@v6
+        if: github.workflow == 'ci'
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ github.sha }}
+          restore-keys: ccache-
       - name: qt
         run: |
           [ -d ~/.cache/lumeo/qt/6.12.0 ] || packaging/install-qt.sh

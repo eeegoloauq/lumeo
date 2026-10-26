@@ -40,6 +40,10 @@ jobs:
       - name: build dependencies
         timeout-minutes: 10
         run: |
+          # A stalled mirror connection is dropped and tried again rather
+          # than left to hang the job.
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30"; Acquire::https::Timeout "30";' |
+            sudo tee /etc/apt/apt.conf.d/99lumeo-retries >/dev/null
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build pkg-config \
             libgl-dev libegl-dev libxkbcommon-dev libmpv-dev librsvg2-bin
