@@ -1505,6 +1505,16 @@
         <extracomment>Relative day in history and new episodes.</extracomment>
         <translation>Сегодня</translation>
     </message>
+    <message id="libraryComingUp">
+        <source>Coming up</source>
+        <extracomment>Library shelf of followed series with an episode dated ahead.</extracomment>
+        <translation>Скоро выйдут</translation>
+    </message>
+    <message id="libraryTomorrow">
+        <source>Tomorrow</source>
+        <extracomment>Relative day on coming-up episodes.</extracomment>
+        <translation>Завтра</translation>
+    </message>
     <message id="libraryYesterday">
         <source>Yesterday</source>
         <extracomment>Relative day in history and new episodes.</extracomment>
@@ -1532,7 +1542,7 @@
     </message>
     <message id="libraryNewEpisodeDate">
         <source>S%1 E%2 · %3</source>
-        <extracomment>New episode caption with release date. (%1 season, %2 episode, %3 date)</extracomment>
+        <extracomment>New or coming-up episode caption with its release date. (%1 season, %2 episode, %3 date)</extracomment>
         <translation>S%1 E%2 · %3</translation>
     </message>
     <message id="libraryNewEpisodeCount" numerus="yes">

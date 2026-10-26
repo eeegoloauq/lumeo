@@ -13,8 +13,8 @@
 class Core;
 
 // My list as the page shows it: the titles in the order chosen, and the
-// followed series with new episodes as a shelf over them
-// (decisions/library.md).
+// followed series with new episodes and with episodes coming up as shelves
+// over them (decisions/library.md).
 class MyList : public QObject, public QQmlParserStatus {
   Q_OBJECT
   QML_ELEMENT
@@ -29,6 +29,8 @@ class MyList : public QObject, public QQmlParserStatus {
   // A shelf over the list, not the list: a core that cannot work them out
   // still shows what is on it.
   Q_PROPERTY(QVariantList fresh READ fresh NOTIFY changed)
+  // The followed series' episodes dated ahead, soonest first; a shelf too.
+  Q_PROPERTY(QVariantList comingUp READ comingUp NOTIFY changed)
 
 public:
   enum Status { Loading, Ready, Failed };
@@ -46,6 +48,7 @@ public:
   void setOrder(const QString &order);
   QVariantList titles() const { return sorted(m_titles, m_order).toVariantList(); }
   QVariantList fresh() const { return m_fresh.toVariantList(); }
+  QVariantList comingUp() const { return m_comingUp.toVariantList(); }
 
   // Reads both again, keeping what is shown until the answers are here: a
   // title page opened from the list may have changed it.
@@ -66,6 +69,7 @@ private:
   QString m_order = "added";
   QJsonArray m_titles;
   QJsonArray m_fresh;
+  QJsonArray m_comingUp;
   // Which load the answers on their way belong to.
   int m_loading = 0;
 };

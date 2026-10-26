@@ -83,6 +83,13 @@ QtObject {
         return qsTrId("libraryNewEpisode").arg(e.season).arg(e.number)
     }
 
+    // Which episode is coming and when: "S2 E1 · Tomorrow".
+    function comingUpCaption(found) {
+        const e = found.episode
+        return qsTrId("libraryNewEpisodeDate").arg(e.season).arg(e.number)
+            .arg(dayLabel(e.released.slice(0, 10), new Date().toISOString().slice(0, 10)))
+    }
+
     // A history line's title: the series and the episode, or the film.
     function viewingTitle(item, entry, episode) {
         if (item.kind !== "series")
@@ -166,9 +173,9 @@ QtObject {
         return date.toLocaleDateString(Qt.locale(), format)
     }
 
-    // A day as somebody says it: Today, Yesterday, the weekday within the
-    // last week, the date after that, and the year only when it is not this
-    // one. Both are calendar dates, "2026-10-26"; [today] is this machine's
+    // A day as somebody says it: Today, Yesterday or Tomorrow, the weekday
+    // within a week either way, the date beyond, and the year only when it is
+    // not this one. Both are calendar dates, "2026-10-26"; [today] is this machine's
     // when not given.
     function dayLabel(day, today) {
         const date = (iso => new Date(iso.slice(0, 4), iso.slice(5, 7) - 1, iso.slice(8, 10)))
@@ -181,7 +188,9 @@ QtObject {
             return qsTrId("libraryToday")
         if (days === 1)
             return qsTrId("libraryYesterday")
-        if (days > 1 && days < 7)
+        if (days === -1)
+            return qsTrId("libraryTomorrow")
+        if (Math.abs(days) > 1 && Math.abs(days) < 7)
             return then.toLocaleDateString(Qt.locale(), "ddd")
         return dayMonth(then, then.getFullYear() !== base.getFullYear())
     }

@@ -22,12 +22,13 @@ void MyList::setOrder(const QString &order) {
 
 void MyList::load() {
   const int asking = ++m_loading;
-  // The shelf is asked at once and shown with the list, so the page does
-  // not move under the pointer when it comes.
+  // The shelves are asked at once and shown with the list, so the page does
+  // not move under the pointer when they come.
   auto fresh = std::make_shared<std::optional<QJsonArray>>();
+  auto comingUp = std::make_shared<std::optional<QJsonArray>>();
   auto list = std::make_shared<std::optional<Core::Reply>>();
-  auto show = [this, asking, fresh, list] {
-    if (asking != m_loading || !fresh->has_value() || !list->has_value())
+  auto show = [this, asking, fresh, comingUp, list] {
+    if (asking != m_loading || !fresh->has_value() || !comingUp->has_value() || !list->has_value())
       return;
     const Core::Reply &reply = **list;
     if (!reply.ok()) {
@@ -40,16 +41,21 @@ void MyList::load() {
       return;
     }
     const QJsonArray titles = reply.json()["items"].toArray();
-    if (m_status == Ready && titles == m_titles && **fresh == m_fresh)
+    if (m_status == Ready && titles == m_titles && **fresh == m_fresh && **comingUp == m_comingUp)
       return;
     m_titles = titles;
     m_fresh = **fresh;
+    m_comingUp = **comingUp;
     m_status = Ready;
     m_error.clear();
     emit changed();
   };
   m_core->get("/api/v1/new-episodes", {}, this, [fresh, show](const Core::Reply &reply) {
     *fresh = reply.ok() ? reply.json()["items"].toArray() : QJsonArray();
+    show();
+  });
+  m_core->get("/api/v1/coming-up", {}, this, [comingUp, show](const Core::Reply &reply) {
+    *comingUp = reply.ok() ? reply.json()["items"].toArray() : QJsonArray();
     show();
   });
   m_core->get("/api/v1/list", {}, this, [list, show](const Core::Reply &reply) {

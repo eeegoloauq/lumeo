@@ -47,6 +47,10 @@ Item {
             fakeCore.answer("GET", "/api/v1/new-episodes", 200, { items: [
                 { item: show, episode: Object.assign({}, show.episodes[2], { released: new Date().toISOString().slice(0, 10) + "T00:00:00Z" }), count: 1 },
             ] })
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10) + "T00:00:00Z"
+            fakeCore.answer("GET", "/api/v1/coming-up", 200, { items: [
+                { item: show, episode: { season: 2, number: 1, released: tomorrow } },
+            ] })
             fakeCore.answer("GET", "/api/v1/history", 200, { entries: [line(2, 0, 480), line(1, 1, 0)], more: false })
             fakeCore.answer("PUT", "/api/v1/ratings/" + show.id, 200, { season: 1, episode: 1, rating: 9 })
             fakeCore.answer("GET", "/api/v1/items/" + show.id, 200, show)
@@ -77,6 +81,7 @@ Item {
             // Nothing watched and no score: the kind is all there is to say.
             compare(findChild(shell, "listed-" + film.id).line, "Film")
             compare(findChild(shell, "fresh-" + show.id).line, "S1 E3 · Today")
+            compare(findChild(shell, "comingUp-" + show.id).line, "S2 E1 · Tomorrow")
 
             mouseClick(listed)
             tryCompare(shell, "page", "title")

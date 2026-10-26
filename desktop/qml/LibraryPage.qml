@@ -53,7 +53,7 @@ ShellPage {
     function move(index, by) {
         const to = index + by
         if (to < 0 && Math.abs(by) > 1)
-            return fresh.visible && freshStrip.focusCard(0)
+            return (comingUp.visible ? comingUp : fresh.visible ? fresh : null)?.focusCard(0) ?? false
         return to >= 0 && to < titles.length && focusTile(to)
     }
 
@@ -232,44 +232,35 @@ ShellPage {
                 onActed: list.load()
             }
 
-            // The followed series with something new; one poster each, on
-            // the first new episode, which it opens onto.
-            Column {
+            // The followed series with something new, on the first new
+            // episode; then those with an episode dated ahead, on the soonest.
+            SeriesShelf {
                 id: fresh
                 objectName: "fresh"
-                width: parent.width
-                visible: list.status === MyList.Ready && list.fresh.length > 0
-                spacing: 14
-                bottomPadding: 34
+                title: qsTrId("libraryNewEpisodes")
+                model: list.status === MyList.Ready ? list.fresh : []
+                cell: page.cell
+                gap: page.gap
+                onChosen: (item, at) => page.open(item, at)
+                caption: found => Words.newEpisodeCaption(found)
+                onDown: (comingUp.visible ? comingUp : null)?.focusCard(0) ?? page.focusTile(0)
+            }
 
-                Heading { text: qsTrId("libraryNewEpisodes") }
-
-                Strip {
-                    id: freshStrip
-                    width: parent.width
-                    // The grid's columns, and room under the captions for
-                    // the lift on hover.
-                    height: Math.round(page.cell * 1.5) + 46 + 6
-                    spacing: page.gap
-                    model: list.fresh
-
-                    delegate: CaptionedTile {
-                        required property int index
-                        required property var modelData
-                        objectName: "fresh-" + modelData.item.id
-                        width: page.cell
-                        item: modelData.item
-                        line: Words.newEpisodeCaption(modelData)
-                        mark: Downloads.marks[modelData.item.id + "/" + modelData.episode.season + "/" + modelData.episode.number]
-                        onClicked: page.open(modelData.item, { season: modelData.episode.season, episode: modelData.episode.number })
-                        onActiveFocusChanged: if (activeFocus) freshStrip.focused = index
-                        button.Keys.onDownPressed: page.focusTile(0)
-                    }
-                }
+            SeriesShelf {
+                id: comingUp
+                objectName: "comingUp"
+                title: qsTrId("libraryComingUp")
+                model: list.status === MyList.Ready ? list.comingUp : []
+                cell: page.cell
+                gap: page.gap
+                onChosen: (item, at) => page.open(item, at)
+                caption: found => Words.comingUpCaption(found)
+                onUp: if (fresh.visible) fresh.focusCard(0)
+                onDown: page.focusTile(0)
             }
 
             Heading {
-                visible: fresh.visible && page.titles.length > 0
+                visible: (fresh.visible || comingUp.visible) && page.titles.length > 0
                 text: qsTrId("libraryMyList")
                 bottomPadding: 14
             }
@@ -549,6 +540,56 @@ ShellPage {
                     text: qsTrId("commonTryAgain")
                     onClicked: history.retry()
                 }
+            }
+        }
+    }
+
+    // A shelf of series over My list, one poster each, on the episode it
+    // opens onto.
+    component SeriesShelf: Column {
+        id: shelf
+
+        property string title
+        property alias model: strip.model
+        // What the poster's line says of one of [model].
+        property var caption
+        property real cell
+        property real gap
+        signal up()
+        signal down()
+        signal chosen(var item, var at)
+
+        function focusCard(index) {
+            return strip.focusCard(index)
+        }
+
+        width: parent.width
+        visible: strip.count > 0
+        spacing: 14
+        bottomPadding: 34
+
+        Heading { text: shelf.title }
+
+        Strip {
+            id: strip
+            width: parent.width
+            // The grid's columns, and room under the captions for the lift
+            // on hover.
+            height: Math.round(shelf.cell * 1.5) + 46 + 6
+            spacing: shelf.gap
+
+            delegate: CaptionedTile {
+                required property int index
+                required property var modelData
+                objectName: shelf.objectName + "-" + modelData.item.id
+                width: shelf.cell
+                item: modelData.item
+                line: shelf.caption(modelData)
+                mark: Downloads.marks[modelData.item.id + "/" + modelData.episode.season + "/" + modelData.episode.number]
+                onClicked: shelf.chosen(modelData.item, { season: modelData.episode.season, episode: modelData.episode.number })
+                onActiveFocusChanged: if (activeFocus) strip.focused = index
+                button.Keys.onUpPressed: shelf.up()
+                button.Keys.onDownPressed: shelf.down()
             }
         }
     }
