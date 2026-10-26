@@ -3,7 +3,9 @@
 # own and mpv publishes none to build against, so the bundle carries
 # shinchiro's (mpv-winbuild-cmake), the build mpv's installation page names
 # first; that repository keeps about a month of daily builds, and a release
-# here keeps the pinned one for good. Run by hand when libmpv is bumped:
+# here keeps the pinned one for good. Run by hand when libmpv is bumped, after
+# pushing the tag deps-libmpv-<date> to origin: the push mirror deletes tags
+# origin lacks, and a release whose tag is gone turns back into a draft.
 #
 #   date:   the build's tag there, e.g. 20261021
 #   file:   mpv-dev-x86_64-<date>-git-<commit>.7z
