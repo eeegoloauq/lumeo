@@ -185,18 +185,31 @@ private slots:
     QTRY_COMPARE(c->picked(), 1);
   }
 
-  // The pick is recorded first, and the list asked again follows it.
+  // The pick is recorded first, and the list asked again follows it, past
+  // the copy already on disk.
   void aCopyChosenIsRecordedAndFollowed() {
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{QJsonObject{
+                                               {"id", "here"}, {"itemId", "tt1"}, {"state", "done"}}}}});
+    downloads->refresh();
+    QTRY_COMPARE(downloads->all().size(), 1);
     fake->answer("PATCH", "/api/v1/choices/tt1", 200, QJsonObject());
     auto c = choice();
     c->load();
     QTRY_VERIFY(c->listed());
+    QJsonArray sources = copies();
+    QJsonObject second = sources[1].toObject();
+    second["lastUsed"] = true;
+    sources[1] = second;
+    fake->answer("GET", "/api/v1/sources", 200, listed(sources));
     QSignalSpy started(c.get(), &SourceChoice::started);
     c->choose(1, true);
     QTRY_COMPARE(started.size(), 1);
+    QCOMPARE(started.first().first().toString(), "d1");
     const QStringList patches = fake->requests().filter("PATCH /api/v1/choices/tt1");
     QCOMPARE(patches.size(), 1);
     QVERIFY(patches.first().contains("1080p"));
+    QVERIFY(fake->requests().filter("POST /api/v1/downloads").last().contains("1080p"));
   }
 
   void aFolderWithNothingOfTheTitleIsRefusedInTheCoresWords() {

@@ -290,8 +290,9 @@ void SourceChoice::load(bool follow) {
   m_loading = true;
   emit changed();
   // A copy on disk needs no provider, and without a network the list would
-  // keep Play waiting until they fail.
-  if (m_startWhenReady && !onDisk().isEmpty())
+  // keep Play waiting until they fail. A copy just picked is the one to play,
+  // and only the list says which it is.
+  if (m_startWhenReady && !follow && !onDisk().isEmpty())
     QTimer::singleShot(0, this, &SourceChoice::start);
   QUrlQuery query{{"item", m_itemId}};
   if (m_season > 0)
