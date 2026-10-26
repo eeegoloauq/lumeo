@@ -146,6 +146,21 @@ ShellPage {
         itemId: page.item.id
     }
 
+    Mine {
+        id: mine
+        itemId: page.item.id
+        onRefused: what => {
+            const said = {
+                add: qsTrId("libraryCouldNotAdd"),
+                remove: qsTrId("libraryCouldNotRemove"),
+                rate: qsTrId("libraryRatingNotSaved"),
+                clear: qsTrId("libraryRatingNotRemoved"),
+            }[what]
+            const near = what === "add" || what === "remove" ? listButton : ratingButton
+            near.ToolTip.show(said, 3000)
+        }
+    }
+
     SourceChoice {
         id: copies
         // Named once the title is here: a series' first list is for its
@@ -259,6 +274,40 @@ ShellPage {
                         tip: running ? qsTrId("itemDownloadingPercent").arg(Math.floor(fraction * 100))
                                      : qsTrId("commonDownload")
                         onClicked: copies.download()
+                    }
+                    // What the viewer keeps and thinks of the title: quiet
+                    // marks beside the one action, not second ones.
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        TintButton {
+                            id: listButton
+                            objectName: "listButton"
+                            enabled: mine.known
+                            glyph: mine.inList ? "check" : "add"
+                            tip: mine.inList ? qsTrId("libraryRemoveFromList") : qsTrId("libraryAddToList")
+                            onClicked: mine.toggle()
+                        }
+                        RatingButton {
+                            id: ratingButton
+                            objectName: "ratingButton"
+                            enabled: mine.known
+                            score: mine.score
+                            onRated: score => mine.rate(score)
+                            onCleared: mine.clear()
+                        }
+                        TintButton {
+                            id: share
+                            objectName: "shareButton"
+                            visible: about.link !== ""
+                            glyph: "ios_share"
+                            tip: qsTrId("itemShare")
+                            onClicked: {
+                                about.copyLink()
+                                ToolTip.show(qsTrId("itemLinkCopied"), 2000)
+                            }
+                        }
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter

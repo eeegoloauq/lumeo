@@ -55,11 +55,13 @@ qt_add_qml_module(lumeo
     qml/PlayLine.qml
     qml/PosterTile.qml
     qml/QuietButton.qml
+    qml/RatingButton.qml
     qml/ShelfRow.qml
     qml/SourcesDrawer.qml
     qml/Shell.qml
     qml/ShellPage.qml
     qml/Strip.qml
+    qml/TintButton.qml
     qml/TitlePage.qml
     qml/Trouble.qml
     qml/Player.qml
@@ -70,6 +72,7 @@ qt_add_qml_module(lumeo
   RESOURCES
     ${fonts}
     # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
+    icons/add.svg
     icons/arrow_back.svg
     icons/arrow_drop_down.svg
     icons/check.svg
@@ -78,14 +81,18 @@ qt_add_qml_module(lumeo
     icons/close.svg
     icons/download.svg
     icons/error.svg
+    icons/ios_share.svg
     icons/play_arrow.svg
     icons/play_circle.svg
     icons/search.svg
+    icons/star.svg
+    icons/star_border.svg
   SOURCES
     src/api/core.h src/api/core.cpp
     src/api/artwork.h src/api/artwork.cpp
     src/api/home.h src/api/home.cpp
     src/api/title.h src/api/title.cpp
+    src/api/mine.h src/api/mine.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp

@@ -3,13 +3,37 @@
 #include "core.h"
 #include "downloads.h"
 
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QQmlEngine>
+#include <QRegularExpression>
 #include <QTimer>
 
 Title::Title(Core *core, Downloads *downloads, const QString &itemId, QObject *parent)
     : QObject(parent), m_core(core), m_downloads(downloads), m_itemId(itemId) {
   load();
 }
+
+const QString Title::sharePage = "https://eeegoloauq.github.io/lumeo";
+
+// The share page with the IMDb id, then the title and year as words, which
+// the page shows when it cannot reach the catalogue and which say what the
+// link is to whoever reads it.
+QString Title::link() const {
+  const QString imdb = m_item["externalIds"]["imdb"].toString();
+  if (imdb.isEmpty())
+    return {};
+  static const QRegularExpression notWord("[^\\p{L}\\p{N}]+",
+                                          QRegularExpression::UseUnicodePropertiesOption);
+  QStringList words{imdb};
+  words += m_item["title"].toString().split(notWord, Qt::SkipEmptyParts);
+  if (m_item["year"].toInt() > 0)
+    words.append(QString::number(m_item["year"].toInt()));
+  return sharePage + "/" + m_item["kind"].toString() + "/?" +
+         QString::fromUtf8(QUrl::toPercentEncoding(words.join('-')));
+}
+
+void Title::copyLink() const { QGuiApplication::clipboard()->setText(link()); }
 
 void Title::componentComplete() {
   m_core = qmlEngine(this)->singletonInstance<Core *>("Lumeo", "Core");

@@ -27,6 +27,9 @@ class Title : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QVariantMap opening READ opening NOTIFY changed)
   // A season's download is being asked for, one episode at a time.
   Q_PROPERTY(bool queueing READ queueing NOTIFY queueingChanged)
+  // The link the title is shared by; empty without an IMDb id, which names
+  // it the same on every machine.
+  Q_PROPERTY(QString link READ link NOTIFY changed)
 
 public:
   enum Status { Loading, Failed, Ready };
@@ -46,6 +49,14 @@ public:
   QVariantMap progress() const { return m_progress.toVariantMap(); }
   QVariantMap opening() const;
   bool queueing() const { return m_queueing; }
+  QString link() const;
+
+  // Where shared links point: a page anyone can open, whose Open button
+  // hands lumeo://title/<kind>/<imdb> to an installed Lumeo (site/).
+  static const QString sharePage;
+  // The desktop has no share sheet to hand the link to; the person pastes
+  // it wherever they talk.
+  Q_INVOKABLE void copyLink() const;
 
   Q_INVOKABLE void load();
   // Downloads, for each of [episodes] ({season, number}) without a download

@@ -75,6 +75,10 @@ Item {
                 items.push(film)
                 fakeCore.answer("GET", "/api/v1/items/" + film.id, 200, film)
                 fakeCore.answer("GET", "/api/v1/progress/" + film.id, 200, {})
+                fakeCore.answer("GET", "/api/v1/list/" + film.id, 200, { inList: false })
+                fakeCore.answer("PUT", "/api/v1/list/" + film.id, 200, { inList: true })
+                fakeCore.answer("GET", "/api/v1/ratings/" + film.id, 200, { ratings: [] })
+                fakeCore.answer("PUT", "/api/v1/ratings/" + film.id, 200, { rating: 7 })
             }
             fakeCore.answer("GET", "/api/v1/catalog", 200, { items: items })
             fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [copy, other], providers: 1 })
@@ -189,6 +193,24 @@ Item {
             mouseClick(row("copy-1"))
             watched.wait(5000)
             verify(posted()[0].includes("720p WEB"), posted()[0])
+        }
+
+        // Both change at once and go to the core behind the change.
+        function test_myListAndTheScoreReachTheCore() {
+            film()
+            const list = findChild(shell, "listButton")
+            tryVerify(() => list.enabled, 5000, "the core said")
+            mouseClick(list)
+            compare(list.glyph, "check")
+            tryVerify(() => requests().some(r => r.startsWith("PUT /api/v1/list/")))
+
+            const rating = findChild(shell, "ratingButton")
+            mouseClick(rating)
+            const scores = findChild(rating, "ratingScale")
+            tryVerify(() => scores.opened)
+            mouseClick(findChild(scores.contentItem, "score-7"))
+            compare(rating.score, 7)
+            tryVerify(() => requests().some(r => r.startsWith("PUT /api/v1/ratings/") && r.includes('"rating":7')))
         }
 
         // None ships with the app: the empty list is the way to add one.

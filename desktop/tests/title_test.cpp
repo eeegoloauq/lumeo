@@ -1,6 +1,7 @@
 #include "core.h"
 #include "downloads.h"
 #include "fakecore.h"
+#include "mine.h"
 #include "title.h"
 
 #include <QJsonArray>
@@ -249,6 +250,66 @@ private slots:
     QTRY_COMPARE(failed.size(), 1);
     QCOMPARE(failed.first().first().toString(), "torrentio: 403 Forbidden");
     QCOMPARE(fake->requests().filter("/api/v1/sources").size(), 1);
+  }
+
+  // A shared link names the title by IMDb id, the same on every machine,
+  // then by words, which the page shows when it cannot reach the catalogue.
+  void aTitleIsSharedByItsImdbIdAndItsWords() {
+    fake->answer("GET", "/api/v1/items/tt1", 200,
+                 QJsonObject{{"id", "tt1"}, {"kind", "movie"}, {"title", "Night of the Living Dead"},
+                             {"year", 1968}, {"externalIds", QJsonObject{{"imdb", "tt0063350"}}}});
+    fake->answer("GET", "/api/v1/progress/tt1", 200, QJsonObject());
+    Title title(core.get(), downloads.get(), "tt1");
+    QTRY_COMPARE(title.status(), Title::Ready);
+    QCOMPARE(title.link(), Title::sharePage + "/movie/?tt0063350-Night-of-the-Living-Dead-1968");
+  }
+
+  // Two clicks in flight could land in either order and leave the core on
+  // the opposite of what the button shows.
+  void myListIsSentOneClickAtATimeAndEndsWhereTheButtonDoes() {
+    fake->answer("GET", "/api/v1/list/tt1", 200, QJsonObject{{"inList", false}});
+    fake->answer("GET", "/api/v1/ratings/tt1", 200, QJsonObject{{"ratings", QJsonArray()}});
+    fake->answer("PUT", "/api/v1/list/tt1", 200, QJsonObject{{"inList", true}});
+    fake->answer("DELETE", "/api/v1/list/tt1", 204);
+    Mine mine(core.get(), "tt1");
+    QTRY_VERIFY(mine.known());
+    fake->hold("PUT", "/api/v1/list/tt1");
+    mine.toggle();
+    mine.toggle();
+    mine.toggle();
+    QVERIFY(mine.inList());
+    QTRY_COMPARE(fake->requests().filter("/api/v1/list/tt1").size(), 2);
+    fake->release();
+    QTest::qWait(50);
+    QCOMPARE(fake->requests().filter(QRegularExpression("^(PUT|DELETE) /api/v1/list")).size(), 1);
+  }
+
+  void aRefusedChangeIsPutBackAndSaid() {
+    fake->answer("GET", "/api/v1/list/tt1", 200, QJsonObject{{"inList", false}});
+    fake->answer("GET", "/api/v1/ratings/tt1", 200,
+                 QJsonObject{{"ratings", QJsonArray{QJsonObject{{"season", 0}, {"episode", 0}, {"rating", 7}}}}});
+    fake->answer("PUT", "/api/v1/ratings/tt1", 500);
+    Mine mine(core.get(), "tt1");
+    QTRY_VERIFY(mine.known());
+    QCOMPARE(mine.score(), 7);
+    QSignalSpy refused(&mine, &Mine::refused);
+    mine.rate(9);
+    QCOMPARE(mine.score(), 9);
+    QTRY_COMPARE(refused.size(), 1);
+    QCOMPARE(refused.first().first().toString(), "rate");
+    QCOMPARE(mine.score(), 7);
+  }
+
+  // The core puts a title scored before it was ever played on My list.
+  void aScoreGivenOffTheListIsReadBackOntoIt() {
+    fake->answer("GET", "/api/v1/list/tt1", 200, QJsonObject{{"inList", false}});
+    fake->answer("GET", "/api/v1/ratings/tt1", 200, QJsonObject{{"ratings", QJsonArray()}});
+    fake->answer("PUT", "/api/v1/ratings/tt1", 200, QJsonObject{{"rating", 8}});
+    Mine mine(core.get(), "tt1");
+    QTRY_VERIFY(mine.known());
+    fake->answer("GET", "/api/v1/list/tt1", 200, QJsonObject{{"inList", true}});
+    mine.rate(8);
+    QTRY_VERIFY(mine.inList());
   }
 };
 
