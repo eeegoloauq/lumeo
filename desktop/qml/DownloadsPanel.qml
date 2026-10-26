@@ -351,6 +351,52 @@ Popup {
         background: Rectangle { color: entry.hovered || entry.visualFocus ? Tokens.hover : "transparent" }
     }
 
+    // The one thing a row's state lets you do, and Stop for what waits: a
+    // download with bytes flowing is paused first, so one that goes well is
+    // never thrown away by a click beside Pause.
+    component Actions: Row {
+        id: actions
+        required property var target
+        property string which
+        property bool small
+
+        spacing: 0
+
+        PlayAction {
+            objectName: "play"
+            visible: actions.target.kind === DownloadList.Ready
+            tip: actions.target.episode > 0 ? qsTrId("playerPlayEpisode").arg(actions.target.season).arg(actions.target.episode)
+                                         : qsTrId("commonPlay")
+            onClicked: panel.play(actions.target)
+        }
+        Action {
+            objectName: "pause"
+            visible: actions.target.kind === DownloadList.Arriving
+            glyph: "pause"
+            glyphSize: actions.small ? 16 : 18
+            tip: actions.which ? qsTrId("downloadsPause").arg(actions.which) : qsTrId("downloadsPauseOne")
+            onClicked: actions.target.ids.forEach(id => Downloads.pause(id))
+        }
+        Action {
+            objectName: "resume"
+            visible: actions.target.kind === DownloadList.Paused || actions.target.kind === DownloadList.Failed
+            glyph: actions.target.kind === DownloadList.Paused ? "play_arrow" : "refresh"
+            glyphSize: actions.small ? 16 : 18
+            tip: actions.target.kind === DownloadList.Paused
+                 ? (actions.which ? qsTrId("downloadsResume").arg(actions.which) : qsTrId("downloadsResumeOne"))
+                 : (actions.which ? qsTrId("downloadsRetry").arg(actions.which) : qsTrId("downloadsRetryOne"))
+            onClicked: actions.target.ids.forEach(id => Downloads.resume(id))
+        }
+        Action {
+            objectName: "stop"
+            visible: actions.target.section === "waiting"
+            glyph: "close"
+            glyphSize: actions.small ? 16 : 18
+            tip: actions.which ? qsTrId("downloadsStopDiscard").arg(actions.which) : qsTrId("downloadsStopDiscardOne")
+            onClicked: actions.target.ids.forEach(id => Downloads.stop(id))
+        }
+    }
+
     // A film, or a series' episodes in one state, which it opens into.
     component TitleRow: Entry {
         id: entry
@@ -471,52 +517,6 @@ Popup {
                 target: entry
                 small: true
             }
-        }
-    }
-
-    // The one thing a row's state lets you do, and Stop for what waits: a
-    // download with bytes flowing is paused first, so one that goes well is
-    // never thrown away by a click beside Pause.
-    component Actions: Row {
-        id: actions
-        required property var target
-        property string which
-        property bool small
-
-        spacing: 0
-
-        PlayAction {
-            objectName: "play"
-            visible: actions.target.kind === DownloadList.Ready
-            tip: actions.target.episode > 0 ? qsTrId("playerPlayEpisode").arg(actions.target.season).arg(actions.target.episode)
-                                         : qsTrId("commonPlay")
-            onClicked: panel.play(actions.target)
-        }
-        Action {
-            objectName: "pause"
-            visible: actions.target.kind === DownloadList.Arriving
-            glyph: "pause"
-            glyphSize: actions.small ? 16 : 18
-            tip: actions.which ? qsTrId("downloadsPause").arg(actions.which) : qsTrId("downloadsPauseOne")
-            onClicked: actions.target.ids.forEach(id => Downloads.pause(id))
-        }
-        Action {
-            objectName: "resume"
-            visible: actions.target.kind === DownloadList.Paused || actions.target.kind === DownloadList.Failed
-            glyph: actions.target.kind === DownloadList.Paused ? "play_arrow" : "refresh"
-            glyphSize: actions.small ? 16 : 18
-            tip: actions.target.kind === DownloadList.Paused
-                 ? (actions.which ? qsTrId("downloadsResume").arg(actions.which) : qsTrId("downloadsResumeOne"))
-                 : (actions.which ? qsTrId("downloadsRetry").arg(actions.which) : qsTrId("downloadsRetryOne"))
-            onClicked: actions.target.ids.forEach(id => Downloads.resume(id))
-        }
-        Action {
-            objectName: "stop"
-            visible: actions.target.section === "waiting"
-            glyph: "close"
-            glyphSize: actions.small ? 16 : 18
-            tip: actions.which ? qsTrId("downloadsStopDiscard").arg(actions.which) : qsTrId("downloadsStopDiscardOne")
-            onClicked: actions.target.ids.forEach(id => Downloads.stop(id))
         }
     }
 }

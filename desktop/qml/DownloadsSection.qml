@@ -2,9 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtCore
 import QtQuick
-import QtQuick.Controls.Basic
 import Lumeo
-import "format.js" as Format
 
 // Where downloads go, how long they stay, what the swarm may take, and what
 // is on disk now.

@@ -33,7 +33,7 @@ FocusScope {
         const at = stack.find(item => item.objectName === "settings")
         if (at) {
             stack.pop(at)
-            at.go("downloads")
+            (at as SettingsPage).go("downloads")
         } else {
             stack.push(settingsPage, {section: "downloads"})
         }

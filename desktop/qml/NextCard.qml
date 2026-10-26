@@ -46,7 +46,10 @@ AbstractButton {
 
                 ProgressRing {
                     anchors.fill: parent
-                    value: card.fill
+                    fraction: card.fill
+                    stroke: 3
+                    color: "white"
+                    Behavior on fraction { NumberAnimation { duration: 250 } }
                 }
             }
 
@@ -74,28 +77,6 @@ AbstractButton {
                 font.pixelSize: 15
                 font.weight: Font.DemiBold
             }
-        }
-    }
-
-    component ProgressRing: Canvas {
-        id: ring
-        property real value
-        property real shown: value
-        Behavior on shown { NumberAnimation { duration: 250 } }
-        onShownChanged: requestPaint()
-        onPaint: {
-            const ctx = getContext("2d")
-            ctx.reset()
-            ctx.lineWidth = 3
-            const r = width / 2 - 2
-            ctx.strokeStyle = "#40ffffff"
-            ctx.beginPath()
-            ctx.arc(width / 2, height / 2, r, 0, 2 * Math.PI)
-            ctx.stroke()
-            ctx.strokeStyle = "white"
-            ctx.beginPath()
-            ctx.arc(width / 2, height / 2, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * ring.shown)
-            ctx.stroke()
         }
     }
 }

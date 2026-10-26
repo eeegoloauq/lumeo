@@ -183,7 +183,7 @@ ApplicationWindow {
         Loader {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: Math.min(item?.implicitHeight ?? 0, parent.height)
+            height: Math.min((item as Item)?.implicitHeight ?? 0, parent.height)
             sourceComponent: window.keptTitle !== "" ? keepsCard
                 : Releases.update !== "" ? updateCard
                 : Releases.news.length > 0 ? newsCard : null

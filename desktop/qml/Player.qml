@@ -15,7 +15,7 @@ FocusScope {
     // What the page that started it called it.
     required property string name
 
-    readonly property alias mpv: mpv
+    readonly property alias mpv: video
     // The window's, which the player only asks for: mpv's own fullscreen is
     // not used, so the window and mpv cannot disagree.
     property bool fullscreen: false
@@ -78,7 +78,7 @@ FocusScope {
 
     function pickCopy(index) {
         switching = true
-        mpv.set("pause", true)
+        video.set("pause", true)
         choice.choose(index, true)
     }
 
@@ -90,12 +90,12 @@ FocusScope {
         onStarted: downloadId => player.next(downloadId, session.title)
         onRefused: reason => {
             player.switching = false
-            notice.say(reason)
+            note.say(reason)
         }
     }
 
     MpvItem {
-        id: mpv
+        id: video
         anchors.fill: parent
 
         // Esc undoes one thing at a time: an open menu, then fullscreen, then
@@ -116,20 +116,20 @@ FocusScope {
 
     Playback {
         id: session
-        mpv: mpv
+        mpv: video
         downloadId: player.downloadId
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
-        onNotice: (kind, codec) => notice.say(player.trouble(kind, codec))
+        onNotice: (kind, codec) => note.say(player.trouble(kind, codec))
     }
 
     // Keys mpv has no name for, such as a modifier alone, go on to the window.
-    Keys.onPressed: event => event.accepted = mpv.press(event.key, event.text, event.modifiers,
+    Keys.onPressed: event => event.accepted = video.press(event.key, event.text, event.modifiers,
                                                         event.nativeScanCode, event.isAutoRepeat)
-    Keys.onReleased: event => event.accepted = mpv.release(event.key, event.nativeScanCode,
+    Keys.onReleased: event => event.accepted = video.release(event.key, event.nativeScanCode,
                                                            event.isAutoRepeat)
-    onActiveFocusChanged: if (!activeFocus) mpv.releaseKeys()
+    onActiveFocusChanged: if (!activeFocus) video.releaseKeys()
 
     // The picture: buttons go to mpv as they change, so its bindings decide,
     // its double click included. Not before there is a picture, or a click
@@ -153,22 +153,22 @@ FocusScope {
             }
             for (const button of [Qt.LeftButton, Qt.RightButton, Qt.MiddleButton, Qt.BackButton, Qt.ForwardButton]) {
                 const down = (now & button) !== 0
-                if (down === ((sent & button) !== 0) || (down && !mpv.hasPicture))
+                if (down === ((sent & button) !== 0) || (down && !video.hasPicture))
                     continue
-                mpv.button(button, down)
+                video.button(button, down)
                 sent = down ? sent | button : sent & ~button
             }
             chrome.held = now !== Qt.NoButton
             chrome.poke()
         }
         onPositionChanged: mouse => {
-            if (mpv.hasPicture)
-                mpv.pointer(mouse.x, mouse.y)
+            if (video.hasPicture)
+                video.pointer(mouse.x, mouse.y)
             chrome.poke()
         }
         onWheel: wheel => {
-            if (mpv.hasPicture)
-                mpv.wheel(wheel.angleDelta, wheel.modifiers)
+            if (video.hasPicture)
+                video.wheel(wheel.angleDelta, wheel.modifiers)
         }
     }
 
@@ -178,12 +178,12 @@ FocusScope {
         readonly property bool advancing: session.next?.advancing ?? false
 
         anchors.fill: parent
-        visible: !mpv.hasPicture || player.switching || advancing
+        visible: !video.hasPicture || player.switching || advancing
         playback: session
         title: advancing ? Words.episodeName(session.next.starting) : session.title
         copies: advancing ? session.next.choice : choice
         switching: player.switching || advancing
-        overPicture: mpv.hasPicture
+        overPicture: video.hasPicture
         onPickCopy: index => player.pickCopy(index)
         onRetrySwitch: advancing ? session.next.retry() : choice.start()
     }
@@ -197,14 +197,14 @@ FocusScope {
         anchors.centerIn: parent
         width: 56
         height: 56
-        visible: mpv.buffering && mpv.hasPicture
+        visible: video.buffering && video.hasPicture
         running: visible
         palette.dark: "white"
     }
 
     // A short line over the picture, gone after eight seconds.
     Rectangle {
-        id: notice
+        id: note
 
         function say(text) {
             line.text = text
@@ -231,7 +231,7 @@ FocusScope {
             font.pixelSize: Tokens.textCard
         }
 
-        Timer { id: forget; interval: 8000; onTriggered: notice.visible = false }
+        Timer { id: forget; interval: 8000; onTriggered: note.visible = false }
     }
 
     // The bar follows the mouse and nothing else: up when the pointer moves,
@@ -262,12 +262,12 @@ FocusScope {
             id: idle
             interval: 500
             running: true
-            onTriggered: chrome.shown = !mpv.hasPicture || chrome.overBand || chrome.held
+            onTriggered: chrome.shown = !video.hasPicture || chrome.overBand || chrome.held
                                         || seek.pressed || volume.pressed || player.menu !== ""
         }
         Connections {
-            target: mpv
-            function onHasPictureChanged() { if (mpv.hasPicture) chrome.poke() }
+            target: video
+            function onHasPictureChanged() { if (video.hasPicture) chrome.poke() }
         }
 
         Rectangle {
@@ -366,25 +366,25 @@ FocusScope {
 
                 objectName: "seekBar"
                 Layout.fillWidth: true
-                duration: mpv.duration
-                time: mpv.position
-                chapters: mpv.chapters
+                duration: video.duration
+                time: video.position
+                chapters: video.chapters
                 previews: session.previews
                 acquired: {
                     const progress = session.download.progress ?? {}
                     return progress.total > 0 ? progress.completed / progress.total : 0
                 }
-                onMoved: mpv.command(["seek", String(value * duration), "absolute+keyframes"])
+                onMoved: video.command(["seek", String(value * duration), "absolute+keyframes"])
                 onPressedChanged: {
                     if (pressed) {
-                        wasPlaying = !mpv.paused
+                        wasPlaying = !video.paused
                         if (wasPlaying)
-                            mpv.set("pause", true)
+                            video.set("pause", true)
                         return
                     }
-                    mpv.command(["seek", (value * duration).toFixed(3), "absolute+exact"])
+                    video.command(["seek", (value * duration).toFixed(3), "absolute+exact"])
                     if (wasPlaying)
-                        mpv.set("pause", false)
+                        video.set("pause", false)
                 }
             }
 
@@ -395,9 +395,9 @@ FocusScope {
 
                 PlayerButton {
                     objectName: "playPause"
-                    glyph: mpv.paused ? "play_arrow" : "pause"
-                    tip: mpv.paused ? qsTrId("playerPlaySpace") : qsTrId("playerPauseSpace")
-                    onClicked: if (mpv.hasPicture) mpv.command(["cycle", "pause"])
+                    glyph: video.paused ? "play_arrow" : "pause"
+                    tip: video.paused ? qsTrId("playerPlaySpace") : qsTrId("playerPauseSpace")
+                    onClicked: if (video.hasPicture) video.command(["cycle", "pause"])
                 }
 
                 PlayerButton {
@@ -413,28 +413,28 @@ FocusScope {
                 Row {
                     id: volumeControl
 
-                    readonly property real shown: mpv.muted ? 0 : mpv.volume
+                    readonly property real shown: video.muted ? 0 : video.volume
                     // What the button gives back after the slider went to zero.
                     property real audible: 100
 
                     HoverHandler { id: volumeHover }
 
                     Connections {
-                        target: mpv
-                        function onVolumeChanged() { if (mpv.volume > 0) volumeControl.audible = mpv.volume }
+                        target: video
+                        function onVolumeChanged() { if (video.volume > 0) volumeControl.audible = video.volume }
                     }
 
                     PlayerButton {
                         objectName: "mute"
                         glyph: volumeControl.shown === 0 ? "volume_off"
                             : volumeControl.shown < 60 ? "volume_down" : "volume_up"
-                        tip: mpv.muted ? qsTrId("playerUnmute") : qsTrId("playerMute")
+                        tip: video.muted ? qsTrId("playerUnmute") : qsTrId("playerMute")
                         onClicked: {
-                            if (mpv.volume === 0) {
-                                mpv.set("volume", volumeControl.audible)
-                                mpv.set("mute", false)
+                            if (video.volume === 0) {
+                                video.set("volume", volumeControl.audible)
+                                video.set("mute", false)
                             } else {
-                                mpv.command(["cycle", "mute"])
+                                video.command(["cycle", "mute"])
                             }
                         }
                     }
@@ -454,9 +454,9 @@ FocusScope {
                         Behavior on width { NumberAnimation { duration: 150 } }
                         Binding on value { when: !volume.pressed; value: volumeControl.shown }
                         onMoved: {
-                            mpv.set("volume", value)
-                            if (mpv.muted && value > 0)
-                                mpv.set("mute", false)
+                            video.set("volume", value)
+                            if (video.muted && value > 0)
+                                video.set("mute", false)
                         }
 
                         background: Rectangle {
@@ -494,7 +494,7 @@ FocusScope {
                 Text {
                     objectName: "clock"
                     Layout.leftMargin: 8
-                    text: Words.clock(mpv.position) + " / " + Words.clock(mpv.duration)
+                    text: Words.clock(video.position) + " / " + Words.clock(video.duration)
                     color: "white"
                     font.family: Tokens.fontSans
                     font.pixelSize: 14
@@ -502,7 +502,7 @@ FocusScope {
                 }
 
                 Text {
-                    readonly property int chapter: seek.chapterAt(mpv.position)
+                    readonly property int chapter: seek.chapterAt(video.position)
 
                     Layout.fillWidth: true
                     Layout.leftMargin: 8

@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls.Basic
 import Lumeo
 
 // A stepped number kept by the core. Each press shows at once and only the

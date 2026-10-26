@@ -9,6 +9,7 @@ Shape {
 
     property real fraction
     property real stroke: 2
+    property color color: Theme.accent
 
     width: 14
     height: 14
@@ -26,7 +27,7 @@ Shape {
     }
     ShapePath {
         fillColor: "transparent"
-        strokeColor: Theme.accent
+        strokeColor: ring.color
         strokeWidth: ring.stroke
         capStyle: ShapePath.RoundCap
         PathAngleArc {

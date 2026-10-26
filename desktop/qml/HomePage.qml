@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic
 import Lumeo
 import "format.js" as Format
 
@@ -32,7 +31,8 @@ ShellPage {
     function focusStop(at) {
         if (at < firstShelf) {
             list.positionViewAtBeginning()
-            const top = list.itemAtIndex(0).block
+            // The delegates are untyped, so the linter cannot see their properties.
+            const top = list.itemAtIndex(0).block // qmllint disable missing-property
             if (at === 0) {
                 top.play.forceActiveFocus(Qt.TabFocusReason)
                 return true
@@ -44,7 +44,7 @@ ShellPage {
         if (index >= list.count)
             return false
         list.positionViewAtIndex(index, ListView.Contain)
-        return list.itemAtIndex(index)?.block.focusCard() ?? false
+        return list.itemAtIndex(index)?.block.focusCard() ?? false // qmllint disable missing-property
     }
 
     // A shelf with nothing in it yet, or ever, is passed over.
