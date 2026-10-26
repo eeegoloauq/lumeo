@@ -113,6 +113,9 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - Copr, arm64, a self-hosted Flatpak remote.
 - Windows: a signed installer if SmartScreen costs users; Snap Layouts on the
   maximise button.
+- Keep the Windows libmpv in a repository the push mirror does not own, at the
+  next libmpv bump: the mirror deletes tags origin lacks, so the release
+  `build-windows.sh` downloads from needs its tag on origin first.
 
 ## To check by hand
 
