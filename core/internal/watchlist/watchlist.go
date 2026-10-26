@@ -145,18 +145,21 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 	return out, nil
 }
 
-// NewEpisode is a series with episodes out in the last fortnight that the
-// viewer has not watched.
+// NewEpisode is a series whose next episode, for the viewer, came out in the
+// last fortnight.
 type NewEpisode struct {
 	Item catalog.MediaItem `json:"item"`
-	// Episode is the latest of them.
+	// Episode is that next one, the first not watched.
 	Episode catalog.Episode `json:"episode"`
-	// Count is how many there are, Episode included.
+	// Count is how many are out from it on, Episode included.
 	Count int `json:"count"`
 }
 
-// NewEpisodes looks through the series the viewer follows for episodes that
-// came out recently and are not watched, the latest release first.
+// NewEpisodes looks through the series the viewer follows for the ones they
+// had caught up with until an episode came out, the latest release first.
+// A series with older episodes still to watch is behind, not new: that is
+// Continue watching's, and a whole season out while the viewer is in the
+// one before is not news to them.
 //
 // Following is having the series on the list or having watched any of it:
 // the series somebody is in the middle of are exactly the ones whose next
@@ -184,20 +187,13 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 	for _, e := range entries {
 		follow(e.ItemID)
 	}
-	watched := make(map[string]map[[2]int]bool)
 	// furthest is the last episode of the story watched: one before it that
 	// is not watched was skipped or seen elsewhere, not something to wait for.
 	furthest := make(map[string][2]int)
 	for _, p := range all {
 		follow(p.ItemID)
-		if p.Watched {
-			if watched[p.ItemID] == nil {
-				watched[p.ItemID] = make(map[[2]int]bool)
-			}
-			watched[p.ItemID][[2]int{p.Season, p.Episode}] = true
-			if at := [2]int{p.Season, p.Episode}; p.Season > 0 && after(at, furthest[p.ItemID]) {
-				furthest[p.ItemID] = at
-			}
+		if at := [2]int{p.Season, p.Episode}; p.Watched && p.Season > 0 && after(at, furthest[p.ItemID]) {
+			furthest[p.ItemID] = at
 		}
 	}
 	items, err := s.catalog.Cached(ctx, ids)
@@ -210,28 +206,25 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 		if item.Kind != catalog.KindSeries {
 			continue
 		}
-		var latest *catalog.Episode
+		var first *catalog.Episode
 		count := 0
 		for i := range item.Episodes {
 			e := &item.Episodes[i]
+			at := [2]int{e.Season, e.Number}
 			// Specials are extras filed under season 0 with whatever date the
 			// provider had, not the next part of the story.
-			if e.Season == 0 || e.Released.IsZero() || e.Released.After(now) || now.Sub(e.Released) > recent {
-				continue
-			}
-			at := [2]int{e.Season, e.Number}
-			if watched[item.ID][at] || !after(at, furthest[item.ID]) {
+			if e.Season == 0 || e.Released.IsZero() || e.Released.After(now) || !after(at, furthest[item.ID]) {
 				continue
 			}
 			count++
-			if latest == nil || later(*e, *latest) {
-				latest = e
+			if first == nil || after([2]int{first.Season, first.Number}, at) {
+				first = e
 			}
 		}
-		if latest == nil {
+		if first == nil || now.Sub(first.Released) > recent {
 			continue
 		}
-		episode := *latest
+		episode := *first
 		item.Episodes = nil
 		out = append(out, NewEpisode{Item: item, Episode: episode, Count: count})
 	}

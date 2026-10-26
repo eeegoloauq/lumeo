@@ -53,13 +53,16 @@ whose it is. It is an icon, not a character: the type is subset to Latin and
 Cyrillic and a ★ in the text is an empty box.
 
 New episodes are a shelf above the list, and ours rather than a calendar from
-a service that wants an account: every episode out in the last fortnight and
-not watched, of every series the viewer follows. Following is having the
+a service that wants an account: the series the viewer follows whose next
+episode for them, the first after the furthest watched, came out in the last
+fortnight. A series with older episodes still to watch is behind, not new:
+a season airing while the viewer is in the one before is not news to them,
+and Continue watching already has it. Following is having the
 series on the list or having watched any of it — the series somebody is in
 the middle of are exactly the ones whose next episode they wait for, and
 asking them to add each one to a list first leaves the shelf empty for
 everyone who never did. Specials are left out, as they are of what is next.
-One poster per series, on its latest new episode, with how many there are;
+One poster per series, on that next episode, with how many are out from it;
 it opens the title on that episode. The design's NEW badge on each poster is
 not there: the shelf is called New episodes.
 

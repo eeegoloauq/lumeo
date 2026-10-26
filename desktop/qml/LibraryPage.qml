@@ -233,7 +233,7 @@ ShellPage {
             }
 
             // The followed series with something new; one poster each, on
-            // its latest new episode, which it opens onto.
+            // the first new episode, which it opens onto.
             Column {
                 id: fresh
                 objectName: "fresh"

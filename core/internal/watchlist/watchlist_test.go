@@ -122,19 +122,24 @@ func TestAddRefusesWhatTheCatalogueDoesNotKnow(t *testing.T) {
 func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 	m := &memory{
 		items: map[string]catalog.MediaItem{
-			// On the list, never watched: two new episodes, the latest shown.
+			// On the list, never watched, just begun: two out, the first shown.
 			"listed": {ID: "listed", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
-				{Season: 2, Number: 3, Released: day(-20)}, // too old
-				{Season: 2, Number: 4, Released: day(-6)},
-				{Season: 2, Number: 5, Released: day(0)}, // out today
-				{Season: 2, Number: 6, Released: day(7)}, // not out
+				{Season: 1, Number: 1, Released: day(-6)},
+				{Season: 1, Number: 2, Released: day(0)}, // out today
+				{Season: 1, Number: 3, Released: day(7)}, // not out
 			}},
-			// Being watched, not on the list: followed all the same. The new
-			// episode already watched is not new.
+			// Being watched, not on the list: followed all the same.
 			"watching": {ID: "watching", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
 				{Season: 1, Number: 8, Released: day(-8)},
 				{Season: 1, Number: 9, Released: day(-1)},
 				{Season: 0, Number: 1, Released: day(-1)}, // a special
+			}},
+			// In season 1 while season 2 airs: behind, not new.
+			"behind": {ID: "behind", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 4, Released: day(-90)},
+				{Season: 1, Number: 5, Released: day(-83)},
+				{Season: 2, Number: 1, Released: day(-6)},
+				{Season: 2, Number: 2, Released: day(-1)},
 			}},
 			// E13 unwatched behind the watched E14: skipped or seen
 			// elsewhere, not new (seen 2026-09-30).
@@ -155,6 +160,7 @@ func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 		list: []Entry{{ItemID: "listed"}, {ItemID: "film"}},
 		progress: []progress.Entry{
 			{ItemID: "watching", Season: 1, Episode: 8, Watched: true},
+			{ItemID: "behind", Season: 1, Episode: 4, Watched: true},
 			{ItemID: "caught", Season: 1, Episode: 1, Watched: true},
 			{ItemID: "skipped", Season: 1, Episode: 14, Watched: true},
 		},
@@ -166,11 +172,11 @@ func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("new episodes = %+v", got)
 	}
-	if got[0].Item.ID != "listed" || got[0].Episode.Number != 5 || got[0].Count != 2 || got[0].Item.Episodes != nil {
-		t.Errorf("first = %+v, want the listed series at E5, two new", got[0])
+	if got[0].Item.ID != "watching" || got[0].Episode.Number != 9 || got[0].Count != 1 {
+		t.Errorf("first = %+v, want the watched series at E9", got[0])
 	}
-	if got[1].Item.ID != "watching" || got[1].Episode.Number != 9 || got[1].Count != 1 {
-		t.Errorf("second = %+v, want the watched series at E9", got[1])
+	if got[1].Item.ID != "listed" || got[1].Episode.Number != 1 || got[1].Count != 2 || got[1].Item.Episodes != nil {
+		t.Errorf("second = %+v, want the listed series at E1, two out", got[1])
 	}
 }
 
