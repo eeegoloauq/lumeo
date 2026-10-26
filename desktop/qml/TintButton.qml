@@ -15,8 +15,10 @@ AbstractButton {
     focusPolicy: Qt.TabFocus
     opacity: enabled ? 1 : 0.4
     Accessible.name: tip
-    ToolTip.text: tip
-    ToolTip.visible: hovered && tip !== ""
+    ToolTip {
+        text: button.tip
+        visible: button.hovered && button.tip !== ""
+    }
     HoverHandler { cursorShape: Qt.PointingHandCursor }
 
     background: Rectangle {

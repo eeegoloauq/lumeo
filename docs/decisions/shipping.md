@@ -47,14 +47,21 @@ instead of handing itself over to it.
 
 The bundle carries the Qt it was built and tested with: `bin/lumeo`, Qt's
 libraries, ICU, plugins and QML modules under `lib/`, `plugins/` and `qml/`
-(Qt's own deploy script, `desktop/CMakeLists.txt`), with `RUNPATH=$ORIGIN/../lib`.
+(Qt's own deploy script, `desktop/src/CMakeLists.txt`), with `RUNPATH=$ORIGIN/../lib`.
 The distribution's Qt was the alternative: a smaller package, but an rpm built
 against Fedora 44's Qt is not one Fedora 45's runs, a rolling Arch moves Qt
 under a binary between our releases, and Ubuntu's Qt is too old for the
 tarball at all. The cost is that Qt's fixes reach people with our releases. The deploy leaves out
 the system's libraries, the QML debugger, the plugins for devices with no
 desktop and the GTK theme, which would pull GTK in where the portal's theme
-serves. About 30 MB compressed.
+serves. It carries one controls style, Basic, the one the QML imports. Three
+things brought the other five in: the generic `QtQuick.Controls` module, which
+an attached `ToolTip` loads at run time, so a tooltip is declared as an item;
+`QtQuick.Dialogs`, whose fallback dialog comes per style, so the dialogs are
+`QFileDialog`; and the deploy's scan of every QML file under the executable's
+directory, tests and build trees included, so the executable is declared in
+`src/` and the scan is pointed at `qml/`. About 40 MB compressed, the core
+aside.
 
 libmpv comes from the distribution rather than being bundled: it is the one
 dependency where the distribution's build is better than anything we would

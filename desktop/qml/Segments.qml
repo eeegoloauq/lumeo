@@ -37,8 +37,10 @@ Rectangle {
                 focusPolicy: Qt.TabFocus
                 Accessible.role: Accessible.RadioButton
                 Accessible.name: modelData.label
-                ToolTip.text: modelData.tip ?? ""
-                ToolTip.visible: hovered && !!modelData.tip
+                ToolTip {
+                    text: segment.modelData.tip ?? ""
+                    visible: segment.hovered && !!segment.modelData.tip
+                }
                 onClicked: strip.picked(modelData.value)
                 HoverHandler { cursorShape: Qt.PointingHandCursor }
 

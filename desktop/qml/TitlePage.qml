@@ -153,10 +153,13 @@ ShellPage {
                 rate: qsTrId("libraryRatingNotSaved"),
                 clear: qsTrId("libraryRatingNotRemoved"),
             }[what]
-            const near = what === "add" || what === "remove" ? listButton : ratingButton
-            near.ToolTip.show(said, 3000)
+            refusal.parent = what === "add" || what === "remove" ? listButton : ratingButton
+            refusal.show(said, 3000)
         }
     }
+
+    // What the core refused, over the button that asked.
+    ToolTip { id: refusal }
 
     SourceChoice {
         id: copies

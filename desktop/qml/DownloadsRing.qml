@@ -15,10 +15,15 @@ ToolButton {
     implicitHeight: 34
     padding: 0
     focusPolicy: Qt.TabFocus
-    Accessible.name: ToolTip.text
-    ToolTip.text: list.running > 0 ? qsTrId("downloadsRunningTooltip", list.running).arg(Math.round(list.fraction * 100))
-                                   : qsTrId("settingsDownloads")
-    ToolTip.visible: hovered
+    Accessible.name: tip.text
+
+    ToolTip {
+        id: tip
+        text: button.list.running > 0
+              ? qsTrId("downloadsRunningTooltip", button.list.running).arg(Math.round(button.list.fraction * 100))
+              : qsTrId("settingsDownloads")
+        visible: button.hovered
+    }
 
     background: Rectangle {
         radius: height / 2

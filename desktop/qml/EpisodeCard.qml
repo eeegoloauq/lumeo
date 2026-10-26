@@ -70,13 +70,16 @@ AbstractButton {
 
             // The mouse's way to start; the keyboard has Enter.
             AbstractButton {
+                id: play
                 anchors.centerIn: parent
                 width: 56
                 height: 56
                 visible: card.hovered && !card.upcoming
                 focusPolicy: Qt.NoFocus
-                ToolTip.text: qsTrId("itemPlayEpisode").arg(card.episode.number)
-                ToolTip.visible: hovered
+                ToolTip {
+                    text: qsTrId("itemPlayEpisode").arg(card.episode.number)
+                    visible: play.hovered
+                }
                 onClicked: card.played()
 
                 background: Rectangle { radius: width / 2; color: "#ebffffff" }

@@ -94,8 +94,11 @@ Row {
         hoverEnabled: true
         focusPolicy: Qt.TabFocus
         onClicked: line.choose()
-        ToolTip.text: line.choice.picked >= 0 ? line.choice.sources[line.choice.picked].rawName : ""
-        ToolTip.visible: hovered && ToolTip.text !== ""
+        ToolTip {
+            id: release
+            text: line.choice.picked >= 0 ? line.choice.sources[line.choice.picked].rawName : ""
+            visible: what.hovered && release.text !== ""
+        }
         HoverHandler { cursorShape: what.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
 
         background: Rectangle {

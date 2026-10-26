@@ -24,8 +24,10 @@ AbstractButton {
     focusPolicy: Qt.TabFocus
     opacity: enabled ? 1 : 0.4
     Accessible.name: scored ? qsTrId("libraryRatingChange") : qsTrId("libraryRate")
-    ToolTip.text: Accessible.name
-    ToolTip.visible: hovered && !scores.opened
+    ToolTip {
+        text: button.Accessible.name
+        visible: button.hovered && !scores.opened
+    }
     onClicked: scores.opened ? scores.close() : scores.open()
     HoverHandler { cursorShape: Qt.PointingHandCursor }
 

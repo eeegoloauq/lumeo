@@ -22,8 +22,10 @@ ToolButton {
     icon.height: glyphSize
     icon.color: tone
     Accessible.name: tip
-    ToolTip.text: tip
-    ToolTip.visible: hovered && tip !== ""
+    ToolTip {
+        text: button.tip
+        visible: button.hovered && button.tip !== ""
+    }
 
     background: Rectangle {
         radius: height / 2

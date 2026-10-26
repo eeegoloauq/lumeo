@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Dialogs
 import Lumeo
 
 // What plays, chosen in one place (decisions/sources.md): the
@@ -89,12 +88,17 @@ Drawer {
         case "copy":
             choice.choose(row.index, asking)
             break
-        case "link":
+        case "link": {
+            const linked = path => {
+                choice.link(path)
+                drawer.close()
+            }
             if (film)
-                file.open()
+                Desktop.pickFile(qsTrId("itemReleaseFileTitle"), linked)
             else
-                folder.open()
+                Desktop.pickFolder(qsTrId("itemReleaseFolderTitle"), "", linked)
             return
+        }
         case "why":
             if (choice.empty === "addons")
                 drawer.addSource()
@@ -136,23 +140,6 @@ Drawer {
             drawer.refusal = status === 422 ? qsTrId("itemReleaseFolderEmpty")
                                             : qsTrId("itemReleaseNotChosen").arg(reason)
             drawer.open()
-        }
-    }
-
-    FolderDialog {
-        id: folder
-        title: qsTrId("itemReleaseFolderTitle")
-        onAccepted: {
-            drawer.choice.link(decodeURIComponent(selectedFolder.toString().replace(/^file:\/\//, "")))
-            drawer.close()
-        }
-    }
-    FileDialog {
-        id: file
-        title: qsTrId("itemReleaseFileTitle")
-        onAccepted: {
-            drawer.choice.link(decodeURIComponent(selectedFile.toString().replace(/^file:\/\//, "")))
-            drawer.close()
         }
     }
 
@@ -337,10 +324,12 @@ Drawer {
                             // What this machine cannot decode is a fact about the
                             // row, not the film: the same copy plays on the next
                             // machine. Marked rather than hidden.
-                            ToolTip.text: [entry.s.rawName, entry.s.path ?? "",
-                                           MpvFacts.gapSentence(entry.s.release ?? {})].filter(p => p).join("\n")
-                            ToolTip.visible: row.hovered
-                            ToolTip.delay: 600
+                            ToolTip {
+                                text: [entry.s.rawName, entry.s.path ?? "",
+                                       MpvFacts.gapSentence(entry.s.release ?? {})].filter(p => p).join("\n")
+                                visible: row.hovered
+                                delay: 600
+                            }
 
                             Item {
                                 width: parent.width

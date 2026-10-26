@@ -398,7 +398,7 @@ last frame, and credits marked as a chapter still decide on their own. A file
 shorter than twice the notice gets the card at its end, or a short one would
 carry it from its first minute.
 
-The folder chooser is the system's (`FolderDialog`: the portal on Linux,
+The folder chooser is the system's (`QFileDialog`: the portal on Linux,
 `IFileDialog` on Windows). It names this machine's folders, so Change on the
 download folder is offered only when the core is on this machine. Sources
 move with an arrow up and down rather than by dragging, which the keyboard

@@ -21,8 +21,10 @@ AbstractButton {
     focusPolicy: Qt.TabFocus
     enabled: !done && !running
     Accessible.name: tip
-    ToolTip.text: tip
-    ToolTip.visible: hover.hovered && tip !== ""
+    ToolTip {
+        text: button.tip
+        visible: hover.hovered && button.tip !== ""
+    }
     // Hovered even when it cannot be pressed: the tooltip says why.
     HoverHandler { id: hover; cursorShape: button.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
 

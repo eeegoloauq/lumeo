@@ -90,8 +90,10 @@ SettingsBlock {
                                 height: 8
                                 radius: 4
                                 color: row.health[0]
-                                ToolTip.text: row.health[1]
-                                ToolTip.visible: dotHover.hovered
+                                ToolTip {
+                                    text: row.health[1]
+                                    visible: dotHover.hovered
+                                }
                                 HoverHandler { id: dotHover }
                                 Accessible.name: row.health[1]
                             }

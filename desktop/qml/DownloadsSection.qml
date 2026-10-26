@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtCore
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Dialogs
 import Lumeo
 import "format.js" as Format
 
@@ -42,11 +41,6 @@ SettingsBlock {
             value: mb,
             label: mb === 0 ? qsTrId("settingsNoLimit") : qsTrId("settingsMegabytesPerSecond").arg(mb),
         }))
-    }
-
-    function localPath(url) {
-        const path = decodeURIComponent(url.toString().replace(/^file:\/\//, ""))
-        return Qt.platform.os === "windows" ? path.replace(/^\//, "") : path
     }
 
     readonly property string screenshots: LocalSettings.screenshotsDir
@@ -160,12 +154,10 @@ SettingsBlock {
             RowButton {
                 visible: Core.onThisMachine && block.known
                 text: qsTrId("commonChange")
-                onClicked: {
-                    folders.purpose = "videos"
-                    folders.title = qsTrId("settingsDownloadFolderQuestion")
-                    folders.currentFolder = "file://" + coreStatus.downloadDir
-                    folders.open()
-                }
+                onClicked: Desktop.pickFolder(qsTrId("settingsDownloadFolderQuestion"), coreStatus.downloadDir, path => {
+                    if (path !== coreStatus.downloadDir)
+                        block.setPolicy({ downloadDir: path })
+                })
             }
             RowButton {
                 visible: (block.current.downloadDir ?? "") !== ""
@@ -183,30 +175,14 @@ SettingsBlock {
             }
             RowButton {
                 text: qsTrId("commonChange")
-                onClicked: {
-                    folders.purpose = "screenshots"
-                    folders.title = qsTrId("settingsScreenshotsFolderQuestion")
-                    folders.currentFolder = "file://" + block.screenshots
-                    folders.open()
-                }
+                onClicked: Desktop.pickFolder(qsTrId("settingsScreenshotsFolderQuestion"), block.screenshots,
+                                              path => LocalSettings.screenshotsDir = path)
             }
             RowButton {
                 visible: LocalSettings.screenshotsDir !== ""
                 text: qsTrId("settingsDefault")
                 onClicked: LocalSettings.screenshotsDir = ""
             }
-        }
-    }
-
-    FolderDialog {
-        id: folders
-        property string purpose
-        onAccepted: {
-            const path = block.localPath(selectedFolder)
-            if (purpose === "screenshots")
-                LocalSettings.screenshotsDir = path
-            else if (path !== coreStatus.downloadDir)
-                block.setPolicy({ downloadDir: path })
         }
     }
 

@@ -253,8 +253,10 @@ Popup {
         icon.height: 20
         icon.color: Tokens.page
         Accessible.name: tip
-        ToolTip.text: tip
-        ToolTip.visible: hovered
+        ToolTip {
+            text: play.tip
+            visible: play.hovered
+        }
         background: Rectangle {
             radius: height / 2
             color: play.down ? Qt.darker(Theme.accent, 1.15) : Theme.accent

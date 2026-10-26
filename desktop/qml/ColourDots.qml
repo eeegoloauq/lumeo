@@ -30,8 +30,10 @@ Row {
             focusPolicy: Qt.TabFocus
             Accessible.role: Accessible.RadioButton
             Accessible.name: tip
-            ToolTip.text: tip
-            ToolTip.visible: hovered
+            ToolTip {
+                text: dot.tip
+                visible: dot.hovered
+            }
             onClicked: dots.picked(modelData.name)
             HoverHandler { cursorShape: Qt.PointingHandCursor }
 
