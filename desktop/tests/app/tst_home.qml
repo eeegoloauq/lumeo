@@ -50,6 +50,18 @@ Item {
             tryVerify(() => strip.contentX > start, 2000, "the shelf moved")
         }
 
+        // An arrow inside the row's list took the row's hover from it, so it
+        // hid as soon as it was pointed at and came back, over and over.
+        function test_anArrowUnderThePointerStays() {
+            const strip = findChild(findChild(shell, "shelf-movie/top/"), "strip")
+            const arrow = findChild(strip, "on")
+            mouseMove(strip, strip.width - 20, strip.height / 2)
+            tryCompare(arrow, "opacity", 1, 2000)
+            // Two turns of the flicker, which took about 300 ms.
+            wait(600)
+            compare(arrow.opacity, 1)
+        }
+
         // Flickable's wheel dropped the rest of a notch when the next came,
         // so spinning faster scrolled less.
         function test_notchesThatComeQuicklyAddUp() {

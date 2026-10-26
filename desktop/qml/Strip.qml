@@ -7,66 +7,91 @@ import Lumeo
 // the page's, since a row that took it would stop the page wherever the
 // pointer rests; sideways is a trackpad's own gesture, shift with the
 // wheel, and an arrow at each end, shown on hover where there is more.
-ListView {
+// The arrows and the hover sit beside the list, not in it: a Flickable
+// loses its own hover to a child that takes hover, so an arrow inside
+// hid itself as soon as it was pointed at, and came back, over and over.
+FocusScope {
     id: strip
 
     // The index of the card that has the keyboard, or -1.
     property int focused: -1
+    property alias model: list.model
+    property alias delegate: list.delegate
+    property alias spacing: list.spacing
+    property alias topMargin: list.topMargin
+    readonly property alias count: list.count
+    readonly property alias contentX: list.contentX
+    readonly property alias originX: list.originX
+    readonly property alias contentWidth: list.contentWidth
 
-    orientation: ListView.Horizontal
-    spacing: 8
-    leftMargin: Tokens.gutter
-    rightMargin: Tokens.gutter
-    boundsBehavior: Flickable.StopAtBounds
-    // The cards pass the keyboard along themselves, so it moves with the
-    // focus ring rather than with currentIndex.
-    keyNavigationEnabled: false
-    currentIndex: -1
+    function itemAtIndex(index) {
+        return list.itemAtIndex(index)
+    }
+
+    function positionViewAtIndex(index, mode) {
+        list.positionViewAtIndex(index, mode)
+    }
 
     // The first card wholly on screen, for the keyboard arriving from
     // another row.
     function firstShown() {
-        const at = indexAt(contentX + leftMargin + 1, height / 2)
+        const at = list.indexAt(list.contentX + list.leftMargin + 1, list.height / 2)
         return at < 0 ? 0 : at
     }
 
     // Card [index] at the start of the row, after the gutter, as far as the
     // row goes.
     function place(index) {
-        positionViewAtIndex(index, ListView.Beginning)
-        contentX = Math.max(originX - leftMargin,
-                            Math.min(contentX - leftMargin,
-                                     originX + contentWidth + rightMargin - width))
+        list.positionViewAtIndex(index, ListView.Beginning)
+        list.contentX = list.clamp(list.contentX - list.leftMargin)
     }
 
     function focusCard(index) {
         if (index < 0 || index >= count)
             return false
-        positionViewAtIndex(index, ListView.Contain)
-        itemAtIndex(index)?.forceActiveFocus(Qt.TabFocusReason)
+        list.positionViewAtIndex(index, ListView.Contain)
+        list.itemAtIndex(index)?.forceActiveFocus(Qt.TabFocusReason)
         return true
     }
 
     function step(direction) {
         const page = width * 0.8 * direction
-        slide.to = Math.max(originX - leftMargin,
-                            Math.min(contentX + page, originX + contentWidth + rightMargin - width))
+        slide.to = list.clamp(list.contentX + page)
         slide.restart()
     }
 
     Keys.onLeftPressed: event => event.accepted = focused >= 0 && focusCard(focused - 1)
     Keys.onRightPressed: event => event.accepted = focused >= 0 && focusCard(focused + 1)
 
-    NumberAnimation { id: slide; target: strip; property: "contentX"; duration: 320; easing.type: Easing.OutCubic }
+    ListView {
+        id: list
+
+        // contentX held to the row's two ends.
+        function clamp(x) {
+            return Math.max(originX - leftMargin, Math.min(x, originX + contentWidth + rightMargin - width))
+        }
+
+        anchors.fill: parent
+        focus: true
+        orientation: ListView.Horizontal
+        spacing: 8
+        leftMargin: Tokens.gutter
+        rightMargin: Tokens.gutter
+        boundsBehavior: Flickable.StopAtBounds
+        // The cards pass the keyboard along themselves, so it moves with the
+        // focus ring rather than with currentIndex.
+        keyNavigationEnabled: false
+        currentIndex: -1
+    }
+
+    NumberAnimation { id: slide; target: list; property: "contentX"; duration: 320; easing.type: Easing.OutCubic }
 
     WheelHandler {
         acceptedModifiers: Qt.ShiftModifier
         orientation: Qt.Vertical
         onWheel: event => {
             const delta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 120 * 72
-            strip.contentX = Math.max(strip.originX - strip.leftMargin,
-                                      Math.min(strip.contentX - delta,
-                                               strip.originX + strip.contentWidth + strip.rightMargin - strip.width))
+            list.contentX = list.clamp(list.contentX - delta)
         }
     }
 
@@ -91,17 +116,17 @@ ListView {
     }
 
     Arrow {
-        parent: strip
+        objectName: "back"
         anchors.left: parent.left
         glyph: "chevron_left"
-        shown: hover.hovered && !strip.atXBeginning
+        shown: hover.hovered && !list.atXBeginning
         onPressed: strip.step(-1)
     }
     Arrow {
-        parent: strip
+        objectName: "on"
         anchors.right: parent.right
         glyph: "chevron_right"
-        shown: hover.hovered && !strip.atXEnd
+        shown: hover.hovered && !list.atXEnd
         onPressed: strip.step(1)
     }
 }
