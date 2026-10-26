@@ -84,6 +84,10 @@ qt_add_qml_module(lumeo
     qml/SettingsCard.qml
     qml/SubtitleSample.qml
     qml/ColourDots.qml
+    qml/Confirm.qml
+    qml/DownloadsSection.qml
+    qml/RowButton.qml
+    qml/StorageBar.qml
     qml/ErrorRow.qml
     qml/GeneralSection.qml
     qml/NumberDialog.qml
@@ -140,6 +144,7 @@ qt_add_qml_module(lumeo
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp
     src/api/languages.h src/api/languages.cpp
+    src/api/storage.h src/api/storage.cpp
     src/platform/folders.h src/platform/folders.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/language.h src/platform/language.cpp

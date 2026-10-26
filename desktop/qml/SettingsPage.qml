@@ -10,12 +10,13 @@ import Lumeo
 ShellPage {
     id: page
 
-    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles"]
+    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads"]
     readonly property var titles: ({
         general: qsTrId("settingsGeneral"),
         appearance: qsTrId("settingsAppearance"),
         playback: qsTrId("settingsPlayback"),
         audioSubtitles: qsTrId("settingsAudioSubtitles"),
+        downloads: qsTrId("settingsDownloads"),
     })
     // The section a preference was last changed from: the core's refusal is
     // said there, not at the top of a page scrolled away.
@@ -39,6 +40,8 @@ ShellPage {
             return "playback"
         if (key === "audioLanguages" || key.startsWith("subtitle"))
             return "audioSubtitles"
+        if (["keep", "keepDays", "diskLimit", "prefetch", "downloadDir", "uploadLimit", "downloadLimit"].includes(key))
+            return "downloads"
         return ""
     }
 
@@ -88,6 +91,7 @@ ShellPage {
 
     Flickable {
         id: view
+        objectName: "view"
         anchors.fill: parent
         topMargin: page.barHeight
         contentHeight: column.height + 96
@@ -105,11 +109,13 @@ ShellPage {
             AppearanceSection { settings: page }
             PlaybackSection { settings: page }
             AudioSubtitlesSection { settings: page }
+            DownloadsSection { settings: page }
         }
     }
 
     NumberAnimation {
         id: going
+        objectName: "going"
         property string section
         target: view
         property: "contentY"

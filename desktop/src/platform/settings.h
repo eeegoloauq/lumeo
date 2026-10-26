@@ -22,7 +22,7 @@ class LocalSettings : public QObject {
   // Frames over the seek bar, from a second mpv on the same file.
   Q_PROPERTY(bool timelinePreviews READ timelinePreviews WRITE setTimelinePreviews NOTIFY changed)
   // Where screenshots go; empty for Pictures/Lumeo.
-  Q_PROPERTY(QString screenshotsDir READ screenshotsDir NOTIFY changed)
+  Q_PROPERTY(QString screenshotsDir READ screenshotsDir WRITE setScreenshotsDir NOTIFY changed)
   // The interface's language as a code from `languages`; empty follows the
   // system.
   Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
@@ -39,6 +39,7 @@ public:
   bool timelinePreviews() const { return m_values.value("timelinePreviews").toBool(true); }
   void setTimelinePreviews(bool on) { set("timelinePreviews", on); }
   QString screenshotsDir() const { return m_values.value("screenshotsDir").toString(); }
+  void setScreenshotsDir(const QString &dir) { set("screenshotsDir", dir); }
   QString language() const;
   void setLanguage(const QString &code);
   QVariantList languages() const { return m_languages; }

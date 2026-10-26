@@ -242,7 +242,8 @@ order with the way back to a title, Shortcuts read from mpv, About with
 what a report needs in one copy (`settings/`). Each section's rows sit on a
 card with their controls at its right edge. Text size waits for a scale the
 QML can apply, its sizes being set per item; the background and login rows
-come with step 4.
+come with step 4, and how long a finished download stays in the panel
+with the panel. The folders are chosen in the system's `FolderDialog`.
 
 **Downloads panel.** interface.md, the panel grouped by what can be done; the
 rows, season rows, time left and what a row waits on (`download_rows.dart`);

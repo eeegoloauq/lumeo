@@ -23,8 +23,18 @@ Item {
             return fakeCore.requests.slice(asked).filter(r => r.startsWith("PATCH /api/v1/preferences"))
         }
 
+        function deletes() {
+            return fakeCore.requests.slice(asked).filter(r => r.startsWith("DELETE "))
+        }
+
         function init() {
             fakeCore.answer("PATCH", "/api/v1/preferences", 200, fakeCore.read("preferences.json"))
+            fakeCore.answer("GET", "/api/v1/storage", 200, {
+                used: 6442450944, cache: 1048576, disk: { total: 500e9, free: 200e9 },
+                titles: fakeCore.read("storage-titles.json"),
+            })
+            fakeCore.answer("GET", "/api/v1/about", 200, fakeCore.read("about.json"))
+            fakeCore.answer("DELETE", "/api/v1/storage", 204)
             shell = createTemporaryObject(shellComponent, window)
             mouseClick(findChild(shell, "tab-settings"))
             page = findChild(shell, "settings")
@@ -92,6 +102,56 @@ Item {
             mouseClick(findChild(findChild(list, "language-en"), "remove"))
             tryVerify(() => patches().length === 2, 2000)
             verify(patches()[1].includes('"subtitleLanguages":[]'), patches()[1])
+        }
+    
+        function onDisk() {
+            mouseClick(findChild(page, "nav-downloads"))
+            tryCompare(page, "lit", "downloads")
+            const list = findChild(page, "onDisk")
+            tryVerify(() => findChild(list, "title-tt2543164") !== null, 2000, "what is on disk")
+            tryVerify(() => !findChild(page, "going")?.running, 2000)
+            // Down to the list, as a viewer would scroll.
+            const view = findChild(page, "view")
+            view.contentY = Math.min(list.mapToItem(view.contentItem, 0, 0).y - 200,
+                                     view.contentHeight - view.height)
+            waitForRendering(page)
+            return list
+        }
+
+        function test_aTitleOnDiskIsFreedAndTheListReadAgain() {
+            const list = onDisk()
+            const reads = fakeCore.requests.filter(r => r.startsWith("GET /api/v1/storage")).length
+            mouseClick(findChild(findChild(list, "title-tt2543164"), "delete"))
+            tryVerify(() => deletes().length === 1, 2000)
+            compare(deletes()[0].split(" ")[1], "/api/v1/storage?item=tt2543164")
+            tryVerify(() => fakeCore.requests.filter(r => r.startsWith("GET /api/v1/storage")).length > reads,
+                      2000, "read again")
+        }
+
+        // Everything goes only once it has been asked about.
+        function test_deleteAllAsksFirst() {
+            onDisk()
+            mouseClick(findChild(page, "deleteAll"))
+            const confirm = findChild(window.Overlay.overlay, "confirm")
+            tryVerify(() => confirm?.visible === true, 2000, "the question")
+            compare(deletes().length, 0)
+            mouseClick(confirm)
+            tryVerify(() => deletes().length === 1, 2000)
+            compare(deletes()[0].split(" ")[1], "/api/v1/storage")
+        }
+
+        // The limit is asked in gigabytes and kept in bytes.
+        function test_aCustomDiskLimitIsSentInBytes() {
+            onDisk()
+            mouseClick(findChild(findChild(page, "diskLimit"), "segment--1"))
+            const field = findChild(window.Overlay.overlay, "number")
+            tryVerify(() => field?.activeFocus === true, 2000, "the question")
+            keyClick(Qt.Key_A, Qt.ControlModifier)
+            for (const digit of "250")
+                keyClick(digit)
+            keyClick(Qt.Key_Return)
+            tryVerify(() => patches().length === 1, 2000)
+            verify(patches()[0].includes('"diskLimit":268435456000'), patches()[0])
         }
     }
 }
