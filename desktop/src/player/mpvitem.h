@@ -37,7 +37,6 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(double volume READ volume NOTIFY volumeChanged)
   Q_PROPERTY(bool muted READ muted NOTIFY mutedChanged)
   Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
-  Q_PROPERTY(bool fullscreen READ fullscreen NOTIFY fullscreenChanged)
   Q_PROPERTY(QString hwdec READ hwdec NOTIFY hwdecChanged)
   // Waiting for the cache to fill, not paused or seeking.
   Q_PROPERTY(bool buffering READ buffering NOTIFY bufferingChanged)
@@ -81,7 +80,6 @@ public:
   double volume() const { return m_volume; }
   bool muted() const { return m_muted; }
   double speed() const { return m_speed; }
-  bool fullscreen() const { return m_fullscreen; }
   QString hwdec() const { return m_hwdec; }
   bool buffering() const { return m_buffering; }
   bool ended() const { return m_ended; }
@@ -145,7 +143,6 @@ signals:
   void volumeChanged();
   void mutedChanged();
   void speedChanged();
-  void fullscreenChanged();
   void hwdecChanged();
   void bufferingChanged();
   void endedChanged();
@@ -184,7 +181,6 @@ private:
   double m_volume = 100;
   bool m_muted = false;
   double m_speed = 1;
-  bool m_fullscreen = false;
   QString m_hwdec;
   bool m_buffering = false;
   bool m_ended = false;

@@ -72,14 +72,13 @@ the interface waits on mpv").
 
 No key is ours. The player's own actions are bindings in an mpv input
 section (`ESC` → `script-message lumeo escape`, `q` → `script-message lumeo
-back`, `c` → `script-message lumeo tracks`, `F11` → `cycle fullscreen`,
-`MBTN_LEFT` → `cycle pause`), and the
+back`, `c` → `script-message lumeo tracks`, `f`, `F11` and `MBTN_LEFT_DBL`
+→ `script-message lumeo fullscreen`, `MBTN_LEFT` → `cycle pause`), and the
 player answers the `client-message` it reads among mpv's events. mpv's
 precedence then decides: the console's forced bindings win while it is open,
 and a user's input.conf can rebind our actions. The same client hears the
 core's shutdown, so any binding to `quit` closes the player instead of leaving
-a dead picture. `f` toggles mpv's `fullscreen` property, and the window
-follows it. Esc undoes one thing at a time, as mpv and the browsers do: an open
+a dead picture. Esc undoes one thing at a time, as mpv and the browsers do: an open
 menu, then fullscreen, then the film; `q` leaves at once. A film takes the
 screen when it starts, so one stray Esc used to end it.
 
@@ -150,9 +149,13 @@ and the one time anybody wants that is a film mixed so quietly the dialogue
 disappears. The slider goes there.
 
 **Fullscreen is the window's.** The window goes fullscreen and the player
-stays the item it was, with its mpv and its state; `f` toggles mpv's
-`fullscreen` property and the window follows it, and a window that leaves
-fullscreen by other means tells mpv, so `f` keeps going the right way.
+stays the item it was, with its mpv and its state. The window is the one
+owner of it: `f`, F11 and the double click ask the player, which asks the
+window and reads it back, and mpv's own `fullscreen` flag is not used, so a
+window left by the desktop's own shortcut is still what `f` toggles. Mirroring
+mpv's flag and the window both ways took a stale state the compositor
+reported as a window opening fullscreen for the viewer leaving fullscreen,
+and the film fell out of it.
 
 **A film takes the screen.** Playing left the window exactly as it was, which
 on a maximised window means the desktop's own panel sits across the top of the

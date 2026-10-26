@@ -60,7 +60,7 @@ QString ownLabel(const QString &cmd) {
     return qtTrId("playerShortcutBack");
   if (cmd == "script-message lumeo tracks")
     return qtTrId("playerShortcutTracks");
-  if (cmd == "cycle fullscreen")
+  if (cmd == "script-message lumeo fullscreen")
     return qtTrId("playerShortcutFullscreen");
   return {};
 }
@@ -101,7 +101,7 @@ QString commandLabel(const QString &cmd) {
 // Bindings with nothing to act on here: quitting, the playlist, mpv's own
 // window and its scripts' panels.
 bool actsHere(const QString &cmd) {
-  for (const char *dead : {"ignore", "quit", "playlist-", "set fullscreen", "cycle ontop",
+  for (const char *dead : {"ignore", "quit", "playlist-", "set fullscreen", "cycle fullscreen", "cycle ontop",
                            "set current-window-scale", "script-binding osc/",
                            "script-binding console/"})
     if (cmd.startsWith(QLatin1String(dead)))
@@ -453,7 +453,10 @@ QStringList MpvFacts::ownBindings(int seekStep) {
       "ESC script-message lumeo escape",
       "q script-message lumeo back",
       "c script-message lumeo tracks",
-      "F11 cycle fullscreen",
+      // The window is fullscreen or not, not mpv: these ask the player.
+      "f script-message lumeo fullscreen",
+      "F11 script-message lumeo fullscreen",
+      "MBTN_LEFT_DBL script-message lumeo fullscreen",
       QString("LEFT seek -%1").arg(seekStep),
       QString("RIGHT seek %1").arg(seekStep),
   };

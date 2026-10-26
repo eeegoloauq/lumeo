@@ -20,6 +20,7 @@ Item {
     }
 
     SignalSpy { id: closed; signalName: "closed" }
+    SignalSpy { id: fullscreenAsked; signalName: "fullscreenAsked" }
 
     TestCase {
         id: test
@@ -141,11 +142,14 @@ Item {
 
         function test_escLeavesFullscreenFirstThenTheFilm() {
             playing()
-            player.mpv.set("fullscreen", true)
-            tryVerify(() => player.mpv.fullscreen)
+            fullscreenAsked.target = player
+            fullscreenAsked.clear()
+            player.fullscreen = true
             keyClick(Qt.Key_Escape)
-            tryVerify(() => !player.mpv.fullscreen, 5000, "Esc leaves fullscreen")
+            tryCompare(fullscreenAsked, "count", 1, 5000, "Esc leaves fullscreen")
+            compare(fullscreenAsked.signalArguments[0][0], false)
             compare(closed.count, 0)
+            player.fullscreen = false
             keyClick(Qt.Key_Escape)
             tryCompare(closed, "count", 1, 5000, "the second Esc leaves the film")
         }
@@ -210,7 +214,7 @@ Item {
         // A film takes the screen when it starts, and closing it gives the
         // window back as it was (decisions/player.md).
         function test_aFilmTakesTheScreenAndGivesItBack() {
-            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            const win = createTemporaryObject(windowComponent, null)
             tryVerify(() => win.visible, 5000, "the window up")
             compare(win.visibility, Window.Windowed)
             win.play("d1", "Nosferatu", true)
@@ -224,13 +228,14 @@ Item {
         // A window made fullscreen with F11 is fullscreen again after the film,
         // and the film's own `f` leaves fullscreen for a window, not for it.
         function test_aFilmGivesBackAFullscreenWindow() {
-            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            const win = createTemporaryObject(windowComponent, null)
             tryVerify(() => win.visible, 5000)
             win.visibility = Window.FullScreen
             tryVerify(() => win.visibility === Window.FullScreen, 5000)
             win.play("d1", "Nosferatu", true)
             tryVerify(() => win.player.mpv.hasPicture, 10000)
-            win.player.mpv.set("fullscreen", false)
+            // The key through mpv's input, as a press reaches it.
+            win.player.mpv.command(["keypress", "f"])
             tryVerify(() => win.visibility === Window.Windowed, 5000, "f leaves fullscreen")
             win.player.close()
             tryVerify(() => win.visibility === Window.FullScreen, 5000, "the window given back fullscreen")
@@ -239,7 +244,7 @@ Item {
         // Another copy or episode in the same sitting keeps the window as it
         // is; the one before goes, its position saved.
         function test_theNextDownloadTakesTheWindowInTheSameSitting() {
-            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            const win = createTemporaryObject(windowComponent, null)
             tryVerify(() => win.visible, 5000)
             win.play("d1", "Nosferatu", true)
             tryVerify(() => win.visibility === Window.FullScreen, 5000)
@@ -257,7 +262,7 @@ Item {
         // Closing the window ends the process: the position is saved while
         // the core still answers, and mpv goes before the window does.
         function test_closingTheWindowMidFilmSavesThePosition() {
-            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            const win = createTemporaryObject(windowComponent, null)
             tryVerify(() => win.visible, 5000)
             win.play("d1", "Nosferatu", true)
             tryVerify(() => !!win.player && win.player.mpv.position > 1, 10000, "the film playing")

@@ -16,7 +16,10 @@ FocusScope {
     required property string name
 
     readonly property alias mpv: mpv
-    readonly property bool fullscreen: mpv.fullscreen
+    // The window's, which the player only asks for: mpv's own fullscreen is
+    // not used, so the window and mpv cannot disagree.
+    property bool fullscreen: false
+    signal fullscreenAsked(bool on)
     readonly property alias playback: session
 
     // The film is left: the window goes back to the pages.
@@ -102,10 +105,12 @@ FocusScope {
                 player.toggleMenu("tracks")
             else if (name === "escape" && player.menu !== "")
                 player.menu = ""
-            else if (name === "back" || (name === "escape" && !mpv.fullscreen))
+            else if (name === "fullscreen")
+                player.fullscreenAsked(!player.fullscreen)
+            else if (name === "back" || (name === "escape" && !player.fullscreen))
                 player.close()
             else if (name === "escape")
-                mpv.set("fullscreen", false)
+                player.fullscreenAsked(false)
         }
     }
 
@@ -540,10 +545,10 @@ FocusScope {
 
                 PlayerButton {
                     objectName: "fullscreen"
-                    glyph: mpv.fullscreen ? "fullscreen_exit" : "fullscreen"
-                    tip: mpv.fullscreen ? qsTrId("playerExitFullscreen") : qsTrId("playerFullscreen")
+                    glyph: player.fullscreen ? "fullscreen_exit" : "fullscreen"
+                    tip: player.fullscreen ? qsTrId("playerExitFullscreen") : qsTrId("playerFullscreen")
                     // mpv's `f` and the button toggle the same property.
-                    onClicked: mpv.command(["cycle", "fullscreen"])
+                    onClicked: player.fullscreenAsked(!player.fullscreen)
                 }
             }
         }

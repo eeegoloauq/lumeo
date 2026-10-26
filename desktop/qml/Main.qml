@@ -71,22 +71,18 @@ ApplicationWindow {
         player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name, kept: kept})
         player.forceActiveFocus()
         // Another copy or episode in the same sitting keeps the window as it
-        // is, and mpv is told so that its `f` goes the right way.
-        player.mpv.set("fullscreen", sitting ? visibility === Window.FullScreen : true)
+        // is.
+        if (!sitting)
+            visibility = Window.FullScreen
         if (sitting) {
             sitting.handedOver = true
             sitting.close()
         }
     }
 
-    // A window that leaves fullscreen by other means takes mpv along, so
-    // that its `f` goes the right way.
     onVisibilityChanged: {
         if (window.visibility === Window.Windowed || window.visibility === Window.Maximized)
             window.windowed = window.visibility
-        const full = window.visibility === Window.FullScreen
-        if (player && !player.playback.closing && player.mpv.fullscreen !== full)
-            player.mpv.set("fullscreen", full)
     }
 
     // Into the background the film goes with the window: playing on behind
@@ -256,7 +252,12 @@ ApplicationWindow {
             id: film
             property bool kept: true
             anchors.fill: parent
-            onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.windowed
+            // The window is the one owner of fullscreen: a film asks, and
+            // reads it back. mpv's own flag, mirrored both ways, took a stale
+            // state the compositor reported for the viewer leaving
+            // fullscreen.
+            fullscreen: window.visibility === Window.FullScreen
+            onFullscreenAsked: on => window.visibility = on ? Window.FullScreen : window.windowed
             onNext: (downloadId, name) => window.play(downloadId, name, film.kept)
             onStorage: {
                 film.close()

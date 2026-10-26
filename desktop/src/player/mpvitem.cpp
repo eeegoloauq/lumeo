@@ -35,7 +35,6 @@ enum Observed : uint64_t {
   Volume,
   Muted,
   Speed,
-  Fullscreen,
   Hwdec,
   Buffering,
   Ended,
@@ -357,7 +356,6 @@ MpvItem::MpvItem(QQuickItem *parent)
       {Volume, {"volume", MPV_FORMAT_DOUBLE}},
       {Muted, {"mute", MPV_FORMAT_FLAG}},
       {Speed, {"speed", MPV_FORMAT_DOUBLE}},
-      {Fullscreen, {"fullscreen", MPV_FORMAT_FLAG}},
       {Hwdec, {"hwdec-current", MPV_FORMAT_STRING}},
       {Buffering, {"paused-for-cache", MPV_FORMAT_FLAG}},
       {Ended, {"eof-reached", MPV_FORMAT_FLAG}},
@@ -589,8 +587,7 @@ void MpvItem::drainEvents() {
 }
 
 // Announced only when the value changes: mpv first reports what it starts
-// with, and a window that follows `fullscreen` would leave fullscreen for the
-// moment before mpv is told otherwise.
+// with, which is no news to anyone following a property.
 void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   const void *data = property->format == MPV_FORMAT_NONE ? nullptr : property->data;
   const bool flag = data && *static_cast<const int *>(data);
@@ -626,9 +623,6 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
     break;
   case Speed:
     update(m_speed, data ? number : 1.0, &MpvItem::speedChanged);
-    break;
-  case Fullscreen:
-    update(m_fullscreen, flag, &MpvItem::fullscreenChanged);
     break;
   case Hwdec:
     update(m_hwdec, text, &MpvItem::hwdecChanged);
