@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QQmlEngine>
 #include <QRegularExpression>
+#include <QStandardPaths>
 
 Playback::Playback(QObject *parent) : QObject(parent) {
   m_poll.setSingleShot(true);
@@ -41,6 +42,7 @@ void Playback::componentComplete() {
                       engine->singletonInstance<Downloads *>("Lumeo", "Downloads"), this);
     connect(m_next, &Next::watched, this, [this] { report(true); });
     emit tracksChanged();
+    applyScreenshots();
   }
   refresh();
 }
@@ -160,6 +162,12 @@ void Playback::open() {
     m_mpv->open(m_core->url(path).toString(), m_core->headers());
     m_tracks->opened();
     m_next->opened();
+    // A fresh one per open: a stream that failed failed for it too. Off in
+    // the settings, the second mpv never starts.
+    delete m_previews;
+    m_previews = m_settings->timelinePreviews()
+                     ? new Previews(m_core->url(path).toString(), m_core->headers(), this)
+                     : nullptr;
     emit changed();
     resume();
   });
@@ -179,8 +187,10 @@ void Playback::loadItem() {
                 for (const QJsonValue &e : item["episodes"].toArray())
                   if (e["season"].toInt() == season && e["number"].toInt() == episode)
                     m_episodeTitle = e["title"].toString();
-                if (m_openedUnnamed == 1)
+                if (m_openedUnnamed == 1) {
                   m_named = item["title"].toString();
+                  applyScreenshots();
+                }
                 emit changed();
               });
   if (episode > 0)
@@ -254,6 +264,28 @@ void Playback::defineBindings() {
     for (const QVariant &binding : value.toList())
       m_mpv->bound.insert(binding.toMap().value("key").toString());
   });
+}
+
+// mpv's own folder is the process's working directory, often `/` for an app
+// started from the menu, where a screenshot fails: the one chosen in the
+// settings, else Pictures/Lumeo, and the film's name on each.
+void Playback::applyScreenshots() {
+  const QString pictures = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+  const QString chosen = m_settings->screenshotsDir();
+  const QString folder = !chosen.isEmpty() ? chosen : pictures.isEmpty() ? QString() : pictures + "/Lumeo";
+  if (!folder.isEmpty())
+    m_mpv->set("screenshot-dir", folder);
+  // `%` is mpv's; what a file name cannot hold becomes a dash.
+#ifdef Q_OS_WIN
+  static const QRegularExpression unsafe(R"([\\/:*?"<>|])");
+#else
+  static const QRegularExpression unsafe("/");
+#endif
+  QString name = title().replace('%', "%%").replace(unsafe, "-").trimmed();
+  if (name.isEmpty())
+    name = "Lumeo";
+  // Frames grabbed while paused share a time; `%n` keeps them apart.
+  m_mpv->set("screenshot-template", name + " %P %#01n");
 }
 
 bool Playback::dueToOpen() const {

@@ -3,7 +3,9 @@
 #include "language.h"
 #include "mpvitem.h"
 
+#include <QDir>
 #include <QFile>
+#include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlContext>
@@ -17,6 +19,14 @@
 
 Q_IMPORT_QML_PLUGIN(LumeoPlugin)
 
+// What a test reads off the disk.
+class Disk : public QObject {
+  Q_OBJECT
+
+public:
+  Q_INVOKABLE QStringList list(const QString &dir) const { return QDir(dir).entryList(QDir::Files); }
+};
+
 // What only a real libmpv can show, on headless Weston: tool/player-test.sh
 // runs it with the clips it makes, which the fake core streams as downloads:
 // d1 a test card in two chapters, dt one with tracks, e1 an episode with a
@@ -26,6 +36,7 @@ class Setup : public QObject {
 
   std::unique_ptr<FakeCore> fake;
   QTemporaryDir config;
+  Disk disk;
 
 public slots:
   void applicationAvailable() {
@@ -33,8 +44,15 @@ public slots:
     std::setlocale(LC_NUMERIC, "C");
     // llvmpipe cannot draw mpv's default scalers in time.
     MpvItem::profile = "fast";
-    // client.json is the test's, not the machine's.
+    // client.json is the test's, not the machine's, and so are the
+    // screenshots it sends to a folder of their own.
     qputenv("XDG_CONFIG_HOME", config.path().toUtf8());
+    QDir().mkpath(config.filePath("lumeo"));
+    QFile settings(config.filePath("lumeo/client.json"));
+    if (!settings.open(QIODevice::WriteOnly))
+      qFatal("no client.json for the tests");
+    settings.write(QJsonDocument(QJsonObject{{"screenshotsDir", config.filePath("shots")}}).toJson());
+    settings.close();
     fake = std::make_unique<FakeCore>();
     if (!fake->listen())
       qFatal("the fake core could not listen");
@@ -61,6 +79,8 @@ public slots:
 
   void qmlEngineAvailable(QQmlEngine *engine) {
     engine->rootContext()->setContextProperty("fakeCore", fake.get());
+    engine->rootContext()->setContextProperty("screenshots", config.filePath("shots"));
+    engine->rootContext()->setContextProperty("disk", &disk);
   }
 };
 

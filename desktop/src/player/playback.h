@@ -1,6 +1,7 @@
 #pragma once
 
 #include "next.h"
+#include "previews.h"
 #include "tracks.h"
 
 #include <QDateTime>
@@ -42,6 +43,8 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_PROPERTY(bool opened READ opened NOTIFY changed)
   Q_PROPERTY(Tracks *tracks READ tracks NOTIFY tracksChanged)
   Q_PROPERTY(Next *next READ next NOTIFY tracksChanged)
+  // The seek bar's frames, made again with each open; null when they are off.
+  Q_PROPERTY(Previews *previews READ previews NOTIFY changed)
   // The title's episodes, for the episodes panel; empty for a film.
   Q_PROPERTY(QVariantList episodes READ episodes NOTIFY changed)
   // How long an episode runs, as the catalogue says; empty when it does not.
@@ -81,6 +84,7 @@ public:
   bool opened() const { return m_opened; }
   Tracks *tracks() const { return m_tracks; }
   Next *next() const { return m_next; }
+  Previews *previews() const { return m_previews; }
   QVariantList episodes() const { return m_episodes; }
   QString runtime() const { return m_runtime; }
   QVariantMap watching() const { return m_watching; }
@@ -136,6 +140,7 @@ private:
   void loadItem();
   void resume();
   void defineBindings();
+  void applyScreenshots();
   void onLoadFailed();
   void onLogged(const QString &line);
   void onPicture();
@@ -147,6 +152,7 @@ private:
   QPointer<MpvItem> m_mpv;
   Tracks *m_tracks = nullptr;
   Next *m_next = nullptr;
+  Previews *m_previews = nullptr;
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;

@@ -17,6 +17,8 @@ Slider {
     property real acquired: 0
     // mpv's chapter list: [{time, title}].
     property var chapters: []
+    // The frames under the pointer; null when they are off.
+    property Previews previews: null
 
     readonly property bool playable: duration > 0
     // Where the pointer is or the thumb is being dragged, 0 to 1; -1 when
@@ -50,6 +52,15 @@ Slider {
     }
 
     HoverHandler { id: hover }
+
+    onPointedChanged: {
+        if (!previews)
+            return
+        if (pointed >= 0 && playable)
+            previews.show(pointed * duration)
+        else
+            previews.hide()
+    }
 
     background: Item {
         Rectangle {
@@ -107,6 +118,25 @@ Slider {
         anchors.bottom: parent.top
         anchors.bottomMargin: 6
         spacing: 4
+
+        // Never wider than the bar, its edge included.
+        Rectangle {
+            readonly property size frame: bar.previews?.frameSize ?? Qt.size(0, 0)
+            readonly property real across: Math.min(Math.max(160, Math.min(320, bar.width * 0.18)), bar.width - 4)
+
+            objectName: "previewFrame"
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: frame.width > 0
+            width: across + 4
+            height: (frame.width > 0 ? Math.min(across, across * frame.height / frame.width) : 0) + 4
+            radius: 8
+            color: "white"
+
+            FrameView {
+                anchors { fill: parent; margins: 2 }
+                image: bar.previews?.frame ?? null
+            }
+        }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter

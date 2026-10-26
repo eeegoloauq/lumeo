@@ -346,6 +346,7 @@ FocusScope {
                 duration: mpv.duration
                 time: mpv.position
                 chapters: mpv.chapters
+                previews: session.previews
                 acquired: {
                     const progress = session.download.progress ?? {}
                     return progress.total > 0 ? progress.completed / progress.total : 0
