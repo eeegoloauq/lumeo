@@ -197,7 +197,7 @@ ShellPage {
         contentHeight: banner.height + (page.series ? block.height : 0)
         boundsBehavior: Flickable.StopAtBounds
 
-        WheelScroll { view: view }
+        WheelScroll { flickable: view }
 
         // What a series' banner leaves room for under it: the seasons, the
         // line about the current episode and a whole card of the strip.

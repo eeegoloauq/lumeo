@@ -8,7 +8,7 @@ import QtQuick
 WheelHandler {
     id: wheel
 
-    required property Flickable view
+    required property Flickable flickable
     // How long a glide takes; a test sets 0.
     property int duration: 260
 
@@ -19,21 +19,21 @@ WheelHandler {
     orientation: Qt.Vertical
 
     onWheel: event => {
-        const top = view.originY - view.topMargin
-        const bottom = Math.max(top, view.originY + view.contentHeight + view.bottomMargin - view.height)
+        const top = flickable.originY - flickable.topMargin
+        const bottom = Math.max(top, flickable.originY + flickable.contentHeight + flickable.bottomMargin - flickable.height)
         const clamp = y => Math.max(top, Math.min(y, bottom))
         if (event.phase !== Qt.NoScrollPhase) {
             glide.stop()
-            view.contentY = clamp(view.contentY - event.pixelDelta.y)
+            flickable.contentY = clamp(flickable.contentY - event.pixelDelta.y)
             return
         }
-        goal = clamp((glide.running ? goal : view.contentY) - event.angleDelta.y / 120 * step)
+        goal = clamp((glide.running ? goal : flickable.contentY) - event.angleDelta.y / 120 * step)
         glide.to = goal
         glide.restart()
     }
 
     property NumberAnimation glide: NumberAnimation {
-        target: wheel.view
+        target: wheel.flickable
         property: "contentY"
         duration: wheel.duration
         easing.type: Easing.OutCubic
@@ -41,7 +41,7 @@ WheelHandler {
 
     // A drag takes over from a glide.
     property Connections dragging: Connections {
-        target: wheel.view
-        function onDraggingChanged() { if (wheel.view.dragging) wheel.glide.stop() }
+        target: wheel.flickable
+        function onDraggingChanged() { if (wheel.flickable.dragging) wheel.glide.stop() }
     }
 }
