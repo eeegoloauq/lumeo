@@ -33,3 +33,7 @@ set_tests_properties(app PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 qt_add_executable(player_test player/main.cpp)
 target_link_libraries(player_test PRIVATE lumeo lumeoplugin fakecore Qt6::QuickTest)
 target_compile_definitions(player_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/player")
+
+# qmllint as a test, so every ctest run has it; qml/.qmllint.ini makes a
+# warning fail it.
+add_test(NAME qmllint COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target lumeo_qmllint)

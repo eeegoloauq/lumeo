@@ -53,13 +53,15 @@ Code for one OS goes in `_unix.go` / `_windows.go` files, which is why the Windo
 Client, from `desktop/`:
 
     cmake --build --preset dev
-    ctest --test-dir build/dev --output-on-failure    # units and app tests, under a minute
+    ctest --test-dir build/dev --output-on-failure    # units, app tests and qmllint, under a minute
     tool/player-test.sh                               # the player on a headless Weston, about two
 
 Tests go in the lowest layer that can show the behaviour, once: units under QtTest in
 `desktop/tests/*_test.cpp`, the whole app over the fake core in `desktop/tests/app/`, and only what
 needs a real libmpv in `desktop/tests/player/`. [docs/decisions/testing.md](docs/decisions/testing.md)
-says what goes where and what a test does not check. A fix for a visible defect comes with a test.
+says what goes where and what a test does not check. qmllint fails on any warning
+(`desktop/qml/.qmllint.ini`); a line whose types it cannot see takes `// qmllint disable <category>` and a
+comment saying why. A fix for a visible defect comes with a test.
 `tool/player-test.sh` takes Qt Quick Test's options, `-input tests/player/tst_gear.qml` for one
 file. GitHub CI runs all of it on every push to `main` that touches the client and on every tag,
 and the release is published only when it passes. On a headless Weston without a GPU,
