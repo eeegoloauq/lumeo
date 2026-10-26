@@ -241,8 +241,26 @@ Item {
             tryVerify(() => add.visible, 5000, "Add one")
             // Placed in its row, so the pointer lands on it.
             verify(waitForPolish(add.parent))
+            fakeCore.answer("GET", "/api/v1/addons", 200, { addons: [] })
             mouseClick(add)
             compare(shell.page, "settings")
+            const settings = findChild(shell, "settings")
+            tryCompare(settings, "lit", "sources")
+
+            // A source of copies added there offers the way back.
+            fakeCore.answer("POST", "/api/v1/addons", 200, {
+                id: "copies", name: "Copies", url: "https://copies.example", enabled: true, resources: ["stream"],
+            })
+            const address = findChild(settings, "address")
+            tryVerify(() => address.visible, 2000)
+            address.forceActiveFocus()
+            address.text = "https://copies.example"
+            keyClick(Qt.Key_Return)
+            const back = findChild(settings, "backTo")
+            tryVerify(() => back.visible, 2000, "the way back")
+            verify(waitForPolish(back.parent))
+            mouseClick(back)
+            compare(shell.page, "title")
         }
     }
 }

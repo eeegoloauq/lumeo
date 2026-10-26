@@ -142,7 +142,8 @@ Item {
 
         // The limit is asked in gigabytes and kept in bytes.
         function test_aCustomDiskLimitIsSentInBytes() {
-            onDisk()
+            mouseClick(findChild(page, "nav-downloads"))
+            tryVerify(() => !findChild(page, "going").running, 2000)
             mouseClick(findChild(findChild(page, "diskLimit"), "segment--1"))
             const field = findChild(window.Overlay.overlay, "number")
             tryVerify(() => field?.activeFocus === true, 2000, "the question")

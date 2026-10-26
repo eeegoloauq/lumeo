@@ -10,13 +10,22 @@ import Lumeo
 ShellPage {
     id: page
 
-    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads"]
+    // Where the page opens, held there until the viewer moves it: the
+    // sections above grow as their answers arrive.
+    property string section
+    // The title Settings was opened from to add a source, and the way back.
+    property string backTo
+
+    signal back()
+
+    readonly property var sections: ["general", "appearance", "playback", "audioSubtitles", "downloads", "sources"]
     readonly property var titles: ({
         general: qsTrId("settingsGeneral"),
         appearance: qsTrId("settingsAppearance"),
         playback: qsTrId("settingsPlayback"),
         audioSubtitles: qsTrId("settingsAudioSubtitles"),
         downloads: qsTrId("settingsDownloads"),
+        sources: qsTrId("settingsSources"),
     })
     // The section a preference was last changed from: the core's refusal is
     // said there, not at the top of a page scrolled away.
@@ -59,9 +68,12 @@ ShellPage {
         return column.children.find(child => child.section === name)
     }
 
+    function scrollTo(name) {
+        return Math.min(block(name).y, Math.max(0, view.contentHeight - view.height + view.topMargin)) - view.topMargin
+    }
+
     function go(name) {
-        const target = Math.min(block(name).y, Math.max(0, view.contentHeight - view.height + view.topMargin))
-        going.to = target - view.topMargin
+        going.to = scrollTo(name)
         going.section = name
         pressed = name
         going.restart()
@@ -89,6 +101,15 @@ ShellPage {
 
     scrolled: view.contentY > -view.topMargin
 
+    Component.onCompleted: if (section !== "") pressed = section
+    Binding {
+        target: view
+        property: "contentY"
+        value: page.section !== "" ? page.scrollTo(page.section) : 0
+        when: page.section !== "" && page.pressed === page.section && !going.running
+        restoreMode: Binding.RestoreNone
+    }
+
     Flickable {
         id: view
         objectName: "view"
@@ -96,9 +117,13 @@ ShellPage {
         topMargin: page.barHeight
         contentHeight: column.height + 96
         boundsBehavior: Flickable.StopAtBounds
-        onContentYChanged: if (!going.running && Math.abs(contentY - going.to) > 1) page.pressed = ""
 
-        WheelScroll { flickable: view }
+        onDraggingChanged: if (dragging) page.pressed = ""
+
+        WheelScroll {
+            flickable: view
+            onMoved: page.pressed = ""
+        }
 
         Column {
             id: column
@@ -110,6 +135,10 @@ ShellPage {
             PlaybackSection { settings: page }
             AudioSubtitlesSection { settings: page }
             DownloadsSection { settings: page }
+            SourcesSection {
+                backTo: page.backTo
+                onBack: page.back()
+            }
         }
     }
 

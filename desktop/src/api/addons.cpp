@@ -48,6 +48,8 @@ void Addons::add(const QString &url) {
                    m_addError = reply.message();
                  }
                  emit changed();
+                 if (reply.ok())
+                   emit added(reply.json().toObject().toVariantMap());
                });
 }
 

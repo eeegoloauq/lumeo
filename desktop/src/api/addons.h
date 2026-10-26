@@ -51,6 +51,8 @@ public:
 
 signals:
   void changed();
+  // An address was taken, as the addon the core made of it.
+  void added(const QVariantMap &addon);
 
 private:
   // Applies [change] to the list when the core said yes, and keeps the error

@@ -15,10 +15,14 @@ WheelHandler {
     readonly property real step: 120
     property real goal
 
+    // The viewer moved the page.
+    signal moved()
+
     target: null
     orientation: Qt.Vertical
 
     onWheel: event => {
+        moved()
         const top = flickable.originY - flickable.topMargin
         const bottom = Math.max(top, flickable.originY + flickable.contentHeight + flickable.bottomMargin - flickable.height)
         const clamp = y => Math.max(top, Math.min(y, bottom))

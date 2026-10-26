@@ -158,10 +158,15 @@
         <extracomment>Working in ui/screens/settings/sources_section.dart</extracomment>
         <translation>Работает</translation>
     </message>
-    <message id="settingsSourcesReorder">
-        <source>Drag to reorder</source>
-        <extracomment>Accessible instruction for reordering addons.</extracomment>
-        <translation>Перетащите, чтобы изменить порядок</translation>
+    <message id="settingsSourcesUp">
+        <source>Move up</source>
+        <extracomment>Tooltip of the button that moves a source up the list in Sources settings.</extracomment>
+        <translation>Выше</translation>
+    </message>
+    <message id="settingsSourcesDown">
+        <source>Move down</source>
+        <extracomment>Tooltip of the button that moves a source down the list in Sources settings.</extracomment>
+        <translation>Ниже</translation>
     </message>
     <message id="commonRemove">
         <source>Remove</source>

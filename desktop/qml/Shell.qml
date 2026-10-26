@@ -88,10 +88,10 @@ FocusScope {
         TitlePage {
             objectName: "title"
             onWatch: (downloadId, name) => shell.watch(downloadId, name)
-            onAddSource: shell.place("settings")
+            onAddSource: stack.push(settingsPage, {section: "sources", backTo: item.title})
         }
     }
     Component { id: libraryPage; ShellPage { objectName: "library" } }
-    Component { id: settingsPage; SettingsPage { objectName: "settings" } }
+    Component { id: settingsPage; SettingsPage { objectName: "settings"; onBack: shell.back() } }
     Component { id: searchPage; Browse { objectName: "search"; topPadding: 68 } }
 }
