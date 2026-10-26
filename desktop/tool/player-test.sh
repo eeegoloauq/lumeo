@@ -44,14 +44,14 @@ cc -shared -fPIC -o "$log/no-libva-wayland.so" tool/no-libva-wayland.c
 export LD_PRELOAD=$log/no-libva-wayland.so
 
 # The test desktop's mpv when tool/build-mpv.sh has built it; CI runs
-# the system's.
+# the system's. Said as the test loads it: a build linked against a libmpv of
+# its own keeps that path in its RUNPATH, which only LD_LIBRARY_PATH (the
+# system's directory, for the system's mpv) overrides.
 mpv_lib=${XDG_CACHE_HOME:-$HOME/.cache}/lumeo/mpv-0.41.0/lib/x86_64-linux-gnu
 if [[ -e $mpv_lib/libmpv.so.2 ]]; then
   export LD_LIBRARY_PATH=$mpv_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-  echo "libmpv: $mpv_lib" >&2
-else
-  echo "libmpv: the system's" >&2
 fi
+echo "libmpv: $(ldd "$test" | awk '/libmpv/ {print $3}')" >&2
 
 # No sound card here: ALSA's null device takes the samples, so the clip keeps
 # its soundtrack.

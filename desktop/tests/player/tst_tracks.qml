@@ -199,13 +199,15 @@ Item {
             mouseClick(findChild(menu, "subtitleStyle"))
             tryVerify(() => !!findChild(menu, "background-box")?.visible)
             verify(waitForRendering(menu))
+            // The box reaches mpv as its colour whichever way this mpv draws
+            // it: sub-border-style exists from 0.38 on (Tracks::backgroundProperties).
             mouseClick(findChild(menu, "background-box"))
-            readsBack("sub-border-style", "background-box")
+            readsBack("sub-back-color", SubtitleStyle.boxColour)
             compare(player.playback.tracks.background, "box")
             mouseClick(findChild(menu, "size-3"))
             tryCompare(player.mpv, "subScale", 1.5)
             mouseClick(findChild(menu, "background-none"))
-            readsBack("sub-border-style", "outline-and-shadow")
+            readsBack("sub-back-color", "#00000000")
         }
     }
 }
