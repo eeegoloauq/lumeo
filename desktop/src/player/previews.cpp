@@ -51,10 +51,21 @@ FrameView::FrameView(QQuickItem *parent) : QQuickItem(parent) {
   setFlag(ItemHasContents);
 }
 
-void FrameView::setImage(const QImage &image) {
-  m_image = image;
+void FrameView::setPreviews(Previews *previews) {
+  if (previews == m_previews)
+    return;
+  if (m_previews)
+    disconnect(m_previews, nullptr, this, nullptr);
+  m_previews = previews;
+  if (previews)
+    connect(previews, &Previews::frameChanged, this, &FrameView::take);
+  emit previewsChanged();
+  take();
+}
+
+void FrameView::take() {
+  m_image = m_previews ? m_previews->frame() : QImage();
   m_changed = true;
-  emit imageChanged();
   update();
 }
 

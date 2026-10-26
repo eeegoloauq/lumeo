@@ -134,7 +134,7 @@ Slider {
 
             FrameView {
                 anchors { fill: parent; margins: 2 }
-                image: bar.previews?.frame ?? null
+                previews: bar.previews
             }
         }
 

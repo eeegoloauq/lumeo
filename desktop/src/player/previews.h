@@ -2,6 +2,7 @@
 
 #include <QImage>
 #include <QObject>
+#include <QPointer>
 #include <QQuickItem>
 #include <QtQml/qqmlregistration.h>
 #include <optional>
@@ -48,26 +49,30 @@ private:
   QImage m_frame;
 };
 
-// A frame drawn as it is, the item's size: an image node of the scene
-// graph's, no painting in between.
+// The previews' frame drawn as it is, the item's size: an image node of the
+// scene graph's, no painting in between. It takes the previews rather than
+// the frame, since a QImage property cannot be told "none" from QML.
 class FrameView : public QQuickItem {
   Q_OBJECT
   QML_ELEMENT
-  Q_PROPERTY(QImage image READ image WRITE setImage NOTIFY imageChanged)
+  Q_PROPERTY(Previews *previews READ previews WRITE setPreviews NOTIFY previewsChanged)
 
 public:
   explicit FrameView(QQuickItem *parent = nullptr);
 
-  QImage image() const { return m_image; }
-  void setImage(const QImage &image);
+  Previews *previews() const { return m_previews; }
+  void setPreviews(Previews *previews);
 
 signals:
-  void imageChanged();
+  void previewsChanged();
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
 
 private:
+  void take();
+
+  QPointer<Previews> m_previews;
   QImage m_image;
   bool m_changed = false;
 };
