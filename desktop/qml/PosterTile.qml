@@ -50,8 +50,10 @@ AbstractButton {
             visible: poster.status !== Image.Ready
             color: Tokens.raised
 
+            // Lifted, the name is the overlay's, over the year.
             Text {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 12 }
+                visible: !tile.lifted
                 text: tile.item.title
                 color: Tokens.dim
                 font.family: Tokens.fontSans
@@ -91,11 +93,9 @@ AbstractButton {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10 }
                 spacing: 6
 
-                // A poster's lettering is a texture at this size; a card
-                // with no artwork already prints the name.
+                // A poster's lettering is a texture at this size.
                 Text {
                     width: parent.width
-                    visible: poster.status === Image.Ready
                     text: tile.item.title
                     color: Tokens.text
                     font.family: Tokens.fontSans
