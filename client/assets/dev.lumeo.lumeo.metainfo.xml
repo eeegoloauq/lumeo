@@ -39,6 +39,32 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.12" date="2026-10-26" type="development">
+      <description>
+        <ul>
+          <li>The library has a Coming up shelf: the next dated episode of every series you follow, soonest first.</li>
+          <li xml:lang="ru">В библиотеке появилась полка «Скоро выйдут»: ближайшая серия с датой у каждого сериала, за которым вы следите, сначала самые близкие.</li>
+          <li>Continue watching shows wide cards with the episode and the time left.</li>
+          <li xml:lang="ru">«Продолжить просмотр» показывает широкие карточки с серией и оставшимся временем.</li>
+          <li>The subtitle menu groups tracks by where they are: in the file, downloaded or online.</li>
+          <li xml:lang="ru">Меню субтитров группирует дорожки по тому, где они: в файле, скачанные или в сети.</li>
+          <li>New episodes lists a series only once you have caught up with it.</li>
+          <li xml:lang="ru">«Новые серии» показывают сериал, только когда вы его догнали.</li>
+          <li>A season opens on the episode where you left it, not on the first one.</li>
+          <li xml:lang="ru">Сезон открывается на серии, где вы остановились, а не на первой.</li>
+          <li>A series page and Continue watching show what you watched as soon as you leave the player.</li>
+          <li xml:lang="ru">Страница сериала и «Продолжить просмотр» показывают просмотренное сразу после выхода из плеера.</li>
+          <li>A special watched to the end goes back to the series; one left part way is where watching goes on.</li>
+          <li xml:lang="ru">Досмотренный спецвыпуск возвращает к сериалу, а брошенный на середине продолжается.</li>
+          <li>Another copy picked in the player plays, even when one is already on disk.</li>
+          <li xml:lang="ru">Другая копия, выбранная в плеере, запускается, даже если одна уже скачана.</li>
+          <li>Tooltips show at once, and Share says on itself that the link was copied.</li>
+          <li xml:lang="ru">Подсказки появляются сразу, а «Поделиться» само говорит, что ссылка скопирована.</li>
+          <li>Menus stay inside the window, and a row's arrows no longer flicker under the pointer.</li>
+          <li xml:lang="ru">Меню не выходят за окно, а стрелки ряда больше не мигают под курсором.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.11" date="2026-10-26" type="development">
       <description>
         <ul>
