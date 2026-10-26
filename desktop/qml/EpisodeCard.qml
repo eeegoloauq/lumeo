@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 import Lumeo
 import "format.js" as Format
 
@@ -50,62 +49,20 @@ AbstractButton {
     contentItem: Column {
         spacing: 0
 
-        Item {
+        EpisodeStill {
             id: still
             width: card.width
             height: card.width * 9 / 16
-
-            // No still: the number on the ground, not the title's artwork,
-            // or every card reads as the same episode.
-            Rectangle {
-                anchors.fill: parent
-                color: Tokens.surface
-                opacity: card.upcoming || card.unreachable ? 0.4 : 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: card.episode.number
-                    color: Qt.alpha(Tokens.text, 0.24)
-                    font.family: Tokens.fontSans
-                    font.pixelSize: 33
-                    font.weight: Font.DemiBold
-                }
-            }
-            Image {
-                id: picture
-                anchors.fill: parent
-                visible: status === Image.Ready && card.stills !== "hide"
-                opacity: card.upcoming || card.unreachable ? 0.4 : 1
-                source: card.stills === "hide" ? "" : Format.art(card.episode.thumbnail)
-                sourceSize.width: 330
-                fillMode: Image.PreserveAspectCrop
-                // Only a real still is a spoiler; the number stays readable.
-                layer.enabled: card.stills === "blur" && !card.watched
-                layer.effect: MultiEffect {
-                    blurEnabled: true
-                    blur: 1
-                    blurMax: 32
-                }
-            }
+            episode: card.episode
+            stills: card.stills
+            watched: card.watched
+            bar: card.bar
+            faint: card.upcoming || card.unreachable
 
             DownloadMark {
                 anchors { top: parent.top; right: parent.right; margins: 8 }
                 visible: card.mark !== undefined
                 mark: card.mark ?? {}
-            }
-
-            // Watched is a full bar, not a check, read the same as a half one.
-            Rectangle {
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 3
-                visible: card.bar > 0
-                color: Tokens.watchTrack
-
-                Rectangle {
-                    width: parent.width * Math.min(1, card.bar)
-                    height: parent.height
-                    color: Tokens.text
-                }
             }
 
             // The mouse's way to start; the keyboard has Enter.

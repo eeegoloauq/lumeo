@@ -1,5 +1,6 @@
 #pragma once
 
+#include "next.h"
 #include "tracks.h"
 
 #include <QDateTime>
@@ -40,6 +41,13 @@ class Playback : public QObject, public QQmlParserStatus {
   // mpv has been handed the file.
   Q_PROPERTY(bool opened READ opened NOTIFY changed)
   Q_PROPERTY(Tracks *tracks READ tracks NOTIFY tracksChanged)
+  Q_PROPERTY(Next *next READ next NOTIFY tracksChanged)
+  // The title's episodes, for the episodes panel; empty for a film.
+  Q_PROPERTY(QVariantList episodes READ episodes NOTIFY changed)
+  // How long an episode runs, as the catalogue says; empty when it does not.
+  Q_PROPERTY(QString runtime READ runtime NOTIFY changed)
+  // The title's watching, {entries}, as last asked.
+  Q_PROPERTY(QVariantMap watching READ watching NOTIFY changed)
   // close() has been called: what mpv says now is about no film.
   Q_PROPERTY(bool closing READ closing NOTIFY changed)
   // Why nothing plays, once that is the answer.
@@ -72,6 +80,10 @@ public:
   QString stage() const;
   bool opened() const { return m_opened; }
   Tracks *tracks() const { return m_tracks; }
+  Next *next() const { return m_next; }
+  QVariantList episodes() const { return m_episodes; }
+  QString runtime() const { return m_runtime; }
+  QVariantMap watching() const { return m_watching; }
   bool closing() const { return m_closing; }
   Failure failure() const { return m_failure; }
   QString codec() const { return m_codec; }
@@ -79,6 +91,8 @@ public:
 
   // Asks again at once rather than at the next poll.
   Q_INVOKABLE void retry();
+  // Asks for the title's watching again, for the episodes panel.
+  Q_INVOKABLE void loadProgress();
   // Leaves the film: the sound stops and closed() comes at once; finished()
   // once the position has reached the core, within three seconds whatever
   // happens, so that a window closing waits for it while the core answers.
@@ -125,12 +139,14 @@ private:
   void onLoadFailed();
   void onLogged(const QString &line);
   void onPicture();
-  void report();
+  // [watched]: it counts as watched whatever the position.
+  void report(bool watched = false);
   void reported();
   bool dueToOpen() const;
 
   QPointer<MpvItem> m_mpv;
   Tracks *m_tracks = nullptr;
+  Next *m_next = nullptr;
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
@@ -138,6 +154,9 @@ private:
   QString m_name;
   QString m_named;
   QString m_episodeTitle;
+  QVariantList m_episodes;
+  QString m_runtime;
+  QVariantMap m_watching;
   QVariantMap m_download;
   bool m_itemAsked = false;
   // Whether the download came without a title: a file opened with the app
@@ -165,6 +184,7 @@ private:
   double m_lastDelay = 0;
   bool m_reporting = false;
   bool m_reportAgain = false;
+  bool m_watchedAgain = false;
   bool m_closing = false;
   // Where the film stood when it was closed: mpv stops at once.
   double m_closedAt = 0;

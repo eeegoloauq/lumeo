@@ -1,6 +1,7 @@
 #include "playback.h"
 
 #include "core.h"
+#include "downloads.h"
 #include "mpvitem.h"
 #include "preferences.h"
 #include "settings.h"
@@ -36,6 +37,9 @@ void Playback::componentComplete() {
     defineBindings();
     m_tracks = new Tracks(m_mpv, m_core, m_preferences, this);
     connect(m_tracks, &Tracks::subtitleFailed, this, [this] { emit notice("subtitle", {}); });
+    m_next = new Next(m_mpv, m_core, m_preferences,
+                      engine->singletonInstance<Downloads *>("Lumeo", "Downloads"), this);
+    connect(m_next, &Next::watched, this, [this] { report(true); });
     emit tracksChanged();
   }
   refresh();
@@ -131,6 +135,8 @@ void Playback::refresh() {
     }
     emit changed();
     resume();
+    if (m_next)
+      m_next->update(m_download);
     if (!m_opened && !m_opening && m_failure == None && m_download.value("ready").toBool() &&
         dueToOpen())
       open();
@@ -153,6 +159,7 @@ void Playback::open() {
     const QString path = "/api/v1/downloads/" + Core::segment(m_downloadId) + "/stream";
     m_mpv->open(m_core->url(path).toString(), m_core->headers());
     m_tracks->opened();
+    m_next->opened();
     emit changed();
     resume();
   });
@@ -167,11 +174,28 @@ void Playback::loadItem() {
                 if (!reply.ok())
                   return;
                 const QJsonObject item = reply.json().toObject();
+                m_episodes = item["episodes"].toArray().toVariantList();
+                m_runtime = item["runtime"].toString();
                 for (const QJsonValue &e : item["episodes"].toArray())
                   if (e["season"].toInt() == season && e["number"].toInt() == episode)
                     m_episodeTitle = e["title"].toString();
                 if (m_openedUnnamed == 1)
                   m_named = item["title"].toString();
+                emit changed();
+              });
+  if (episode > 0)
+    loadProgress();
+}
+
+void Playback::loadProgress() {
+  const QString itemId = m_download.value("itemId").toString();
+  if (itemId.isEmpty())
+    return;
+  m_core->get("/api/v1/progress/" + Core::segment(itemId), {}, this,
+              [this](const Core::Reply &reply) {
+                if (!reply.ok())
+                  return;
+                m_watching = reply.json().toObject().toVariantMap();
                 emit changed();
               });
 }
@@ -316,9 +340,10 @@ void Playback::retry() {
 
 // One report at a time; one asked for meanwhile goes after it, with the
 // position as it is by then.
-void Playback::report() {
+void Playback::report(bool watched) {
   if (m_reporting) {
     m_reportAgain = true;
+    m_watchedAgain = m_watchedAgain || watched;
     return;
   }
   const QString itemId = m_download.value("itemId").toString();
@@ -326,7 +351,7 @@ void Playback::report() {
   const double duration = m_closing ? m_closedLength : m_mpv ? m_mpv->duration() : 0;
   const double delay = m_tracks ? m_tracks->delay() : 0;
   if (itemId.isEmpty() || duration <= 0 ||
-      (position == m_lastReported && delay == m_lastDelay)) {
+      (!watched && position == m_lastReported && delay == m_lastDelay)) {
     reported();
     return;
   }
@@ -341,6 +366,10 @@ void Playback::report() {
   };
   if (m_tracks && m_tracks->delayKnown())
     body["subtitleDelay"] = delay;
+  // An episode is watched once its named ending starts, which in an anime
+  // can be before the core's 90%.
+  if (watched || (m_mpv && Next::inCredits(m_mpv->chapters(), position)))
+    body["watched"] = true;
   m_core->send("PUT", "/api/v1/progress/" + Core::segment(itemId), {}, body, this,
                [this](const Core::Reply &reply) {
                  if (!reply.ok())
@@ -348,7 +377,7 @@ void Playback::report() {
                  m_reporting = false;
                  if (m_reportAgain) {
                    m_reportAgain = false;
-                   report();
+                   report(std::exchange(m_watchedAgain, false));
                    return;
                  }
                  reported();

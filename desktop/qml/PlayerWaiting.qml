@@ -14,13 +14,16 @@ Item {
     property bool switching: false
     // Over the picture, which goes dark rather than away.
     property bool overPicture: false
+    // What is waited for: another episode's name while one starts.
+    property string title: playback.title
 
     signal pickCopy(int index)
+    signal retrySwitch()
 
-    readonly property bool switchFailed: switching && (copies.errorStatus >= 0
-                                                       || (copies.listed && copies.sources.length === 0))
+    readonly property bool switchFailed: switching && !!copies
+                                         && (copies.errorStatus >= 0 || (copies.listed && copies.sources.length === 0))
     readonly property bool failed: switchFailed || (!switching && playback.failure !== Playback.None)
-    readonly property int nextCopy: playback.findingNoPeers ? playback.nextCopy(copies.sources) : -1
+    readonly property int nextCopy: playback.findingNoPeers && copies ? playback.nextCopy(copies.sources) : -1
     readonly property var download: playback.download
     readonly property bool active: download.state === "active"
 
@@ -68,7 +71,7 @@ Item {
     function message() {
         if (switching)
             return copies.errorStatus >= 0 ? qsTrId("playerCouldNotStartCopy")
-                                           : qsTrId("playerNoCopyOf").arg(playback.title)
+                                           : qsTrId("playerNoCopyOf").arg(title)
         if (playback.failure === Playback.CoreStopped)
             return qsTrId("playerCoreStopped")
         return qsTrId("playerCopyWouldNotStart")
@@ -101,7 +104,7 @@ Item {
             objectName: "waitingTitle"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: waiting.playback.title
+            text: waiting.title
             maximumLineCount: 2
             wrapMode: Text.Wrap
             elide: Text.ElideRight
@@ -165,7 +168,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: waiting.failed
             text: qsTrId("playerTryAgain")
-            onClicked: waiting.switching ? waiting.copies.start() : waiting.playback.retry()
+            onClicked: waiting.switching ? waiting.retrySwitch() : waiting.playback.retry()
         }
     }
 }

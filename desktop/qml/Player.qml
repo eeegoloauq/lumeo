@@ -25,6 +25,8 @@ FocusScope {
     signal next(string downloadId, string name)
     // Another player took the window: this one only goes.
     property bool handedOver: false
+    // Settings › Storage was asked for: the film goes, the page comes.
+    signal storage()
     // Its position has reached the core, or three seconds went by: it may go.
     signal finished()
 
@@ -40,7 +42,7 @@ FocusScope {
         menu = menu === name ? "" : name
         if (menu === "tracks")
             session.tracks.show()
-        if (menu === "settings")
+        if (menu === "settings" || menu === "download")
             askCopies = true
         chrome.poke()
     }
@@ -147,14 +149,25 @@ FocusScope {
         }
     }
 
+    // Another episode starting is waited for over the picture, as another
+    // copy is.
     PlayerWaiting {
+        readonly property bool advancing: session.next?.advancing ?? false
+
         anchors.fill: parent
-        visible: !mpv.hasPicture || player.switching
+        visible: !mpv.hasPicture || player.switching || advancing
         playback: session
-        copies: choice
-        switching: player.switching
+        title: advancing ? Words.episodeName(session.next.starting) : session.title
+        copies: advancing ? session.next.choice : choice
+        switching: player.switching || advancing
         overPicture: mpv.hasPicture
         onPickCopy: index => player.pickCopy(index)
+        onRetrySwitch: advancing ? session.next.retry() : choice.start()
+    }
+
+    Connections {
+        target: session.next
+        function onNext(downloadId) { player.next(downloadId, session.title) }
     }
 
     BusyIndicator {
@@ -363,6 +376,14 @@ FocusScope {
                     onClicked: if (mpv.hasPicture) mpv.command(["cycle", "pause"])
                 }
 
+                PlayerButton {
+                    objectName: "nextButton"
+                    visible: !!session.next?.episode.number
+                    glyph: "skip_next"
+                    tip: qsTrId("playerNextEpisode")
+                    onClicked: session.next.advance()
+                }
+
                 // The slider shows under the pointer; the mark on it is 100%,
                 // past which mpv amplifies.
                 Row {
@@ -469,6 +490,14 @@ FocusScope {
                 }
 
                 PlayerButton {
+                    objectName: "downloadButton"
+                    visible: !!session.download.id
+                    glyph: "download"
+                    tip: session.download.state === "done" ? qsTrId("playerOnDisk") : qsTrId("playerDownload")
+                    onClicked: player.toggleMenu("download")
+                }
+
+                PlayerButton {
                     objectName: "tracksButton"
                     glyph: session.tracks?.subtitlesOn ? "closed_caption" : "closed_caption_outlined"
                     tip: qsTrId("playerSubtitlesShortcut")
@@ -483,6 +512,14 @@ FocusScope {
                 }
 
                 PlayerButton {
+                    objectName: "episodesButton"
+                    visible: (session.download.episode ?? 0) > 0
+                    glyph: "playlist_play"
+                    tip: qsTrId("playerEpisodes")
+                    onClicked: player.toggleMenu("episodes")
+                }
+
+                PlayerButton {
                     objectName: "fullscreen"
                     glyph: mpv.fullscreen ? "fullscreen_exit" : "fullscreen"
                     tip: mpv.fullscreen ? qsTrId("playerExitFullscreen") : qsTrId("playerFullscreen")
@@ -491,6 +528,50 @@ FocusScope {
                 }
             }
         }
+    }
+
+    // Over the picture, whether the bar is up or not: past the opening or an
+    // ending with a scene after it, and the next episode.
+    Button {
+        id: skip
+        objectName: "skipButton"
+        anchors { right: parent.right; rightMargin: 16; bottom: parent.bottom; bottomMargin: 76 }
+        visible: player.menu !== "episodes" && ["intro", "ending"].includes(session.next?.offer ?? "")
+        focusPolicy: Qt.NoFocus
+        implicitHeight: 44
+        leftPadding: 18
+        rightPadding: 18
+        text: session.next?.offer === "intro" ? qsTrId("playerSkipOpening") : qsTrId("playerSkipEnding")
+        font.family: Tokens.fontSans
+        font.pixelSize: 15
+        font.weight: Font.DemiBold
+        palette.buttonText: Tokens.text
+        onClicked: session.next.skip()
+        background: Rectangle {
+            radius: Tokens.radiusControl
+            color: Qt.alpha(Tokens.floating, 0.92)
+            border.color: Tokens.rim
+            clip: true
+            // How far the part to skip has run.
+            Rectangle {
+                width: parent.width * (session.next?.fill ?? 0)
+                height: parent.height
+                radius: parent.radius
+                color: Tokens.tint
+                Behavior on width { NumberAnimation { duration: Theme.wash } }
+            }
+        }
+    }
+
+    NextCard {
+        objectName: "nextCard"
+        anchors { right: parent.right; rightMargin: 24; bottom: parent.bottom; bottomMargin: 96 }
+        visible: player.menu !== "episodes" && session.next?.offer === "next"
+        episode: session.next?.episode ?? ({})
+        stills: Preferences.current.episodeArtwork ?? "show"
+        fill: session.next?.fill ?? 0
+        secondsLeft: session.next?.secondsLeft ?? -1
+        onClicked: session.next.advance()
     }
 
     // Every menu ends 24 px from the window's right edge, over the bar.
@@ -505,6 +586,7 @@ FocusScope {
     }
 
     SettingsMenu {
+        id: settingsMenu
         objectName: "settingsMenu"
         anchors { right: parent.right; rightMargin: 24; bottom: parent.bottom; bottomMargin: 76 }
         visible: player.menu === "settings"
@@ -516,6 +598,36 @@ FocusScope {
         onTracks: player.toggleMenu("tracks")
         onPickCopy: index => player.pickCopy(index)
         onVisibleChanged: page = ""
+    }
+
+    DownloadPanel {
+        id: downloadPanel
+        objectName: "downloadPanel"
+        anchors { right: parent.right; rightMargin: 24; bottom: parent.bottom; bottomMargin: 76 }
+        visible: player.menu === "download"
+        playback: session
+        source: {
+            const at = session.playingCopy(choice.sources)
+            const s = at >= 0 ? choice.sources[at] : null
+            return s ? [s.release?.resolution ?? "", Words.sourceTitle(s)].filter(p => p).join(" · ") : ""
+        }
+        onOpenSource: {
+            player.menu = "settings"
+            settingsMenu.page = "source"
+        }
+        onStorage: player.storage()
+    }
+
+    EpisodesPanel {
+        objectName: "episodesPanel"
+        anchors { right: parent.right; rightMargin: 24; top: parent.top; topMargin: 24 }
+        visible: player.menu === "episodes"
+        playback: session
+        room: player.height - 24 - 76
+        onPlay: episode => {
+            player.menu = ""
+            session.next.play(episode)
+        }
     }
 
     component PlayerButton: IconButton {

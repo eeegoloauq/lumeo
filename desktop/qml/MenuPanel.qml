@@ -9,7 +9,7 @@ Rectangle {
 
     implicitHeight: column.implicitHeight + 16
     radius: 12
-    color: "#e01c1c1c"
+    color: "#f01c1c1c"
     clip: true
 
     MouseArea {

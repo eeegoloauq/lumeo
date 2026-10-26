@@ -15,6 +15,23 @@ QtObject {
         return (h > 0 ? h + ":" + padded(m) : m) + ":" + padded(s % 60)
     }
 
+    // "12 min left", or "1 h 05 min left".
+    function timeLeft(seconds) {
+        const minutes = Math.ceil(seconds / 60)
+        if (minutes < 60)
+            return qsTrId("downloadsTimeLeftMinutes", minutes)
+        return qsTrId("downloadsTimeLeftHours", Math.floor(minutes / 60)).arg(padded(minutes % 60))
+    }
+
+    // "Episode 3 · The Title", or "Episode 3" when the catalogue's title is
+    // only that.
+    function episodeName(episode) {
+        const title = episode.title ?? ""
+        const named = title && title !== "Episode " + episode.number ? title : ""
+        return named ? qsTrId("itemEpisodeNamed").arg(episode.number).arg(named)
+                     : qsTrId("itemEpisodeNumber").arg(episode.number)
+    }
+
     // 4.2 GB: powers of 1024, one decimal under a hundred.
     function bytes(value) {
         if (value <= 0)

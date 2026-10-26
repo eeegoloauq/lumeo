@@ -18,8 +18,9 @@
 Q_IMPORT_QML_PLUGIN(LumeoPlugin)
 
 // What only a real libmpv can show, on headless Weston: tool/player-test.sh
-// runs it with the clips it makes, which the fake core streams as downloads
-// d1 (a test card) and dt (its tracks) (decisions/testing.md, Player tests).
+// runs it with the clips it makes, which the fake core streams as downloads:
+// d1 a test card in two chapters, dt one with tracks, e1 an episode with a
+// named ending (decisions/testing.md, Player tests).
 class Setup : public QObject {
   Q_OBJECT
 
@@ -45,7 +46,8 @@ public slots:
     // The window's home, behind the film.
     fake->answer("GET", "/api/v1/catalogs", 200, QJsonObject{{"catalogs", QJsonArray()}});
     fake->answer("GET", "/api/v1/continue", 200, QJsonArray());
-    for (const auto &[variable, id] : {std::pair{"LUMEO_TEST_CLIP", "d1"}, {"LUMEO_TEST_TRACKS", "dt"}}) {
+    for (const auto &[variable, id] : {std::pair{"LUMEO_TEST_CLIP", "d1"}, {"LUMEO_TEST_TRACKS", "dt"},
+                                       {"LUMEO_TEST_EPISODE", "e1"}}) {
       QFile clip(qEnvironmentVariable(variable));
       if (!clip.open(QIODevice::ReadOnly))
         qFatal("%s names no clip: run tool/player-test.sh", variable);

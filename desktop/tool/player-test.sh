@@ -66,6 +66,14 @@ ffmpeg -loglevel error -f lavfi -i testsrc2=size=640x360:rate=24:duration=20 \
   -f lavfi -i sine=frequency=440:duration=20 -i "$log/chapters.txt" -map 0 -map 1 -map_chapters 2 \
   -c:v libx264 -preset ultrafast -c:a aac "$LUMEO_TEST_CLIP"
 
+# An episode whose chapters name its ending.
+export LUMEO_TEST_EPISODE=$log/episode.mkv
+printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=14000\ntitle=Episode\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=14000\nEND=20000\ntitle=Ending\n' \
+  >"$log/ending.txt"
+ffmpeg -loglevel error -f lavfi -i testsrc2=size=320x180:rate=24:duration=20 \
+  -f lavfi -i sine=frequency=330:duration=20 -i "$log/ending.txt" -map 0 -map 1 -map_chapters 2 \
+  -c:v libx264 -preset ultrafast -c:a aac "$LUMEO_TEST_EPISODE"
+
 # Two soundtracks and two English subtitles told apart by their titles.
 export LUMEO_TEST_TRACKS=$log/tracks.mkv
 printf '1\n00:00:00,000 --> 00:00:20,000\nFull\n' >"$log/full.srt"

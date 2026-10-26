@@ -98,6 +98,10 @@ ApplicationWindow {
             anchors.fill: parent
             onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.before
             onNext: (downloadId, name) => window.play(downloadId, name)
+            onStorage: {
+                film.close()
+                shell.place("settings")
+            }
             onClosed: {
                 film.visible = false
                 if (film.handedOver)

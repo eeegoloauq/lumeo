@@ -43,7 +43,10 @@ qt_add_qml_module(lumeo
     qml/Browse.qml
     qml/DownloadButton.qml
     qml/DownloadMark.qml
+    qml/DownloadPanel.qml
     qml/EpisodeCard.qml
+    qml/EpisodeStill.qml
+    qml/EpisodesPanel.qml
     qml/Glyph.qml
     qml/Heading.qml
     qml/HomePage.qml
@@ -68,6 +71,7 @@ qt_add_qml_module(lumeo
     qml/MenuLabel.qml
     qml/MenuPanel.qml
     qml/MenuRow.qml
+    qml/NextCard.qml
     qml/Player.qml
     qml/PlayerWaiting.qml
     qml/Scrubber.qml
@@ -96,9 +100,11 @@ qt_add_qml_module(lumeo
     icons/pause.svg
     icons/play_arrow.svg
     icons/play_circle.svg
+    icons/playlist_play.svg
     icons/remove.svg
     icons/search.svg
     icons/settings.svg
+    icons/skip_next.svg
     icons/star.svg
     icons/star_border.svg
     icons/tune.svg
@@ -122,6 +128,7 @@ qt_add_qml_module(lumeo
     src/player/playback.h src/player/playback.cpp
     src/player/tracks.h src/player/tracks.cpp
     src/player/rows.h src/player/rows.cpp
+    src/player/next.h src/player/next.cpp
     src/prototype.h src/prototype.cpp
 )
 
