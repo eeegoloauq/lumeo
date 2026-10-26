@@ -121,6 +121,7 @@ qt_add_qml_module(lumeo
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp
     src/api/languages.h src/api/languages.cpp
+    src/platform/folders.h src/platform/folders.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/language.h src/platform/language.cpp
     src/platform/settings.h src/platform/settings.cpp
@@ -132,6 +133,7 @@ qt_add_qml_module(lumeo
     src/player/framegrabber.h src/player/framegrabber.cpp
     src/player/previews.h src/player/previews.cpp
     src/player/mpvfacts.h src/player/mpvfacts.cpp
+    src/player/episodeframes.h src/player/episodeframes.cpp
     src/prototype.h src/prototype.cpp
 )
 

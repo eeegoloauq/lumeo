@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QTemporaryDir>
 #include <QtQml/QQmlExtensionPlugin>
 #include <QtQuickTest>
 
@@ -18,9 +19,13 @@ class Setup : public QObject {
   Q_OBJECT
 
   std::unique_ptr<FakeCore> fake;
+  // What the app writes to its folders goes here, not to the machine's.
+  QTemporaryDir folders;
 
 public slots:
   void applicationAvailable() {
+    qputenv("XDG_CONFIG_HOME", folders.filePath("config").toUtf8());
+    qputenv("XDG_CACHE_HOME", folders.filePath("cache").toUtf8());
     // Made here: a QObject's timers need the application's event loop.
     fake = std::make_unique<FakeCore>();
     if (!fake->listen())

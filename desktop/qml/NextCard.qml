@@ -10,6 +10,8 @@ AbstractButton {
 
     required property var episode
     property string stills: "show"
+    // A frame from its file on disk, when it has no still.
+    property string frame
     property real fill
     // Seconds until it starts by itself; -1 when it waits for a press.
     property int secondsLeft: -1
@@ -33,6 +35,7 @@ AbstractButton {
             height: 180
             episode: card.episode
             stills: card.stills
+            frame: card.frame
 
             // Fills between the steps the position arrives in.
             Item {

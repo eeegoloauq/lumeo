@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#include "folders.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -22,16 +24,7 @@ LocalSettings::~LocalSettings() {
 }
 
 LocalSettings *LocalSettings::create(QQmlEngine *, QJSEngine *) {
-  return new LocalSettings(configDir() + "/client.json");
-}
-
-QString LocalSettings::configDir() {
-#ifdef Q_OS_WIN
-  return qEnvironmentVariable("APPDATA") + "/Lumeo";
-#else
-  const QString xdg = qEnvironmentVariable("XDG_CONFIG_HOME");
-  return (xdg.isEmpty() ? QDir::homePath() + "/.config" : xdg) + "/lumeo";
-#endif
+  return new LocalSettings(Folders::config() + "/client.json");
 }
 
 double LocalSettings::volume() const {

@@ -27,9 +27,6 @@ public:
   ~LocalSettings() override;
   static LocalSettings *create(QQmlEngine *, QJSEngine *);
 
-  // The settings folder: XDG's on Linux, %APPDATA%\Lumeo on Windows.
-  static QString configDir();
-
   // Restored up to 100: a film mixed loud is turned up again on purpose.
   double volume() const;
   void setVolume(double volume);

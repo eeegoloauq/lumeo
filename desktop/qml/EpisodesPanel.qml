@@ -116,6 +116,8 @@ MenuPanel {
                     height: 72
                     episode: row.modelData
                     stills: Preferences.current.episodeArtwork ?? "show"
+                    frame: EpisodeFrames.known[panel.playback.download.itemId + "/" + row.modelData.season
+                                               + "/" + row.modelData.number] ?? ""
                     watched: row.watched?.watched ?? false
                     bar: !row.watched ? 0 : row.watched.position > 0 ? row.watched.position / row.watched.duration
                                                                       : row.watched.watched ? 1 : 0

@@ -588,6 +588,8 @@ FocusScope {
         visible: player.menu !== "episodes" && session.next?.offer === "next"
         episode: session.next?.episode ?? ({})
         stills: Preferences.current.episodeArtwork ?? "show"
+        frame: EpisodeFrames.known[session.download.itemId + "/" + (session.next?.episode.season ?? 0)
+                                   + "/" + (session.next?.episode.number ?? 0)] ?? ""
         fill: session.next?.fill ?? 0
         secondsLeft: session.next?.secondsLeft ?? -1
         onClicked: session.next.advance()

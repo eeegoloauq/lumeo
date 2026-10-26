@@ -19,6 +19,8 @@ AbstractButton {
     property bool watched
     // One of Downloads.marks, or undefined.
     property var mark
+    // A frame from the file on disk, for an episode with no still.
+    property string frame
     // Out, but nothing can fetch it and it is not on disk.
     property bool unreachable
 
@@ -58,6 +60,7 @@ AbstractButton {
             watched: card.watched
             bar: card.bar
             faint: card.upcoming || card.unreachable
+            frame: card.frame
 
             DownloadMark {
                 anchors { top: parent.top; right: parent.right; margins: 8 }

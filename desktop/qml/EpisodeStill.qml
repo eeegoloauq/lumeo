@@ -17,6 +17,10 @@ Item {
     property real bar
     // Not out, or out of reach: drawn faint.
     property bool faint
+    // A frame taken from the file on disk, for an episode with no still.
+    property string frame
+    // The catalogue's still would not load: the frame stands in.
+    property bool stillFailed: false
 
     Rectangle {
         anchors.fill: parent
@@ -37,7 +41,10 @@ Item {
         anchors.fill: parent
         visible: status === Image.Ready && still.stills !== "hide"
         opacity: still.faint ? 0.4 : 1
-        source: still.stills === "hide" ? "" : Format.art(still.episode.thumbnail)
+        source: still.stills === "hide" ? ""
+            : still.episode.thumbnail && !still.stillFailed ? Format.art(still.episode.thumbnail)
+            : still.frame
+        onStatusChanged: if (status === Image.Error && still.episode.thumbnail) still.stillFailed = true
         sourceSize.width: Math.ceil(still.width * 1.1)
         fillMode: Image.PreserveAspectCrop
         // Only a real still is a spoiler; the number stays readable.

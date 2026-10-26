@@ -47,6 +47,7 @@ public slots:
     // client.json is the test's, not the machine's, and so are the
     // screenshots it sends to a folder of their own.
     qputenv("XDG_CONFIG_HOME", config.path().toUtf8());
+    qputenv("XDG_CACHE_HOME", config.filePath("cache").toUtf8());
     QDir().mkpath(config.filePath("lumeo"));
     QFile settings(config.filePath("lumeo/client.json"));
     if (!settings.open(QIODevice::WriteOnly))
