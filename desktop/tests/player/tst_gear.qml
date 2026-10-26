@@ -134,6 +134,20 @@ Item {
             tryCompare(player.mpv, "hwdec", "no")
         }
 
+        // The keys are read from this mpv, ours with the stored step among
+        // them (decisions/player.md).
+        function test_theShortcutPageIsReadFromMpv() {
+            playing_()
+            openGear()
+            page("keys")
+            tryVerify(() => player.playback.shortcutsRead, 5000)
+            const lines = player.playback.shortcuts.map(l => l.keys.join(", ") + " = " + l.what)
+            verify(lines.some(l => l.split(" = ")[0].split(", ").includes("Space") && l.endsWith("= Pause or play")), lines.join("\n"))
+            verify(lines.includes("Esc = Leave fullscreen, else back to the title"), lines.join("\n"))
+            verify(lines.includes("← = Seek 5 seconds backward"), lines.join("\n"))
+            verify(!lines.some(l => l.includes("Quit")), "nothing to quit here")
+        }
+
         // A copy picked here is the title's release, as in the title page's
         // drawer, and the player goes on with its download.
         function test_theSourcePageSwitchesCopies() {

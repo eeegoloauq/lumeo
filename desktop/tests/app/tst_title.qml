@@ -196,6 +196,26 @@ Item {
         }
 
         // Both change at once and go to the core behind the change.
+        // A copy nothing here decodes stays in the drawer, marked, and Play
+        // starts the next one; the same copy plays on the next machine.
+        function test_aCopyThisMachineCannotDecodeIsMarkedAndNotPlayed() {
+            tryVerify(() => MpvFacts.answered, 5000, "mpv's decoders")
+            MpvFacts.setDecoders([{ codec: "h264" }, { codec: "aac" }])
+            const hevc = Object.assign({}, copy, { rawName: "Nosferatu 1922 2160p x265",
+                release: { resolution: "2160p", videoCodec: "HEVC", audioCodec: "AAC" } })
+            fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [hevc, other], providers: 1 })
+            film()
+            openDrawer()
+            compare(findChild(row("copy-0"), "decoderMark").text, "no hevc here")
+            const drawer = findChild(shell, "sourcesDrawer")
+            drawer.close()
+            tryVerify(() => !drawer.visible)
+            mouseClick(findChild(shell, "titlePlay"))
+            tryVerify(() => posted().length === 1, 5000)
+            verify(posted()[0].includes("720p WEB"), posted()[0])
+            MpvFacts.setDecoders([{ codec: "h264" }, { codec: "hevc" }, { codec: "aac" }])
+        }
+
         function test_myListAndTheScoreReachTheCore() {
             film()
             const list = findChild(shell, "listButton")

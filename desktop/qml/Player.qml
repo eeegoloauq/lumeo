@@ -34,6 +34,26 @@ FocusScope {
         session.close()
     }
 
+    // A notice's words. A decoder is said to be missing only once mpv has
+    // said so; until then it only failed.
+    function trouble(kind, codec) {
+        const missing = MpvFacts.has(codec) === 0
+        const hint = missing && MpvFacts.installHint ? " " + MpvFacts.installHint : ""
+        switch (kind) {
+        case "sound":
+            return (missing ? qsTrId("playerNoSoundDecoder") : qsTrId("playerNoSoundDecodeFailed")).arg(codec) + hint
+        case "picture":
+            return (missing ? qsTrId("playerPictureDecoder") : qsTrId("playerPictureDecodeFailed")).arg(codec) + hint
+        case "broken":
+            return qsTrId("playerDecoderBroken").arg(codec).arg(MpvFacts.unreliable(codec))
+                + (MpvFacts.installHint ? " " + MpvFacts.installHint : "")
+        case "subtitle":
+            return qsTrId("playerSubtitleFailed")
+        default:
+            return qsTrId("playerCouldNotStartFile")
+        }
+    }
+
     // The menu open over the bar, "" for none. Which one is the screen's,
     // since mpv's `c` opens one too.
     property string menu: ""
@@ -96,9 +116,7 @@ FocusScope {
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
-        onNotice: (kind, codec) => notice.say(kind === "sound" ? qsTrId("playerNoSoundDecodeFailed").arg(codec)
-                                              : kind === "picture" ? qsTrId("playerPictureDecodeFailed").arg(codec)
-                                              : qsTrId("playerCouldNotStartFile"))
+        onNotice: (kind, codec) => notice.say(player.trouble(kind, codec))
     }
 
     // Keys mpv has no name for, such as a modifier alone, go on to the window.

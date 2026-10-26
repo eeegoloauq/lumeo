@@ -334,7 +334,11 @@ Drawer {
                             readonly property var s: row.r.source
                             spacing: 6
                             width: list.width - 48
-                            ToolTip.text: [entry.s.rawName, entry.s.path ?? ""].filter(p => p).join("\n")
+                            // What this machine cannot decode is a fact about the
+                            // row, not the film: the same copy plays on the next
+                            // machine. Marked rather than hidden.
+                            ToolTip.text: [entry.s.rawName, entry.s.path ?? "",
+                                           MpvFacts.gapSentence(entry.s.release ?? {})].filter(p => p).join("\n")
                             ToolTip.visible: row.hovered
                             ToolTip.delay: 600
 
@@ -401,6 +405,15 @@ Drawer {
                                     visible: !(entry.s.languages ?? []).length
                                     text: qsTrId("downloadsNoLanguages")
                                     color: Tokens.muted
+                                    font.family: Tokens.fontSans
+                                    font.pixelSize: Tokens.textData
+                                }
+                                Text {
+                                    objectName: "decoderMark"
+                                    visible: text !== ""
+                                    leftPadding: 4
+                                    text: MpvFacts.answered ? MpvFacts.gapMark(entry.s.release ?? {}) : ""
+                                    color: Tokens.warn
                                     font.family: Tokens.fontSans
                                     font.pixelSize: Tokens.textData
                                 }

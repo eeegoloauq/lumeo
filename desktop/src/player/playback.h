@@ -57,6 +57,10 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_PROPERTY(Failure failure READ failure NOTIFY changed)
   // The codec the failure names, when mpv named one.
   Q_PROPERTY(QString codec READ codec NOTIFY changed)
+  // The keyboard page's lines, read from this mpv, ours included: [{keys,
+  // what}]; empty until readShortcuts() has an answer.
+  Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY changed)
+  Q_PROPERTY(bool shortcutsRead READ shortcutsRead NOTIFY changed)
   // The download has found no peers for noPeersPatience with the network up:
   // another copy is worth offering. Offline, no copy would do better.
   Q_PROPERTY(bool findingNoPeers READ findingNoPeers NOTIFY changed)
@@ -91,12 +95,16 @@ public:
   bool closing() const { return m_closing; }
   Failure failure() const { return m_failure; }
   QString codec() const { return m_codec; }
+  QVariantList shortcuts() const { return m_shortcuts; }
+  bool shortcutsRead() const { return m_shortcutsRead; }
   bool findingNoPeers() const;
 
   // Asks again at once rather than at the next poll.
   Q_INVOKABLE void retry();
   // Asks for the title's watching again, for the episodes panel.
   Q_INVOKABLE void loadProgress();
+  // Asks mpv for its bindings once: they stay as they are during a film.
+  Q_INVOKABLE void readShortcuts();
   // Leaves the film: the sound stops and closed() comes at once; finished()
   // once the position has reached the core, within three seconds whatever
   // happens, so that a window closing waits for it while the core answers.
@@ -128,7 +136,8 @@ signals:
   void changed();
   // Something to say over the picture: a sound or picture decoder that
   // failed ("sound" or "picture"), naming [codec]; a file that stopped
-  // ("failed"); a subtitle that could not be fetched ("subtitle").
+  // ("failed"); a subtitle that could not be fetched ("subtitle"); a codec
+  // decoded here by a decoder known to break ("broken").
   void notice(const QString &kind, const QString &codec);
   void closed();
   void finished();
@@ -144,6 +153,7 @@ private:
   void onLoadFailed();
   void onLogged(const QString &line);
   void onPicture();
+  void checkDecoder();
   // [watched]: it counts as watched whatever the position.
   void report(bool watched = false);
   void reported();
@@ -176,6 +186,9 @@ private:
   bool m_resumeAsked = false;
   Failure m_failure = None;
   QString m_codec;
+  QVariantList m_shortcuts;
+  bool m_shortcutsRead = false;
+  bool m_decoderChecked = false;
   // mpv's last error line naming no codec, to explain a failure it reports
   // later: Windows without a working d3d11va logs one per hardware decoder
   // it tries before it decodes in software, and the film plays.

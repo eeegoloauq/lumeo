@@ -131,6 +131,7 @@ qt_add_qml_module(lumeo
     src/player/next.h src/player/next.cpp
     src/player/framegrabber.h src/player/framegrabber.cpp
     src/player/previews.h src/player/previews.cpp
+    src/player/mpvfacts.h src/player/mpvfacts.cpp
     src/prototype.h src/prototype.cpp
 )
 

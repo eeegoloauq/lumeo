@@ -55,9 +55,10 @@ MenuPanel {
         picture: qsTrId("playerPicture"),
         chapters: qsTrId("playerChapters"),
         decoding: qsTrId("playerDecoding"),
+        keys: qsTrId("playerKeyboardShortcuts"),
     })
 
-    width: page === "speed" ? 240 : page === "source" ? 340 : 280
+    width: page === "speed" ? 240 : page === "source" || page === "keys" ? 340 : 280
     implicitHeight: shown.height + 16
     height: Math.min(implicitHeight, room)
 
@@ -137,6 +138,47 @@ MenuPanel {
                         onClicked: {
                             menu.mpv.command(["script-binding", "stats/display-stats-toggle"])
                             menu.done()
+                        }
+                    }
+                    PageRow { shows: "keys"; value: "?" }
+                }
+
+                // Read from mpv: a key it gains or loses comes or goes
+                // without a line here changing (decisions/player.md).
+                Column {
+                    visible: menu.page === "keys"
+                    width: parent.width
+
+                    Note {
+                        visible: !menu.playback.shortcutsRead || menu.playback.shortcuts.length === 0
+                        text: menu.playback.shortcutsRead ? qsTrId("playerNoMpvBindings") : qsTrId("playerAskingMpv")
+                    }
+                    Repeater {
+                        model: menu.page === "keys" ? menu.playback.shortcuts : []
+                        delegate: Row {
+                            required property var modelData
+                            x: 16
+                            width: parent.width - 32
+                            topPadding: 6
+                            bottomPadding: 6
+                            spacing: 8
+
+                            Text {
+                                width: 100
+                                text: parent.modelData.keys.join(", ")
+                                wrapMode: Text.Wrap
+                                color: "white"
+                                font.family: Tokens.fontSans
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                width: parent.width - 108
+                                text: parent.modelData.what
+                                wrapMode: Text.Wrap
+                                color: "#ccffffff"
+                                font.family: Tokens.fontSans
+                                font.pixelSize: 13
+                            }
                         }
                     }
                 }
@@ -281,7 +323,11 @@ MenuPanel {
         opens: true
         label: menu.titles[shows] ?? ""
         detail: value
-        onClicked: menu.page = entry.shows
+        onClicked: {
+            if (entry.shows === "keys")
+                menu.playback.readShortcuts()
+            menu.page = entry.shows
+        }
     }
 
     component Note: Text {

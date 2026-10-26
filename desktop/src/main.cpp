@@ -1,6 +1,7 @@
 #include "artwork.h"
 #include "fonts.h"
 #include "language.h"
+#include "mpvfacts.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -34,6 +35,10 @@ int main(int argc, char *argv[]) {
   std::setlocale(LC_NUMERIC, "C");
   // The controls are drawn the app's way; Basic is the style meant for that.
   QQuickStyle::setStyle("Basic");
+
+  // Asked now: a title page needs to know what this machine decodes before
+  // anything plays.
+  MpvFacts::instance();
 
   QQmlApplicationEngine engine;
   Artwork::install(&engine);

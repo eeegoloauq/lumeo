@@ -74,6 +74,8 @@ Item {
                                            : qsTrId("playerNoCopyOf").arg(title)
         if (playback.failure === Playback.CoreStopped)
             return qsTrId("playerCoreStopped")
+        if (playback.codec && MpvFacts.has(playback.codec) === 0)
+            return qsTrId("playerDecoderMissingShort").arg(playback.codec)
         return qsTrId("playerCopyWouldNotStart")
     }
 
@@ -159,6 +161,23 @@ Item {
             color: "#aaaaaa"
             font.family: Tokens.fontSans
             font.pixelSize: 13
+        }
+
+        // How to install what is missing, to copy into a terminal.
+        TextEdit {
+            objectName: "installHint"
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: waiting.failed && !waiting.switching && !!waiting.playback.codec
+                     && MpvFacts.has(waiting.playback.codec) === 0 && MpvFacts.installHint !== ""
+            width: Math.min(implicitWidth, parent.width)
+            readOnly: true
+            selectByMouse: true
+            wrapMode: TextEdit.Wrap
+            horizontalAlignment: TextEdit.AlignHCenter
+            text: MpvFacts.installHint
+            color: Tokens.dim
+            font.family: Tokens.fontSans
+            font.pixelSize: Tokens.textData
         }
 
         Item { width: 1; height: 8; visible: waiting.failed }

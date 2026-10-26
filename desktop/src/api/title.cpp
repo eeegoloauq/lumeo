@@ -1,6 +1,7 @@
 #include "title.h"
 
 #include "core.h"
+#include "mpvfacts.h"
 #include "downloads.h"
 
 #include <QClipboard>
@@ -308,7 +309,7 @@ void SourceChoice::load(bool follow) {
       m_providers = json["providers"].toInt();
       m_listed = true;
       m_errorStatus = -1;
-      m_picked = m_sources.isEmpty() ? -1 : 0;
+      m_picked = decodable();
       if (follow)
         for (qsizetype i = 0; i < m_sources.size(); ++i)
           if (m_sources.at(i)["lastUsed"].toBool()) {
@@ -328,6 +329,18 @@ void SourceChoice::load(bool follow) {
       start();
     }
   });
+}
+
+// The core ranks for every client; only this end knows what it decodes. A
+// copy whose codec nothing here decodes stays in the list, marked, but is not
+// what Play picks.
+int SourceChoice::decodable() const {
+  if (m_sources.isEmpty())
+    return -1;
+  for (qsizetype i = 0; i < m_sources.size(); ++i)
+    if (MpvFacts::instance()->gapIn(m_sources.at(i)["release"].toObject().toVariantMap()).isEmpty())
+      return int(i);
+  return 0;
 }
 
 void SourceChoice::loadFolders() {

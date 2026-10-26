@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "downloads.h"
+#include "mpvfacts.h"
 #include "mpvitem.h"
 #include "preferences.h"
 #include "settings.h"
@@ -69,6 +70,11 @@ void Playback::setMpv(MpvItem *mpv) {
   // A binding to `quit` ends mpv; the film goes with it rather than leaving
   // a dead picture.
   connect(mpv, &MpvItem::shutdown, this, &Playback::close);
+  // For Settings › About, which has no film to ask.
+  connect(mpv, &MpvItem::hwdecChanged, this, [this] {
+    if (!m_mpv->hwdec().isEmpty())
+      MpvFacts::instance()->setHardware(m_mpv->hwdec());
+  });
   emit mpvChanged();
 }
 
@@ -354,6 +360,30 @@ void Playback::onPicture() {
   m_firstFailure = {};
   m_reopenAt = {};
   m_reopenPending = false;
+  checkDecoder();
+}
+
+// Once there is a picture: a codec this machine plays with a decoder known to
+// lose sync is said once, before the player gets blamed for it.
+void Playback::checkDecoder() {
+  if (m_decoderChecked)
+    return;
+  m_decoderChecked = true;
+  m_mpv->get("video-format", this, [this](const QVariant &format) {
+    const QString codec = format.toString();
+    if (!MpvFacts::instance()->unreliable(codec).isEmpty())
+      emit notice("broken", codec);
+  });
+}
+
+void Playback::readShortcuts() {
+  if (m_shortcutsRead || !m_mpv)
+    return;
+  m_mpv->get("input-bindings", this, [this](const QVariant &bindings) {
+    m_shortcuts = MpvFacts::shortcuts(bindings.toList());
+    m_shortcutsRead = true;
+    emit changed();
+  });
 }
 
 void Playback::retry() {

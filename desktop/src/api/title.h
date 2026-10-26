@@ -218,6 +218,8 @@ private:
   void rekey();
   void reload();
   void begin(bool play);
+  // The first copy this machine decodes, by the codecs its name states.
+  int decodable() const;
   // The download on disk Play can open without asking anybody; empty when
   // there is none, or when another copy of it is arriving, which a pick
   // put first.
