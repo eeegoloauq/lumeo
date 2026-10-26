@@ -10,8 +10,14 @@ ItemDelegate {
 
     property string label
     property string detail
+    // A second, smaller line under the label.
+    property string note
     property bool current
     property bool indent
+    // An action rather than a choice has no check column.
+    property bool check: true
+    // The row opens a page of its own.
+    property bool opens
     // Beside the detail: a control of the row's own.
     default property alias trailing: extra.data
 
@@ -26,6 +32,7 @@ ItemDelegate {
         spacing: 8
 
         Item {
+            visible: row.check
             Layout.preferredWidth: 18
             Layout.preferredHeight: 18
 
@@ -37,15 +44,29 @@ ItemDelegate {
             }
         }
 
-        Text {
+        Column {
             Layout.fillWidth: true
             Layout.horizontalStretchFactor: 3
-            text: row.label
-            elide: Text.ElideRight
-            color: row.current ? "white" : "#ccffffff"
-            font.family: Tokens.fontSans
-            font.pixelSize: 14
-            font.weight: row.current ? Font.DemiBold : Font.Normal
+
+            Text {
+                width: parent.width
+                text: row.label
+                elide: Text.ElideRight
+                color: row.current ? "white" : "#ccffffff"
+                font.family: Tokens.fontSans
+                font.pixelSize: 14
+                font.weight: row.current ? Font.DemiBold : Font.Normal
+            }
+
+            Text {
+                width: parent.width
+                visible: row.note !== ""
+                text: row.note
+                elide: Text.ElideRight
+                color: "#80ffffff"
+                font.family: Tokens.fontSans
+                font.pixelSize: 12
+            }
         }
 
         Text {
@@ -61,5 +82,12 @@ ItemDelegate {
         }
 
         Row { id: extra }
+
+        Glyph {
+            visible: row.opens
+            glyph: "chevron_right"
+            size: 20
+            color: "#80ffffff"
+        }
     }
 }

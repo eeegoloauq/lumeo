@@ -78,6 +78,28 @@ QString Playback::stage() const {
   return m_download.value("resolved").toBool() ? "arriving" : "fetchingMetadata";
 }
 
+bool Playback::findingNoPeers() const {
+  const QDateTime since = QDateTime::fromString(m_download.value("waitingSince").toString(), Qt::ISODate);
+  return m_download.value("state") == "active" && stage() == "findingPeers" &&
+         !m_download.value("offline").toBool() && since.isValid() &&
+         since.msecsTo(QDateTime::currentDateTime()) >= noPeersPatience;
+}
+
+int Playback::playingCopy(const QVariantList &sources) const {
+  const QString name = m_download.value("name").toString();
+  for (int i = 0; i < sources.size(); ++i) {
+    const QVariantMap source = sources[i].toMap();
+    if (source.value("rawName") == name || source.value("filename") == name)
+      return i;
+  }
+  return -1;
+}
+
+int Playback::nextCopy(const QVariantList &sources) const {
+  const int next = playingCopy(sources) + 1;
+  return next < sources.size() ? next : -1;
+}
+
 QString Playback::decoderCodec(const QString &line) {
   static const QRegularExpression codec("decoder for codec '([^']+)'");
   return codec.match(line).captured(1);

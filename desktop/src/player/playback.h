@@ -46,7 +46,11 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_PROPERTY(Failure failure READ failure NOTIFY changed)
   // The codec the failure names, when mpv named one.
   Q_PROPERTY(QString codec READ codec NOTIFY changed)
+  // The download has found no peers for noPeersPatience with the network up:
+  // another copy is worth offering. Offline, no copy would do better.
+  Q_PROPERTY(bool findingNoPeers READ findingNoPeers NOTIFY changed)
   // The waits below, which tests shorten.
+  Q_PROPERTY(int noPeersPatience MEMBER noPeersPatience)
   Q_PROPERTY(int openPatience MEMBER openPatience)
   Q_PROPERTY(int pollInterval MEMBER pollInterval)
   Q_PROPERTY(int reopenStep MEMBER reopenStep)
@@ -71,6 +75,7 @@ public:
   bool closing() const { return m_closing; }
   Failure failure() const { return m_failure; }
   QString codec() const { return m_codec; }
+  bool findingNoPeers() const;
 
   // Asks again at once rather than at the next poll.
   Q_INVOKABLE void retry();
@@ -86,6 +91,15 @@ public:
   int pollInterval = 2000;
   // The wait before another attempt, times the attempts so far, up to five.
   int reopenStep = 2000;
+
+  int noPeersPatience = 30000;
+
+  // Which of a title's copies is the one playing, by its release name; -1
+  // when none is.
+  Q_INVOKABLE int playingCopy(const QVariantList &sources) const;
+  // The copy to offer when this one finds no peers: the next in the core's
+  // ranking after it.
+  Q_INVOKABLE int nextCopy(const QVariantList &sources) const;
 
   // The codec an mpv error says it had no decoder for, else empty.
   static QString decoderCodec(const QString &line);

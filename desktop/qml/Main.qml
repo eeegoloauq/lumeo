@@ -43,12 +43,18 @@ ApplicationWindow {
     // A film takes the screen when it starts; leaving it gives the window
     // back as it was (decisions/player.md).
     function play(downloadId, name) {
-        if (player)
-            return
-        before = visibility === Window.FullScreen ? Window.Windowed : visibility
+        const sitting = player
+        if (!sitting)
+            before = visibility === Window.FullScreen ? Window.Windowed : visibility
         player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name})
         player.forceActiveFocus()
-        player.mpv.set("fullscreen", true)
+        // Another copy or episode in the same sitting keeps the window as it
+        // is, and mpv is told so that its `f` goes the right way.
+        player.mpv.set("fullscreen", sitting ? visibility === Window.FullScreen : true)
+        if (sitting) {
+            sitting.handedOver = true
+            sitting.close()
+        }
     }
 
     // A window that leaves fullscreen by other means takes mpv along, so
@@ -64,7 +70,9 @@ ApplicationWindow {
             return
         close.accepted = false
         quitting = true
-        player.close()
+        const leaving = player
+        player = null
+        leaving.close()
     }
 
     Connections {
@@ -89,17 +97,21 @@ ApplicationWindow {
             id: film
             anchors.fill: parent
             onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.before
+            onNext: (downloadId, name) => window.play(downloadId, name)
             onClosed: {
                 film.visible = false
+                if (film.handedOver)
+                    return
                 window.visibility = window.before
                 shell.forceActiveFocus()
             }
             // mpv goes with the item, before the process ends: the GPU
             // driver's exit handlers would tear down what it still uses.
             onFinished: {
-                window.player = null
+                if (window.player === film)
+                    window.player = null
                 film.destroy()
-                if (window.quitting)
+                if (window.quitting && !window.player)
                     window.close()
             }
         }

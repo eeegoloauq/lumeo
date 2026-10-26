@@ -43,6 +43,19 @@ enum Observed : uint64_t {
   SubVisible,
   SubScale,
   SubPos,
+  Panscan,
+  KeepAspect,
+  Shaders,
+};
+
+// The shaders of Anime4K 4.0.1's high-end presets, in the order mpv runs them.
+const QHash<QString, QStringList> anime4kPresets = {
+    {"a", {"Clamp_Highlights", "Restore_CNN_VL", "Upscale_CNN_x2_VL", "AutoDownscalePre_x2",
+           "AutoDownscalePre_x4", "Upscale_CNN_x2_M"}},
+    {"b", {"Clamp_Highlights", "Restore_CNN_Soft_VL", "Upscale_CNN_x2_VL",
+           "AutoDownscalePre_x2", "AutoDownscalePre_x4", "Upscale_CNN_x2_M"}},
+    {"c", {"Clamp_Highlights", "Upscale_Denoise_CNN_x2_VL", "AutoDownscalePre_x2",
+           "AutoDownscalePre_x4", "Upscale_CNN_x2_M"}},
 };
 
 // A QVariant as mpv's node, with the bytes it points at kept in [storage]
@@ -348,6 +361,9 @@ MpvItem::MpvItem(QQuickItem *parent)
       {SubVisible, {"sub-visibility", MPV_FORMAT_FLAG}},
       {SubScale, {"sub-scale", MPV_FORMAT_DOUBLE}},
       {SubPos, {"sub-pos", MPV_FORMAT_DOUBLE}},
+      {Panscan, {"panscan", MPV_FORMAT_DOUBLE}},
+      {KeepAspect, {"keepaspect", MPV_FORMAT_FLAG}},
+      {Shaders, {"glsl-shaders", MPV_FORMAT_NODE}},
   };
   for (const auto &[id, property] : observed)
     mpv_observe_property(mpv, id, property.first, property.second);
@@ -402,6 +418,18 @@ void MpvItem::get(const QString &name, const QJSValue &answer) {
     QJSEngine *engine = qjsEngine(this);
     call.call({value.isValid() && engine ? engine->toScriptValue(value) : QJSValue()});
   });
+}
+
+void MpvItem::setFit(int fit) {
+  set("panscan", fit == 1 ? 1.0 : 0.0);
+  set("keepaspect", fit != 2);
+}
+
+void MpvItem::setAnime4k(const QString &preset) {
+  QStringList paths;
+  for (const QString &shader : anime4kPresets.value(preset))
+    paths << QString(LUMEO_ANIME4K_DIR "/Anime4K_%1.glsl").arg(shader);
+  set("glsl-shaders", paths);
 }
 
 QString MpvItem::keyName(int key, const QString &text, Qt::KeyboardModifiers modifiers,
@@ -549,6 +577,9 @@ void MpvItem::drainEvents() {
   }
 }
 
+// Announced only when the value changes: mpv first reports what it starts
+// with, and a window that follows `fullscreen` would leave fullscreen for the
+// moment before mpv is told otherwise.
 void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   const void *data = property->format == MPV_FORMAT_NONE ? nullptr : property->data;
   const bool flag = data && *static_cast<const int *>(data);
@@ -560,90 +591,96 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   const QString text = data && property->format == MPV_FORMAT_STRING
                            ? QString::fromUtf8(*static_cast<char *const *>(data))
                            : QString();
+  auto update = [this](auto &member, const auto &value, void (MpvItem::*changed)()) {
+    if (member == value)
+      return;
+    member = value;
+    emit(this->*changed)();
+  };
   switch (id) {
   case Paused:
-    m_paused = flag;
-    emit pausedChanged();
+    update(m_paused, flag, &MpvItem::pausedChanged);
     break;
   case Position:
-    m_position = number;
-    emit positionChanged();
+    update(m_position, number, &MpvItem::positionChanged);
     break;
   case Duration:
-    m_duration = number;
-    emit durationChanged();
+    update(m_duration, number, &MpvItem::durationChanged);
     break;
   case Volume:
-    m_volume = number;
-    emit volumeChanged();
+    update(m_volume, number, &MpvItem::volumeChanged);
     break;
   case Muted:
-    m_muted = flag;
-    emit mutedChanged();
+    update(m_muted, flag, &MpvItem::mutedChanged);
     break;
   case Speed:
-    m_speed = data ? number : 1;
-    emit speedChanged();
+    update(m_speed, data ? number : 1.0, &MpvItem::speedChanged);
     break;
   case Fullscreen:
-    m_fullscreen = flag;
-    emit fullscreenChanged();
+    update(m_fullscreen, flag, &MpvItem::fullscreenChanged);
     break;
   case Hwdec:
-    m_hwdec = text;
-    emit hwdecChanged();
+    update(m_hwdec, text, &MpvItem::hwdecChanged);
     break;
   case Buffering:
-    m_buffering = flag;
-    emit bufferingChanged();
+    update(m_buffering, flag, &MpvItem::bufferingChanged);
     break;
   case Ended:
-    m_ended = flag;
-    emit endedChanged();
+    update(m_ended, flag, &MpvItem::endedChanged);
     break;
-  case Picture: {
-    const bool picture = node.toMap().value("w").toInt() > 0;
-    if (picture != m_hasPicture) {
-      m_hasPicture = picture;
-      emit hasPictureChanged();
-    }
+  case Picture:
+    update(m_hasPicture, node.toMap().value("w").toInt() > 0, &MpvItem::hasPictureChanged);
     break;
-  }
   case Chapters:
-    m_chapters = node.toList();
-    emit chaptersChanged();
+    update(m_chapters, node.toList(), &MpvItem::chaptersChanged);
     break;
   case Chapter:
-    m_chapter = data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1;
-    emit chapterChanged();
+    update(m_chapter, data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1,
+           &MpvItem::chapterChanged);
     break;
   case Tracks:
-    m_tracks = node.toList();
-    emit tracksChanged();
+    update(m_tracks, node.toList(), &MpvItem::tracksChanged);
     break;
   case Aid:
-    m_aid = text;
-    emit aidChanged();
+    update(m_aid, text, &MpvItem::aidChanged);
     break;
   case Sid:
-    m_sid = text;
-    emit sidChanged();
+    update(m_sid, text, &MpvItem::sidChanged);
     break;
   case SubDelay:
-    m_subDelay = number;
-    emit subDelayChanged();
+    update(m_subDelay, number, &MpvItem::subDelayChanged);
     break;
   case SubVisible:
-    m_subVisible = flag;
-    emit subVisibleChanged();
+    update(m_subVisible, flag, &MpvItem::subVisibleChanged);
     break;
   case SubScale:
-    m_subScale = data ? number : 1;
-    emit subScaleChanged();
+    update(m_subScale, data ? number : 1.0, &MpvItem::subScaleChanged);
     break;
   case SubPos:
-    m_subPos = data ? number : 100;
-    emit subPosChanged();
+    update(m_subPos, data ? number : 100.0, &MpvItem::subPosChanged);
     break;
+  case Panscan:
+    update(m_panscan, number, &MpvItem::fitChanged);
+    break;
+  case KeepAspect:
+    update(m_keepAspect, flag, &MpvItem::fitChanged);
+    break;
+  case Shaders: {
+    // Read back from mpv, which a key or a user's input.conf may have
+    // changed too: the preset whose files these are, by name.
+    QStringList files;
+    for (const QVariant &path : node.toList())
+      files << path.toString().section('/', -1).section('\\', -1);
+    QString preset = files.isEmpty() ? QString() : "other";
+    for (auto it = anime4kPresets.begin(); it != anime4kPresets.end(); ++it) {
+      QStringList names;
+      for (const QString &shader : it.value())
+        names << "Anime4K_" + shader + ".glsl";
+      if (names == files)
+        preset = it.key();
+    }
+    update(m_anime4k, preset, &MpvItem::anime4kChanged);
+    break;
+  }
   }
 }

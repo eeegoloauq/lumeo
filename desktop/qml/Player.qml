@@ -21,6 +21,10 @@ FocusScope {
 
     // The film is left: the window goes back to the pages.
     signal closed()
+    // Another download takes this one's place, in the same sitting.
+    signal next(string downloadId, string name)
+    // Another player took the window: this one only goes.
+    property bool handedOver: false
     // Its position has reached the core, or three seconds went by: it may go.
     signal finished()
 
@@ -36,7 +40,33 @@ FocusScope {
         menu = menu === name ? "" : name
         if (menu === "tracks")
             session.tracks.show()
+        if (menu === "settings")
+            askCopies = true
         chrome.poke()
+    }
+
+    // The title's copies are asked for once something needs them: the
+    // Source page, or another copy to offer when this one finds no peers.
+    property bool askCopies: session.findingNoPeers
+    // Another copy was picked and is starting.
+    property bool switching: false
+
+    function pickCopy(index) {
+        switching = true
+        mpv.set("pause", true)
+        choice.choose(index, true)
+    }
+
+    SourceChoice {
+        id: choice
+        itemId: player.askCopies || player.switching ? session.download.itemId ?? "" : ""
+        season: session.download.season ?? 0
+        episode: session.download.episode ?? 0
+        onStarted: downloadId => player.next(downloadId, session.title)
+        onRefused: reason => {
+            player.switching = false
+            notice.say(reason)
+        }
     }
 
     MpvItem {
@@ -119,8 +149,12 @@ FocusScope {
 
     PlayerWaiting {
         anchors.fill: parent
-        visible: !mpv.hasPicture
+        visible: !mpv.hasPicture || player.switching
         playback: session
+        copies: choice
+        switching: player.switching
+        overPicture: mpv.hasPicture
+        onPickCopy: index => player.pickCopy(index)
     }
 
     BusyIndicator {
@@ -442,6 +476,13 @@ FocusScope {
                 }
 
                 PlayerButton {
+                    objectName: "settingsButton"
+                    glyph: "settings"
+                    tip: qsTrId("playerSettings")
+                    onClicked: player.toggleMenu("settings")
+                }
+
+                PlayerButton {
                     objectName: "fullscreen"
                     glyph: mpv.fullscreen ? "fullscreen_exit" : "fullscreen"
                     tip: mpv.fullscreen ? qsTrId("playerExitFullscreen") : qsTrId("playerFullscreen")
@@ -461,6 +502,20 @@ FocusScope {
         room: player.height - 92
         onDone: player.menu = ""
         onVisibleChanged: style = false
+    }
+
+    SettingsMenu {
+        objectName: "settingsMenu"
+        anchors { right: parent.right; rightMargin: 24; bottom: parent.bottom; bottomMargin: 76 }
+        visible: player.menu === "settings"
+        mpv: player.mpv
+        playback: session
+        copies: choice
+        room: player.height - 92
+        onDone: player.menu = ""
+        onTracks: player.toggleMenu("tracks")
+        onPickCopy: index => player.pickCopy(index)
+        onVisibleChanged: page = ""
     }
 
     component PlayerButton: IconButton {

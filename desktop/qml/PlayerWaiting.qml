@@ -8,8 +8,19 @@ Item {
     id: waiting
 
     required property Playback playback
+    // The title's copies, for another to offer and for a switch to one.
+    required property SourceChoice copies
+    // Another copy was picked and is starting: the wait is for it.
+    property bool switching: false
+    // Over the picture, which goes dark rather than away.
+    property bool overPicture: false
 
-    readonly property bool failed: playback.failure !== Playback.None
+    signal pickCopy(int index)
+
+    readonly property bool switchFailed: switching && (copies.errorStatus >= 0
+                                                       || (copies.listed && copies.sources.length === 0))
+    readonly property bool failed: switchFailed || (!switching && playback.failure !== Playback.None)
+    readonly property int nextCopy: playback.findingNoPeers ? playback.nextCopy(copies.sources) : -1
     readonly property var download: playback.download
     readonly property bool active: download.state === "active"
 
@@ -55,9 +66,18 @@ Item {
     }
 
     function message() {
+        if (switching)
+            return copies.errorStatus >= 0 ? qsTrId("playerCouldNotStartCopy")
+                                           : qsTrId("playerNoCopyOf").arg(playback.title)
         if (playback.failure === Playback.CoreStopped)
             return qsTrId("playerCoreStopped")
         return qsTrId("playerCopyWouldNotStart")
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: waiting.overPicture
+        color: "#99000000"
     }
 
     Column {
@@ -94,12 +114,38 @@ Item {
         Text {
             objectName: "waitLine"
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !waiting.failed && waiting.active
+            visible: !waiting.failed && !waiting.switching && waiting.active
             text: waiting.active ? waiting.waitLine() : ""
             color: "#99ffffff"
             font.family: Tokens.fontSans
             font.pixelSize: 13
             font.features: { "tnum": 1 }
+        }
+
+        // Below the line, so the ring and the title stay put.
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: !waiting.failed && !waiting.switching && waiting.nextCopy >= 0
+            topPadding: 8
+            spacing: 8
+
+            QuietButton {
+                objectName: "anotherCopy"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTrId("playerTryAnotherCopy")
+                onClicked: waiting.pickCopy(waiting.nextCopy)
+            }
+
+            Text {
+                readonly property var copy: waiting.copies.sources[waiting.nextCopy] ?? ({})
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: [[copy.release?.resolution ?? "", Words.sourceTitle(copy)].filter(p => p).join(" · "),
+                       copy.size > 0 ? Words.bytes(copy.size) : "",
+                       copy.seeders > 0 ? qsTrId("playerSeedCount", copy.seeders) : ""].filter(p => p).join(" · ")
+                color: "#80ffffff"
+                font.family: Tokens.fontSans
+                font.pixelSize: 12
+            }
         }
 
         Text {
@@ -119,7 +165,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: waiting.failed
             text: qsTrId("playerTryAgain")
-            onClicked: waiting.playback.retry()
+            onClicked: waiting.switching ? waiting.copies.start() : waiting.playback.retry()
         }
     }
 }

@@ -29,6 +29,8 @@ Each step ends with the checks of the steps before it still passing.
    "Open with" and `lumeo://` links, the update card and release notes.
 5. **Packages and CI.** Fedora, Arch and the Windows installer from
    `desktop/`, the release workflow and the client checks on the mirror.
+   The Anime4K shaders go where the installed player reads them; a build
+   reads them from `client/assets/anime4k` until then.
 6. **Switch.** Walk this inventory against the new client, then delete
    `client/`, `desktop/tool/arb2ts.py` and this file, and rewrite what describes the client:
    `CLAUDE.md`, `CONTRIBUTING.md`, `architecture.md`, `decisions/interface.md`

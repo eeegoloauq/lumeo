@@ -59,6 +59,11 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(double subScale READ subScale NOTIFY subScaleChanged)
   // 100 is the bottom edge; less lifts the line.
   Q_PROPERTY(double subPos READ subPos NOTIFY subPosChanged)
+  // The picture fitted to the view (0), filling it (1) or stretched (2).
+  Q_PROPERTY(int fit READ fit NOTIFY fitChanged)
+  // The Anime4K preset mpv runs: "" for none, "a", "b" or "c", and "other"
+  // for shaders that are none of them.
+  Q_PROPERTY(QString anime4k READ anime4k NOTIFY anime4kChanged)
 
 public:
   explicit MpvItem(QQuickItem *parent = nullptr);
@@ -90,6 +95,8 @@ public:
   bool subVisible() const { return m_subVisible; }
   double subScale() const { return m_subScale; }
   double subPos() const { return m_subPos; }
+  int fit() const { return m_keepAspect ? (m_panscan > 0 ? 1 : 0) : 2; }
+  QString anime4k() const { return m_anime4k; }
 
   // Opens a file or address; [headers] go with every HTTP request mpv makes.
   Q_INVOKABLE void open(const QString &url, const QStringList &headers = {});
@@ -115,6 +122,10 @@ public:
   // The pointer over the picture, in the render target's pixels.
   Q_INVOKABLE void pointer(qreal x, qreal y);
   Q_INVOKABLE void wheel(QPointF angleDelta, int modifiers);
+  Q_INVOKABLE void setFit(int fit);
+  // Anime4K 4.0.1's high-end presets: A for 1080p anime, B for 720p, C for
+  // 480p; "" turns it off (decisions/player.md).
+  Q_INVOKABLE void setAnime4k(const QString &preset);
 
   // mpv's name for a key, modifiers included; empty for none. A printable
   // key whose character is not ASCII and that nothing in [bound] names is
@@ -148,6 +159,8 @@ signals:
   void subVisibleChanged();
   void subScaleChanged();
   void subPosChanged();
+  void fitChanged();
+  void anime4kChanged();
   // mpv gave up on the file it was opening or playing.
   void loadFailed(const QString &reason);
   // A line mpv logged as an error: it explains a failure, but on its own is
@@ -185,6 +198,9 @@ private:
   bool m_subVisible = true;
   double m_subScale = 1;
   double m_subPos = 100;
+  double m_panscan = 0;
+  bool m_keepAspect = true;
+  QString m_anime4k;
 
   // The mpv name sent on each held key's press, by physical key: a release
   // has no text, and Shift let go first changes what Qt calls the key.

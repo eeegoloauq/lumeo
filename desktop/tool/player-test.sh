@@ -58,10 +58,13 @@ fi
 printf 'pcm.!default { type null }\nctl.!default { type hw card 0 }\n' >"$log/asound.conf"
 export ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf:$log/asound.conf
 
+# A test card with a tone, in two chapters.
 export LUMEO_TEST_CLIP=$log/clip.mkv
+printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=5000\ntitle=Intro\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=5000\nEND=20000\ntitle=Story\n' \
+  >"$log/chapters.txt"
 ffmpeg -loglevel error -f lavfi -i testsrc2=size=640x360:rate=24:duration=20 \
-  -f lavfi -i sine=frequency=440:duration=20 -c:v libx264 -preset ultrafast -c:a aac \
-  "$LUMEO_TEST_CLIP"
+  -f lavfi -i sine=frequency=440:duration=20 -i "$log/chapters.txt" -map 0 -map 1 -map_chapters 2 \
+  -c:v libx264 -preset ultrafast -c:a aac "$LUMEO_TEST_CLIP"
 
 # Two soundtracks and two English subtitles told apart by their titles.
 export LUMEO_TEST_TRACKS=$log/tracks.mkv

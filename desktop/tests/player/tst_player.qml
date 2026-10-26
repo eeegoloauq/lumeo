@@ -218,6 +218,24 @@ Item {
             tryVerify(() => win.player === null, 5000, "the player gone")
         }
 
+        // Another copy or episode in the same sitting keeps the window as it
+        // is; the one before goes, its position saved.
+        function test_theNextDownloadTakesTheWindowInTheSameSitting() {
+            const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
+            tryVerify(() => win.visible, 5000)
+            win.play("d1", "Nosferatu")
+            tryVerify(() => win.visibility === Window.FullScreen, 5000)
+            tryVerify(() => win.player.mpv.position > 1, 10000)
+            const first = win.player
+            first.next("d1", "Nosferatu")
+            verify(win.player !== first)
+            tryVerify(() => win.player.mpv.hasPicture, 10000, "the next one plays")
+            compare(win.visibility, Window.FullScreen)
+            tryVerify(() => asks("PUT /api/v1/progress/tt0063350"), 5000, "the first one's position saved")
+            win.player.close()
+            tryVerify(() => win.visibility === Window.Windowed, 5000, "the window given back as it was")
+        }
+
         // Closing the window ends the process: the position is saved while
         // the core still answers, and mpv goes before the window does.
         function test_closingTheWindowMidFilmSavesThePosition() {

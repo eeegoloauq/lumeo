@@ -56,6 +56,7 @@ qt_add_qml_module(lumeo
     qml/PosterTile.qml
     qml/QuietButton.qml
     qml/RatingButton.qml
+    qml/SettingsMenu.qml
     qml/ShelfRow.qml
     qml/SourcesDrawer.qml
     qml/Shell.qml
@@ -97,6 +98,7 @@ qt_add_qml_module(lumeo
     icons/play_circle.svg
     icons/remove.svg
     icons/search.svg
+    icons/settings.svg
     icons/star.svg
     icons/star_border.svg
     icons/tune.svg
@@ -128,6 +130,13 @@ target_include_directories(lumeo PUBLIC src src/api src/player src/platform)
 
 target_link_libraries(lumeo PUBLIC
   Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent PkgConfig::MPV
+)
+
+target_compile_definitions(lumeo PRIVATE
+  # mpv reads the shaders as files; they are the Flutter client's until it
+  # goes, and packages install them where the player reads them (docs/qt-port.md,
+  # step 5).
+  LUMEO_ANIME4K_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/anime4k"
 )
 
 # The banner's scrim, compiled for every graphics API Qt might run on.
