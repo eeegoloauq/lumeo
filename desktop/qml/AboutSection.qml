@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Lumeo
 
@@ -50,6 +51,48 @@ SettingsBlock {
         SettingRow {
             label: "Lumeo"
             Value { text: block.version }
+            RowButton {
+                visible: Releases.notes.length > 0
+                text: qsTrId("releaseWhatsNew")
+                onClicked: whatsNew.open()
+            }
+            Popup {
+                id: whatsNew
+                parent: Overlay.overlay
+                anchors.centerIn: parent
+                modal: true
+                padding: 0
+                background: null
+                contentItem: ReleaseCard {
+                    title: qsTrId("releaseUpdatedTo").arg(block.version)
+                    items: Releases.notes
+                    action: qsTrId("releaseGotIt")
+                    onActed: whatsNew.close()
+                    onClosed: whatsNew.close()
+                }
+            }
+        }
+        // The core asks, not the client: every call leaving the machine is
+        // the core's (decisions/shipping.md).
+        SettingRow {
+            visible: Preferences.current.checkUpdates !== undefined
+            label: qsTrId("settingsCheckUpdates")
+            SettingSwitch {
+                objectName: "checkUpdates"
+                label: qsTrId("settingsCheckUpdates")
+                checked: Preferences.current.checkUpdates ?? false
+                onToggled: block.settings.set(block.section, "checkUpdates", checked)
+            }
+        }
+        SettingRow {
+            visible: !!Preferences.current.checkUpdates
+            label: qsTrId("settingsBetaUpdates")
+            SettingSwitch {
+                objectName: "betaUpdates"
+                label: qsTrId("settingsBetaUpdates")
+                checked: !!Preferences.current.betaUpdates
+                onToggled: block.settings.set(block.section, "betaUpdates", checked)
+            }
         }
         SettingRow {
             label: qsTrId("settingsCore")

@@ -28,6 +28,9 @@ class LocalSettings : public QObject {
   // system.
   Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
   Q_PROPERTY(QVariantList languages READ languages CONSTANT)
+  // Leaving the player the first time says that Lumeo keeps what was
+  // watched, once per machine (decisions/interface.md, Help).
+  Q_PROPERTY(bool keepsTold READ keepsTold WRITE setKeepsTold NOTIFY changed)
   // The order of My list: "added", "title", "year" or "rating". A way of
   // looking at the list on this screen, so not the core's
   // (decisions/library.md).
@@ -55,6 +58,16 @@ public:
   QVariantList languages() const { return m_languages; }
   QString listSort() const;
   void setListSort(const QString &order);
+  bool keepsTold() const { return m_values.value("keepsTold").toBool(); }
+  void setKeepsTold(bool told) { set("keepsTold", told); }
+  // The version whose notes were last shown: null on a first run, which has
+  // nothing to compare with; empty from a copy that kept none.
+  QString lastSeenVersion() const;
+  void setLastSeenVersion(const QString &version) { set("lastSeenVersion", version); }
+  // The newer release whose notice was closed, and when.
+  QString dismissedUpdate() const { return m_values.value("dismissedUpdate").toString(); }
+  QDateTime updateDismissedAt() const;
+  void dismissUpdate(const QString &version);
   bool background() const { return m_values.value("background").toBool(); }
   void setBackground(bool on);
   bool autostart() const { return background() && m_values.value("autostart").toBool(); }
@@ -77,6 +90,7 @@ private:
   void write();
 
   QString m_path;
+  bool m_existed = false;
   QJsonObject m_values;
   QVariantList m_languages;
   // A slider's drag is one write, half a second after it stops.

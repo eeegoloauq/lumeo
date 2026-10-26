@@ -12,6 +12,7 @@
 LocalSettings::LocalSettings(const QString &path, QObject *parent)
     : QObject(parent), m_path(path), m_languages(interfaceLanguages()) {
   QFile file(path);
+  m_existed = file.exists();
   if (file.open(QIODevice::ReadOnly))
     m_values = QJsonDocument::fromJson(file.readAll()).object();
   m_save.setInterval(500);
@@ -63,6 +64,21 @@ QString LocalSettings::listSort() const {
 void LocalSettings::setListSort(const QString &order) {
   if (listSorts.contains(order))
     set("listSort", order);
+}
+
+QString LocalSettings::lastSeenVersion() const {
+  if (!m_existed && !m_values.contains("lastSeenVersion"))
+    return {};
+  return m_values.value("lastSeenVersion").toString("");
+}
+
+QDateTime LocalSettings::updateDismissedAt() const {
+  return QDateTime::fromString(m_values.value("updateDismissedAt").toString(), Qt::ISODateWithMs);
+}
+
+void LocalSettings::dismissUpdate(const QString &version) {
+  m_values.insert("updateDismissedAt", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs));
+  set("dismissedUpdate", version);
 }
 
 void LocalSettings::setBackground(bool on) {

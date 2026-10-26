@@ -54,6 +54,8 @@ ShellPage {
             return "audioSubtitles"
         if (["keep", "keepDays", "diskLimit", "prefetch", "downloadDir", "uploadLimit", "downloadLimit"].includes(key))
             return "downloads"
+        if (["checkUpdates", "betaUpdates"].includes(key))
+            return "about"
         return ""
     }
 

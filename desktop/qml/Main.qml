@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Lumeo
 
 ApplicationWindow {
@@ -56,13 +57,18 @@ ApplicationWindow {
         close()
     }
 
+    // The title the "Lumeo keeps what you watch" card names, shown once per
+    // machine on leaving the player the first time.
+    property string keptTitle: ""
+
     // A film takes the screen when it starts; leaving it gives the window
-    // back as it was (decisions/player.md).
-    function play(downloadId, name) {
+    // back as it was (decisions/player.md). [kept]: Lumeo keeps the file,
+    // which it never does for one opened from this computer.
+    function play(downloadId, name, kept) {
         const sitting = player
         if (!sitting)
             wasFullscreen = visibility === Window.FullScreen
-        player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name})
+        player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name, kept: kept})
         player.forceActiveFocus()
         // Another copy or episode in the same sitting keeps the window as it
         // is, and mpv is told so that its `f` goes the right way.
@@ -130,7 +136,7 @@ ApplicationWindow {
 
     Connections {
         target: Opening
-        function onPlay(downloadId, name) { window.play(downloadId, name) }
+        function onPlay(downloadId, name) { window.play(downloadId, name, false) }
         function onTitle(item) { shell.open(item, false) }
         function onFailed(what, reason) {
             shell.say(reason === "" ? qsTrId("commonUnknownLink") : qsTrId("commonCouldNotOpen").arg(what).arg(reason))
@@ -138,6 +144,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        Releases.check()
         if (!visible)
             Background.hidden()
         if (Instance.target() !== "")
@@ -162,7 +169,84 @@ ApplicationWindow {
         anchors.fill: parent
         visible: !window.player?.visible
         focus: true
-        onWatch: (downloadId, name) => window.play(downloadId, name)
+        onWatch: (downloadId, name) => window.play(downloadId, name, true)
+    }
+
+    // The corner's notice, one at a time: what just happened to the film
+    // comes before what is new in Lumeo, and a newer release before the
+    // notes of this one, since it covers the update the viewer is on. The
+    // column spans the height, so a long card is held to the window.
+    Item {
+        visible: shell.visible
+        anchors { top: parent.top; right: parent.right; bottom: parent.bottom; margins: 24 }
+        width: 360
+
+        Loader {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: Math.min(item?.implicitHeight ?? 0, parent.height)
+            sourceComponent: window.keptTitle !== "" ? keepsCard
+                : Releases.update !== "" ? updateCard
+                : Releases.news.length > 0 ? newsCard : null
+        }
+    }
+
+    Component {
+        id: keepsCard
+        CornerCard {
+            objectName: "keepsCard"
+            title: qsTrId("keepsTitle")
+            onClosed: window.keptTitle = ""
+            Text {
+                Layout.fillWidth: true
+                text: {
+                    const keep = Preferences.current.keep
+                    return [qsTrId("keepsHere").arg(window.keptTitle),
+                            keep === "watched" ? qsTrId("keepsDeletedWatched")
+                            : keep === "days" ? qsTrId("keepsDeletedAfterDays", Preferences.current.keepDays)
+                            : keep === "forever" ? qsTrId("keepsStays") : ""].filter(s => s !== "").join(" ")
+                }
+                color: Tokens.dim
+                font.family: Tokens.fontSans
+                font.pixelSize: Tokens.textData
+                wrapMode: Text.Wrap
+            }
+            buttons: RowButton {
+                text: qsTrId("keepsStorage")
+                onClicked: {
+                    window.keptTitle = ""
+                    shell.storage()
+                }
+            }
+        }
+    }
+    Component {
+        id: updateCard
+        ReleaseCard {
+            objectName: "updateCard"
+            title: qsTrId("releaseAvailable").arg(Releases.update)
+            items: Releases.updateNotes
+            action: qsTrId("releaseDownload")
+            onActed: {
+                Qt.openUrlExternally(Releases.updateUrl)
+                Releases.dismissUpdate()
+            }
+            onClosed: Releases.dismissUpdate()
+        }
+    }
+    Component {
+        id: newsCard
+        ReleaseCard {
+            objectName: "newsCard"
+            title: qsTrId("releaseUpdatedTo").arg(Qt.application.version)
+            items: Releases.news
+            // Offered before it was installed, or told beta by beta: the
+            // list was read then.
+            collapsed: Releases.newsTold
+            action: qsTrId("releaseGotIt")
+            onActed: Releases.seen()
+            onClosed: Releases.seen()
+        }
     }
 
     Component {
@@ -170,9 +254,10 @@ ApplicationWindow {
 
         Player {
             id: film
+            property bool kept: true
             anchors.fill: parent
             onFullscreenChanged: if (!film.playback.closing) window.visibility = film.fullscreen ? Window.FullScreen : window.windowed
-            onNext: (downloadId, name) => window.play(downloadId, name)
+            onNext: (downloadId, name) => window.play(downloadId, name, film.kept)
             onStorage: {
                 film.close()
                 shell.storage()
@@ -181,6 +266,10 @@ ApplicationWindow {
                 film.visible = false
                 if (film.handedOver)
                     return
+                if (film.kept && !LocalSettings.keepsTold) {
+                    LocalSettings.keepsTold = true
+                    window.keptTitle = film.name
+                }
                 // Closed with the window into the background, which keeps
                 // it hidden.
                 if (window.visible)

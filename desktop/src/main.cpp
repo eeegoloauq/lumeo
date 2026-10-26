@@ -4,6 +4,7 @@
 #include "instance.h"
 #include "language.h"
 #include "mpvfacts.h"
+#include "releases.h"
 #include "settings.h"
 
 #include <QApplication>
@@ -55,11 +56,13 @@ int main(int argc, char *argv[]) {
   // another is chosen.
   auto *settings = engine.singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
   Background background(settings, instance.ownsCore());
-  const auto speak = [&engine, &background, settings] {
+  auto *releases = engine.singletonInstance<Releases *>("Lumeo", "Releases");
+  const auto speak = [&engine, &background, settings, releases] {
     QLocale::setDefault(settings->locale());
     installTranslations(settings->locale());
     engine.retranslate();
     background.retranslate();
+    releases->setLanguage(settings->locale().name().section('_', 0, 0));
   };
   speak();
   QObject::connect(settings, &LocalSettings::languageChanged, &engine, speak);

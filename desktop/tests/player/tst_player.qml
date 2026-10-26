@@ -213,7 +213,7 @@ Item {
             const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
             tryVerify(() => win.visible, 5000, "the window up")
             compare(win.visibility, Window.Windowed)
-            win.play("d1", "Nosferatu")
+            win.play("d1", "Nosferatu", true)
             tryVerify(() => win.visibility === Window.FullScreen, 5000, "the film takes the screen")
             tryVerify(() => win.player.mpv.hasPicture, 10000)
             win.player.close()
@@ -228,7 +228,7 @@ Item {
             tryVerify(() => win.visible, 5000)
             win.visibility = Window.FullScreen
             tryVerify(() => win.visibility === Window.FullScreen, 5000)
-            win.play("d1", "Nosferatu")
+            win.play("d1", "Nosferatu", true)
             tryVerify(() => win.player.mpv.hasPicture, 10000)
             win.player.mpv.set("fullscreen", false)
             tryVerify(() => win.visibility === Window.Windowed, 5000, "f leaves fullscreen")
@@ -241,7 +241,7 @@ Item {
         function test_theNextDownloadTakesTheWindowInTheSameSitting() {
             const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
             tryVerify(() => win.visible, 5000)
-            win.play("d1", "Nosferatu")
+            win.play("d1", "Nosferatu", true)
             tryVerify(() => win.visibility === Window.FullScreen, 5000)
             tryVerify(() => win.player.mpv.position > 1, 10000)
             const first = win.player
@@ -259,7 +259,7 @@ Item {
         function test_closingTheWindowMidFilmSavesThePosition() {
             const win = createTemporaryObject(windowComponent, null, { toOpen: "" })
             tryVerify(() => win.visible, 5000)
-            win.play("d1", "Nosferatu")
+            win.play("d1", "Nosferatu", true)
             tryVerify(() => !!win.player && win.player.mpv.position > 1, 10000, "the film playing")
             win.close()
             tryVerify(() => !win.visible, 5000, "the window closed")

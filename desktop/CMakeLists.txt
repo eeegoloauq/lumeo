@@ -38,6 +38,10 @@ endforeach()
 set(tray_icon ${CMAKE_CURRENT_SOURCE_DIR}/../packaging/icon-small.svg)
 set_source_files_properties(${tray_icon} PROPERTIES QT_RESOURCE_ALIAS icons/lumeo.svg)
 
+# This version's release notes, shown after an update.
+set(metainfo ${CMAKE_CURRENT_SOURCE_DIR}/../client/assets/dev.lumeo.lumeo.metainfo.xml)
+set_source_files_properties(${metainfo} PROPERTIES QT_RESOURCE_ALIAS dev.lumeo.lumeo.metainfo.xml)
+
 # Everything but main(), so the tests load the module the app does.
 qt_add_library(lumeo STATIC)
 qt_add_qml_module(lumeo
@@ -92,6 +96,8 @@ qt_add_qml_module(lumeo
     qml/PlayerWaiting.qml
     qml/Scrubber.qml
     qml/Theme.qml
+    qml/CornerCard.qml
+    qml/ReleaseCard.qml
     qml/Toast.qml
     qml/TracksMenu.qml
     qml/WheelScroll.qml
@@ -127,6 +133,7 @@ qt_add_qml_module(lumeo
   RESOURCES
     ${fonts}
     ${tray_icon}
+    ${metainfo}
     # Material Symbols, Apache 2.0 (icons/LICENSE): only the ones in use.
     icons/add.svg
     icons/arrow_back.svg
@@ -174,6 +181,7 @@ qt_add_qml_module(lumeo
     src/api/storage.h src/api/storage.cpp
     src/api/corestatus.h src/api/corestatus.cpp
     src/api/opening.h src/api/opening.cpp
+    src/api/releases.h src/api/releases.cpp
     src/platform/desktop.h src/platform/desktop.cpp
     src/platform/folders.h src/platform/folders.cpp
     src/platform/background.h src/platform/background.cpp
