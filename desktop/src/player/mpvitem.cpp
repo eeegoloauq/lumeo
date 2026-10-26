@@ -4,6 +4,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QQuickOpenGLUtils>
+#include <QJSEngine>
 #include <QQuickWindow>
 #include <QtGui/qguiapplication_platform.h>
 #include <mpv/client.h>
@@ -35,6 +36,13 @@ enum Observed : uint64_t {
   Picture,
   Chapters,
   Chapter,
+  Tracks,
+  Aid,
+  Sid,
+  SubDelay,
+  SubVisible,
+  SubScale,
+  SubPos,
 };
 
 // A QVariant as mpv's node, with the bytes it points at kept in [storage]
@@ -302,6 +310,11 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"osd-bar", "no"},
       {"osd-on-seek", "msg"},
       {"osd-msg3", "${osd-sym-cc} ${time-pos}${?duration: / ${duration}}"},
+      // Plain text where a streaming release's styled dialogue sits, in mpv's
+      // 720-line scale: 1/15 of the picture high, 1/20 of it above the
+      // bottom edge (decisions/subtitles.md).
+      {"sub-font-size", "48"},
+      {"sub-margin-y", "36"},
   };
   for (const auto &[name, value] : options)
     mpv_set_option_string(mpv, name, value);
@@ -328,6 +341,13 @@ MpvItem::MpvItem(QQuickItem *parent)
       {Picture, {"video-out-params", MPV_FORMAT_NODE}},
       {Chapters, {"chapter-list", MPV_FORMAT_NODE}},
       {Chapter, {"chapter", MPV_FORMAT_INT64}},
+      {Tracks, {"track-list", MPV_FORMAT_NODE}},
+      {Aid, {"aid", MPV_FORMAT_STRING}},
+      {Sid, {"sid", MPV_FORMAT_STRING}},
+      {SubDelay, {"sub-delay", MPV_FORMAT_DOUBLE}},
+      {SubVisible, {"sub-visibility", MPV_FORMAT_FLAG}},
+      {SubScale, {"sub-scale", MPV_FORMAT_DOUBLE}},
+      {SubPos, {"sub-pos", MPV_FORMAT_DOUBLE}},
   };
   for (const auto &[id, property] : observed)
     mpv_observe_property(mpv, id, property.first, property.second);
@@ -364,7 +384,9 @@ void MpvItem::set(const QString &name, const QVariant &value) {
   std::list<std::vector<mpv_node>> lists;
   std::list<mpv_node_list> nodeLists;
   mpv_node node = toNode(value, storage, lists, nodeLists);
-  mpv_set_property_async(m_shared->mpv, 0, name.toUtf8().constData(), MPV_FORMAT_NODE, &node);
+  const uint64_t id = m_nextSet++;
+  m_sets.insert(id, name);
+  mpv_set_property_async(m_shared->mpv, id, name.toUtf8().constData(), MPV_FORMAT_NODE, &node);
 }
 
 void MpvItem::get(const QString &name, QObject *context,
@@ -372,6 +394,14 @@ void MpvItem::get(const QString &name, QObject *context,
   const uint64_t id = m_nextGet++;
   m_gets.insert(id, {context, std::move(answer)});
   mpv_get_property_async(m_shared->mpv, id, name.toUtf8().constData(), MPV_FORMAT_NODE);
+}
+
+void MpvItem::get(const QString &name, const QJSValue &answer) {
+  get(name, this, [this, answer](const QVariant &value) {
+    QJSValue call = answer;
+    QJSEngine *engine = qjsEngine(this);
+    call.call({value.isValid() && engine ? engine->toScriptValue(value) : QJSValue()});
+  });
 }
 
 QString MpvItem::keyName(int key, const QString &text, Qt::KeyboardModifiers modifiers,
@@ -485,6 +515,14 @@ void MpvItem::drainEvents() {
         pending.answer(value);
       break;
     }
+    case MPV_EVENT_SET_PROPERTY_REPLY: {
+      const QString name = m_sets.take(event->reply_userdata);
+      // A property this mpv does not have, or a value it does not take: a
+      // decision that silently did nothing.
+      if (event->error < 0)
+        qWarning("mpv refused %s: %s", qPrintable(name), mpv_error_string(event->error));
+      break;
+    }
     case MPV_EVENT_CLIENT_MESSAGE: {
       auto *message = static_cast<mpv_event_client_message *>(event->data);
       if (message->num_args == 2 && qstrcmp(message->args[0], "lumeo") == 0)
@@ -519,6 +557,9 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   const QVariant node = data && property->format == MPV_FORMAT_NODE
                             ? fromNode(*static_cast<const mpv_node *>(data))
                             : QVariant();
+  const QString text = data && property->format == MPV_FORMAT_STRING
+                           ? QString::fromUtf8(*static_cast<char *const *>(data))
+                           : QString();
   switch (id) {
   case Paused:
     m_paused = flag;
@@ -549,7 +590,7 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
     emit fullscreenChanged();
     break;
   case Hwdec:
-    m_hwdec = data ? QString::fromUtf8(*static_cast<char *const *>(data)) : QString();
+    m_hwdec = text;
     emit hwdecChanged();
     break;
   case Buffering:
@@ -575,6 +616,34 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   case Chapter:
     m_chapter = data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1;
     emit chapterChanged();
+    break;
+  case Tracks:
+    m_tracks = node.toList();
+    emit tracksChanged();
+    break;
+  case Aid:
+    m_aid = text;
+    emit aidChanged();
+    break;
+  case Sid:
+    m_sid = text;
+    emit sidChanged();
+    break;
+  case SubDelay:
+    m_subDelay = number;
+    emit subDelayChanged();
+    break;
+  case SubVisible:
+    m_subVisible = flag;
+    emit subVisibleChanged();
+    break;
+  case SubScale:
+    m_subScale = data ? number : 1;
+    emit subScaleChanged();
+    break;
+  case SubPos:
+    m_subPos = data ? number : 100;
+    emit subPosChanged();
     break;
   }
 }

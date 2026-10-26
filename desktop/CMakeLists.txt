@@ -64,10 +64,14 @@ qt_add_qml_module(lumeo
     qml/TintButton.qml
     qml/TitlePage.qml
     qml/Trouble.qml
+    qml/MenuLabel.qml
+    qml/MenuPanel.qml
+    qml/MenuRow.qml
     qml/Player.qml
     qml/PlayerWaiting.qml
     qml/Scrubber.qml
     qml/Theme.qml
+    qml/TracksMenu.qml
     qml/Words.qml
     qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
@@ -81,6 +85,8 @@ qt_add_qml_module(lumeo
     icons/chevron_left.svg
     icons/chevron_right.svg
     icons/close.svg
+    icons/closed_caption.svg
+    icons/closed_caption_outlined.svg
     icons/download.svg
     icons/error.svg
     icons/fullscreen.svg
@@ -89,9 +95,11 @@ qt_add_qml_module(lumeo
     icons/pause.svg
     icons/play_arrow.svg
     icons/play_circle.svg
+    icons/remove.svg
     icons/search.svg
     icons/star.svg
     icons/star_border.svg
+    icons/tune.svg
     icons/volume_down.svg
     icons/volume_off.svg
     icons/volume_up.svg
@@ -104,11 +112,14 @@ qt_add_qml_module(lumeo
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/preferences.h src/api/preferences.cpp
+    src/api/languages.h src/api/languages.cpp
     src/platform/fonts.h src/platform/fonts.cpp
     src/platform/language.h src/platform/language.cpp
     src/platform/settings.h src/platform/settings.cpp
     src/player/mpvitem.h src/player/mpvitem.cpp
     src/player/playback.h src/player/playback.cpp
+    src/player/tracks.h src/player/tracks.cpp
+    src/player/rows.h src/player/rows.cpp
     src/prototype.h src/prototype.cpp
 )
 

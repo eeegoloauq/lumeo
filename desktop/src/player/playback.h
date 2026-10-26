@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tracks.h"
+
 #include <QDateTime>
 #include <QObject>
 #include <QPointer>
@@ -37,6 +39,7 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QString stage READ stage NOTIFY changed)
   // mpv has been handed the file.
   Q_PROPERTY(bool opened READ opened NOTIFY changed)
+  Q_PROPERTY(Tracks *tracks READ tracks NOTIFY tracksChanged)
   // close() has been called: what mpv says now is about no film.
   Q_PROPERTY(bool closing READ closing NOTIFY changed)
   // Why nothing plays, once that is the answer.
@@ -64,6 +67,7 @@ public:
   QVariantMap download() const { return m_download; }
   QString stage() const;
   bool opened() const { return m_opened; }
+  Tracks *tracks() const { return m_tracks; }
   bool closing() const { return m_closing; }
   Failure failure() const { return m_failure; }
   QString codec() const { return m_codec; }
@@ -88,9 +92,11 @@ public:
 
 signals:
   void mpvChanged();
+  void tracksChanged();
   void changed();
   // Something to say over the picture: a sound or picture decoder that
-  // failed ("sound" or "picture"), naming [codec].
+  // failed ("sound" or "picture"), naming [codec]; a file that stopped
+  // ("failed"); a subtitle that could not be fetched ("subtitle").
   void notice(const QString &kind, const QString &codec);
   void closed();
   void finished();
@@ -110,6 +116,7 @@ private:
   bool dueToOpen() const;
 
   QPointer<MpvItem> m_mpv;
+  Tracks *m_tracks = nullptr;
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
@@ -125,6 +132,8 @@ private:
 
   QTimer m_poll;
   bool m_opened = false;
+  // Waiting for the tracks to be prepared before mpv is handed the file.
+  bool m_opening = false;
   bool m_resumeAsked = false;
   Failure m_failure = None;
   QString m_codec;
@@ -139,6 +148,7 @@ private:
 
   QTimer m_progress;
   double m_lastReported = -1;
+  double m_lastDelay = 0;
   bool m_reporting = false;
   bool m_reportAgain = false;
   bool m_closing = false;

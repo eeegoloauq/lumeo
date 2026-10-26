@@ -28,14 +28,29 @@ FocusScope {
         session.close()
     }
 
+    // The menu open over the bar, "" for none. Which one is the screen's,
+    // since mpv's `c` opens one too.
+    property string menu: ""
+
+    function toggleMenu(name) {
+        menu = menu === name ? "" : name
+        if (menu === "tracks")
+            session.tracks.show()
+        chrome.poke()
+    }
+
     MpvItem {
         id: mpv
         anchors.fill: parent
 
-        // Esc undoes one thing at a time, so a stray press in fullscreen does
-        // not end the film; q leaves at once.
+        // Esc undoes one thing at a time: an open menu, then fullscreen, then
+        // the film, so that one stray press does not end it; q leaves at once.
         onAction: name => {
-            if (name === "back" || (name === "escape" && !mpv.fullscreen))
+            if (name === "tracks")
+                player.toggleMenu("tracks")
+            else if (name === "escape" && player.menu !== "")
+                player.menu = ""
+            else if (name === "back" || (name === "escape" && !mpv.fullscreen))
                 player.close()
             else if (name === "escape")
                 mpv.set("fullscreen", false)
@@ -76,6 +91,11 @@ FocusScope {
 
         onPressedButtonsChanged: {
             const now = pressedButtons
+            // A click that closes a menu is only that, not a pause.
+            if (now !== Qt.NoButton && player.menu !== "") {
+                player.menu = ""
+                return
+            }
             for (const button of [Qt.LeftButton, Qt.RightButton, Qt.MiddleButton, Qt.BackButton, Qt.ForwardButton]) {
                 const down = (now & button) !== 0
                 if (down === ((sent & button) !== 0) || (down && !mpv.hasPicture))
@@ -173,7 +193,7 @@ FocusScope {
             interval: 500
             running: true
             onTriggered: chrome.shown = !mpv.hasPicture || chrome.overBand || chrome.held
-                                        || seek.pressed || volume.pressed
+                                        || seek.pressed || volume.pressed || player.menu !== ""
         }
         Connections {
             target: mpv
@@ -415,6 +435,13 @@ FocusScope {
                 }
 
                 PlayerButton {
+                    objectName: "tracksButton"
+                    glyph: session.tracks?.subtitlesOn ? "closed_caption" : "closed_caption_outlined"
+                    tip: qsTrId("playerSubtitlesShortcut")
+                    onClicked: player.toggleMenu("tracks")
+                }
+
+                PlayerButton {
                     objectName: "fullscreen"
                     glyph: mpv.fullscreen ? "fullscreen_exit" : "fullscreen"
                     tip: mpv.fullscreen ? qsTrId("playerExitFullscreen") : qsTrId("playerFullscreen")
@@ -423,6 +450,17 @@ FocusScope {
                 }
             }
         }
+    }
+
+    // Every menu ends 24 px from the window's right edge, over the bar.
+    TracksMenu {
+        objectName: "tracksMenu"
+        anchors { right: parent.right; rightMargin: 24; bottom: parent.bottom; bottomMargin: 76 }
+        visible: player.menu === "tracks"
+        tracks: session.tracks
+        room: player.height - 92
+        onDone: player.menu = ""
+        onVisibleChanged: style = false
     }
 
     component PlayerButton: IconButton {

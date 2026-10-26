@@ -18,8 +18,8 @@
 Q_IMPORT_QML_PLUGIN(LumeoPlugin)
 
 // What only a real libmpv can show, on headless Weston: tool/player-test.sh
-// runs it with the clip it makes, which the fake core streams as download d1
-// (decisions/testing.md, Player tests).
+// runs it with the clips it makes, which the fake core streams as downloads
+// d1 (a test card) and dt (its tracks) (decisions/testing.md, Player tests).
 class Setup : public QObject {
   Q_OBJECT
 
@@ -45,10 +45,14 @@ public slots:
     // The window's home, behind the film.
     fake->answer("GET", "/api/v1/catalogs", 200, QJsonObject{{"catalogs", QJsonArray()}});
     fake->answer("GET", "/api/v1/continue", 200, QJsonArray());
-    QFile clip(qEnvironmentVariable("LUMEO_TEST_CLIP"));
-    if (!clip.open(QIODevice::ReadOnly))
-      qFatal("LUMEO_TEST_CLIP names no clip: run tool/player-test.sh");
-    fake->file("/api/v1/downloads/d1/stream", clip.readAll(), "video/x-matroska");
+    for (const auto &[variable, id] : {std::pair{"LUMEO_TEST_CLIP", "d1"}, {"LUMEO_TEST_TRACKS", "dt"}}) {
+      QFile clip(qEnvironmentVariable(variable));
+      if (!clip.open(QIODevice::ReadOnly))
+        qFatal("%s names no clip: run tool/player-test.sh", variable);
+      fake->file(QString("/api/v1/downloads/%1/stream").arg(id), clip.readAll(), "video/x-matroska");
+    }
+    // A subtitle as the core serves one from the database, converted.
+    fake->file("/api/v1/subtitles/ru", "1\n00:00:00,000 --> 00:00:20,000\nRussian\n", "text/plain");
     installTranslations(QLocale(QLocale::English));
     loadFonts();
   }

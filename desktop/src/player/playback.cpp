@@ -4,6 +4,7 @@
 #include "mpvitem.h"
 #include "preferences.h"
 #include "settings.h"
+#include "tracks.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -33,6 +34,9 @@ void Playback::componentComplete() {
   if (m_mpv) {
     m_mpv->set("volume", m_settings->volume());
     defineBindings();
+    m_tracks = new Tracks(m_mpv, m_core, m_preferences, this);
+    connect(m_tracks, &Tracks::subtitleFailed, this, [this] { emit notice("subtitle", {}); });
+    emit tracksChanged();
   }
   refresh();
 }
@@ -105,7 +109,8 @@ void Playback::refresh() {
     }
     emit changed();
     resume();
-    if (!m_opened && m_failure == None && m_download.value("ready").toBool() && dueToOpen())
+    if (!m_opened && !m_opening && m_failure == None && m_download.value("ready").toBool() &&
+        dueToOpen())
       open();
   });
 }
@@ -113,14 +118,22 @@ void Playback::refresh() {
 // Only once the core says ready: before that mpv blocks on its first read and
 // reports a copy that will not play (decisions/player.md).
 void Playback::open() {
-  if (!m_mpv)
+  if (!m_mpv || !m_tracks)
     return;
-  m_opened = true;
-  m_reopenPending = false;
-  m_lastError.clear();
-  const QString path = "/api/v1/downloads/" + Core::segment(m_downloadId) + "/stream";
-  m_mpv->open(m_core->url(path).toString(), m_core->headers());
-  emit changed();
+  m_opening = true;
+  m_tracks->prepare(m_download.value("itemId").toString(), m_downloadId, [this] {
+    m_opening = false;
+    if (m_closing || !m_mpv)
+      return;
+    m_opened = true;
+    m_reopenPending = false;
+    m_lastError.clear();
+    const QString path = "/api/v1/downloads/" + Core::segment(m_downloadId) + "/stream";
+    m_mpv->open(m_core->url(path).toString(), m_core->headers());
+    m_tracks->opened();
+    emit changed();
+    resume();
+  });
 }
 
 void Playback::loadItem() {
@@ -153,13 +166,18 @@ void Playback::resume() {
               [this, season, episode](const Core::Reply &reply) {
                 if (!reply.ok() || !m_mpv)
                   return;
+                double delay = 0;
                 for (const QJsonValue &entry : reply.json()["entries"].toArray()) {
                   if (entry["season"].toInt() != season || entry["episode"].toInt() != episode)
                     continue;
                   const double position = entry["position"].toDouble();
                   if (position > 10 && position < m_mpv->duration() * 0.95)
                     m_mpv->command({"seek", QString::number(position, 'f', 3), "absolute+exact"});
+                  delay = entry["subtitleDelay"].toDouble();
                 }
+                // A delay is a fact about this copy: it comes back with the
+                // episode, not with the next one.
+                m_tracks->restoreDelay(delay);
               });
 }
 
@@ -176,6 +194,7 @@ void Playback::defineBindings() {
       "MBTN_LEFT cycle pause",
       "ESC script-message lumeo escape",
       "q script-message lumeo back",
+      "c script-message lumeo tracks",
       "F11 cycle fullscreen",
       QString("LEFT seek -%1").arg(step),
       QString("RIGHT seek %1").arg(step),
@@ -212,6 +231,7 @@ void Playback::onLoadFailed() {
     m_reopenAt = now.addMSecs((m_attempts < 5 ? m_attempts : 5) * reopenStep);
     m_mpv->command({"stop"});
     m_opened = false;
+    m_tracks->reopened();
     emit changed();
     return;
   }
@@ -259,6 +279,8 @@ void Playback::onPicture() {
 }
 
 void Playback::retry() {
+  if (m_tracks)
+    m_tracks->reopened();
   m_failure = None;
   m_codec.clear();
   m_opened = false;
@@ -280,18 +302,23 @@ void Playback::report() {
   const QString itemId = m_download.value("itemId").toString();
   const double position = m_closing ? m_closedAt : m_mpv ? m_mpv->position() : 0;
   const double duration = m_closing ? m_closedLength : m_mpv ? m_mpv->duration() : 0;
-  if (itemId.isEmpty() || duration <= 0 || position == m_lastReported) {
+  const double delay = m_tracks ? m_tracks->delay() : 0;
+  if (itemId.isEmpty() || duration <= 0 ||
+      (position == m_lastReported && delay == m_lastDelay)) {
     reported();
     return;
   }
   m_reporting = true;
   m_lastReported = position;
-  const QJsonObject body{
+  m_lastDelay = delay;
+  QJsonObject body{
       {"season", m_download.value("season").toInt()},
       {"episode", m_download.value("episode").toInt()},
       {"position", position},
       {"duration", duration},
   };
+  if (m_tracks && m_tracks->delayKnown())
+    body["subtitleDelay"] = delay;
   m_core->send("PUT", "/api/v1/progress/" + Core::segment(itemId), {}, body, this,
                [this](const Core::Reply &reply) {
                  if (!reply.ok())

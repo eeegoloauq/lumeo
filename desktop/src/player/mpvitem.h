@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QJSValue>
 #include <QMutex>
 #include <QPointer>
 #include <QQuickFramebufferObject>
@@ -48,6 +49,16 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(QVariantList chapters READ chapters NOTIFY chaptersChanged)
   // -1 before the first chapter or in a file with none.
   Q_PROPERTY(int chapter READ chapter NOTIFY chapterChanged)
+  // mpv's track list as it reports it: [{id, type, lang, title, ...}].
+  Q_PROPERTY(QVariantList tracks READ tracks NOTIFY tracksChanged)
+  // The track ids playing: an id, "no" or "auto".
+  Q_PROPERTY(QString aid READ aid NOTIFY aidChanged)
+  Q_PROPERTY(QString sid READ sid NOTIFY sidChanged)
+  Q_PROPERTY(double subDelay READ subDelay NOTIFY subDelayChanged)
+  Q_PROPERTY(bool subVisible READ subVisible NOTIFY subVisibleChanged)
+  Q_PROPERTY(double subScale READ subScale NOTIFY subScaleChanged)
+  // 100 is the bottom edge; less lifts the line.
+  Q_PROPERTY(double subPos READ subPos NOTIFY subPosChanged)
 
 public:
   explicit MpvItem(QQuickItem *parent = nullptr);
@@ -72,6 +83,13 @@ public:
   bool hasPicture() const { return m_hasPicture; }
   QVariantList chapters() const { return m_chapters; }
   int chapter() const { return m_chapter; }
+  QVariantList tracks() const { return m_tracks; }
+  QString aid() const { return m_aid; }
+  QString sid() const { return m_sid; }
+  double subDelay() const { return m_subDelay; }
+  bool subVisible() const { return m_subVisible; }
+  double subScale() const { return m_subScale; }
+  double subPos() const { return m_subPos; }
 
   // Opens a file or address; [headers] go with every HTTP request mpv makes.
   Q_INVOKABLE void open(const QString &url, const QStringList &headers = {});
@@ -80,6 +98,8 @@ public:
   // Reads [name] without waiting on mpv; [answer] gets an invalid QVariant
   // when mpv has no such property, and is not called once [context] is gone.
   void get(const QString &name, QObject *context, std::function<void(const QVariant &)> answer);
+  // The same for QML: [answer] is called with the value, or undefined.
+  Q_INVOKABLE void get(const QString &name, const QJSValue &answer);
 
   // A key pressed or released, sent as mpv's keydown and keyup so that the
   // repeat is mpv's own; false when mpv has no name for it.
@@ -121,6 +141,13 @@ signals:
   void hasPictureChanged();
   void chaptersChanged();
   void chapterChanged();
+  void tracksChanged();
+  void aidChanged();
+  void sidChanged();
+  void subDelayChanged();
+  void subVisibleChanged();
+  void subScaleChanged();
+  void subPosChanged();
   // mpv gave up on the file it was opening or playing.
   void loadFailed(const QString &reason);
   // A line mpv logged as an error: it explains a failure, but on its own is
@@ -151,6 +178,13 @@ private:
   bool m_hasPicture = false;
   QVariantList m_chapters;
   int m_chapter = -1;
+  QVariantList m_tracks;
+  QString m_aid;
+  QString m_sid;
+  double m_subDelay = 0;
+  bool m_subVisible = true;
+  double m_subScale = 1;
+  double m_subPos = 100;
 
   // The mpv name sent on each held key's press, by physical key: a release
   // has no text, and Shift let go first changes what Qt calls the key.
@@ -161,4 +195,7 @@ private:
   };
   QHash<uint64_t, Pending> m_gets;
   uint64_t m_nextGet = 1;
+  // What each write in flight sets, to name it if mpv refuses.
+  QHash<uint64_t, QString> m_sets;
+  uint64_t m_nextSet = 1;
 };

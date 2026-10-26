@@ -63,5 +63,19 @@ ffmpeg -loglevel error -f lavfi -i testsrc2=size=640x360:rate=24:duration=20 \
   -f lavfi -i sine=frequency=440:duration=20 -c:v libx264 -preset ultrafast -c:a aac \
   "$LUMEO_TEST_CLIP"
 
+# Two soundtracks and two English subtitles told apart by their titles.
+export LUMEO_TEST_TRACKS=$log/tracks.mkv
+printf '1\n00:00:00,000 --> 00:00:20,000\nFull\n' >"$log/full.srt"
+printf '1\n00:00:00,000 --> 00:00:20,000\nHonorifics\n' >"$log/honorifics.srt"
+ffmpeg -loglevel error -f lavfi -i testsrc2=size=320x180:rate=24:duration=20 \
+  -f lavfi -i sine=frequency=440:duration=20 -f lavfi -i sine=frequency=660:duration=20 \
+  -i "$log/full.srt" -i "$log/honorifics.srt" -map 0 -map 1 -map 2 -map 3 -map 4 \
+  -c:v libx264 -preset ultrafast -c:a aac -c:s srt \
+  -metadata:s:a:0 language=eng -metadata:s:a:0 title="English Dub" -disposition:a:0 default \
+  -metadata:s:a:1 language=jpn -metadata:s:a:1 title=Japanese -disposition:a:1 0 \
+  -metadata:s:s:0 language=eng -metadata:s:s:0 title="English Full" -disposition:s:0 default \
+  -metadata:s:s:1 language=eng -metadata:s:s:1 title="English Honorifics" -disposition:s:1 0 \
+  "$LUMEO_TEST_TRACKS"
+
 # Not exec, or the trap above never runs and Weston stays behind.
 "$test" "$@"

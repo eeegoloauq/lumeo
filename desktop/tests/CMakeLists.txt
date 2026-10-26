@@ -10,7 +10,7 @@ target_compile_definitions(fakecore PRIVATE
 )
 
 # Units: one executable per file under QtTest.
-foreach(name artwork core home l10n mpv settings stores title)
+foreach(name artwork core home l10n mpv settings stores title tracks)
   qt_add_executable(${name}_test ${name}_test.cpp)
   target_link_libraries(${name}_test PRIVATE lumeo fakecore Qt6::Test)
   add_test(NAME ${name} COMMAND ${name}_test)
