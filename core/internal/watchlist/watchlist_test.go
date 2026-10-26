@@ -180,6 +180,44 @@ func TestNewEpisodesOfFollowedSeries(t *testing.T) {
 	}
 }
 
+// A calendar of what is followed, however far the viewer is in it.
+func TestComingUpIsTheSoonestDatedEpisodeOfEachFollowedSeries(t *testing.T) {
+	m := &memory{
+		items: map[string]catalog.MediaItem{
+			// Behind, with a season announced: on it all the same.
+			"behind": {ID: "behind", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 5, Released: day(-90)},
+				{Season: 2, Number: 2, Released: day(37)},
+				{Season: 2, Number: 1, Released: day(30)},
+			}},
+			"listed": {ID: "listed", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 1, Released: day(0)}, // out today
+				{Season: 1, Number: 2, Released: day(7)},
+				{Season: 0, Number: 1, Released: day(2)}, // a special
+			}},
+			// Nothing dated ahead.
+			"ended": {ID: "ended", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 1, Released: day(-400)},
+				{Season: 2, Number: 1},
+			}},
+			"stranger": {ID: "stranger", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 1, Released: day(3)},
+			}},
+		},
+		list:     []Entry{{ItemID: "listed"}, {ItemID: "ended"}},
+		progress: []progress.Entry{{ItemID: "behind", Season: 1, Episode: 4, Watched: true}},
+	}
+	got, err := service(m).ComingUp(context.Background())
+	if err != nil {
+		t.Fatalf("coming up: %v", err)
+	}
+	if len(got) != 2 || got[0].Item.ID != "listed" || got[0].Episode.Number != 2 ||
+		got[1].Item.ID != "behind" || got[1].Episode.Season != 2 || got[1].Episode.Number != 1 ||
+		got[0].Item.Episodes != nil {
+		t.Fatalf("coming up = %+v, want listed S1E2 then behind S2E1", got)
+	}
+}
+
 func TestLaterBreaksSameDayReleasesByPlace(t *testing.T) {
 	episodes := []catalog.Episode{
 		{Season: 1, Number: 1, Released: day(-1)},

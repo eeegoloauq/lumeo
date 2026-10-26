@@ -48,7 +48,8 @@
                        the episode after the latest watched one — and the
                        history, which is a query over the same rows
     internal/watchlist My list, how far the viewer is into each title on it,
-                       and the new episodes of the series they follow
+                       and the new and coming-up episodes of the series
+                       they follow
     internal/ratings   the viewer's own scores, 1 to 10, of titles and
                        episodes
     internal/searches  what the viewer searched for, the last ten, once per

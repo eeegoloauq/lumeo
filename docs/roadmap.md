@@ -39,9 +39,8 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## Library and storage
 
-- Coming up, a shelf in the library under New episodes: the followed series
-  whose next episode for the viewer has a date still ahead, soonest first,
-  as the core's `upcoming` already finds it per title. Mockup first.
+- Films on Coming up: the catalogue keeps a film's year, not its release
+  date, which Cinemeta's meta has.
 - Default download folder `Videos/Lumeo`, laid out
   `Title (Year)/Season NN/<torrent name>/`. Only the directories above the
   torrent's are ours: renaming its files breaks seeding.

@@ -145,63 +145,31 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 	return out, nil
 }
 
-// NewEpisode is a series whose next episode, for the viewer, came out in the
-// last fortnight.
-type NewEpisode struct {
-	Item catalog.MediaItem `json:"item"`
-	// Episode is that next one, the first not watched.
-	Episode catalog.Episode `json:"episode"`
-	// Count is how many are out from it on, Episode included.
-	Count int `json:"count"`
+// Shelved is a series on a library shelf, by one of its episodes: for New
+// episodes the viewer's next, out in the last fortnight, and for Coming up
+// the soonest not out yet.
+type Shelved struct {
+	Item    catalog.MediaItem `json:"item"`
+	Episode catalog.Episode   `json:"episode"`
+	// Count is, on New episodes, how many are out from Episode on, Episode
+	// included.
+	Count int `json:"count,omitempty"`
 }
 
 // NewEpisodes looks through the series the viewer follows for the ones they
 // had caught up with until an episode came out, the latest release first.
 // A series with older episodes still to watch is behind, not new: that is
 // Continue watching's, and a whole season out while the viewer is in the
-// one before is not news to them.
-//
-// Following is having the series on the list or having watched any of it:
-// the series somebody is in the middle of are exactly the ones whose next
-// episode they are waiting for, and asking them to add each one to a list
-// first would leave the shelf empty for everybody who never did. It is our
-// own query over the catalogue's air dates rather than a calendar from
-// somewhere else, so it needs no account and no key.
-func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
-	entries, err := s.store.ListEntries(ctx)
-	if err != nil {
-		return nil, err
-	}
-	all, err := s.progress.AllProgress(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var ids []string
-	seen := make(map[string]bool)
-	follow := func(id string) {
-		if !seen[id] {
-			seen[id] = true
-			ids = append(ids, id)
-		}
-	}
-	for _, e := range entries {
-		follow(e.ItemID)
-	}
-	// furthest is the last episode of the story watched: one before it that
-	// is not watched was skipped or seen elsewhere, not something to wait for.
-	furthest := make(map[string][2]int)
-	for _, p := range all {
-		follow(p.ItemID)
-		if at := [2]int{p.Season, p.Episode}; p.Watched && p.Season > 0 && after(at, furthest[p.ItemID]) {
-			furthest[p.ItemID] = at
-		}
-	}
-	items, err := s.catalog.Cached(ctx, ids)
+// one before is not news to them. It is our own query over the catalogue's
+// air dates rather than a calendar from somewhere else, so it needs no
+// account and no key.
+func (s *Service) NewEpisodes(ctx context.Context) ([]Shelved, error) {
+	items, furthest, err := s.followed(ctx)
 	if err != nil {
 		return nil, err
 	}
 	now := s.now()
-	out := []NewEpisode{}
+	out := []Shelved{}
 	for _, item := range items {
 		if item.Kind != catalog.KindSeries {
 			continue
@@ -226,10 +194,89 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]NewEpisode, error) {
 		}
 		episode := *first
 		item.Episodes = nil
-		out = append(out, NewEpisode{Item: item, Episode: episode, Count: count})
+		out = append(out, Shelved{Item: item, Episode: episode, Count: count})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return later(out[i].Episode, out[j].Episode) })
 	return out, nil
+}
+
+// ComingUp is the calendar of the series the viewer follows: the soonest
+// dated episode not out yet of each, the soonest first. Unlike NewEpisodes
+// it does not ask how far the viewer is: a season announced is worth knowing
+// about while still in the one before.
+func (s *Service) ComingUp(ctx context.Context) ([]Shelved, error) {
+	items, _, err := s.followed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	out := []Shelved{}
+	for _, item := range items {
+		if item.Kind != catalog.KindSeries {
+			continue
+		}
+		var soonest *catalog.Episode
+		for i := range item.Episodes {
+			e := &item.Episodes[i]
+			if e.Season == 0 || !e.Released.After(now) {
+				continue
+			}
+			if soonest == nil || later(*soonest, *e) {
+				soonest = e
+			}
+		}
+		if soonest == nil {
+			continue
+		}
+		episode := *soonest
+		item.Episodes = nil
+		out = append(out, Shelved{Item: item, Episode: episode})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return later(out[j].Episode, out[i].Episode) })
+	return out, nil
+}
+
+// followed is every series and film the viewer follows, as the catalogue
+// has it cached, with the last episode of the story watched of each.
+//
+// Following is having the title on the list or having watched any of it:
+// the series somebody is in the middle of are exactly the ones whose next
+// episode they are waiting for, and asking them to add each one to a list
+// first would leave the shelves empty for everybody who never did.
+func (s *Service) followed(ctx context.Context) ([]catalog.MediaItem, map[string][2]int, error) {
+	entries, err := s.store.ListEntries(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	all, err := s.progress.AllProgress(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	var ids []string
+	seen := make(map[string]bool)
+	follow := func(id string) {
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	for _, e := range entries {
+		follow(e.ItemID)
+	}
+	// furthest is the last episode of the story watched: one before it that
+	// is not watched was skipped or seen elsewhere, not something to wait for.
+	furthest := make(map[string][2]int)
+	for _, p := range all {
+		follow(p.ItemID)
+		if at := [2]int{p.Season, p.Episode}; p.Watched && p.Season > 0 && after(at, furthest[p.ItemID]) {
+			furthest[p.ItemID] = at
+		}
+	}
+	items, err := s.catalog.Cached(ctx, ids)
+	if err != nil {
+		return nil, nil, err
+	}
+	return items, furthest, nil
 }
 
 // after says whether episode a comes after b in the story.

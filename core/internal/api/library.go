@@ -86,25 +86,29 @@ func (s *Server) handleRemoveFromList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) handleNewEpisodes(w http.ResponseWriter, r *http.Request) {
-	if !s.haveWatchlist(w) {
-		return
+// shelf answers with one of the library's shelves of series, [find] its
+// query.
+func (s *Server) shelf(find func(*watchlist.Service, context.Context) ([]watchlist.Shelved, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.haveWatchlist(w) {
+			return
+		}
+		found, err := find(s.watchlist, r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		urls := make(map[string]string)
+		for i := range found {
+			s.rewriteItem(r, &found[i].Item, urls)
+			s.rewriteEpisode(r, &found[i].Episode, urls)
+		}
+		if err := s.registerArtwork(r, urls); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": found})
 	}
-	found, err := s.watchlist.NewEpisodes(r.Context())
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	urls := make(map[string]string)
-	for i := range found {
-		s.rewriteItem(r, &found[i].Item, urls)
-		s.rewriteEpisode(r, &found[i].Episode, urls)
-	}
-	if err := s.registerArtwork(r, urls); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": found})
 }
 
 func (s *Server) handleRatings(w http.ResponseWriter, r *http.Request) {

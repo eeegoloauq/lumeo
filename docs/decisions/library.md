@@ -66,6 +66,14 @@ One poster per series, on that next episode, with how many are out from it;
 it opens the title on that episode. The design's NEW badge on each poster is
 not there: the shelf is called New episodes.
 
+Coming up is the shelf under it: of every followed series, the soonest
+episode with a date still ahead, the soonest series first, dated the way a
+person says it (Tomorrow, the weekday within the week, the date beyond). It
+is a calendar, so it does not ask how far the viewer is: a season announced
+is worth knowing about while still in the one before. Specials are left out
+here too. Films are not on it, since the catalogue keeps a film's year and not
+its date.
+
 History is a query over watch progress, not a log of its own: an entry that
 is watched or stopped part way, the latest first, fifty at a time, grouped
 under the day it was watched rather than dating every line. Taking a line out

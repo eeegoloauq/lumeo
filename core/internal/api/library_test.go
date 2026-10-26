@@ -179,10 +179,13 @@ func TestHistoryRoute(t *testing.T) {
 	}
 }
 
-func TestNewEpisodesRoute(t *testing.T) {
+func TestShelfRoutes(t *testing.T) {
 	h, id := libraryServer(t)
 	type newBody struct {
-		Items []watchlist.NewEpisode `json:"items"`
+		Items []watchlist.Shelved `json:"items"`
+	}
+	if got := decode[newBody](t, h, http.MethodGet, "/api/v1/coming-up", "", http.StatusOK); got.Items == nil {
+		t.Fatalf("coming up = %+v, want an empty list", got)
 	}
 	if got := decode[newBody](t, h, http.MethodGet, "/api/v1/new-episodes", "", http.StatusOK); got.Items == nil || len(got.Items) != 0 {
 		t.Fatalf("nothing followed = %+v, want an empty list", got)
