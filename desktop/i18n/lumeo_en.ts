@@ -2068,6 +2068,21 @@
         <extracomment>Disable subtitles in player track menu.</extracomment>
         <translation>Off</translation>
     </message>
+    <message id="playerSubtitlesInVideo">
+        <source>In the video</source>
+        <extracomment>Heading over the subtitle tracks inside the video file.</extracomment>
+        <translation>In the video</translation>
+    </message>
+    <message id="playerSubtitlesDownloaded">
+        <source>Downloaded</source>
+        <extracomment>Heading over subtitles fetched from a subtitle database and kept with the download, so they play offline.</extracomment>
+        <translation>Downloaded</translation>
+    </message>
+    <message id="playerSubtitlesOnline">
+        <source>Online · OpenSubtitles</source>
+        <extracomment>Heading over subtitles a subtitle database has for this video; picking one fetches it.</extracomment>
+        <translation>Online · OpenSubtitles</translation>
+    </message>
     <message id="playerLooking">
         <source>Looking…</source>
         <extracomment>Subtitle search in progress.</extracomment>
@@ -2390,14 +2405,6 @@
         <extracomment>Reset subtitle timing in player menu.</extracomment>
         <translation>Reset</translation>
     </message>
-    <message id="playerMoreTracks" numerus="yes">
-        <source>%n more</source>
-        <extracomment>Additional subtitle choices. (%n count)</extracomment>
-        <translation>
-            <numerusform>%n more</numerusform>
-            <numerusform>%n more</numerusform>
-        </translation>
-    </message>
     <message id="playerTrack">
         <source>Track %1</source>
         <extracomment>Untitled track in player menu. (%1 id)</extracomment>
@@ -2569,16 +2576,6 @@
         <source>On disk</source>
         <extracomment>Completed download state in player panel.</extracomment>
         <translation>On disk</translation>
-    </message>
-    <message id="playerSubtitleOpenSubtitles">
-        <source>OpenSubtitles</source>
-        <extracomment>Subtitle search provider name.</extracomment>
-        <translation>OpenSubtitles</translation>
-    </message>
-    <message id="playerSubtitleKept">
-        <source>downloaded</source>
-        <extracomment>Beside a subtitle file fetched from a subtitle database and kept with the download, so it plays offline.</extracomment>
-        <translation>downloaded</translation>
     </message>
     <message id="playerPercent">
         <source>%1%</source>

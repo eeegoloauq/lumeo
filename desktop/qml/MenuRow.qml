@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import Lumeo
 
 // A choice in a player menu: a check when it is the current one, the label,
-// and at the right edge what tells it apart.
+// what tells it apart under it or at the right edge.
 ItemDelegate {
     id: row
 
@@ -14,6 +14,8 @@ ItemDelegate {
     property string note
     property bool current
     property bool indent
+    // One of a language's copies, under it: its name in the small type.
+    property bool minor
     // An action rather than a choice has no check column.
     property bool check: true
     // The row opens a page of its own.
@@ -21,7 +23,7 @@ ItemDelegate {
     // Beside the detail: a control of the row's own.
     default property alias trailing: extra.data
 
-    implicitHeight: 36
+    implicitHeight: note !== "" ? 44 : 36
     leftPadding: indent ? 28 : 12
     rightPadding: 12
     focusPolicy: Qt.NoFocus
@@ -52,9 +54,9 @@ ItemDelegate {
                 width: parent.width
                 text: row.label
                 elide: Text.ElideRight
-                color: row.current ? "white" : "#ccffffff"
+                color: row.current ? "white" : row.minor ? "#99ffffff" : "#ccffffff"
                 font.family: Tokens.fontSans
-                font.pixelSize: 14
+                font.pixelSize: row.minor ? 12 : 14
                 font.weight: row.current ? Font.DemiBold : Font.Normal
             }
 

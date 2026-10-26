@@ -27,12 +27,13 @@ class Tracks : public QObject {
   Q_OBJECT
   QML_ELEMENT
   QML_UNCREATABLE("a Playback's")
-  // The audio column: rows of track (its id), label, detail, current.
+  // The audio column: rows of track (its id), label, note, current.
   Q_PROPERTY(Rows *audio READ audio CONSTANT)
-  // The subtitle column: rows of kind ("off", "track", "found" or "note"),
-  // track (the file's track id), found (where it is in the database's
-  // answer), label, detail, current, more, group and indent. A language is one row, the file's own track when it
-  // has one; the database's other copies sit behind its count.
+  // The subtitle column: rows of key, kind ("off", "section", "track",
+  // "found", "group" or "note"), track (the file's track id), found (where
+  // it is in the database's answer), group, label, note, count, current,
+  // open and indent. A language the database has several copies of is a
+  // group row that opens into them.
   Q_PROPERTY(Rows *subtitles READ subtitles CONSTANT)
   // What the database lookup came to, under both columns; empty when it
   // found something or is still looking.
@@ -125,6 +126,8 @@ private:
   QString audioLanguage() const;
   QVariant answerForAudioLanguage() const;
   QString base(const QString &tag) const;
+  // A language of the database's, in the downloaded or the online section.
+  QString groupOf(const QJsonObject &subtitle) const;
   QString trackLabel(const QVariantMap &track) const;
   bool isLoaded(const QJsonObject &subtitle) const;
   QVariantList embedded() const;

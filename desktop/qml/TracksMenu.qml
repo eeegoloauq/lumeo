@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import Qt.labs.qmlmodels
 import Lumeo
 
 // Audio and subtitles in one panel, side by side: whoever picks Japanese
@@ -71,7 +72,7 @@ MenuPanel {
                         delegate: MenuRow {
                             required property string track
                             required label
-                            required detail
+                            required note
                             required current
                             objectName: "audio-" + track
                             width: audioColumn.width
@@ -96,6 +97,7 @@ MenuPanel {
 
                 Column {
                     id: subtitleColumn
+                    objectName: "subtitles"
                     width: parent.width
 
                     MenuLabel {
@@ -116,47 +118,68 @@ MenuPanel {
 
                     Repeater {
                         model: menu.tracks.subtitles
-                        delegate: MenuRow {
-                            id: row
-                            required property string kind
-                            required property string track
-                            required property int found
-                            required property int more
-                            required property string group
-                            required label
-                            required detail
-                            required current
-                            required indent
-                            objectName: kind === "off" ? "subtitlesOff"
-                                : kind === "track" ? "subtitle-" + track
-                                : "found-" + found
-                            width: subtitleColumn.width
-                            enabled: kind !== "note"
-                            onClicked: {
-                                if (kind === "off")
-                                    menu.tracks.pickSubtitle("")
-                                else if (kind === "track")
-                                    menu.tracks.pickSubtitle(track)
-                                else
-                                    menu.tracks.pickFound(found)
-                                menu.done()
+                        delegate: DelegateChooser {
+                            role: "kind"
+
+                            DelegateChoice {
+                                roleValue: "section"
+                                MenuLabel {
+                                    required property string label
+                                    width: subtitleColumn.width
+                                    implicitHeight: 32
+                                    text: label
+                                }
                             }
 
-                            // The database's other copies of this language.
-                            Button {
-                                objectName: "more-" + row.group
-                                visible: row.more > 0
-                                flat: true
-                                focusPolicy: Qt.NoFocus
-                                implicitHeight: 28
-                                padding: 0
-                                leftPadding: 6
-                                rightPadding: 6
-                                text: qsTrId("playerMoreTracks", row.more)
-                                font.family: Tokens.fontSans
-                                font.pixelSize: 12
-                                palette.buttonText: "#80ffffff"
-                                onClicked: menu.tracks.expand(row.group)
+                            // A language with several copies, opened in place.
+                            DelegateChoice {
+                                roleValue: "group"
+                                MenuRow {
+                                    id: head
+                                    required property string group
+                                    required property int count
+                                    required property bool open
+                                    required label
+                                    required current
+                                    objectName: "group-" + group
+                                    width: subtitleColumn.width
+                                    detail: count
+                                    onClicked: menu.tracks.expand(group)
+                                    Glyph {
+                                        glyph: "expand_more"
+                                        rotation: head.open ? 180 : 0
+                                        size: 18
+                                        color: "#80ffffff"
+                                    }
+                                }
+                            }
+
+                            DelegateChoice {
+                                MenuRow {
+                                    required property string kind
+                                    required property string track
+                                    required property int found
+                                    required label
+                                    required note
+                                    required current
+                                    required indent
+                                    objectName: kind === "off" ? "subtitlesOff"
+                                        : kind === "track" ? "subtitle-" + track
+                                        : kind === "note" ? "looking"
+                                        : "found-" + found
+                                    width: subtitleColumn.width
+                                    minor: indent
+                                    enabled: kind !== "note"
+                                    onClicked: {
+                                        if (kind === "off")
+                                            menu.tracks.pickSubtitle("")
+                                        else if (kind === "track")
+                                            menu.tracks.pickSubtitle(track)
+                                        else
+                                            menu.tracks.pickFound(found)
+                                        menu.done()
+                                    }
+                                }
                             }
                         }
                     }

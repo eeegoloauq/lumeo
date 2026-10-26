@@ -38,18 +38,14 @@ QString foundLabel(const QJsonObject &subtitle) {
   return name.isEmpty() ? subtitle["language"].toString().toUpper() : name;
 }
 
-QString origin(const QJsonObject &subtitle) {
-  return subtitle["kept"].toBool() ? qtTrId("playerSubtitleKept")
-                                   : qtTrId("playerSubtitleOpenSubtitles");
-}
-
 } // namespace
 
 Tracks::Tracks(MpvItem *mpv, Core *core, Preferences *preferences, QObject *parent)
     : QObject(parent), m_mpv(mpv), m_core(core), m_preferences(preferences),
-      m_audioRows(new Rows({"track", "label", "detail", "current"}, this)),
-      m_subtitleRows(new Rows(
-          {"kind", "track", "found", "label", "detail", "current", "more", "group", "indent"}, this)) {
+      m_audioRows(new Rows({"track", "label", "note", "current"}, this)),
+      m_subtitleRows(new Rows({"key", "kind", "track", "found", "group", "label", "note", "count",
+                               "current", "open", "indent"},
+                              this, "key")) {
   connect(mpv, &MpvItem::tracksChanged, this, &Tracks::onTracks);
   connect(mpv, &MpvItem::aidChanged, this, [this] { onTrackChange("aid", m_mpv->aid()); });
   connect(mpv, &MpvItem::sidChanged, this, [this] { onTrackChange("sid", m_mpv->sid()); });
@@ -479,15 +475,11 @@ void Tracks::subtitleFromDatabase() {
 void Tracks::show() {
   if (!m_lookedUp)
     lookUp();
-  // Unfolded at the language whose database copy is on screen while the
-  // file has a track of its own in it.
+  // Unfolded at the language whose copy is on screen.
   m_expanded.clear();
-  QSet<QString> inFile;
-  for (const QVariant &track : embedded())
-    inFile.insert(base(track.toMap().value("lang").toString()));
   for (const QJsonValue &found : m_found)
-    if (isLoaded(found.toObject()) && inFile.contains(base(found["language"].toString()))) {
-      m_expanded = base(found["language"].toString());
+    if (isLoaded(found.toObject())) {
+      m_expanded = groupOf(found.toObject());
       break;
     }
   rebuild();
@@ -643,106 +635,127 @@ QVariantList Tracks::embedded() const {
   return tracks;
 }
 
+QString Tracks::groupOf(const QJsonObject &subtitle) const {
+  return (subtitle["kept"].toBool() ? "kept:" : "online:") + base(subtitle["language"].toString());
+}
+
 void Tracks::rebuild() {
   QList<QVariantMap> audioRows;
   for (const QVariant &t : tracksOf("audio")) {
     const QVariantMap track = t.toMap();
+    const QString label = trackLabel(track);
     const QString title = track.value("title").toString();
     const int count = track.value("demux-channel-count").toInt();
+    QStringList note;
+    if (!title.isEmpty() && title.toLower() != label.toLower())
+      note.append(title);
+    if (count > 0)
+      note.append(channels(count));
     audioRows.append(QVariantMap{
         {"track", idOf(track)},
-        {"label", title.isEmpty() ? trackLabel(track) : trackLabel(track) + " · " + title},
-        {"detail", count > 0 ? channels(count) : QString()},
+        {"label", label},
+        {"note", note.join(" · ")},
         {"current", track.value("selected").toBool()},
     });
   }
 
-  const QVariantList inFileTracks = embedded();
-  QHash<QString, QList<int>> groups;
-  QStringList order;
-  for (int i = 0; i < m_found.size(); ++i) {
-    const QString group = base(m_found[i].toObject()["language"].toString());
-    if (!groups.contains(group))
-      order.append(group);
-    groups[group].append(i);
-  }
-  QSet<QString> inFile;
-  for (const QVariant &t : inFileTracks)
-    inFile.insert(base(t.toMap().value("lang").toString()));
-
   // Every row has every role.
-  auto row = [](const QString &kind, const QString &label) {
-    return QVariantMap{{"kind", kind},  {"track", QString()},  {"found", -1},
-                       {"label", label}, {"detail", QString()}, {"current", false},
-                       {"more", 0},      {"group", QString()},  {"indent", false}};
-  };
-  auto foundRow = [this, row](int index, bool indent) {
-    const QJsonObject subtitle = m_found[index].toObject();
-    const QString name = subtitle["name"].toString();
-    QVariantMap found = row("found", indent && !name.isEmpty() ? name : foundLabel(subtitle));
-    found["found"] = index;
-    found["detail"] = origin(subtitle);
-    found["current"] = isLoaded(subtitle);
-    found["indent"] = indent;
-    return found;
+  auto row = [](const QString &key, const QString &kind, const QString &label) {
+    return QVariantMap{{"key", key},       {"kind", kind},   {"track", QString()},
+                       {"found", -1},      {"group", QString()}, {"label", label},
+                       {"note", QString()}, {"count", 0},    {"current", false},
+                       {"open", false},    {"indent", false}};
   };
 
+  // Grouped by where a subtitle is, since that is what it costs: the file's
+  // own are there, downloaded ones play offline, online ones are fetched.
   QList<QVariantMap> subtitleRows;
-  QVariantMap off = row("off", qtTrId("playerOff"));
+  QVariantMap off = row("off", "off", qtTrId("playerOff"));
   off["current"] = selected("sub").isEmpty();
   subtitleRows.append(off);
-  QSet<QString> counted;
-  for (const QVariant &t : inFileTracks) {
+
+  const QVariantList inFile = embedded();
+  if (!inFile.isEmpty())
+    subtitleRows.append(row("section:video", "section", qtTrId("playerSubtitlesInVideo")));
+  for (const QVariant &t : inFile) {
     const QVariantMap track = t.toMap();
     const QString group = base(track.value("lang").toString());
-    const QList<int> others = counted.contains(group) ? QList<int>() : groups.value(group);
-    counted.insert(group);
     // What tells a track apart: its title, forced or SDH, or the format when
     // two of a language differ in nothing else.
     QSet<QString> formats;
-    for (const QVariant &same : inFileTracks)
+    for (const QVariant &same : inFile)
       if (base(same.toMap().value("lang").toString()) == group)
         formats.insert(same.toMap().value("codec").toString());
     const QString title = track.value("title").toString();
     const QString label = trackLabel(track);
-    const QString detail =
-        !title.isEmpty() && title.toLower() != label.toLower() ? title
-        : track.value("forced").toBool()                      ? qtTrId("playerForced")
-        : track.value("hearing-impaired").toBool()            ? QString("SDH")
-        : formats.size() > 1 ? format(track.value("codec").toString())
-                             : QString();
-    QVariantMap own = row("track", label);
+    QVariantMap own = row("track:" + idOf(track), "track", label);
     own["track"] = idOf(track);
-    own["detail"] = detail;
+    own["note"] = !title.isEmpty() && title.toLower() != label.toLower() ? title
+                  : track.value("forced").toBool()                       ? qtTrId("playerForced")
+                  : track.value("hearing-impaired").toBool()             ? QString("SDH")
+                  : formats.size() > 1 ? format(track.value("codec").toString())
+                                       : QString();
     own["current"] = track.value("selected").toBool();
-    own["more"] = others.size();
-    own["group"] = group;
     subtitleRows.append(own);
-    if (m_expanded == group)
-      for (int index : others)
-        subtitleRows.append(foundRow(index, true));
   }
-  for (const QString &group : order) {
-    if (inFile.contains(group))
-      continue;
-    const QList<int> all = groups.value(group);
-    QVariantMap best = foundRow(all.first(), false);
-    best["more"] = all.size() - 1;
-    best["group"] = group;
-    subtitleRows.append(best);
-    if (m_expanded == group)
-      for (int index : all.mid(1))
-        subtitleRows.append(foundRow(index, true));
-  }
+
+  // A language is one row; with several copies it opens into their names.
+  auto addFound = [&](bool kept) {
+    QStringList order;
+    QHash<QString, QList<int>> groups;
+    for (int i = 0; i < m_found.size(); ++i) {
+      const QJsonObject subtitle = m_found[i].toObject();
+      if (subtitle["kept"].toBool() != kept)
+        continue;
+      const QString group = groupOf(subtitle);
+      if (!groups.contains(group))
+        order.append(group);
+      groups[group].append(i);
+    }
+    for (const QString &group : order) {
+      const QList<int> copies = groups.value(group);
+      auto copy = [&](int index, bool inside) {
+        const QJsonObject subtitle = m_found[index].toObject();
+        const QString name = subtitle["name"].toString();
+        QVariantMap one = row("found:" + QString::number(index), "found",
+                              inside && !name.isEmpty() ? name : foundLabel(subtitle));
+        one["found"] = index;
+        one["current"] = isLoaded(subtitle);
+        one["indent"] = inside;
+        return one;
+      };
+      if (copies.size() == 1) {
+        subtitleRows.append(copy(copies.first(), false));
+        continue;
+      }
+      QVariantMap head = row(group, "group", foundLabel(m_found[copies.first()].toObject()));
+      head["group"] = group;
+      head["count"] = copies.size();
+      head["open"] = m_expanded == group;
+      for (int index : copies)
+        head["current"] = head["current"].toBool() || isLoaded(m_found[index].toObject());
+      subtitleRows.append(head);
+      if (m_expanded == group)
+        for (int index : copies)
+          subtitleRows.append(copy(index, true));
+    }
+  };
+  if (std::any_of(m_found.begin(), m_found.end(), [](const QJsonValue &f) { return f["kept"].toBool(); }))
+    subtitleRows.append(row("section:kept", "section", qtTrId("playerSubtitlesDownloaded")));
+  addFound(true);
+  if (m_looking || std::any_of(m_found.begin(), m_found.end(),
+                               [](const QJsonValue &f) { return !f["kept"].toBool(); }))
+    subtitleRows.append(row("section:online", "section", qtTrId("playerSubtitlesOnline")));
+  addFound(false);
   if (m_looking)
-    subtitleRows.append(row("note", qtTrId("playerLooking")));
+    subtitleRows.append(row("looking", "note", qtTrId("playerLooking")));
   m_audioRows->set(audioRows);
   m_subtitleRows->set(subtitleRows);
 
   m_note = m_looking         ? QString()
            : m_lookupFailed  ? qtTrId("playerNoCoreAnswer")
            : !m_found.isEmpty() ? QString()
-           : inFileTracks.isEmpty() ? qtTrId("playerOpenSubtitlesNone")
+           : inFile.isEmpty() ? qtTrId("playerOpenSubtitlesNone")
                                     : qtTrId("playerOpenSubtitlesNoMore");
   emit changed();
 }

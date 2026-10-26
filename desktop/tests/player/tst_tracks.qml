@@ -42,11 +42,14 @@ Item {
             tryVerify(() => player.mpv.hasPicture && player.mpv.tracks.length >= 5, 10000, "playing, its tracks listed")
         }
 
-        // Opened, and laid out: a click before the first frame lands where
-        // the rows are not yet.
+        // Opened, answered and laid out: a click before then lands where the
+        // rows are not yet, and a row the lookup adds lies at the top until
+        // its column is laid out again.
         function openMenu() {
             keyClick(Qt.Key_C)
             tryVerify(() => !!row("subtitlesOff"), 5000, "the menu open")
+            tryVerify(() => !row("looking"), 5000, "the database answered")
+            verify(waitForPolish(row("subtitles")))
             verify(waitForRendering(findChild(player, "tracksMenu")))
         }
 
@@ -78,21 +81,42 @@ Item {
 
         // mpv chose by the preferences (English subtitles, always): the
         // file's default; the menu names the languages and tells the two
-        // English tracks apart by their titles.
+        // English tracks apart by their titles, on a line of their own.
         function test_theMenuListsTheFilesTracksAndTheDatabases() {
             start()
             compare(player.mpv.sid, "1")
             openMenu()
-            compare(row("audio-1").label, "English · English Dub")
+            compare(row("audio-1").label, "English")
+            compare(row("audio-1").note, "English Dub · 1.0")
             verify(row("audio-1").current)
-            compare(row("audio-2").label, "Japanese · Japanese")
+            compare(row("audio-2").label, "Japanese")
+            compare(row("audio-2").note, "1.0")
             compare(row("subtitle-1").label, "English")
-            compare(row("subtitle-1").detail, "English Full")
-            compare(row("subtitle-2").detail, "English Honorifics")
+            compare(row("subtitle-1").note, "English Full")
+            compare(row("subtitle-2").note, "English Honorifics")
             verify(row("subtitle-1").current)
             tryVerify(() => !!row("found-0"), 5000, "the database's copy listed")
             compare(row("found-0").label, "Russian")
-            compare(row("found-0").detail, "OpenSubtitles")
+        }
+
+        // Several copies of a language are one row that opens into their
+        // names, and stays open at the one on screen.
+        function test_aLanguagesCopiesOpenFromItsRow() {
+            fakeCore.answer("GET", "/api/v1/subtitles", 200, { subtitles: [
+                { id: "ru1", language: "ru", languageName: "Russian", name: "Seal.1957.BD.ru", url: "/api/v1/subtitles/ru" },
+                { id: "ru2", language: "ru", languageName: "Russian", name: "Seal.1957.DVD.ru", url: "/api/v1/subtitles/ru" }] })
+            start()
+            openMenu()
+            tryVerify(() => !!row("group-online:ru"), 5000, "the language listed")
+            compare(row("group-online:ru").count, 2)
+            verify(!row("found-0"), "folded")
+            mouseClick(row("group-online:ru"))
+            tryVerify(() => !!row("found-1"))
+            compare(row("found-1").label, "Seal.1957.DVD.ru")
+            mouseClick(row("found-1"))
+            tryVerify(() => player.mpv.tracks.some(t => t.type === "sub" && t.external && t.selected), 5000)
+            openMenu()
+            verify(row("found-1").current, "opened at the copy on screen")
         }
 
         // Kept for the title, so the next episode starts with them; mpv's own

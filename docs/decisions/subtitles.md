@@ -36,13 +36,14 @@ player says the file did not download, and picking it again asks again. The
 last pick wins: a file that arrives after the viewer picked another track, or
 none, is kept for the next pick and not put on screen.
 
-The picker itself does not distinguish where a track came from: the ones inside
-the file and the ones a database has for this copy are the same decision to
-whoever is watching. So the subtitle column is a list of languages rather than
-of sources — a language appears once, as the file's own track when it has one
-and otherwise as the database's best copy for this file — and the rest of what
-the database holds sits behind a count on the row, for the viewer whose copy
-turned out to be a second out.
+The picker groups the subtitles by where they are: in the video, downloaded,
+online. It used to be one list of languages that hid where a track came from,
+and that left the viewer guessing what a pick costs. The file's own tracks are
+there already, downloaded ones play offline, and an online one has to be
+fetched. What tells two tracks of one language apart goes on a second line,
+never beside the name, where it cut the name short. A language the database
+has several copies of is one row that opens into their release names, for the
+viewer whose first copy turned out to be a second out.
 
 ## Subtitles are kept with the download
 
@@ -60,7 +61,7 @@ The files are the same UTF-8 text as a fetched one, under names the core makes
 up and an extension from a fixed list, never executable, and served only by
 the names their index lists. `/api/v1/subtitles` lists them first, marked as
 kept, and they are the whole answer when the catalog or every provider fails;
-the picker says "on disk" beside them. The player lists them from disk
+the picker lists them under Downloaded. The player lists them from disk
 (`/api/v1/downloads/{id}/subtitles`, no provider asked) when it opens the file,
 and once mpv has chosen, adds the kept track whose language the viewer ranks
 above mpv's choice, if one is. They are not handed to mpv with the file for it
