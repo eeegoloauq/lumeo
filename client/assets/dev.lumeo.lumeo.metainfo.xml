@@ -9,7 +9,7 @@
   <description>
     <p>
       Lumeo is a media library, acquisition and playback platform: one Go
-      binary with SQLite behind a Flutter desktop client. It browses a
+      binary with SQLite behind a Qt Quick desktop client. It browses a
       catalogue that needs no API key, ranks the ways to watch a title by the
       health of the swarm before its resolution, and starts playing while the
       file is still arriving — with what the swarm is doing shown in the
@@ -39,6 +39,26 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.11" date="2026-10-26" type="development">
+      <description>
+        <ul>
+          <li>A new desktop app, built on Qt: the same library, downloads and settings, with the system's own window title bar.</li>
+          <li xml:lang="ru">Новое приложение для компьютера на Qt: та же библиотека, загрузки и настройки, а заголовок окна теперь системный.</li>
+          <li>Search is one page, and titles appear as you type.</li>
+          <li xml:lang="ru">Поиск стал одной страницей, а названия появляются по мере ввода.</li>
+          <li>What plays is chosen in one panel: automatic, a release on disk, any copy, or a folder on this computer.</li>
+          <li xml:lang="ru">Что играет, выбирается в одной панели: автоматически, релиз на диске, любая копия или папка на этом компьютере.</li>
+          <li>History is grouped by day, and a removed line can be brought back with Undo.</li>
+          <li xml:lang="ru">История сгруппирована по дням, а удалённую строку возвращает кнопка «Вернуть».</li>
+          <li>The downloads panel shows a series as one row.</li>
+          <li xml:lang="ru">Панель загрузок показывает сериал одной строкой.</li>
+          <li>Windows: the player uses a current mpv, with its console and statistics.</li>
+          <li xml:lang="ru">Windows: плеер работает на свежем mpv, с его консолью и статистикой.</li>
+          <li>Text size is not in Settings for now.</li>
+          <li xml:lang="ru">Размера текста в настройках пока нет.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.10" date="2026-10-25" type="development">
       <description>
         <ul>
