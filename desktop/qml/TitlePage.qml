@@ -153,9 +153,18 @@ ShellPage {
 
     scrolled: view.contentY > 12
 
+    // Back from the player, or from a page over this one: once something was
+    // watched, the page opens where watching now goes on.
+    onVisibleChanged: if (visible) about.refreshProgress()
+
     Title {
         id: about
         itemId: page.item.id
+        onMoved: {
+            page.at = null
+            page.seasonPicked = -1
+            page.picked = null
+        }
     }
 
     Mine {

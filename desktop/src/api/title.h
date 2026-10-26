@@ -59,6 +59,9 @@ public:
   Q_INVOKABLE void copyLink() const;
 
   Q_INVOKABLE void load();
+  // Asks for progress again, which a film watched since has moved, and says
+  // moved() when it has.
+  Q_INVOKABLE void refreshProgress();
   // Downloads, for each of [episodes] ({season, number}) without a download
   // yet, the copy Play would start. One at a time: a provider asked for
   // seventeen lists at once answers 403. An episode nobody has a copy of is
@@ -69,6 +72,7 @@ signals:
   void itemIdChanged();
   void changed();
   void queueingChanged();
+  void moved();
   // The season's download stopped: the core did not answer, or a provider
   // refused while it listed nothing, and the rest would fail the same way.
   void seasonFailed(const QString &reason);

@@ -176,6 +176,22 @@ Item {
             compare(findChild(shell, "titlePlay").text, "Play S1 E4")
         }
 
+        // Back from the player the page is where watching now goes on, not
+        // on the episode it was left on.
+        function test_thePageGoesOnFromWhatWasWatchedSince() {
+            const show = series()
+            keyClick(Qt.Key_Right)
+            compare(findChild(shell, "titlePlay").text, "Play S1 E2")
+            fakeCore.answer("GET", "/api/v1/progress/" + show.id, 200, {
+                entries: [{ season: 1, episode: 2, position: 0, duration: 2900, watched: true,
+                            updatedAt: "2026-09-01T00:00:00Z" }],
+                next: { season: 1, episode: 3, position: 0, duration: 0, watched: false,
+                        updatedAt: "2026-09-01T00:00:00Z" } })
+            shell.visible = false
+            shell.visible = true
+            tryCompare(findChild(shell, "titlePlay"), "text", "Play S1 E3")
+        }
+
         // A pick is the title's release, which the core keeps, so the next
         // episode goes on from it; nothing starts.
         function test_aCopyPickedInTheDrawerIsTheTitlesRelease() {

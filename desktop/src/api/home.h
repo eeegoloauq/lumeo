@@ -55,6 +55,8 @@ public:
   // Asks for the next page, unless one is on its way or the catalogue has
   // run out.
   Q_INVOKABLE void more();
+  // Watch progress as the core now has it, in place of what was shown.
+  void replace(const QJsonArray &progress);
 
 signals:
   void emptyChanged();
@@ -107,6 +109,8 @@ public:
 
   // Lists the catalogues again, as Try again does.
   Q_INVOKABLE void load();
+  // Asks for watch progress again, which a film watched since has moved.
+  Q_INVOKABLE void refreshProgress();
 
 signals:
   void changed();
@@ -120,6 +124,8 @@ private:
   QJsonObject m_hero;
   Shelf *m_lead = nullptr;
   QList<Shelf *> m_shelves;
+  // The watch progress shelf among them, if there is one.
+  Shelf *m_continue = nullptr;
 
   // What a load is still waiting for, by load: a retry outruns the answers
   // of the load before it.

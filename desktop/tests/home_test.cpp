@@ -84,6 +84,23 @@ private slots:
     QCOMPARE(names(home.shelves()).first(), "movie/top/");
   }
 
+  // A film watched since moves the shelf in place; one that comes or goes
+  // lays the page out again.
+  void watchProgressIsAskedAgainOnReturn() {
+    fake->answer("GET", "/api/v1/continue", 200, QJsonArray{progress("tt0013442")});
+    Home home(core.get());
+    QTRY_COMPARE(home.status(), Home::Ready);
+    Shelf *shelf = home.lead();
+    fake->answer("GET", "/api/v1/continue", 200,
+                 QJsonArray{progress("tt0032138"), progress("tt0013442")});
+    home.refreshProgress();
+    QTRY_COMPARE(ids(shelf), (QStringList{"tt0032138", "tt0013442"}));
+    QCOMPARE(home.lead(), shelf);
+    fake->answer("GET", "/api/v1/continue", 200, QJsonArray());
+    home.refreshProgress();
+    QTRY_COMPARE(home.lead()->catalog(), "top");
+  }
+
   void watchProgressStaysWhenTheCatalogueCannotBeFetched() {
     fake->answer("GET", "/api/v1/catalog", 502, QJsonObject{{"error", "provider down"}});
     fake->answer("GET", "/api/v1/continue", 200, QJsonArray{progress("tt0013442")});

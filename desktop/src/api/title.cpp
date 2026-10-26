@@ -177,6 +177,20 @@ void Title::load() {
               });
 }
 
+void Title::refreshProgress() {
+  if (m_status != Ready)
+    return;
+  const int load = m_load;
+  m_core->get("/api/v1/progress/" + Core::segment(m_itemId), {}, this,
+              [this, load](const Core::Reply &reply) {
+                if (load != m_load || !reply.ok() || reply.json().toObject() == m_progress)
+                  return;
+                m_progress = reply.json().toObject();
+                emit changed();
+                emit moved();
+              });
+}
+
 SourceChoice::SourceChoice(Core *core, Downloads *downloads, QObject *parent)
     : QObject(parent), m_core(core), m_downloads(downloads) {}
 

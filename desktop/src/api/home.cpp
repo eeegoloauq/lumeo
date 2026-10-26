@@ -104,6 +104,12 @@ void Shelf::more() {
               });
 }
 
+void Shelf::replace(const QJsonArray &progress) {
+  beginResetModel();
+  m_entries = progress;
+  endResetModel();
+}
+
 void Shelf::setEmpty(bool empty) {
   if (empty == m_empty)
     return;
@@ -177,6 +183,28 @@ void Home::load() {
   });
 }
 
+void Home::refreshProgress() {
+  if (m_status != Ready)
+    return;
+  const int load = m_load;
+  m_core->get("/api/v1/continue", {{"limit", "30"}}, this,
+              [this, load](const Core::Reply &reply) {
+                if (load != m_load || !reply.ok())
+                  return;
+                const QJsonArray progress = reply.json().toArray();
+                if (progress == m_progress)
+                  return;
+                const bool shelfStays = progress.isEmpty() == m_progress.isEmpty();
+                m_progress = progress;
+                // A shelf that comes or goes moves the others, which only
+                // laying the page out again does.
+                if (shelfStays)
+                  m_continue->replace(progress);
+                else
+                  settle();
+              });
+}
+
 void Home::settle() {
   if (!m_progressHere || !m_leadHere)
     return;
@@ -201,6 +229,7 @@ void Home::settle() {
     catalogue.append(new Shelf(m_core, m_specs[i].first, m_specs[i].second,
                                i == 0 ? rest : QJsonArray(), this));
   Shelf *progress = m_progress.isEmpty() ? nullptr : new Shelf(m_progress, this);
+  m_continue = progress;
 
   // A title part-way through is content, and goes first
   // (decisions/interface.md).

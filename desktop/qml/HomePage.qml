@@ -63,6 +63,10 @@ ShellPage {
     Keys.onUpPressed: move(-1)
     Keys.onDownPressed: move(1)
 
+    // Back from the player or from a title: a film watched since has moved
+    // Continue watching.
+    onVisibleChanged: if (visible) home.refreshProgress()
+
     Home { id: home }
 
     Loading {
