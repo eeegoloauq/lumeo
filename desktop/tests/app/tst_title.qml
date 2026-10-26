@@ -16,6 +16,12 @@ Item {
         when: windowShown
 
         property var shell
+        // Where this test's requests start in the fake core's log.
+        property int asked
+
+        function requests() {
+            return fakeCore.requests.slice(asked)
+        }
 
         readonly property var copy: ({
             providerId: "torrentio",
@@ -35,6 +41,7 @@ Item {
             fakeCore.answer("GET", "/api/v1/catalog", 200, { items: items })
             fakeCore.answer("GET", "/api/v1/sources", 200, { sources: [copy], providers: 1 })
             fakeCore.answer("POST", "/api/v1/downloads", 201, { id: "d1", itemId: "tt2001", state: "active" })
+            asked = fakeCore.requests.length
             shell = createTemporaryObject(shellComponent, window)
             watched.clear()
             watched.target = shell
@@ -57,7 +64,55 @@ Item {
             tryVerify(() => findChild(shell, "titlePlay")?.enabled, 5000, "the copies listed")
             wait(50)
             compare(watched.count, 0)
-            verify(!fakeCore.requests.some(r => r.startsWith("POST /api/v1/downloads")))
+            compare(posted().length, 0)
+        }
+
+        // A series, opened on its first episode with the keyboard on it.
+        function series() {
+            const show = fakeCore.read("items.json").find(item => item.kind === "series")
+            fakeCore.answer("GET", "/api/v1/items/" + show.id, 200, show)
+            fakeCore.answer("GET", "/api/v1/progress/" + show.id, 200, {})
+            shell.open(show, false)
+            const strip = findChild(shell, "episodes")
+            tryVerify(() => strip.itemAtIndex(0)?.activeFocus, 5000, "the first episode has the keyboard")
+            return show
+        }
+
+        function posted() {
+            return requests().filter(r => r.startsWith("POST /api/v1/downloads"))
+        }
+
+        // The arrows walk the season with the selection; Enter plays what
+        // they reached, and a run of steps asks for one list, not one per card.
+        function test_theArrowsChooseAnEpisodeAndEnterPlaysIt() {
+            series()
+            keyClick(Qt.Key_Right)
+            keyClick(Qt.Key_Right)
+            compare(findChild(shell, "titlePlay").text, "Play S1 E3")
+            keyClick(Qt.Key_Return)
+            watched.wait(5000)
+            verify(posted().length === 1 && posted()[0].includes('"episode":3'), posted()[0])
+            verify(!requests().some(r => r.includes("/api/v1/sources") && r.includes("episode=2")),
+                   "no list for the episode passed over")
+        }
+
+        // Specials aside, the arrows go on into the next season.
+        function test_theArrowsCrossIntoTheNextSeason() {
+            series()
+            for (let i = 0; i < 6; ++i)
+                keyClick(Qt.Key_Right)
+            compare(findChild(shell, "titlePlay").text, "Play S2 E1")
+            verify(findChild(shell, "season-2"), "two seasons, two tabs")
+            keyClick(Qt.Key_Left)
+            compare(findChild(shell, "titlePlay").text, "Play S1 E6")
+        }
+
+        function test_aSeasonTabShowsItsEpisodes() {
+            series()
+            mouseClick(findChild(shell, "season-2"))
+            const strip = findChild(shell, "episodes")
+            compare(strip.count, 1)
+            compare(findChild(shell, "titlePlay").text, "Play S2 E1")
         }
 
         // None ships with the app: the empty list is the way to add one.

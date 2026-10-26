@@ -98,24 +98,21 @@ void SourceChoice::setItemId(const QString &itemId) {
   if (itemId == m_itemId)
     return;
   m_itemId = itemId;
-  emit keyChanged();
-  reload();
+  rekey();
 }
 
 void SourceChoice::setSeason(int season) {
   if (season == m_season)
     return;
   m_season = season;
-  emit keyChanged();
-  reload();
+  rekey();
 }
 
 void SourceChoice::setEpisode(int episode) {
   if (episode == m_episode)
     return;
   m_episode = episode;
-  emit keyChanged();
-  reload();
+  rekey();
 }
 
 QString SourceChoice::released() const {
@@ -131,6 +128,13 @@ void SourceChoice::setReleased(const QString &released) {
   emit changed();
 }
 
+void SourceChoice::rekey() {
+  if (m_load > 0)
+    m_startWhenReady = false;
+  emit keyChanged();
+  reload();
+}
+
 // The page sets the season and the episode one after the other; one list is
 // asked for the pair.
 void SourceChoice::reload() {
@@ -139,10 +143,6 @@ void SourceChoice::reload() {
   m_reloadQueued = true;
   QTimer::singleShot(0, this, [this] {
     m_reloadQueued = false;
-    // A Play held for the first list is for that one, not for whichever
-    // episode is picked after.
-    if (m_load > 0)
-      m_startWhenReady = false;
     m_sources = {};
     m_failed = {};
     m_providers = 0;

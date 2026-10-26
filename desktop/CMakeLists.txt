@@ -42,6 +42,7 @@ qt_add_qml_module(lumeo
     qml/Bar.qml
     qml/Browse.qml
     qml/DownloadMark.qml
+    qml/EpisodeCard.qml
     qml/Glyph.qml
     qml/Heading.qml
     qml/HomePage.qml

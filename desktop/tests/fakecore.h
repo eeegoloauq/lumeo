@@ -51,6 +51,8 @@ public:
   QByteArray token;
 
   static QJsonValue fixture(const QString &name);
+  // The same, for app tests.
+  Q_INVOKABLE QJsonValue read(const QString &name) const { return fixture(name); }
 
 signals:
   void requested();

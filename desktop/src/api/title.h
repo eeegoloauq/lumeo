@@ -94,6 +94,9 @@ class SourceChoice : public QObject, public QQmlParserStatus {
   Q_PROPERTY(bool playable READ playable NOTIFY changed)
   // Not out yet: nobody has a copy, so nobody is asked.
   Q_PROPERTY(bool upcoming READ upcoming NOTIFY changed)
+  // No provider can be asked for a copy: none is added, or none answered.
+  // Only what is on disk plays.
+  Q_PROPERTY(bool unreachable READ unreachable NOTIFY changed)
   // Why the last request failed: the HTTP status, 0 when the core did not
   // answer, -1 when nothing failed.
   Q_PROPERTY(int errorStatus READ errorStatus NOTIFY changed)
@@ -128,6 +131,9 @@ public:
   bool pending() const { return m_starting || m_startWhenReady; }
   bool playable() const { return m_loading || m_picked >= 0; }
   bool upcoming() const;
+  bool unreachable() const {
+    return m_listed && (m_providers == 0 || m_failed.size() >= m_providers);
+  }
   int errorStatus() const { return m_errorStatus; }
   QString errorMessage() const { return m_errorMessage; }
   QVariantMap noRoom() const;
@@ -155,6 +161,9 @@ signals:
 
 private:
   QDateTime now() const { return clock.isValid() ? clock : QDateTime::currentDateTimeUtc(); }
+  // Another title or episode: its list, and a Play held for the one before
+  // is not for this one.
+  void rekey();
   void reload();
   void begin(bool play);
   // The download on disk Play can open without asking anybody; empty when

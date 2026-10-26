@@ -30,6 +30,15 @@ ListView {
         return at < 0 ? 0 : at
     }
 
+    // Card [index] at the start of the row, after the gutter, as far as the
+    // row goes.
+    function place(index) {
+        positionViewAtIndex(index, ListView.Beginning)
+        contentX = Math.max(originX - leftMargin,
+                            Math.min(contentX - leftMargin,
+                                     originX + contentWidth + rightMargin - width))
+    }
+
     function focusCard(index) {
         if (index < 0 || index >= count)
             return false
