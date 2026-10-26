@@ -1,5 +1,6 @@
 #include "artwork.h"
 #include "fonts.h"
+#include "instance.h"
 #include "language.h"
 #include "mpvfacts.h"
 #include "settings.h"
@@ -30,6 +31,10 @@ int main(int argc, char *argv[]) {
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setApplicationVersion(LUMEO_VERSION);
   QGuiApplication::setDesktopFileName("dev.lumeo.lumeo");
+  Instance instance(app.arguments());
+  if (!instance.start())
+    return 0;
+  QObject::connect(&app, &QGuiApplication::lastWindowClosed, &instance, &Instance::release);
   loadFonts();
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
@@ -53,8 +58,6 @@ int main(int argc, char *argv[]) {
   speak();
   QObject::connect(settings, &LocalSettings::languageChanged, &engine, speak);
   Artwork::install(&engine);
-  const QStringList args = app.arguments();
-  engine.setInitialProperties({{"toOpen", args.size() > 1 ? args.at(1) : QString()}});
   QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                    [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
   engine.loadFromModule("Lumeo", "Main");

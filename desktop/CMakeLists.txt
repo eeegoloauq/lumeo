@@ -84,6 +84,7 @@ qt_add_qml_module(lumeo
     qml/PlayerWaiting.qml
     qml/Scrubber.qml
     qml/Theme.qml
+    qml/Toast.qml
     qml/TracksMenu.qml
     qml/WheelScroll.qml
     qml/AboutSection.qml
@@ -163,9 +164,11 @@ qt_add_qml_module(lumeo
     src/api/languages.h src/api/languages.cpp
     src/api/storage.h src/api/storage.cpp
     src/api/corestatus.h src/api/corestatus.cpp
+    src/api/opening.h src/api/opening.cpp
     src/platform/desktop.h src/platform/desktop.cpp
     src/platform/folders.h src/platform/folders.cpp
     src/platform/fonts.h src/platform/fonts.cpp
+    src/platform/instance.h src/platform/instance.cpp
     src/platform/language.h src/platform/language.cpp
     src/platform/settings.h src/platform/settings.cpp
     src/player/mpvitem.h src/player/mpvitem.cpp
@@ -178,7 +181,6 @@ qt_add_qml_module(lumeo
     src/player/mpvfacts.h src/player/mpvfacts.cpp
     src/player/episodeframes.h src/player/episodeframes.cpp
     src/player/subtitlestyle.h src/player/subtitlestyle.cpp
-    src/prototype.h src/prototype.cpp
 )
 
 # The generated type registrations include the headers by their bare names.

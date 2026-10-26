@@ -26,3 +26,11 @@ QString Folders::cache() {
   return xdg("XDG_CACHE_HOME", ".cache");
 #endif
 }
+
+QString Folders::state() {
+#ifdef Q_OS_WIN
+  return qEnvironmentVariable("LOCALAPPDATA") + "/Lumeo/State";
+#else
+  return xdg("XDG_STATE_HOME", ".local/state");
+#endif
+}

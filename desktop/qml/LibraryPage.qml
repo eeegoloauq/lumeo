@@ -57,11 +57,6 @@ ShellPage {
         return to >= 0 && to < titles.length && focusTile(to)
     }
 
-    function say(text) {
-        toast.said = text
-        sayTimer.restart()
-    }
-
     scrolled: section === "list" ? flick.contentY > 12 : lines.contentY - lines.originY > 12
 
     // History is read the first time it is shown: most visits to the
@@ -81,7 +76,7 @@ ShellPage {
 
     History {
         id: history
-        onRefused: what => page.say({
+        onRefused: what => toast.say({
             rate: qsTrId("libraryRatingNotSaved"),
             clear: qsTrId("libraryRatingNotRemoved"),
             remove: qsTrId("libraryHistoryRemoveFailed"),
@@ -566,63 +561,12 @@ ShellPage {
 
     // A line taken out, with the way to bring it back while the core has
     // not been told; or what the core refused.
-    Rectangle {
+    Toast {
         id: toast
-        objectName: "toast"
-
-        property string said
-
-        anchors { bottom: parent.bottom; bottomMargin: 32; horizontalCenter: parent.horizontalCenter }
-        visible: history.removing || sayTimer.running
-        width: toastRow.implicitWidth + 28
-        height: 52
-        radius: Tokens.radiusFloating
-        color: Tokens.floating
-        border.color: Tokens.rim
-
-        Timer { id: sayTimer; interval: 4000 }
-
-        Row {
-            id: toastRow
-            anchors { left: parent.left; leftMargin: 18; verticalCenter: parent.verticalCenter }
-            spacing: 18
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: history.removing ? qsTrId("libraryRemovedFromHistory") : toast.said
-                color: Tokens.text
-                font.family: Tokens.fontSans
-                font.pixelSize: Tokens.textCard
-            }
-            AbstractButton {
-                id: undo
-                objectName: "undo"
-                anchors.verticalCenter: parent.verticalCenter
-                visible: history.removing
-                implicitHeight: 32
-                implicitWidth: undoLabel.implicitWidth + 28
-                focusPolicy: Qt.TabFocus
-                hoverEnabled: true
-                onClicked: history.undo()
-                HoverHandler { cursorShape: Qt.PointingHandCursor }
-                background: Rectangle {
-                    radius: Tokens.radiusControl
-                    color: undo.down || undo.hovered ? Qt.lighter(Tokens.tint, 1.3) : Tokens.tint
-                    border.width: undo.visualFocus ? 2 : 0
-                    border.color: Theme.accent
-                }
-                contentItem: Text {
-                    id: undoLabel
-                    text: qsTrId("commonUndo")
-                    color: Tokens.text
-                    font.family: Tokens.fontSans
-                    font.pixelSize: Tokens.textCard
-                    font.weight: Font.Medium
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-        }
+        held: history.removing
+        text: history.removing ? qsTrId("libraryRemovedFromHistory") : said
+        action: history.removing ? qsTrId("commonUndo") : ""
+        onActed: history.undo()
     }
 
     Shortcut {

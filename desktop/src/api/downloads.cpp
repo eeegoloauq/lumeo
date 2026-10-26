@@ -51,13 +51,12 @@ void Downloads::start(const QString &itemId, const QJsonObject &source, int seas
                });
 }
 
-void Downloads::openLocal(const QString &path, QObject *context,
-                          std::function<void(const QJsonObject &, int)> answer) {
+void Downloads::openLocal(const QString &path, QObject *context, Core::Answer answer) {
   m_core->send("POST", "/api/v1/local", {}, QJsonObject{{"path", path}}, context,
                [this, answer](const Core::Reply &reply) {
                  if (reply.ok())
                    adopt(reply.json().toObject());
-                 answer(reply.json().toObject(), reply.status);
+                 answer(reply);
                });
 }
 

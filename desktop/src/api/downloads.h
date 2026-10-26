@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core.h"
+
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -8,7 +10,6 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
-class Core;
 class QQmlEngine;
 class QJSEngine;
 
@@ -52,8 +53,7 @@ public:
   void start(const QString &itemId, const QJsonObject &source, int season, int episode,
              bool prefetch, QObject *context, std::function<void(const QJsonObject &, int)> answer);
   // Makes a file on this machine a download the player can open.
-  void openLocal(const QString &path, QObject *context,
-                 std::function<void(const QJsonObject &, int)> answer);
+  void openLocal(const QString &path, QObject *context, Core::Answer answer);
 
   Q_INVOKABLE void pause(const QString &id) { setPaused(id, true); }
   // Fetches a paused download again, or retries a failed one.

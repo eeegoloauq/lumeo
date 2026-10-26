@@ -64,6 +64,11 @@ FocusScope {
         stack.push(pages.search)
     }
 
+    // A line at the foot of whatever page is up.
+    function say(text) {
+        toast.say(text)
+    }
+
     readonly property var pages: ({
         library: libraryPage,
         settings: settingsPage,
@@ -138,6 +143,8 @@ FocusScope {
         y: (bar.height - height) / 2
         onDown: (stack.currentItem as SearchPage)?.enter()
     }
+
+    Toast { id: toast }
 
     // Window shortcuts: they answer wherever the keyboard is.
     Shortcut { sequences: ["Esc", "Alt+Left", "Back"]; enabled: shell.visible && !downloadsPanel.opened; onActivated: shell.back() }

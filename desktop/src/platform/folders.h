@@ -9,4 +9,6 @@
 namespace Folders {
 QString config();
 QString cache();
+// Logs: the core's on Windows, mpv's.
+QString state();
 } // namespace Folders

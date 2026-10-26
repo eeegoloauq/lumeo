@@ -128,7 +128,7 @@ Item {
             const id = "line-" + show.id + "/1/2"
             mouseClick(findChild(findChild(shell, id), "remove"))
             tryVerify(() => !findChild(shell, id))
-            const undo = findChild(shell, "undo")
+            const undo = findChild(shell, "toastAction")
             verify(undo.visible)
             mouseClick(undo)
             tryVerify(() => !!findChild(shell, id))

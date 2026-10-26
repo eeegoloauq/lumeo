@@ -7,9 +7,6 @@ import Lumeo
 ApplicationWindow {
     id: window
 
-    // A file to play at once, from the command line.
-    required property string toOpen
-
     width: 1280
     height: 800
     visible: true
@@ -79,12 +76,30 @@ ApplicationWindow {
         leaving.close()
     }
 
+    // A file or link from the launch that started the app, or from a later
+    // one, which brings the window forward.
     Connections {
-        target: Prototype
-        function onStarted(downloadId, name) { window.play(downloadId, name) }
+        target: Instance
+        function onOpened(target) {
+            window.show()
+            window.raise()
+            window.requestActivate()
+            if (target !== "")
+                Opening.open(target)
+        }
+        function onReplaced() { window.close() }
     }
 
-    Component.onCompleted: if (toOpen !== "") Prototype.openLocal(toOpen)
+    Connections {
+        target: Opening
+        function onPlay(downloadId, name) { window.play(downloadId, name) }
+        function onTitle(item) { shell.open(item, false) }
+        function onFailed(what, reason) {
+            shell.say(reason === "" ? qsTrId("commonUnknownLink") : qsTrId("commonCouldNotOpen").arg(what).arg(reason))
+        }
+    }
+
+    Component.onCompleted: if (Instance.target() !== "") Opening.open(Instance.target())
 
     // The film has mpv's `f`; the rest of the app has F11, Esc being Back.
     Shortcut {
