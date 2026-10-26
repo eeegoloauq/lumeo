@@ -3,6 +3,7 @@
 #include "core.h"
 #include "mpvitem.h"
 #include "preferences.h"
+#include "subtitlestyle.h"
 
 #include <QFile>
 #include <algorithm>
@@ -10,16 +11,6 @@
 #include <memory>
 
 namespace {
-
-// The colours the `subtitleColor` preference names: white, a broadcast
-// yellow, a softer cream for long sittings, and a cyan that stays apart from
-// warm pictures.
-const QHash<QString, QString> subtitleColours = {
-    {"white", "#FFFFFF"},
-    {"yellow", "#FFE14D"},
-    {"cream", "#F5E6C4"},
-    {"cyan", "#7FE0FF"},
-};
 
 QString format(const QString &codec) {
   static const QHash<QString, QString> names = {
@@ -181,18 +172,15 @@ void Tracks::apply() {
     m_mpv->set(it.key(), it.value());
   // mpv's colour reaches plain text only while `sub-ass-override` is its
   // default; `force` makes ours win over a styled track's too.
-  m_mpv->set("sub-color", subtitleColours.value(prefs.value("subtitleColor").toString(), "#FFFFFF"));
+  m_mpv->set("sub-color", SubtitleStyle::colour(prefs.value("subtitleColor").toString()));
   m_mpv->set("sub-ass-override", prefs.value("subtitleKeepStyling", true).toBool() ? "scale" : "force");
 }
 
 QVariantMap Tracks::backgroundProperties(const QString &background, bool borderStyle) {
-  // Opaque and unblurred: a wide translucent shadow reads as a grey smear.
-  const QString shadow = "#FF000000", box = "#C0000000", clear = "#00000000";
-  // A thick outline alone; a thin one under a drop shadow, which a thick one
-  // would hide; for the box, its padding.
+  const QString shadow = "#FF000000", box = SubtitleStyle::boxColour, clear = "#00000000";
   QVariantMap properties{
-      {"sub-border-size", background == "shadow" ? 1.5 : 4.0},
-      {"sub-shadow-offset", background == "shadow" ? 3 : 0},
+      {"sub-border-size", SubtitleStyle::border(background)},
+      {"sub-shadow-offset", background == "shadow" ? SubtitleStyle::shadow : 0},
   };
   if (borderStyle) {
     properties["sub-border-style"] = background == "box" ? "background-box" : "outline-and-shadow";

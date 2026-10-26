@@ -149,6 +149,7 @@ qt_add_qml_module(lumeo
     src/player/previews.h src/player/previews.cpp
     src/player/mpvfacts.h src/player/mpvfacts.cpp
     src/player/episodeframes.h src/player/episodeframes.cpp
+    src/player/subtitlestyle.h src/player/subtitlestyle.cpp
     src/prototype.h src/prototype.cpp
 )
 

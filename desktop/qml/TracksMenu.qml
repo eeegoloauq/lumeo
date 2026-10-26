@@ -19,7 +19,7 @@ MenuPanel {
     // A pick was made: the menu goes.
     signal done()
 
-    readonly property var scales: [0.8, 1.0, 1.25, 1.5]
+    readonly property var scales: SubtitleStyle.scales
 
     width: style ? 340 : 520
     // The page on show decides, not the hidden one.

@@ -1,5 +1,7 @@
 #include "mpvitem.h"
 
+#include "subtitlestyle.h"
+
 #include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -323,14 +325,13 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"osd-bar", "no"},
       {"osd-on-seek", "msg"},
       {"osd-msg3", "${osd-sym-cc} ${time-pos}${?duration: / ${duration}}"},
-      // Plain text where a streaming release's styled dialogue sits, in mpv's
-      // 720-line scale: 1/15 of the picture high, 1/20 of it above the
-      // bottom edge (decisions/subtitles.md).
-      {"sub-font-size", "48"},
-      {"sub-margin-y", "36"},
   };
   for (const auto &[name, value] : options)
     mpv_set_option_string(mpv, name, value);
+  // Plain text where a streaming release's styled dialogue sits
+  // (decisions/subtitles.md).
+  mpv_set_option_string(mpv, "sub-font-size", QByteArray::number(SubtitleStyle::fontSize).constData());
+  mpv_set_option_string(mpv, "sub-margin-y", QByteArray::number(SubtitleStyle::margin).constData());
   const QByteArray log = qgetenv("LUMEO_MPV_LOG");
   if (!log.isEmpty())
     mpv_set_option_string(mpv, "log-file", log.constData());
