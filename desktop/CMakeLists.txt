@@ -77,6 +77,7 @@ qt_add_qml_module(lumeo
     qml/Scrubber.qml
     qml/Theme.qml
     qml/TracksMenu.qml
+    qml/WheelScroll.qml
     qml/Words.qml
     qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml

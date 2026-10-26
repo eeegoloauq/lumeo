@@ -97,6 +97,8 @@ ShellPage {
         cacheBuffer: 3000
         footer: Item { width: 1; height: 40 }
 
+        WheelScroll { objectName: "wheel"; view: list }
+
         delegate: Item {
             id: slot
 

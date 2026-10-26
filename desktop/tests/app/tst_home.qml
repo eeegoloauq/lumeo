@@ -50,6 +50,17 @@ Item {
             tryVerify(() => strip.contentX > start, 2000, "the shelf moved")
         }
 
+        // Flickable's wheel dropped the rest of a notch when the next came,
+        // so spinning faster scrolled less.
+        function test_notchesThatComeQuicklyAddUp() {
+            const list = findChild(shell, "shelves")
+            findChild(list, "wheel").duration = 0
+            const start = list.contentY
+            for (let i = 0; i < 3; ++i)
+                mouseWheel(list, 700, 300, 0, -120)
+            tryCompare(list, "contentY", start + 360, 2000)
+        }
+
         function test_theArrowsWalkTheHeroAndTheShelvesAndEnterOpensATitle() {
             const focused = () => shell.Window.activeFocusItem
             const holds = name => findChild(findChild(shell, name), "strip").activeFocus
