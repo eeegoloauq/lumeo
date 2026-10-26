@@ -11,4 +11,6 @@ QString config();
 QString cache();
 // Logs: the core's on Windows, mpv's.
 QString state();
+// mpv's log for the player being opened; LUMEO_MPV_LOG names another.
+QString playerLog();
 } // namespace Folders

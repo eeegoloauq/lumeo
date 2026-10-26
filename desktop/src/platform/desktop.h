@@ -11,10 +11,13 @@ class Desktop : public QObject {
   QML_ELEMENT
   QML_SINGLETON
   Q_PROPERTY(QString system READ system CONSTANT)
+  // Where mpv's log is, for a bug report.
+  Q_PROPERTY(QString playerLog READ playerLog CONSTANT)
 
 public:
   using QObject::QObject;
 
   QString system() const;
+  QString playerLog() const;
   Q_INVOKABLE void copy(const QString &text) const;
 };

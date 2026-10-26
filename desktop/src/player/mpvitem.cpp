@@ -1,7 +1,11 @@
 #include "mpvitem.h"
 
+#include "folders.h"
 #include "subtitlestyle.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -332,9 +336,14 @@ MpvItem::MpvItem(QQuickItem *parent)
   // (decisions/subtitles.md).
   mpv_set_option_string(mpv, "sub-font-size", QByteArray::number(SubtitleStyle::fontSize).constData());
   mpv_set_option_string(mpv, "sub-margin-y", QByteArray::number(SubtitleStyle::margin).constData());
-  const QByteArray log = qgetenv("LUMEO_MPV_LOG");
-  if (!log.isEmpty())
-    mpv_set_option_string(mpv, "log-file", log.constData());
+  // The previous log is kept beside it: mpv empties its log on open, and a
+  // report is usually about the film just closed. Two files bound the size.
+  const QString log = Folders::playerLog();
+  QDir().mkpath(QFileInfo(log).path());
+  const QString previous = QFileInfo(log).path() + "/" + QFileInfo(log).completeBaseName() + ".old.log";
+  QFile::remove(previous);
+  QFile::rename(log, previous);
+  mpv_set_option_string(mpv, "log-file", QFile::encodeName(log).constData());
   if (mpv_initialize(mpv) < 0)
     qFatal("mpv_initialize failed");
   if (!profile.isEmpty())

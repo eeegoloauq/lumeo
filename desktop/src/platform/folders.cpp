@@ -1,6 +1,7 @@
 #include "folders.h"
 
 #include <QDir>
+#include <QFile>
 
 namespace {
 
@@ -33,4 +34,9 @@ QString Folders::state() {
 #else
   return xdg("XDG_STATE_HOME", ".local/state");
 #endif
+}
+
+QString Folders::playerLog() {
+  const QString chosen = qEnvironmentVariable("LUMEO_MPV_LOG");
+  return chosen.isEmpty() ? state() + "/mpv.log" : chosen;
 }

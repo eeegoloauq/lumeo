@@ -38,7 +38,8 @@ SettingsBlock {
             qsTrId("settingsDetailsSystem").arg(Desktop.system).arg(""),
         ].concat(missing.length ? [qsTrId("settingsDetailsMissingDecoder").arg(missing.join(", "))] : [])
          .concat(broken)
-         .concat(coreStatus.logPath ? [qsTrId("settingsDetailsLogs").arg(coreStatus.logPath)] : [])
+         .concat([coreStatus.logPath ? qsTrId("settingsDetailsLogsCore").arg(Desktop.playerLog).arg(coreStatus.logPath)
+                                     : qsTrId("settingsDetailsLogs").arg(Desktop.playerLog)])
          .map(line => line.trim()).join("\n")
     }
 

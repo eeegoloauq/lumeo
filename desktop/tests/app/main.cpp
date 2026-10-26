@@ -26,6 +26,7 @@ public slots:
   void applicationAvailable() {
     qputenv("XDG_CONFIG_HOME", folders.filePath("config").toUtf8());
     qputenv("XDG_CACHE_HOME", folders.filePath("cache").toUtf8());
+    qputenv("XDG_STATE_HOME", folders.filePath("state").toUtf8());
     // Made here: a QObject's timers need the application's event loop.
     fake = std::make_unique<FakeCore>();
     if (!fake->listen())

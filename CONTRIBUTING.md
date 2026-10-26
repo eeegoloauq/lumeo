@@ -100,7 +100,7 @@ Then, from `desktop/`:
 
 It talks to the core on `127.0.0.1:7666`, the one a running Lumeo has started, with the token from
 the data directory; with a `lumeo-core` beside the binary it starts that one and is one instance per
-session, as installed (decisions/shipping.md); `LUMEO_MPV_LOG=<file>` writes mpv's log. On a headless Weston without a GPU,
+session, as installed (decisions/shipping.md); mpv's log is `mpv.log` in the state folder (`~/.local/state/lumeo`), the previous one beside it, unless `LUMEO_MPV_LOG=<file>` names another. On a headless Weston without a GPU,
 preload `client/tool/no-libva-wayland.c` as `tool/ui-test.sh` does.
 
 ## Translations
