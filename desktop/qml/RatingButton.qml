@@ -26,7 +26,6 @@ AbstractButton {
     Accessible.name: scored ? qsTrId("libraryRatingChange") : qsTrId("libraryRate")
     ToolTip.text: Accessible.name
     ToolTip.visible: hovered && !scores.opened
-    ToolTip.delay: 500
     onClicked: scores.opened ? scores.close() : scores.open()
     HoverHandler { cursorShape: Qt.PointingHandCursor }
 

@@ -96,7 +96,6 @@ Row {
         onClicked: line.choose()
         ToolTip.text: line.choice.picked >= 0 ? line.choice.sources[line.choice.picked].rawName : ""
         ToolTip.visible: hovered && ToolTip.text !== ""
-        ToolTip.delay: 500
         HoverHandler { cursorShape: what.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
 
         background: Rectangle {

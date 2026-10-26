@@ -296,16 +296,20 @@ ShellPage {
                             onRated: score => mine.rate(score)
                             onCleared: mine.clear()
                         }
+                        // Says it copied for a moment, on itself: a button that
+                        // looks the same afterwards gets pressed twice.
                         TintButton {
                             id: share
                             objectName: "shareButton"
                             visible: about.link !== ""
-                            glyph: "ios_share"
-                            tip: qsTrId("itemShare")
+                            glyph: copied.running ? "check" : "ios_share"
+                            tip: copied.running ? qsTrId("itemLinkCopied") : qsTrId("itemShare")
                             onClicked: {
                                 about.copyLink()
-                                ToolTip.show(qsTrId("itemLinkCopied"), 2000)
+                                copied.restart()
                             }
+
+                            Timer { id: copied; interval: 2000 }
                         }
                     }
                     Text {

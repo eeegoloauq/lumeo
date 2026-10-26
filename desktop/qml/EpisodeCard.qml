@@ -77,7 +77,6 @@ AbstractButton {
                 focusPolicy: Qt.NoFocus
                 ToolTip.text: qsTrId("itemPlayEpisode").arg(card.episode.number)
                 ToolTip.visible: hovered
-                ToolTip.delay: 500
                 onClicked: card.played()
 
                 background: Rectangle { radius: width / 2; color: "#ebffffff" }

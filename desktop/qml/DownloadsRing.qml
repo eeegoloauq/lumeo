@@ -19,7 +19,6 @@ ToolButton {
     ToolTip.text: list.running > 0 ? qsTrId("downloadsRunningTooltip", list.running).arg(Math.round(list.fraction * 100))
                                    : qsTrId("settingsDownloads")
     ToolTip.visible: hovered
-    ToolTip.delay: 500
 
     background: Rectangle {
         radius: height / 2

@@ -32,7 +32,6 @@ Row {
             Accessible.name: tip
             ToolTip.text: tip
             ToolTip.visible: hovered
-            ToolTip.delay: 500
             onClicked: dots.picked(modelData.name)
             HoverHandler { cursorShape: Qt.PointingHandCursor }
 

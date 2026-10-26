@@ -39,7 +39,6 @@ Rectangle {
                 Accessible.name: modelData.label
                 ToolTip.text: modelData.tip ?? ""
                 ToolTip.visible: hovered && !!modelData.tip
-                ToolTip.delay: 500
                 onClicked: strip.picked(modelData.value)
                 HoverHandler { cursorShape: Qt.PointingHandCursor }
 

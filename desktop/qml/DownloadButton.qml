@@ -23,7 +23,6 @@ AbstractButton {
     Accessible.name: tip
     ToolTip.text: tip
     ToolTip.visible: hover.hovered && tip !== ""
-    ToolTip.delay: 500
     // Hovered even when it cannot be pressed: the tooltip says why.
     HoverHandler { id: hover; cursorShape: button.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor }
 

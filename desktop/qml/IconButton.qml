@@ -24,7 +24,6 @@ ToolButton {
     Accessible.name: tip
     ToolTip.text: tip
     ToolTip.visible: hovered && tip !== ""
-    ToolTip.delay: 500
 
     background: Rectangle {
         radius: height / 2

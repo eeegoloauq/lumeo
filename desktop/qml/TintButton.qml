@@ -17,7 +17,6 @@ AbstractButton {
     Accessible.name: tip
     ToolTip.text: tip
     ToolTip.visible: hovered && tip !== ""
-    ToolTip.delay: 500
     HoverHandler { cursorShape: Qt.PointingHandCursor }
 
     background: Rectangle {
