@@ -9,7 +9,6 @@
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
-#include <QQuickStyle>
 #include <QQuickWindow>
 #include <QSurfaceFormat>
 #include <QtQml/QQmlExtensionPlugin>
@@ -44,8 +43,6 @@ int main(int argc, char *argv[]) {
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
   std::setlocale(LC_NUMERIC, "C");
-  // The controls are drawn the app's way; Basic is the style meant for that.
-  QQuickStyle::setStyle("Basic");
 
   // Asked now: a title page needs to know what this machine decodes before
   // anything plays.

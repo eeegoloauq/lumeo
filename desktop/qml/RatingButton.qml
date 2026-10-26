@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import Lumeo
 
 // The viewer's own score, 1 to 10, and the way to give one. Ten numbers

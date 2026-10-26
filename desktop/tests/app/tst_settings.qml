@@ -1,6 +1,6 @@
 import QtQuick
 import QtTest
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import Lumeo
 
 Item {

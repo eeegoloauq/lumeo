@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import Lumeo
 
 // The one action the whole product is built around: one on a screen, in the

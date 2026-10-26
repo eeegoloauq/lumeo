@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import Lumeo
 
 // The next episode, offered over the credits or the held last frame: its

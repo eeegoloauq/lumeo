@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import Lumeo
 
 // Colours as round swatches, the chosen one ringed and checked; each is
