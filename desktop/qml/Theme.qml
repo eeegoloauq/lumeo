@@ -22,6 +22,9 @@ QtObject {
     // The bar's ground fading in as the page moves under it.
     readonly property int wash: 180
 
+    // How far what floats over a page keeps from the window's edges.
+    readonly property int edge: 24
+
     // A banner's height in whole device pixels: one inside a pixel
     // antialiases that row and the scrim's, and the picture shows through as
     // a line where the banner ends.

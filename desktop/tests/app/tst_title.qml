@@ -228,6 +228,10 @@ Item {
             mouseClick(rating)
             const scores = findChild(rating, "ratingScale")
             tryVerify(() => scores.opened)
+            // Under the button, at the banner's foot, it ran off the window.
+            const box = scores.background.mapToItem(window, 0, 0, scores.width, scores.height)
+            verify(box.y + box.height <= window.height && box.x + box.width <= window.width,
+                   "the scale is inside the window: " + JSON.stringify(box))
             mouseClick(findChild(scores.contentItem, "score-7"))
             compare(rating.score, 7)
             tryVerify(() => requests().some(r => r.startsWith("PUT /api/v1/ratings/") && r.includes('"rating":7')))

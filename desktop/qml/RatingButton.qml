@@ -58,7 +58,9 @@ AbstractButton {
     Popup {
         id: scores
         objectName: "ratingScale"
-        y: button.height + 8
+        // Above: the button sits at the banner's foot, often the window's.
+        y: -height - 8
+        margins: Theme.edge
         padding: 14
         // The number under the pointer or the keyboard, which the row fills to.
         property int lit

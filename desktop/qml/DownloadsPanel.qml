@@ -23,6 +23,7 @@ Popup {
     property double now: Date.now()
 
     width: 400
+    margins: Theme.edge
     padding: 0
     topPadding: 0
     bottomPadding: 0

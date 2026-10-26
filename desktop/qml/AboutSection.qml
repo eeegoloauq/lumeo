@@ -61,6 +61,7 @@ SettingsBlock {
                 id: whatsNew
                 parent: Overlay.overlay
                 anchors.centerIn: parent
+                margins: Theme.edge
                 modal: true
                 padding: 0
                 background: null

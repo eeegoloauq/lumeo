@@ -10,6 +10,9 @@ ApplicationWindow {
 
     width: 1280
     height: 800
+    // The smallest the pages were checked at; half of a 1366-wide screen.
+    minimumWidth: 640
+    minimumHeight: 440
     // A login launch starts hidden, unless the setting has since been
     // turned off.
     visible: !(Instance.background && Background.enabled)
@@ -174,7 +177,7 @@ ApplicationWindow {
     // column spans the height, so a long card is held to the window.
     Item {
         visible: shell.visible
-        anchors { top: parent.top; right: parent.right; bottom: parent.bottom; margins: 24 }
+        anchors { top: parent.top; right: parent.right; bottom: parent.bottom; margins: Theme.edge }
         width: 360
 
         Loader {

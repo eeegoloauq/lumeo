@@ -112,6 +112,7 @@ Flow {
         Popup {
             id: picker
             y: adder.height + 6
+            margins: Theme.edge
             width: 260
             height: 340
             padding: 6
