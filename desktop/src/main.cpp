@@ -2,6 +2,7 @@
 #include "fonts.h"
 #include "language.h"
 #include "mpvfacts.h"
+#include "settings.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -28,7 +29,6 @@ int main(int argc, char *argv[]) {
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setDesktopFileName("dev.lumeo.lumeo");
-  installTranslations(QLocale());
   loadFonts();
   // libmpv refuses to start under a locale that writes 1,5 for 1.5, and Qt
   // has just set the one from the environment.
@@ -41,6 +41,16 @@ int main(int argc, char *argv[]) {
   MpvFacts::instance();
 
   QQmlApplicationEngine engine;
+  // The chosen language from the first frame, and every text again when
+  // another is chosen.
+  auto *settings = engine.singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
+  const auto speak = [&engine, settings] {
+    QLocale::setDefault(settings->locale());
+    installTranslations(settings->locale());
+    engine.retranslate();
+  };
+  speak();
+  QObject::connect(settings, &LocalSettings::languageChanged, &engine, speak);
   Artwork::install(&engine);
   const QStringList args = app.arguments();
   engine.setInitialProperties({{"toOpen", args.size() > 1 ? args.at(1) : QString()}});

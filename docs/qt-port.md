@@ -239,7 +239,10 @@ in its section (`controls.dart`, `settings_screen.dart`). The sections:
 General, Appearance, Playback, Audio and subtitles with a sample line drawn
 in mpv's units, Downloads with the disk as one bar, Sources dragged into
 order with the way back to a title, Shortcuts read from mpv, About with
-what a report needs in one copy (`settings/`).
+what a report needs in one copy (`settings/`). Each section's rows sit on a
+card with their controls at its right edge. Text size waits for a scale the
+QML can apply, its sizes being set per item; the background and login rows
+come with step 4.
 
 **Downloads panel.** interface.md, the panel grouped by what can be done; the
 rows, season rows, time left and what a row waits on (`download_rows.dart`);

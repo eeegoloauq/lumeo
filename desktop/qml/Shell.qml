@@ -92,6 +92,6 @@ FocusScope {
         }
     }
     Component { id: libraryPage; ShellPage { objectName: "library" } }
-    Component { id: settingsPage; ShellPage { objectName: "settings" } }
+    Component { id: settingsPage; SettingsPage { objectName: "settings" } }
     Component { id: searchPage; Browse { objectName: "search"; topPadding: 68 } }
 }

@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "folders.h"
+#include "language.h"
 
 #include <QDir>
 #include <QFile>
@@ -9,7 +10,7 @@
 #include <QSaveFile>
 
 LocalSettings::LocalSettings(const QString &path, QObject *parent)
-    : QObject(parent), m_path(path) {
+    : QObject(parent), m_path(path), m_languages(interfaceLanguages()) {
   QFile file(path);
   if (file.open(QIODevice::ReadOnly))
     m_values = QJsonDocument::fromJson(file.readAll()).object();
@@ -32,6 +33,29 @@ double LocalSettings::volume() const {
 }
 
 void LocalSettings::setVolume(double volume) { set("volume", volume); }
+
+// A code no translation answers to any more is the system's choice.
+QString LocalSettings::language() const {
+  const QString code = m_values.value("language").toString();
+  for (const QVariant &language : m_languages)
+    if (language.toMap()["code"] == code)
+      return code;
+  return {};
+}
+
+void LocalSettings::setLanguage(const QString &code) {
+  if (code == language())
+    return;
+  for (const QVariant &language : m_languages)
+    if (language.toMap()["code"] == code) {
+      set("language", code);
+      emit languageChanged();
+    }
+}
+
+QLocale LocalSettings::locale() const {
+  return language().isEmpty() ? QLocale() : QLocale(language());
+}
 
 void LocalSettings::set(const QString &key, const QJsonValue &value) {
   if (m_values.value(key) == value)

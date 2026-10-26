@@ -78,6 +78,20 @@ qt_add_qml_module(lumeo
     qml/Theme.qml
     qml/TracksMenu.qml
     qml/WheelScroll.qml
+    qml/AppearanceSection.qml
+    qml/ColourDots.qml
+    qml/ErrorRow.qml
+    qml/GeneralSection.qml
+    qml/NumberDialog.qml
+    qml/PlaybackSection.qml
+    qml/PreferenceStepper.qml
+    qml/PresetChoice.qml
+    qml/Segments.qml
+    qml/SettingRow.qml
+    qml/SettingSwitch.qml
+    qml/SettingsBlock.qml
+    qml/SettingsPage.qml
+    qml/SettingsWait.qml
     qml/Words.qml
     qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
