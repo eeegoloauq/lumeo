@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QJsonDocument>
 #include <QSaveFile>
 
@@ -15,6 +16,7 @@ LocalSettings::LocalSettings(const QString &path, QObject *parent)
   m_existed = file.exists();
   if (file.open(QIODevice::ReadOnly))
     m_values = QJsonDocument::fromJson(file.readAll()).object();
+  m_startScale = textScale();
   m_save.setInterval(500);
   m_save.setSingleShot(true);
   connect(&m_save, &QTimer::timeout, this, &LocalSettings::write);
@@ -26,7 +28,20 @@ LocalSettings::~LocalSettings() {
 }
 
 LocalSettings *LocalSettings::create(QQmlEngine *, QJSEngine *) {
-  return new LocalSettings(Folders::config() + "/client.json");
+  return new LocalSettings(file());
+}
+
+QString LocalSettings::file() { return Folders::config() + "/client.json"; }
+
+// The earlier client's choices, which scaled its text alone.
+static const QHash<QString, double> textScales = {{"small", 0.9}, {"default", 1}, {"large", 1.15}};
+
+// Read before the application exists, so not through an instance.
+double LocalSettings::scaleIn(const QString &path) {
+  QFile file(path);
+  if (!file.open(QIODevice::ReadOnly))
+    return 1;
+  return textScales.value(QJsonDocument::fromJson(file.readAll())["textScale"].toString(), 1);
 }
 
 double LocalSettings::volume() const {
@@ -105,6 +120,16 @@ bool LocalSettings::showsFinished(const QDateTime &finishedAt) const {
   return finishedAt.secsTo(QDateTime::currentDateTimeUtc()) < 24 * 3600;
 }
 
+QString LocalSettings::textScale() const {
+  const QString scale = m_values.value("textScale").toString();
+  return textScales.contains(scale) ? scale : "default";
+}
+
+void LocalSettings::setTextScale(const QString &scale) {
+  if (textScales.contains(scale))
+    set("textScale", scale);
+}
+
 QLocale LocalSettings::locale() const {
   return language().isEmpty() ? QLocale() : QLocale(language());
 }
@@ -128,7 +153,7 @@ void LocalSettings::write() {
 
 void LocalSettings::resetChoices() {
   const QString language = this->language();
-  for (const char *key : {"timelinePreviews", "screenshotsDir", "language", "background", "autostart"})
+  for (const char *key : {"timelinePreviews", "screenshotsDir", "language", "background", "autostart", "textScale"})
     m_values.remove(key);
   emit changed();
   if (!language.isEmpty())

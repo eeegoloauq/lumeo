@@ -351,9 +351,15 @@ where downloads go), and so is anything only the core can apply (the disk,
 seeding and rate limits). A fact about one machine or one screen is
 `client.json`: timeline previews (whether this machine can afford a second
 decoder), where screenshots go (a folder on this machine), the background and
-login, and the interface's language. Text size waits for a scale the whole
-interface can follow (roadmap). Reset puts back both
+login, the interface's language, and the text size. Reset puts back both
 kinds; downloads, the list and history are not settings.
+
+The text size scales the whole interface, not the text alone: the sizes are
+pinned to each other (a poster's width, a control's height), and text grown
+inside them breaks out. It is Qt's own factor (`QT_SCALE_FACTOR`, multiplied
+into one the environment set), which Qt reads once as the application starts,
+so a new size applies from the next start and the row says so. Scaling live
+would mean a factor in each of the hand-set sizes in the QML.
 
 A preference the core would not store is said in the section where it is
 set, whoever changed it: the player stores the subtitle size and height from

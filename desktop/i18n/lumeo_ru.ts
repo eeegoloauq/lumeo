@@ -203,6 +203,11 @@
         <extracomment>Text size in ui/screens/settings/appearance_section.dart</extracomment>
         <translation>Размер текста</translation>
     </message>
+    <message id="settingsAfterRestart">
+        <source>Applies when Lumeo starts again.</source>
+        <extracomment>Settings › Appearance: hint under Text size once another size is picked; the interface changes size only when the app starts again.</extracomment>
+        <translation>Применится после перезапуска Lumeo.</translation>
+    </message>
     <message id="settingsSmall">
         <source>Small</source>
         <extracomment>Small in ui/screens/settings/appearance_section.dart</extracomment>

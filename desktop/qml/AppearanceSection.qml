@@ -30,6 +30,22 @@ SettingsBlock {
                 onPicked: name => block.settings.set(block.section, "accent", name)
             }
         }
+        // This screen's, and the distance to it.
+        SettingRow {
+            label: qsTrId("settingsTextSize")
+            hint: LocalSettings.textScaleWaits ? qsTrId("settingsAfterRestart") : ""
+
+            Segments {
+                objectName: "textScale"
+                choices: [
+                    { value: "small", label: qsTrId("settingsSmall") },
+                    { value: "default", label: qsTrId("settingsTextDefault") },
+                    { value: "large", label: qsTrId("settingsLarge") },
+                ]
+                selected: LocalSettings.textScale
+                onPicked: value => LocalSettings.textScale = value
+            }
+        }
         SettingRow {
             visible: block.current.episodeArtwork !== undefined
             label: qsTrId("settingsEpisodeStills")

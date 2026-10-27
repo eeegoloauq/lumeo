@@ -9,8 +9,7 @@ before code.
 1. Check the Qt client on what nothing here runs: Windows (below), NVIDIA
    under Wayland (an hour's pause, screenshots of an NVDEC film,
    video-output.md, Open), KDE's tray and GNOME's notification.
-2. Text size in Settings, as a scale the whole interface follows.
-3. Skip the opening and ending of files whose chapters are unnamed, found by
+2. Skip the opening and ending of files whose chapters are unnamed, found by
    the audio the episodes of a season share (`[?]`).
 
 ## Remote core

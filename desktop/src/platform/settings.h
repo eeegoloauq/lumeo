@@ -42,11 +42,19 @@ class LocalSettings : public QObject {
   // (decisions/interface.md).
   Q_PROPERTY(bool background READ background WRITE setBackground NOTIFY changed)
   Q_PROPERTY(bool autostart READ autostart WRITE setAutostart NOTIFY changed)
+  // How large the whole interface is on this screen: "small", "default" or
+  // "large". Qt reads it as the application starts, so a change waits for
+  // the next start.
+  Q_PROPERTY(QString textScale READ textScale WRITE setTextScale NOTIFY changed)
+  Q_PROPERTY(bool textScaleWaits READ textScaleWaits NOTIFY changed)
 
 public:
   explicit LocalSettings(const QString &path, QObject *parent = nullptr);
   ~LocalSettings() override;
   static LocalSettings *create(QQmlEngine *, QJSEngine *);
+  static QString file();
+  // The factor the file at [path] asks the interface to be drawn at.
+  static double scaleIn(const QString &path);
 
   // Restored up to 100: a film mixed loud is turned up again on purpose.
   double volume() const;
@@ -76,6 +84,9 @@ public:
   void setBackground(bool on);
   bool autostart() const { return background() && m_values.value("autostart").toBool(); }
   void setAutostart(bool on);
+  QString textScale() const;
+  void setTextScale(const QString &scale);
+  bool textScaleWaits() const { return textScale() != m_startScale; }
   // A finished download stays in the downloads panel for a day, or until
   // its Clear: a fact of this screen, not of the core's disk.
   Q_INVOKABLE void clearFinished();
@@ -97,6 +108,8 @@ private:
   bool m_existed = false;
   QJsonObject m_values;
   QVariantList m_languages;
+  // What this run was drawn at.
+  QString m_startScale;
   // A slider's drag is one write, half a second after it stops.
   QTimer m_save;
 };

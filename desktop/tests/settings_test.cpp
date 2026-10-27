@@ -63,6 +63,24 @@ private slots:
   }
 
   void noFileIsTheDefaults() { QCOMPARE(LocalSettings(path).volume(), 100.0); }
+
+  // Qt takes the scale as the application starts, so a new one waits for
+  // the next run, which reads it from the file.
+  void aTextSizeWaitsForTheNextStart() {
+    QCOMPARE(LocalSettings::scaleIn(path), 1.0);
+    {
+      LocalSettings settings(path);
+      settings.setTextScale("huge");
+      QVERIFY(!settings.textScaleWaits());
+      settings.setTextScale("large");
+      QVERIFY(settings.textScaleWaits());
+    }
+    QCOMPARE(LocalSettings::scaleIn(path), 1.15);
+    LocalSettings next(path);
+    QVERIFY(!next.textScaleWaits());
+    next.resetChoices();
+    QCOMPARE(next.textScale(), "default");
+  }
 };
 
 QTEST_GUILESS_MAIN(SettingsTest)

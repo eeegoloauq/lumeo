@@ -27,9 +27,22 @@ int main(int argc, char *argv[]) {
   QSurfaceFormat format = QSurfaceFormat::defaultFormat();
   format.setRenderableType(QSurfaceFormat::OpenGL);
   QSurfaceFormat::setDefaultFormat(format);
+  // The text size scales the whole interface through Qt's own factor, which
+  // Qt reads only here; on top of one the environment set. Put back after:
+  // a folder or a link this app opens would be drawn at it too.
+  const QByteArray outerScale = qgetenv("QT_SCALE_FACTOR");
+  const double scale = LocalSettings::scaleIn(LocalSettings::file());
+  bool outerSet = false;
+  const double outer = outerScale.toDouble(&outerSet);
+  if (scale != 1)
+    qputenv("QT_SCALE_FACTOR", QByteArray::number(scale * (outerSet ? outer : 1)));
   // QApplication rather than QGuiApplication for the tray's menu, which is a
   // QMenu where the system has no menus of its own to offer.
   QApplication app(argc, argv);
+  if (outerScale.isEmpty())
+    qunsetenv("QT_SCALE_FACTOR");
+  else
+    qputenv("QT_SCALE_FACTOR", outerScale);
   QGuiApplication::setApplicationName("lumeo");
   QGuiApplication::setApplicationDisplayName("Lumeo");
   QGuiApplication::setApplicationVersion(LUMEO_VERSION);
