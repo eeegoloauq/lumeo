@@ -100,8 +100,7 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - season posters, also in Continue watching;
 - More like this from recommendations;
 - original-language audio as the default track;
-- a trailer button played by our mpv through yt-dlp (`[?]` whether embedded
-  libmpv loads its ytdl hook).
+- a season's own trailer, where TMDB has one (Cinemeta names the title's only).
 
 ## Sources and the swarm
 
@@ -126,6 +125,9 @@ app. This revises "No browser playback" in decisions/foundations.md.
   re-run.
 - Windows: a signed installer if SmartScreen costs users; Snap Layouts on the
   maximise button.
+- `[?]` Trailers on Windows: a yt-dlp beside the app, and a way to keep it
+  current, since YouTube breaks an old one within months. Until then the
+  Trailer button is not there.
 - Keep the Windows libmpv in a repository the push mirror does not own, at the
   next libmpv bump: the mirror deletes tags origin lacks, so the release
   `build-windows.sh` downloads from needs its tag on origin first.

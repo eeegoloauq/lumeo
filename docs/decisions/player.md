@@ -222,3 +222,22 @@ any other reader, so the swarm fetches those bytes: a keyframe seek with no
 read-ahead asks for little. Until a frame arrives, the bubble
 shows the chapter and the time. The frame, the chapter and the time sit
 centred over the pointer and stop at the ends of the bar.
+
+## Trailers play in the player, through the system's yt-dlp
+
+Cinemeta names a title's trailers as YouTube ids, none per season or episode.
+The core builds the watch link from an id of the right shape and passes no
+link an addon wrote, so mpv is never handed a stranger's URL. mpv plays the
+link through its ytdl hook, which runs yt-dlp: the client offers a trailer
+only where yt-dlp is on the PATH, and a trailer that fails says yt-dlp may be
+out of date, which is what an old one does once YouTube changes.
+
+A trailer is the film's player with a link in place of a download
+(`Playback.url`): mpv's keys, the bar and fullscreen are the same, and nothing
+about it goes to the core. Its Play button does what the title's Play would.
+
+A title's page also plays the trailer in its banner, muted, three seconds
+after it is up, under Settings › Playback › Background trailers. It pauses
+while the episodes are scrolled to and, once it has ended or the page was left
+for a film, does not come back on that page. That mpv keeps no log: the
+player's log is the last film's, which a report is about.
