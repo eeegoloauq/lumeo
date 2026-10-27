@@ -12,6 +12,7 @@
 #include <QQuickOpenGLUtils>
 #include <QJSEngine>
 #include <QQuickWindow>
+#include <QThreadPool>
 #include <QtGui/qguiapplication_platform.h>
 #include <mpv/client.h>
 #include <mpv/render_gl.h>
@@ -19,9 +20,16 @@
 #include <list>
 #include <vector>
 
+// Not on the thread that let it go, the GUI's or the render thread: mpv
+// shutting down waits for its playback, sound output and threads to stop.
+// The global pool is waited for as the application ends, so a log is still
+// written out.
 MpvShared::~MpvShared() {
-  if (mpv)
-    mpv_terminate_destroy(mpv);
+  if (!mpv)
+    return;
+  // Its wakeups were for this, which is going.
+  mpv_set_wakeup_callback(mpv, nullptr, nullptr);
+  QThreadPool::globalInstance()->start([handle = mpv] { mpv_terminate_destroy(handle); });
 }
 
 QString MpvItem::profile;
