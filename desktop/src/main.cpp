@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
   // Asked now: a title page needs to know what this machine decodes before
   // anything plays.
   MpvFacts::instance();
+  MpvFacts::updateYtdl();
 
   QQmlApplicationEngine engine;
   // The chosen language from the first frame, and every text again when

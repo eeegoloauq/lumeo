@@ -47,6 +47,10 @@ Type: files; Name: "{app}\lumeo-core.exe"
 Type: files; Name: "{app}\*.dll"
 Type: filesandordirs; Name: "{app}\data"
 
+; What yt-dlp updating itself can leave beside its new copy.
+[UninstallDelete]
+Type: files; Name: "{app}\bin\yt-dlp.exe.*"
+
 [Files]
 Source: "..\dist\bundle\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 

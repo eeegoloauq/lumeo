@@ -16,8 +16,17 @@ mpv_date=20261021
 mpv_file=mpv-dev-x86_64-20261021-git-e471496c56.7z
 mpv_sha256=efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633
 
+# yt-dlp, which mpv runs for a trailer, and Deno, the JavaScript runtime it
+# needs for YouTube, found beside it. yt-dlp then updates itself
+# (MpvFacts::updateYtdl); 2026.10.21 is the first whose update cannot be
+# tampered with on the way. Digests from each release's own sums.
+ytdlp_version=2026.10.21
+ytdlp_sha256=33121d192d706e62f684a06f80918e3f3a8ba52ac3a65213b6951c39c7d9f555
+deno_version=2.9.7
+deno_sha256=a0c3101b4158d1dfb7d6a78a7bf0f3de80c96bb423c152beec8beb22786f2238
+
 rm -rf dist
-mkdir -p dist/mpv
+mkdir -p dist/mpv dist/deno
 
 echo "==> libmpv"
 curl -fsSL -o "dist/$mpv_file" \
@@ -36,6 +45,19 @@ cmake --install desktop/build/windows --prefix "$bundle"
 echo "==> core"
 (cd core && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath \
   -ldflags "-s -w -X main.version=$version" -o "../$bundle/bin/lumeo-core.exe" ./cmd/lumeo)
+
+echo "==> yt-dlp and deno"
+curl -fsSL -o "$bundle/bin/yt-dlp.exe" \
+  "https://github.com/yt-dlp/yt-dlp/releases/download/$ytdlp_version/yt-dlp.exe"
+echo "$ytdlp_sha256  $bundle/bin/yt-dlp.exe" | sha256sum -c
+curl -fsSL -o dist/deno.zip \
+  "https://github.com/denoland/deno/releases/download/v$deno_version/deno-x86_64-pc-windows-msvc.zip"
+echo "$deno_sha256  dist/deno.zip" | sha256sum -c
+7z x -bd -o"dist/deno" dist/deno.zip >/dev/null
+cp dist/deno/deno.exe "$bundle/bin/"
+# Its MIT licence asks for the notice to go with it.
+curl -fsSL -o "$bundle/bin/deno-LICENSE.md" \
+  "https://raw.githubusercontent.com/denoland/deno/v$deno_version/LICENSE.md"
 
 echo "==> installer"
 # Git Bash would take /DVersion for a path and rewrite it.

@@ -242,6 +242,11 @@ Item {
             player.mpv.get("stream-lavf-o", value => lavf = value)
             tryVerify(() => lavf !== null, 5000)
             compare(Object.keys(lavf).length, 0, JSON.stringify(lavf))
+            // The yt-dlp the app found is the one mpv runs.
+            let opts = null
+            player.mpv.get("script-opts", value => opts = value)
+            tryVerify(() => opts !== null, 5000)
+            compare(opts["ytdl_hook-ytdl_path"] ?? "", MpvFacts.ytdlPath())
             mouseMove(player, 640, 360)
             const next = findChild(player, "nextButton")
             const previous = findChild(player, "previousButton")

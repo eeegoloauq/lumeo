@@ -1,6 +1,7 @@
 #include "mpvitem.h"
 
 #include "folders.h"
+#include "mpvfacts.h"
 #include "subtitlestyle.h"
 
 #include <QDir>
@@ -342,6 +343,23 @@ MpvItem::MpvItem(QQuickItem *parent)
   // (decisions/subtitles.md).
   mpv_set_option_string(mpv, "sub-font-size", QByteArray::number(SubtitleStyle::fontSize).constData());
   mpv_set_option_string(mpv, "sub-margin-y", QByteArray::number(SubtitleStyle::margin).constData());
+  // The yt-dlp this app found, not whichever mpv's search reaches first; on
+  // Windows that is the bundle's, which is on no PATH. A map, so no character
+  // of the path is read as list syntax.
+  const QString ytdl = MpvFacts::ytdlPath();
+  if (!ytdl.isEmpty()) {
+    QByteArray path = QDir::toNativeSeparators(ytdl).toUtf8();
+    char key[] = "ytdl_hook-ytdl_path";
+    char *keys[] = {key};
+    mpv_node value{};
+    value.format = MPV_FORMAT_STRING;
+    value.u.string = path.data();
+    mpv_node_list list{1, &value, keys};
+    mpv_node map{};
+    map.format = MPV_FORMAT_NODE_MAP;
+    map.u.list = &list;
+    mpv_set_option(mpv, "script-opts", MPV_FORMAT_NODE, &map);
+  }
   if (mpv_initialize(mpv) < 0)
     qFatal("mpv_initialize failed");
   if (!profile.isEmpty())

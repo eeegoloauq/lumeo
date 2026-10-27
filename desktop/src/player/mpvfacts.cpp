@@ -1,11 +1,19 @@
 #include "mpvfacts.h"
 
+#include <QCoreApplication>
+#include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
 #include <QJSEngine>
+#include <QProcess>
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QThreadPool>
 #include <mpv/client.h>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -145,8 +153,33 @@ MpvFacts::MpvFacts(QObject *parent) : QObject(parent) {
   QFile release("/etc/os-release");
   if (release.open(QIODevice::ReadOnly))
     m_osRelease = QString::fromUtf8(release.readAll());
-  m_ytdl = !QStandardPaths::findExecutable("yt-dlp").isEmpty();
+  m_ytdl = !ytdlPath().isEmpty();
   ask();
+}
+
+QString MpvFacts::ytdlPath() {
+  const QString beside = QStandardPaths::findExecutable("yt-dlp", {QCoreApplication::applicationDirPath()});
+  return beside.isEmpty() ? QStandardPaths::findExecutable("yt-dlp") : beside;
+}
+
+// YouTube breaks an old yt-dlp within months and the fix ships within days,
+// so the bundle's replaces itself with the latest release, asked at each
+// start once the file is a day old; the system's is its package manager's.
+void MpvFacts::updateYtdl() {
+  const QString beside = QStandardPaths::findExecutable("yt-dlp", {QCoreApplication::applicationDirPath()});
+  if (beside.isEmpty() || QFileInfo(beside).lastModified().secsTo(QDateTime::currentDateTime()) < 24 * 3600)
+    return;
+  QProcess update;
+  update.setProgram(beside);
+  update.setArguments({"-U"});
+  update.setStandardOutputFile(QProcess::nullDevice());
+  update.setStandardErrorFile(QProcess::nullDevice());
+#ifdef Q_OS_WIN
+  // A console program: without this a console window would flash up.
+  update.setCreateProcessArgumentsModifier(
+      [](QProcess::CreateProcessArguments *arguments) { arguments->flags |= CREATE_NO_WINDOW; });
+#endif
+  update.startDetached();
 }
 
 // yt-dlp takes AV1 over VP9 where YouTube has both, and few graphics cards

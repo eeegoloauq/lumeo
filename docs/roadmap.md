@@ -125,9 +125,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
   re-run.
 - Windows: a signed installer if SmartScreen costs users; Snap Layouts on the
   maximise button.
-- `[?]` Trailers on Windows: a yt-dlp beside the app, and a way to keep it
-  current, since YouTube breaks an old one within months. Until then the
-  Trailer button is not there.
 - Keep the Windows libmpv in a repository the push mirror does not own, at the
   next libmpv bump: the mirror deletes tags origin lacks, so the release
   `build-windows.sh` downloads from needs its tag on origin first.
@@ -138,8 +135,9 @@ Windows 10 and 11, on the Qt client: the installer over a Flutter-era
 install, the title bar and fullscreen, a second launch and "Open with", a
 `lumeo://` link, the core starting and stopping with the app, the tray, close
 to the background and login start, playback and seeking, mpv's console and
-statistics, subtitles and screenshots, the picture modes, and the keyboard
-after closing to the tray.
+statistics, subtitles and screenshots, the picture modes, the keyboard
+after closing to the tray, and trailers: the bundled yt-dlp with Deno playing
+one, its daily update, and no console window flashing up for either.
 
 A filtered line without a VPN: blank posters fill in within about 30 s.
 

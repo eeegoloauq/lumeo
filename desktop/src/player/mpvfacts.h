@@ -29,8 +29,8 @@ class MpvFacts : public QObject {
   // How to add a missing decoder here, where they are packaged apart.
   Q_PROPERTY(QString installHint READ installHint NOTIFY changed)
   Q_PROPERTY(QStringList installCommands READ installCommands NOTIFY changed)
-  // yt-dlp is on the PATH, which mpv runs to play a trailer's link; a test
-  // says so in place of the machine.
+  // There is a yt-dlp (ytdlPath), which mpv runs to play a trailer's link; a
+  // test says so in place of the machine.
   Q_PROPERTY(bool ytdl MEMBER m_ytdl NOTIFY changed)
 
 public:
@@ -59,6 +59,11 @@ public:
   // The same, said: a row's mark ("mark") and the whole of it ("sentence").
   Q_INVOKABLE QString gapMark(const QVariantMap &release) const;
   Q_INVOKABLE QString gapSentence(const QVariantMap &release) const;
+  // The yt-dlp beside the app, which the Windows bundle carries, else the
+  // system's on the PATH; empty without one.
+  Q_INVOKABLE static QString ytdlPath();
+  // Has the yt-dlp beside the app update itself, in the background.
+  static void updateYtdl();
   // What mpv's ytdl hook asks yt-dlp for, as ytdl-format: the tallest
   // picture up to [height] (0 for any), VP9 where there is one.
   Q_INVOKABLE static QString trailerFormat(int height);

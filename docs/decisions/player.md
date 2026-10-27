@@ -229,7 +229,11 @@ Cinemeta names a title's trailers as YouTube ids, none per season or episode.
 The core builds the watch link from an id of the right shape and passes no
 link an addon wrote, so mpv is never handed a stranger's URL. mpv plays the
 link through its ytdl hook, which runs yt-dlp: the client offers a trailer
-only where yt-dlp is on the PATH.
+only where there is one. On Linux that is the system's, which the packages
+recommend with a JavaScript runtime, since yt-dlp needs one for YouTube. The
+Windows bundle carries yt-dlp and Deno beside the app, and that yt-dlp updates
+itself: YouTube breaks an old one within months, three times in the year to
+October 2026, and the fix ships within days.
 
 A trailer is the film's player with links in place of a download
 (`Playback.urls`): mpv's keys, the bar and fullscreen are the same, and nothing
