@@ -122,7 +122,7 @@ once they are checked.
 `packaging/build-dist.sh` makes the bundle and tarball, with the Qt of `install-qt.sh` in it;
 `build-rpm.sh` and `build-arch.sh` package that tarball, `build-windows.sh` the Windows installer.
 The Windows libmpv is a pinned build mirrored into this repository's releases by
-`.github/workflows/libmpv.yml`; a bump is that workflow run once and the three lines in
+`.github/workflows/libmpv.yml`; a bump is that workflow run once and the four lines in
 `build-windows.sh`.
 
 ## Share site

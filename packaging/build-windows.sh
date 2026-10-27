@@ -11,10 +11,12 @@ bundle=dist/bundle
 
 # libmpv: shinchiro's build, mirrored into this repository by libmpv.yml and
 # checked against the digest its own release page lists. A bump is these
-# three lines and one run of that workflow.
+# four lines and one run of that workflow; the commit is the one in the
+# file's name, in full.
 mpv_date=20261021
 mpv_file=mpv-dev-x86_64-20261021-git-e471496c56.7z
 mpv_sha256=efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633
+mpv_commit=e471496c56f0f49c133bd88b50aed62b845f1909
 
 # yt-dlp, which mpv runs for a trailer, and Deno, the JavaScript runtime it
 # needs for YouTube, found beside it. yt-dlp then updates itself
@@ -55,8 +57,23 @@ curl -fsSL -o dist/deno.zip \
 echo "$deno_sha256  dist/deno.zip" | sha256sum -c
 7z x -bd -o"dist/deno" dist/deno.zip >/dev/null
 cp dist/deno/deno.exe "$bundle/bin/"
-# Its MIT licence asks for the notice to go with it.
-curl -fsSL -o "$bundle/bin/deno-LICENSE.md" \
+
+# What the licences of the programs the bundle carries ask to go with them.
+# libmpv is GPLv2+: its notice, the licence texts and where its source is.
+echo "==> licences"
+mkdir -p "$bundle/licenses/mpv" "$bundle/licenses/deno"
+for file in Copyright LICENSE.GPL LICENSE.LGPL; do
+  curl -fsSL -o "$bundle/licenses/mpv/$file" \
+    "https://raw.githubusercontent.com/mpv-player/mpv/$mpv_commit/$file"
+done
+cat > "$bundle/licenses/mpv/SOURCE.txt" <<SOURCE
+bin/libmpv-2.dll is mpv, licensed under the GPL version 2 or later (see
+Copyright and LICENSE.GPL here), built from
+https://github.com/mpv-player/mpv/tree/$mpv_commit
+by https://github.com/shinchiro/mpv-winbuild-cmake, whose recipe names every
+library built into it and where its source is. The build is $mpv_file.
+SOURCE
+curl -fsSL -o "$bundle/licenses/deno/LICENSE.md" \
   "https://raw.githubusercontent.com/denoland/deno/v$deno_version/LICENSE.md"
 
 echo "==> installer"
