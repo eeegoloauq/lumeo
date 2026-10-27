@@ -50,9 +50,6 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(QVariantList chapters READ chapters NOTIFY chaptersChanged)
   // -1 before the first chapter or in a file with none.
   Q_PROPERTY(int chapter READ chapter NOTIFY chapterChanged)
-  // Where in mpv's playlist it plays, from 0, and how long the playlist is.
-  Q_PROPERTY(int playlistPos READ playlistPos NOTIFY playlistChanged)
-  Q_PROPERTY(int playlistCount READ playlistCount NOTIFY playlistChanged)
   // mpv's track list as it reports it: [{id, type, lang, title, ...}].
   Q_PROPERTY(QVariantList tracks READ tracks NOTIFY tracksChanged)
   // The track ids playing: an id, "no" or "auto".
@@ -96,8 +93,6 @@ public:
   double aspect() const { return m_aspect; }
   QVariantList chapters() const { return m_chapters; }
   int chapter() const { return m_chapter; }
-  int playlistPos() const { return m_playlistPos; }
-  int playlistCount() const { return m_playlistCount; }
   QVariantList tracks() const { return m_tracks; }
   QString aid() const { return m_aid; }
   QString sid() const { return m_sid; }
@@ -162,7 +157,6 @@ signals:
   void aspectChanged();
   void chaptersChanged();
   void chapterChanged();
-  void playlistChanged();
   void tracksChanged();
   void aidChanged();
   void sidChanged();
@@ -202,8 +196,6 @@ private:
   double m_aspect = 0;
   QVariantList m_chapters;
   int m_chapter = -1;
-  int m_playlistPos = -1;
-  int m_playlistCount = 0;
   QVariantList m_tracks;
   QString m_aid;
   QString m_sid;

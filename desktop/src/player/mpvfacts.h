@@ -59,6 +59,9 @@ public:
   // The same, said: a row's mark ("mark") and the whole of it ("sentence").
   Q_INVOKABLE QString gapMark(const QVariantMap &release) const;
   Q_INVOKABLE QString gapSentence(const QVariantMap &release) const;
+  // What mpv's ytdl hook asks yt-dlp for, as ytdl-format: the tallest
+  // picture up to [height] (0 for any), VP9 where there is one.
+  Q_INVOKABLE static QString trailerFormat(int height);
   // The decoder a codec is played with when it is one known to break: Fedora
   // without the freeworld codecs plays h264 with openh264, which loses sync
   // on a backward seek. Empty when its own decoder is here.

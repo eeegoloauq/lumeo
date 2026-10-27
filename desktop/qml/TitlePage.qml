@@ -71,8 +71,11 @@ ShellPage {
     }
 
     // The trailers the metadata names, in its order, which mpv plays through
-    // yt-dlp; the banner plays the first.
-    readonly property var trailerUrls: MpvFacts.ytdl ? about.item.trailers ?? [] : []
+    // yt-dlp, less those found not to play here: YouTube keeps some to a few
+    // countries. The banner plays the first.
+    readonly property var trailerUrls: (MpvFacts.ytdl ? about.item.trailers ?? [] : [])
+                                       .filter(url => !unplayable.includes(url))
+    property var unplayable: []
     // How long the page is up before the trailer plays in its banner; a test
     // shortens it.
     property int previewDelay: 3000
@@ -114,6 +117,18 @@ ShellPage {
     function entryOf(episode) {
         const season = episode?.season ?? 0, number = episode?.number ?? 0
         return (about.progress.entries ?? []).find(e => e.season === season && e.episode === number)
+    }
+
+    // The trailers in the player, as Player.trailer, [start] seconds into the
+    // first.
+    function playTrailers(start) {
+        page.trailer({
+            urls: page.trailerUrls,
+            start: start,
+            play: copies.playable ? page.playText : "",
+            played: () => page.playEpisode(page.current),
+            failed: url => page.unplayable = [...page.unplayable, url],
+        }, page.shown.title)
     }
 
     // Plays [episode] now, its list on its way or not. With "Ask every
@@ -279,6 +294,7 @@ ShellPage {
 
                     sourceComponent: MpvItem {
                         objectName: "trailerPreview"
+                        property string url
                         keepsLog: false
                         opacity: hasPicture && !ended ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 600 } }
@@ -289,15 +305,28 @@ ShellPage {
                         onAwayChanged: set("pause", away)
                         // Faded out at its end, then gone.
                         onOpacityChanged: if (opacity === 0 && ended) preview.over = true
-                        onLoadFailed: preview.over = true
+                        // One that would not open gives way to the next; one that
+                        // broke off after playing is only over.
+                        onLoadFailed: {
+                            if (hasPicture) {
+                                preview.over = true
+                                return
+                            }
+                            page.unplayable = [...page.unplayable, url]
+                            if (page.trailerUrls.length > 0)
+                                open(url = page.trailerUrls[0])
+                        }
                         Component.onCompleted: {
                             set("mute", true)
                             set("volume", LocalSettings.volume)
-                            // A banner, not a cinema: 4K would cost the network for nothing.
-                            set("ytdl-format", "bv*[height<=1080]+ba/b")
+                            // Asked no taller than it fills the banner: a muted
+                            // background starts slower and costs the network
+                            // more at 4K, for nothing it shows.
+                            const fill = Math.max(preview.width * 9 / 16, preview.height) * Screen.devicePixelRatio
+                            set("ytdl-format", MpvFacts.trailerFormat(Math.ceil(fill)))
                             // Filling the banner as its artwork does, cut at the edges.
                             setFit(1)
-                            open(page.trailerUrls[0])
+                            open(url = page.trailerUrls[0])
                         }
                     }
                 }
@@ -309,15 +338,25 @@ ShellPage {
                     onTriggered: done = true
                 }
             }
-            // Its sound, while it plays.
-            TintButton {
-                objectName: "trailerSound"
+            // Its sound while it plays, and the player going on from here.
+            Row {
                 readonly property MpvItem trailerClip: preview.item as MpvItem
                 anchors { right: parent.right; bottom: parent.bottom; margins: Tokens.gutter }
+                spacing: 8
                 visible: !!trailerClip && trailerClip.hasPicture && !trailerClip.ended
-                glyph: trailerClip?.muted ?? true ? "volume_off" : "volume_up"
-                tip: trailerClip?.muted ?? true ? qsTrId("itemTrailerSoundOn") : qsTrId("itemTrailerSoundOff")
-                onClicked: trailerClip.set("mute", !trailerClip.muted)
+
+                TintButton {
+                    objectName: "trailerSound"
+                    glyph: parent.trailerClip?.muted ?? true ? "volume_off" : "volume_up"
+                    tip: parent.trailerClip?.muted ?? true ? qsTrId("itemTrailerSoundOn") : qsTrId("itemTrailerSoundOff")
+                    onClicked: parent.trailerClip.set("mute", !parent.trailerClip.muted)
+                }
+                TintButton {
+                    objectName: "trailerFullscreen"
+                    glyph: "fullscreen"
+                    tip: qsTrId("playerFullscreen")
+                    onClicked: page.playTrailers(parent.trailerClip.position)
+                }
             }
 
             Column {
@@ -376,11 +415,7 @@ ShellPage {
                             visible: page.trailerUrls.length > 0
                             glyph: "movie"
                             tip: qsTrId("itemTrailer")
-                            onClicked: page.trailer({
-                                urls: page.trailerUrls,
-                                play: copies.playable ? page.playText : "",
-                                played: () => page.playEpisode(page.current),
-                            }, page.shown.title)
+                            onClicked: page.playTrailers(0)
                         }
                         TintButton {
                             id: listButton

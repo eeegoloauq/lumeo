@@ -56,6 +56,11 @@ void Playback::setMpv(MpvItem *mpv) {
   connect(mpv, &MpvItem::logged, this, &Playback::onLogged);
   connect(mpv, &MpvItem::hasPictureChanged, this, &Playback::onPicture);
   connect(mpv, &MpvItem::durationChanged, this, &Playback::resume);
+  // `keep-open` holds a trailer's last frame; the next one follows it.
+  connect(mpv, &MpvItem::endedChanged, this, [this] {
+    if (m_mpv->ended() && m_trailer >= 0)
+      playTrailer(m_trailer + 1);
+  });
   connect(mpv, &MpvItem::pausedChanged, this, [this] {
     if (!m_mpv->paused())
       m_progress.start();
@@ -117,15 +122,37 @@ QString Playback::decoderCodec(const QString &line) {
   return codec.match(line).captured(1);
 }
 
+// "ERROR: [youtube] <id>: Video unavailable. This video is not available in
+// your country", or private, or removed.
+bool Playback::refusal(const QString &line) {
+  static const QRegularExpression refused(
+      R"(ERROR: \[youtube\].*(unavailable|available in your country|private video|been removed))",
+      QRegularExpression::CaseInsensitiveOption);
+  return refused.match(line).hasMatch();
+}
+
+// One at a time rather than as mpv's playlist, which would skip one that
+// fails but keep offering it.
+void Playback::playTrailer(int index) {
+  if (!m_mpv || m_closing || index < 0 || index >= m_trailers.size())
+    return;
+  // Only the first goes on from the banner. Set before each open, as mpv
+  // reads it when the file loads.
+  m_mpv->set("start", m_trailer < 0 && m_start > 0 ? QString::number(m_start) : "none");
+  m_trailer = index;
+  m_opened = true;
+  m_refused = false;
+  m_mpv->open(m_trailers[index]);
+  emit changed();
+}
+
 // Each answer schedules the next ask, so polls never overlap.
 void Playback::refresh() {
   if (!m_urls.isEmpty()) {
     if (m_mpv && !m_opened && !m_closing) {
-      m_opened = true;
-      m_mpv->open(m_urls.first());
-      for (const QString &url : m_urls.mid(1))
-        m_mpv->command({"loadfile", url, "append"});
-      emit changed();
+      m_mpv->set("ytdl-format", MpvFacts::trailerFormat(0));
+      m_trailers = m_urls;
+      playTrailer(0);
     }
     return;
   }
@@ -308,8 +335,21 @@ bool Playback::dueToOpen() const {
 void Playback::onLoadFailed() {
   if (m_failure == WouldNotStart || m_reopenPending || !m_mpv)
     return;
+  // A trailer has no bytes on their way: its failure is the answer, and the
+  // next one, or the one before the last, plays in its place.
+  if (!m_urls.isEmpty() && m_trailer >= 0) {
+    const QString url = m_trailers.takeAt(m_trailer);
+    ++m_failedTrailers;
+    if (m_refused)
+      ++m_refusals;
+    emit trailerFailed(url);
+    if (!m_trailers.isEmpty()) {
+      playTrailer(qMin(m_trailer, int(m_trailers.size()) - 1));
+      return;
+    }
+    m_trailer = -1;
+  }
   const QDateTime now = QDateTime::currentDateTime();
-  // A trailer has no bytes on their way: its failure is the answer.
   if (m_urls.isEmpty() && !m_mpv->hasPicture() &&
       (!m_firstFailure.isValid() || m_firstFailure.msecsTo(now) < openPatience)) {
     ++m_attempts;
@@ -334,6 +374,8 @@ void Playback::onLoadFailed() {
 // A decoder that failed for the soundtrack leaves the picture playing; one
 // for the picture is the end of it.
 void Playback::onLogged(const QString &line) {
+  if (refusal(line))
+    m_refused = true;
   const QString codec = decoderCodec(line);
   if (codec.isEmpty()) {
     m_lastError = line;

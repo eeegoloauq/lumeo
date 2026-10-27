@@ -73,7 +73,7 @@ Item {
             return copies.errorStatus >= 0 ? qsTrId("playerCouldNotStartCopy")
                                            : qsTrId("playerNoCopyOf").arg(title)
         if (playback.urls.length > 0)
-            return qsTrId("playerTrailerFailed")
+            return playback.refused ? qsTrId("playerTrailersRefused") : qsTrId("playerTrailerFailed")
         if (playback.failure === Playback.CoreStopped)
             return qsTrId("playerCoreStopped")
         if (playback.codec && MpvFacts.has(playback.codec) === 0)

@@ -175,6 +175,7 @@ qt_add_qml_module(lumeo
     icons/search.svg
     icons/settings.svg
     icons/skip_next.svg
+    icons/skip_previous.svg
     icons/star.svg
     icons/star_border.svg
     icons/tune.svg

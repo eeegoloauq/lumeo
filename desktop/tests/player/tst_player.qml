@@ -222,27 +222,56 @@ Item {
 
         // Trailers are their links played in order as they are, nothing
         // about them asked of the core or kept, nor the core's reconnects;
+        // one that will not open is dropped for the next, and the page told;
         // their Play leaves them for the title's own.
         function test_trailersPlayTheirLinksAndLeaveForTheTitle() {
             let played = 0
+            const failed = []
+            const missing = fakeCore.address + "/no-such-trailer"
             player = createTemporaryObject(playerComponent, root, {
                 downloadId: "", name: "Nosferatu",
-                trailer: { urls: [fakeCore.address + "/trailer", fakeCore.address + "/trailer?second"],
-                           play: "Play", played: () => ++played } })
+                trailer: { urls: [missing, fakeCore.address + "/trailer", fakeCore.address + "/trailer?second"],
+                           play: "Play", played: () => ++played, failed: url => failed.push(url) } })
             closed.target = player
             closed.clear()
             tryVerify(() => player.mpv.hasPicture, 10000, "a picture")
+            compare(failed, [missing])
+            compare(player.playback.trailers.length, 2)
+            compare(player.playback.failure, Playback.None)
             let lavf = null
             player.mpv.get("stream-lavf-o", value => lavf = value)
             tryVerify(() => lavf !== null, 5000)
             compare(Object.keys(lavf).length, 0, JSON.stringify(lavf))
             mouseMove(player, 640, 360)
             const next = findChild(player, "nextButton")
+            const previous = findChild(player, "previousButton")
             verify(next.visible, "a second trailer to go to")
+            verify(!previous.visible, "none before the first")
             mouseClick(next)
-            tryCompare(player.mpv, "playlistPos", 1, 5000)
+            tryCompare(player.playback, "trailer", 1, 5000)
             verify(!next.visible, "the last one")
+            verify(previous.visible, "the first to go back to")
+            // The list is the episodes' panel, the trailers numbered.
+            mouseClick(findChild(player, "episodesButton"))
+            const first = findChild(player, "episode-0-1")
+            verify(first, "the first trailer listed")
+            verify(!findChild(player, "episode-0-3"), "the one that failed left out")
+            mouseClick(first)
+            tryCompare(player.playback, "trailer", 0, 5000)
+            // Its end goes on to the next. A seek while the file is still
+            // being opened is dropped, so it is asked until it lands, a
+            // second before the end.
+            tryVerify(() => {
+                if (player.mpv.duration > 0 && player.mpv.position > player.mpv.duration - 2)
+                    return true
+                player.mpv.command(["seek", "-1", "absolute"])
+                return false
+            }, 5000, "near the end")
+            tryCompare(player.playback, "trailer", 1, 5000)
+            // The bar hid while it played.
+            mouseMove(player, 600, 300)
             const play = findChild(player, "trailerPlay")
+            tryVerify(() => play.visible, 5000, "the bar back")
             verify(waitForPolish(play.parent))
             mouseClick(play)
             tryCompare(closed, "count", 1, 5000)
@@ -253,11 +282,23 @@ Item {
                    requests().join("\n"))
         }
 
+        // Every trailer failing is the failure, and only then.
+        function test_noTrailerOpening() {
+            player = createTemporaryObject(playerComponent, root, {
+                downloadId: "", name: "Nosferatu",
+                trailer: { urls: [fakeCore.address + "/no-such-trailer", fakeCore.address + "/nor-this"] } })
+            tryCompare(player.playback, "failure", Playback.WouldNotStart, 10000)
+            compare(player.playback.trailers.length, 0)
+            verify(!player.playback.refused, "nothing YouTube said")
+        }
+
         // A title's page plays its trailer in the banner, muted, a moment
-        // after it is up; a film over the page ends it for good.
-        function test_theBannerPlaysTheTrailerUntilAFilmStarts() {
+        // after it is up, past one that will not open, which the Trailer
+        // button then leaves out; the player goes on from the same second,
+        // and over the page ends it for good.
+        function test_theBannerPlaysTheTrailerUntilThePlayerTakesIt() {
             const film = { id: "tt0063350", kind: "movie", title: "Nosferatu", year: 1922,
-                           trailers: [fakeCore.address + "/trailer"] }
+                           trailers: [fakeCore.address + "/no-such-trailer", fakeCore.address + "/trailer"] }
             fakeCore.answer("GET", "/api/v1/items/tt0063350", 200, film)
             const ytdl = MpvFacts.ytdl
             MpvFacts.ytdl = true
@@ -271,11 +312,20 @@ Item {
             tryVerify(() => (clip = findChild(page, "trailerPreview"))?.hasPicture, 10000, "the trailer in the banner")
             verify(clip.muted)
             tryCompare(clip, "fit", 1, 5000, "filling the banner")
+            compare(page.trailerUrls, [fakeCore.address + "/trailer"])
             mouseClick(findChild(page, "trailerSound"))
             tryVerify(() => !clip.muted, 5000, "sound on")
 
-            win.play("d1", "Nosferatu", true)
-            tryVerify(() => !findChild(page, "trailerPreview"), 5000, "gone under the film")
+            tryVerify(() => clip.position > 0.2, 5000)
+            mouseClick(findChild(page, "trailerFullscreen"))
+            tryVerify(() => !!win.player, 5000, "the player")
+            verify(win.player.trailer.start > 0.2, "from the banner's second")
+            compare(win.player.trailer.urls, [fakeCore.address + "/trailer"])
+            tryVerify(() => !findChild(page, "trailerPreview"), 5000, "gone under the player")
+            let start = null
+            win.player.mpv.get("start", value => start = value)
+            tryVerify(() => start !== null, 5000)
+            verify(start !== "none", start)
             tryVerify(() => win.player.mpv.hasPicture, 10000)
             win.player.close()
             tryVerify(() => page.visible, 5000)

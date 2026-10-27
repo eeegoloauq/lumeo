@@ -71,6 +71,15 @@ private slots:
     QCOMPARE(Playback::decoderCodec("Failed to initialize a decoder for codec 'hevc'."), "hevc");
     QCOMPARE(Playback::decoderCodec("Cannot open file"), "");
   }
+
+  // YouTube refusing a trailer is not yt-dlp being out of date.
+  void aTrailerYouTubeWillNotShow() {
+    QVERIFY(Playback::refusal("ERROR: [youtube] HJaUvV9Hwgs: Video unavailable"));
+    QVERIFY(Playback::refusal("ERROR: [youtube] HJaUvV9Hwgs: The uploader has not made this video "
+                              "available in your country"));
+    QVERIFY(!Playback::refusal("ERROR: [youtube] HJaUvV9Hwgs: Requested format is not available"));
+    QVERIFY(!Playback::refusal("youtube-dl failed: unexpected error occurred"));
+  }
 };
 
 QTEST_GUILESS_MAIN(MpvTest)

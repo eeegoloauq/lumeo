@@ -2336,6 +2336,26 @@
         <extracomment>Button in the player bar for playing a title's next trailer.</extracomment>
         <translation>Next trailer</translation>
     </message>
+    <message id="playerPreviousTrailer">
+        <source>Previous trailer</source>
+        <extracomment>Button in the player bar for playing a title's trailer before the one playing.</extracomment>
+        <translation>Previous trailer</translation>
+    </message>
+    <message id="playerTrailers">
+        <source>Trailers</source>
+        <extracomment>Player button tooltip that lists a title's trailers, while one of them plays.</extracomment>
+        <translation>Trailers</translation>
+    </message>
+    <message id="playerTrailerNumber">
+        <source>Trailer %1</source>
+        <extracomment>A row in the player's list of a title's trailers. (%1 which one, from 1)</extracomment>
+        <translation>Trailer %1</translation>
+    </message>
+    <message id="playerTrailersRefused">
+        <source>YouTube does not show these trailers here.</source>
+        <extracomment>Player, when none of a title's trailers would open because YouTube refused them, as it does for videos kept to some countries.</extracomment>
+        <translation>YouTube does not show these trailers here.</translation>
+    </message>
     <message id="playerTrailerOf">
         <source>Trailer %1 of %2</source>
         <extracomment>The line under the title in the player while one of a title's several trailers plays. (%1 which one, %2 how many)</extracomment>

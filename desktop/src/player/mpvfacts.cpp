@@ -149,6 +149,13 @@ MpvFacts::MpvFacts(QObject *parent) : QObject(parent) {
   ask();
 }
 
+// yt-dlp takes AV1 over VP9 where YouTube has both, and few graphics cards
+// decode AV1 (NVIDIA from the RTX 30s) where nearly all since 2016 decode VP9.
+QString MpvFacts::trailerFormat(int height) {
+  const QString tallest = height > 0 ? QString("[height<=?%1]").arg(height) : QString();
+  return QString("bv*[vcodec^=vp]%1+ba/bv*%1+ba/b").arg(tallest);
+}
+
 MpvFacts *MpvFacts::instance() {
   static MpvFacts *facts = new MpvFacts;
   return facts;

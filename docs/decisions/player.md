@@ -229,21 +229,35 @@ Cinemeta names a title's trailers as YouTube ids, none per season or episode.
 The core builds the watch link from an id of the right shape and passes no
 link an addon wrote, so mpv is never handed a stranger's URL. mpv plays the
 link through its ytdl hook, which runs yt-dlp: the client offers a trailer
-only where yt-dlp is on the PATH, and a trailer that fails says yt-dlp may be
-out of date, which is what an old one does once YouTube changes.
+only where yt-dlp is on the PATH.
 
 A trailer is the film's player with links in place of a download
 (`Playback.urls`): mpv's keys, the bar and fullscreen are the same, and nothing
-about it goes to the core. A title's trailers are mpv's playlist in the
-metadata's order, the bar numbering them and its next button going on to the
-next; nothing ranks them, since Cinemeta gives them no names. Its Play button does what
-the title's Play would. The core's reconnect options are set on its own
-stream only: on YouTube's HLS, whose segments close early, they waited out
-every delay, half a minute before a trailer's first frame.
+about it goes to the core. A title's trailers play in the metadata's order,
+the bar numbering them, its buttons going back and on, and the episodes'
+panel listing them by number; nothing ranks them, since Cinemeta gives them
+no names. Its Play button does what the title's Play would. The core's
+reconnect options are set on its own stream only: on YouTube's HLS, whose
+segments close early, they waited out every delay, half a minute before a
+trailer's first frame.
 
-A title's page also plays the first trailer in its banner, muted, three
-seconds after it is up, filling the banner as its artwork does (an upright one whole), under
+`Playback` opens the trailers one at a time rather than as mpv's playlist.
+YouTube keeps some to a few countries, and one that will not open is dropped
+for the next, from the list and from the page's Trailer button, where mpv's
+playlist would skip it and keep offering it. Only all of them failing is a
+failure: YouTube refusing them when yt-dlp says so, else yt-dlp perhaps out of
+date, which is what an old one does once YouTube changes.
+
+yt-dlp is asked for VP9 where there is one. It would take AV1 where YouTube
+has both, which only recent graphics cards decode, where nearly all since
+2016 decode VP9. The player takes the tallest picture there is, 4K included,
+which on a 1080p screen still looks better than 1080p for its bitrate; the
+banner, a muted background, no taller than it fills the banner.
+
+A title's page also plays the first trailer that opens in its banner, muted,
+three seconds after it is up, filling the banner as its artwork does (an upright one whole), under
 Settings › Playback › Background trailers. It pauses while the episodes are
 scrolled to and, once it has ended or the page was left
-for a film, does not come back on that page. That mpv keeps no log: the
+for a film, does not come back on that page. Its fullscreen button opens the
+player with sound at the banner's second. That mpv keeps no log: the
 player's log is the last film's, which a report is about.

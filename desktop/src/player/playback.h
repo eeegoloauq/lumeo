@@ -31,6 +31,16 @@ class Playback : public QObject, public QQmlParserStatus {
   // Links from outside the core, trailers, in place of a download: played
   // in order as they are, and nothing about them is asked of the core or kept.
   Q_PROPERTY(QStringList urls MEMBER m_urls NOTIFY changed)
+  // Seconds into the first of them: it goes on from where the banner was.
+  Q_PROPERTY(double start MEMBER m_start)
+  // The urls still to choose from: one that would not play is dropped and
+  // the next plays in its place, so only all of them failing is a failure.
+  Q_PROPERTY(QStringList trailers READ trailers NOTIFY changed)
+  // Which of trailers plays; -1 before one does.
+  Q_PROPERTY(int trailer READ trailer NOTIFY changed)
+  // Every trailer that failed was one YouTube would not show here, such as
+  // one kept to some countries: no newer yt-dlp would play it.
+  Q_PROPERTY(bool refused READ refused NOTIFY changed)
   // What the page that started it called it; the title once the core names a
   // file that came without one.
   Q_PROPERTY(QString name MEMBER m_name NOTIFY changed)
@@ -96,12 +106,17 @@ public:
   QString runtime() const { return m_runtime; }
   QVariantMap watching() const { return m_watching; }
   bool closing() const { return m_closing; }
+  QStringList trailers() const { return m_trailers; }
+  int trailer() const { return m_trailer; }
+  bool refused() const { return m_failedTrailers > 0 && m_refusals == m_failedTrailers; }
   Failure failure() const { return m_failure; }
   QString codec() const { return m_codec; }
   QVariantList shortcuts() const { return m_shortcuts; }
   bool shortcutsRead() const { return m_shortcutsRead; }
   bool findingNoPeers() const;
 
+  // Plays the one of trailers at [index].
+  Q_INVOKABLE void playTrailer(int index);
   // Asks again at once rather than at the next poll.
   Q_INVOKABLE void retry();
   // Asks for the title's watching again, for the episodes panel.
@@ -132,6 +147,9 @@ public:
 
   // The codec an mpv error says it had no decoder for, else empty.
   static QString decoderCodec(const QString &line);
+  // A yt-dlp error saying YouTube will not show the video, rather than that
+  // yt-dlp failed to get it.
+  static bool refusal(const QString &line);
 
 signals:
   void mpvChanged();
@@ -144,6 +162,8 @@ signals:
   void notice(const QString &kind, const QString &codec);
   void closed();
   void finished();
+  // A trailer would not play, and was dropped from trailers.
+  void trailerFailed(const QString &url);
 
 private:
   void poll();
@@ -171,6 +191,13 @@ private:
   LocalSettings *m_settings = nullptr;
   QString m_downloadId;
   QStringList m_urls;
+  double m_start = 0;
+  QStringList m_trailers;
+  int m_trailer = -1;
+  int m_failedTrailers = 0;
+  int m_refusals = 0;
+  // yt-dlp said so for the trailer opened last.
+  bool m_refused = false;
   QString m_name;
   QString m_named;
   QString m_episodeTitle;

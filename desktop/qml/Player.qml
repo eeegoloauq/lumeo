@@ -14,8 +14,10 @@ FocusScope {
     required property string downloadId
     // What the page that started it called it.
     required property string name
-    // A title's trailers in place of a download: {urls, play, played}, [play]
-    // naming what the title's Play starts and [played] starting it.
+    // A title's trailers in place of a download: {urls, start, play, played,
+    // failed}, [start] the seconds into the first, [play] naming what the
+    // title's Play starts and [played] starting it, [failed] told each url
+    // that would not play.
     property var trailer: null
 
     readonly property alias mpv: video
@@ -122,10 +124,12 @@ FocusScope {
         mpv: video
         downloadId: player.downloadId
         urls: player.trailer?.urls ?? []
+        start: player.trailer?.start ?? 0
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
         onNotice: (kind, codec) => note.say(player.trouble(kind, codec))
+        onTrailerFailed: url => player.trailer.failed?.(url)
     }
 
     // Keys mpv has no name for, such as a modifier alone, go on to the window.
@@ -336,8 +340,8 @@ FocusScope {
 
                     Layout.fillWidth: true
                     visible: episode > 0 || !!player.trailer
-                    text: player.trailer ? (video.playlistCount > 1
-                                            ? qsTrId("playerTrailerOf").arg(video.playlistPos + 1).arg(video.playlistCount)
+                    text: player.trailer ? (session.trailers.length > 1
+                                            ? qsTrId("playerTrailerOf").arg(session.trailer + 1).arg(session.trailers.length)
                                             : qsTrId("itemTrailer"))
                         : !visible ? "" : session.episodeTitle === ""
                         ? qsTrId("playerEpisodeId").arg(season).arg(episode)
@@ -407,14 +411,22 @@ FocusScope {
                     onClicked: if (video.hasPicture) video.command(["cycle", "pause"])
                 }
 
+                PlayerButton {
+                    objectName: "previousButton"
+                    visible: session.trailer > 0
+                    glyph: "skip_previous"
+                    tip: qsTrId("playerPreviousTrailer")
+                    onClicked: session.playTrailer(session.trailer - 1)
+                }
+
                 // The next episode, or the next of a title's trailers.
                 PlayerButton {
                     objectName: "nextButton"
                     readonly property bool trailer: !!player.trailer
-                    visible: trailer ? video.playlistPos + 1 < video.playlistCount : !!session.next?.episode.number
+                    visible: trailer ? session.trailer + 1 < session.trailers.length : !!session.next?.episode.number
                     glyph: "skip_next"
                     tip: trailer ? qsTrId("playerNextTrailer") : qsTrId("playerNextEpisode")
-                    onClicked: trailer ? video.command(["playlist-next"]) : session.next.advance()
+                    onClicked: trailer ? session.playTrailer(session.trailer + 1) : session.next.advance()
                 }
 
                 // The slider shows under the pointer; the mark on it is 100%,
@@ -546,9 +558,9 @@ FocusScope {
 
                 PlayerButton {
                     objectName: "episodesButton"
-                    visible: (session.download.episode ?? 0) > 0
+                    visible: (session.download.episode ?? 0) > 0 || session.trailers.length > 1
                     glyph: "playlist_play"
-                    tip: qsTrId("playerEpisodes")
+                    tip: player.trailer ? qsTrId("playerTrailers") : qsTrId("playerEpisodes")
                     onClicked: player.toggleMenu("episodes")
                 }
 
@@ -675,7 +687,10 @@ FocusScope {
         room: player.height - 24 - 76
         onPlay: episode => {
             player.menu = ""
-            session.next.play(episode)
+            if (player.trailer)
+                session.playTrailer(episode.number - 1)
+            else
+                session.next.play(episode)
         }
     }
 

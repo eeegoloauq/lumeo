@@ -5,7 +5,9 @@ import QtQuick.Controls.Basic
 import Lumeo
 
 // The title's episodes over the picture: a season at a time, the one playing
-// lit, how much of each was watched, and any released one a press away.
+// lit, how much of each was watched, and any released one a press away. For
+// a trailer, the title's trailers, numbered: YouTube's own titles are not
+// known.
 MenuPanel {
     id: panel
 
@@ -14,17 +16,28 @@ MenuPanel {
 
     signal play(var episode)
 
-    readonly property int playingSeason: playback.download.season ?? 0
-    readonly property int playingNumber: playback.download.episode ?? 0
+    readonly property bool trailers: playback.urls.length > 0
+    readonly property int playingSeason: trailers ? 0 : playback.download.season ?? 0
+    readonly property int playingNumber: trailers ? playback.trailer + 1 : playback.download.episode ?? 0
     property int season: playingSeason
     readonly property var seasons: [...new Set(playback.episodes.map(e => e.season))].sort((a, b) => a - b)
-    readonly property var episodes: playback.episodes.filter(e => e.season === season)
+    readonly property var episodes: trailers ? playback.trailers.map((url, i) => ({season: 0, number: i + 1,
+                                                                                    thumbnail: thumbnail(url)}))
+                                             : playback.episodes.filter(e => e.season === season)
+
+    // YouTube's picture for a watch link.
+    function thumbnail(url) {
+        const id = /[?&]v=([\w-]{11})/.exec(url)?.[1]
+        return id ? "https://i.ytimg.com/vi/" + id + "/mqdefault.jpg" : ""
+    }
 
     function entry(e) {
         return (playback.watching.entries ?? []).find(w => w.season === e.season && w.episode === e.number)
     }
 
     function detail(e) {
+        if (trailers)
+            return ""
         if (e.released && new Date(e.released) > new Date())
             return qsTrId("playerOutDate").arg(Words.shortDate(e.released))
         const w = entry(e)
@@ -36,7 +49,8 @@ MenuPanel {
     }
 
     width: 440
-    implicitHeight: seasonRow.height + list.height + 16
+    readonly property real head: seasonRow.visible ? seasonRow.height : 0
+    implicitHeight: head + list.height + 16
     height: Math.min(implicitHeight, room)
 
     onVisibleChanged: if (visible) {
@@ -49,6 +63,8 @@ MenuPanel {
 
     Item {
         id: seasonRow
+        // Trailers come in no seasons.
+        visible: !panel.trailers
         width: panel.width
         height: 44
 
@@ -84,7 +100,7 @@ MenuPanel {
     ListView {
         id: list
         width: panel.width
-        height: Math.min(contentHeight, panel.room - seasonRow.height - 16)
+        height: Math.min(contentHeight, panel.room - panel.head - 16)
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         model: panel.episodes
@@ -115,7 +131,7 @@ MenuPanel {
                     width: 128
                     height: 72
                     episode: row.modelData
-                    stills: Preferences.current.episodeArtwork ?? "show"
+                    stills: panel.trailers ? "show" : Preferences.current.episodeArtwork ?? "show"
                     frame: EpisodeFrames.known[panel.playback.download.itemId + "/" + row.modelData.season
                                                + "/" + row.modelData.number] ?? ""
                     watched: row.watched?.watched ?? false
@@ -130,7 +146,8 @@ MenuPanel {
 
                     Text {
                         width: parent.width
-                        text: Words.episodeName(row.modelData)
+                        text: panel.trailers ? qsTrId("playerTrailerNumber").arg(row.modelData.number)
+                                             : Words.episodeName(row.modelData)
                         maximumLineCount: 2
                         wrapMode: Text.Wrap
                         elide: Text.ElideRight
