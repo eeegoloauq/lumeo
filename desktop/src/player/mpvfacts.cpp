@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QJSEngine>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QThreadPool>
 #include <mpv/client.h>
 
@@ -144,6 +145,7 @@ MpvFacts::MpvFacts(QObject *parent) : QObject(parent) {
   QFile release("/etc/os-release");
   if (release.open(QIODevice::ReadOnly))
     m_osRelease = QString::fromUtf8(release.readAll());
+  m_ytdl = !QStandardPaths::findExecutable("yt-dlp").isEmpty();
   ask();
 }
 

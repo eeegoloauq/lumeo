@@ -20,6 +20,8 @@ ShellPage {
 
     // Play started this download.
     signal watch(string downloadId, string name)
+    // The trailer to play, as Player.trailer.
+    signal trailer(var trailer, string name)
     // The way to add a source addon, which none ships with.
     signal addSource()
 
@@ -66,6 +68,19 @@ ShellPage {
             listed = current
         else
             settle.restart()
+    }
+
+    // The first trailer the metadata names, which mpv plays through yt-dlp.
+    readonly property string trailerUrl: MpvFacts.ytdl ? about.item.trailers?.[0] ?? "" : ""
+    // How long the page is up before the trailer plays in its banner; a test
+    // shortens it.
+    property int previewDelay: 3000
+
+    readonly property string playText: {
+        const s = current?.season, e = current?.number
+        if (resume)
+            return series ? qsTrId("playerResumeEpisode").arg(s).arg(e) : qsTrId("playerResume")
+        return series ? qsTrId("playerPlayEpisode").arg(s).arg(e) : qsTrId("commonPlay")
     }
 
     readonly property var watched: entryOf(current)
@@ -249,6 +264,55 @@ ShellPage {
             Banner {
                 anchors.fill: parent
                 url: page.shown.background ?? ""
+
+                // The trailer in place of the backdrop, muted, a moment after
+                // the page is up. Once it has ended or the page was left it
+                // stays gone: back from a film, the page is for what is next.
+                Loader {
+                    id: preview
+                    property bool over: false
+                    anchors.fill: parent
+                    active: LocalSettings.trailerPreviews && page.trailerUrl !== "" && page.visible
+                            && previewDue.done && !over
+                    onActiveChanged: if (!active && previewDue.done) over = true
+
+                    sourceComponent: MpvItem {
+                        objectName: "trailerPreview"
+                        keepsLog: false
+                        opacity: hasPicture && !ended ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 600 } }
+                        // Scrolled to the episodes, it waits for the banner.
+                        readonly property bool away: view.contentY > banner.height / 2
+                        onAwayChanged: set("pause", away)
+                        // Faded out at its end, then gone.
+                        onOpacityChanged: if (opacity === 0 && ended) preview.over = true
+                        onLoadFailed: preview.over = true
+                        Component.onCompleted: {
+                            set("mute", true)
+                            set("volume", LocalSettings.volume)
+                            // A banner, not a cinema: 4K would cost the network for nothing.
+                            set("ytdl-format", "bv*[height<=1080]+ba/b")
+                            open(page.trailerUrl)
+                        }
+                    }
+                }
+                Timer {
+                    id: previewDue
+                    property bool done: false
+                    interval: page.previewDelay
+                    running: about.status === Title.Ready && page.visible && !done
+                    onTriggered: done = true
+                }
+            }
+            // Its sound, while it plays.
+            TintButton {
+                objectName: "trailerSound"
+                readonly property MpvItem trailerClip: preview.item as MpvItem
+                anchors { right: parent.right; bottom: parent.bottom; margins: Tokens.gutter }
+                visible: !!trailerClip && trailerClip.hasPicture && !trailerClip.ended
+                glyph: trailerClip?.muted ?? true ? "volume_off" : "volume_up"
+                tip: trailerClip?.muted ?? true ? qsTrId("itemTrailerSoundOn") : qsTrId("itemTrailerSoundOff")
+                onClicked: trailerClip.set("mute", !trailerClip.muted)
             }
 
             Column {
@@ -279,14 +343,7 @@ ShellPage {
                     PlayButton {
                         objectName: "titlePlay"
                         enabled: copies.playable
-                        text: {
-                            const s = page.current?.season, e = page.current?.number
-                            if (page.resume)
-                                return page.series ? qsTrId("playerResumeEpisode").arg(s).arg(e)
-                                                   : qsTrId("playerResume")
-                            return page.series ? qsTrId("playerPlayEpisode").arg(s).arg(e)
-                                               : qsTrId("commonPlay")
-                        }
+                        text: page.playText
                         onClicked: page.playEpisode(page.current)
                     }
                     // A film's copy Play would start, fetched without
@@ -309,6 +366,17 @@ ShellPage {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 8
 
+                        TintButton {
+                            objectName: "trailerButton"
+                            visible: page.trailerUrl !== ""
+                            glyph: "movie"
+                            tip: qsTrId("itemTrailer")
+                            onClicked: page.trailer({
+                                url: page.trailerUrl,
+                                play: copies.playable ? page.playText : "",
+                                played: () => page.playEpisode(page.current),
+                            }, page.shown.title)
+                        }
                         TintButton {
                             id: listButton
                             objectName: "listButton"

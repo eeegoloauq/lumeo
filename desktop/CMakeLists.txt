@@ -165,6 +165,7 @@ qt_add_qml_module(lumeo
     icons/fullscreen.svg
     icons/fullscreen_exit.svg
     icons/ios_share.svg
+    icons/movie.svg
     icons/pause.svg
     icons/play_arrow.svg
     icons/play_circle.svg

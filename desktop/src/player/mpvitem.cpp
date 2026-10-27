@@ -335,14 +335,6 @@ MpvItem::MpvItem(QQuickItem *parent)
   // (decisions/subtitles.md).
   mpv_set_option_string(mpv, "sub-font-size", QByteArray::number(SubtitleStyle::fontSize).constData());
   mpv_set_option_string(mpv, "sub-margin-y", QByteArray::number(SubtitleStyle::margin).constData());
-  // The previous log is kept beside it: mpv empties its log on open, and a
-  // report is usually about the film just closed. Two files bound the size.
-  const QString log = Folders::playerLog();
-  QDir().mkpath(QFileInfo(log).path());
-  const QString previous = QFileInfo(log).path() + "/" + QFileInfo(log).completeBaseName() + ".old.log";
-  QFile::remove(previous);
-  QFile::rename(log, previous);
-  mpv_set_option_string(mpv, "log-file", QFile::encodeName(log).constData());
   if (mpv_initialize(mpv) < 0)
     qFatal("mpv_initialize failed");
   if (!profile.isEmpty())
@@ -385,6 +377,20 @@ MpvItem::~MpvItem() {
 
 QQuickFramebufferObject::Renderer *MpvItem::createRenderer() const {
   return new MpvRenderer(m_shared);
+}
+
+// The previous log is kept beside it: mpv empties its log on open, and a
+// report is usually about the film just closed. Two files bound the size.
+void MpvItem::componentComplete() {
+  QQuickFramebufferObject::componentComplete();
+  if (!m_keepsLog)
+    return;
+  const QString log = Folders::playerLog();
+  QDir().mkpath(QFileInfo(log).path());
+  const QString previous = QFileInfo(log).path() + "/" + QFileInfo(log).completeBaseName() + ".old.log";
+  QFile::remove(previous);
+  QFile::rename(log, previous);
+  set("log-file", log);
 }
 
 void MpvItem::open(const QString &url, const QStringList &headers) {

@@ -63,6 +63,9 @@ class MpvItem : public QQuickFramebufferObject {
   // The Anime4K preset mpv runs: "" for none, "a", "b" or "c", and "other"
   // for shaders that are none of them.
   Q_PROPERTY(QString anime4k READ anime4k NOTIFY anime4kChanged)
+  // Writes the player log, the one a report is about; set before it is
+  // complete. A trailer in a title's banner leaves the film's log alone.
+  Q_PROPERTY(bool keepsLog MEMBER m_keepsLog)
 
 public:
   explicit MpvItem(QQuickItem *parent = nullptr);
@@ -73,6 +76,7 @@ public:
   static QString profile;
 
   Renderer *createRenderer() const override;
+  void componentComplete() override;
 
   bool paused() const { return m_paused; }
   double position() const { return m_position; }
@@ -210,4 +214,5 @@ private:
   // What each write in flight sets, to name it if mpv refuses.
   QHash<uint64_t, QString> m_sets;
   uint64_t m_nextSet = 1;
+  bool m_keepsLog = true;
 };

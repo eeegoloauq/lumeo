@@ -28,6 +28,9 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_INTERFACES(QQmlParserStatus)
   Q_PROPERTY(MpvItem *mpv READ mpv WRITE setMpv NOTIFY mpvChanged)
   Q_PROPERTY(QString downloadId MEMBER m_downloadId NOTIFY changed)
+  // A link from outside the core, a trailer, in place of a download: opened
+  // as it is, and nothing about it is asked of the core or kept.
+  Q_PROPERTY(QString url MEMBER m_url NOTIFY changed)
   // What the page that started it called it; the title once the core names a
   // file that came without one.
   Q_PROPERTY(QString name MEMBER m_name NOTIFY changed)
@@ -167,6 +170,7 @@ private:
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
   QString m_downloadId;
+  QString m_url;
   QString m_name;
   QString m_named;
   QString m_episodeTitle;

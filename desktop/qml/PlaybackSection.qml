@@ -101,6 +101,19 @@ SettingsBlock {
                 onToggled: LocalSettings.timelinePreviews = checked
             }
         }
+        // Without yt-dlp no trailer plays, so there is nothing to choose.
+        SettingRow {
+            visible: MpvFacts.ytdl
+            label: qsTrId("settingsTrailerPreviews")
+            hint: qsTrId("settingsTrailerPreviewsHint")
+
+            SettingSwitch {
+                objectName: "trailerPreviews"
+                label: qsTrId("settingsTrailerPreviews")
+                checked: LocalSettings.trailerPreviews
+                onToggled: LocalSettings.trailerPreviews = checked
+            }
+        }
         SettingsWait { error: block.settings.errorIn(block.section) }
         ErrorRow { message: block.settings.errorIn(block.section) }
     }

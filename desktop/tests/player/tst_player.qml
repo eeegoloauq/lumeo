@@ -211,6 +211,56 @@ Item {
             tryCompare(closed, "count", 1, 5000)
         }
 
+        // A trailer is its link played as it is, nothing about it asked of
+        // the core or kept; its Play leaves it for the title's own.
+        function test_aTrailerPlaysItsLinkAndLeavesForTheTitle() {
+            let played = 0
+            player = createTemporaryObject(playerComponent, root, {
+                downloadId: "", name: "Nosferatu",
+                trailer: { url: fakeCore.address + "/trailer", play: "Play", played: () => ++played } })
+            closed.target = player
+            closed.clear()
+            tryVerify(() => player.mpv.hasPicture, 10000, "a picture")
+            mouseMove(player, 640, 360)
+            const play = findChild(player, "trailerPlay")
+            verify(waitForPolish(play.parent))
+            mouseClick(play)
+            tryCompare(closed, "count", 1, 5000)
+            compare(played, 1)
+            verify(!requests().some(r => r.startsWith("GET /api/v1/downloads/") || r.startsWith("PUT /api/v1/progress")),
+                   requests().join("\n"))
+        }
+
+        // A title's page plays its trailer in the banner, muted, a moment
+        // after it is up; a film over the page ends it for good.
+        function test_theBannerPlaysTheTrailerUntilAFilmStarts() {
+            const film = { id: "tt0063350", kind: "movie", title: "Nosferatu", year: 1922,
+                           trailers: [fakeCore.address + "/trailer"] }
+            fakeCore.answer("GET", "/api/v1/items/tt0063350", 200, film)
+            const ytdl = MpvFacts.ytdl
+            MpvFacts.ytdl = true
+            const win = createTemporaryObject(windowComponent, null)
+            tryVerify(() => win.visible, 5000)
+            Opening.title(film)
+            let page = null
+            tryVerify(() => (page = findChild(win.contentItem, "title")) !== null, 5000, "the title page")
+            page.previewDelay = 50
+            let clip = null
+            tryVerify(() => (clip = findChild(page, "trailerPreview"))?.hasPicture, 10000, "the trailer in the banner")
+            verify(clip.muted)
+            mouseClick(findChild(page, "trailerSound"))
+            tryVerify(() => !clip.muted, 5000, "sound on")
+
+            win.play("d1", "Nosferatu", true)
+            tryVerify(() => !findChild(page, "trailerPreview"), 5000, "gone under the film")
+            tryVerify(() => win.player.mpv.hasPicture, 10000)
+            win.player.close()
+            tryVerify(() => page.visible, 5000)
+            wait(150)
+            verify(!findChild(page, "trailerPreview"), "not back after the film")
+            MpvFacts.ytdl = ytdl
+        }
+
         // A film takes the screen when it starts, and closing it gives the
         // window back as it was (decisions/player.md).
         function test_aFilmTakesTheScreenAndGivesItBack() {

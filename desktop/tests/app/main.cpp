@@ -2,6 +2,7 @@
 #include "fakecore.h"
 #include "fonts.h"
 #include "language.h"
+#include "mpvfacts.h"
 
 #include <QJsonObject>
 #include <QQmlContext>
@@ -42,6 +43,9 @@ public slots:
                  QJsonObject{{"catalogs", FakeCore::fixture("catalogs.json")}});
     fake->answer("GET", "/api/v1/catalog", 200, QJsonObject{{"items", FakeCore::fixture("items.json")}});
     fake->answer("GET", "/api/v1/continue", 200, QJsonArray());
+    // Nothing here reaches YouTube: a test that wants a trailer says yt-dlp
+    // is there.
+    MpvFacts::instance()->setProperty("ytdl", false);
     installTranslations(QLocale(QLocale::English));
     loadFonts();
   }

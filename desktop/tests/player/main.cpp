@@ -73,6 +73,10 @@ public slots:
         qFatal("%s names no clip: run tool/player-test.sh", variable);
       fake->file(QString("/api/v1/downloads/%1/stream").arg(id), clip.readAll(), "video/x-matroska");
     }
+    // A trailer: a link from outside the core, as YouTube's is.
+    QFile trailer(qEnvironmentVariable("LUMEO_TEST_CLIP"));
+    if (trailer.open(QIODevice::ReadOnly))
+      fake->file("/trailer", trailer.readAll(), "video/x-matroska");
     // A subtitle as the core serves one from the database, converted.
     fake->file("/api/v1/subtitles/ru", "1\n00:00:00,000 --> 00:00:20,000\nRussian\n", "text/plain");
     installTranslations(QLocale(QLocale::English));

@@ -22,6 +22,8 @@ class LocalSettings : public QObject {
   Q_PROPERTY(double volume READ volume WRITE setVolume NOTIFY changed)
   // Frames over the seek bar, from a second mpv on the same file.
   Q_PROPERTY(bool timelinePreviews READ timelinePreviews WRITE setTimelinePreviews NOTIFY changed)
+  // A title's page plays its trailer, muted, in place of the backdrop.
+  Q_PROPERTY(bool trailerPreviews READ trailerPreviews WRITE setTrailerPreviews NOTIFY changed)
   // Where screenshots go; empty for Pictures/Lumeo.
   Q_PROPERTY(QString screenshotsDir READ screenshotsDir WRITE setScreenshotsDir NOTIFY changed)
   // The interface's language as a code from `languages`; empty follows the
@@ -51,6 +53,8 @@ public:
   void setVolume(double volume);
   bool timelinePreviews() const { return m_values.value("timelinePreviews").toBool(true); }
   void setTimelinePreviews(bool on) { set("timelinePreviews", on); }
+  bool trailerPreviews() const { return m_values.value("trailerPreviews").toBool(true); }
+  void setTrailerPreviews(bool on) { set("trailerPreviews", on); }
   QString screenshotsDir() const { return m_values.value("screenshotsDir").toString(); }
   void setScreenshotsDir(const QString &dir) { set("screenshotsDir", dir); }
   QString language() const;

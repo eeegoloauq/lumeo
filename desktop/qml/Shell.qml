@@ -15,6 +15,8 @@ FocusScope {
 
     // A download to play: the player takes the window.
     signal watch(string downloadId, string name)
+    // A title's trailer to play, as Player.trailer.
+    signal trailer(var trailer, string name)
 
     function place(name) {
         if (name === "home") {
@@ -157,6 +159,7 @@ FocusScope {
         TitlePage {
             objectName: "title"
             onWatch: (downloadId, name) => shell.watch(downloadId, name)
+            onTrailer: (trailer, name) => shell.trailer(trailer, name)
             onAddSource: stack.push(settingsPage, {section: "sources", backTo: item.title})
         }
     }

@@ -18,6 +18,7 @@
 class FakeCore : public QObject {
   Q_OBJECT
   Q_PROPERTY(QStringList requests READ requests NOTIFY requested)
+  Q_PROPERTY(QUrl address READ address CONSTANT)
 
 public:
   explicit FakeCore(QObject *parent = nullptr);

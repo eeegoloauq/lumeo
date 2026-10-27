@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Lumeo
 
-// A download playing, with the bar over it. Keys and mouse buttons go to mpv
+// A download playing, or a title's trailer, with the bar over it. Keys and mouse buttons go to mpv
 // as its own keys, down and up; everything the bar shows is read back from
 // mpv's properties (decisions/player.md).
 FocusScope {
@@ -14,6 +14,9 @@ FocusScope {
     required property string downloadId
     // What the page that started it called it.
     required property string name
+    // A title's trailer in place of a download: {url, play, played}, [play]
+    // naming what the title's Play starts and [played] starting it.
+    property var trailer: null
 
     readonly property alias mpv: video
     // The window's, which the player only asks for: mpv's own fullscreen is
@@ -118,6 +121,7 @@ FocusScope {
         id: session
         mpv: video
         downloadId: player.downloadId
+        url: player.trailer?.url ?? ""
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
@@ -331,8 +335,9 @@ FocusScope {
                     readonly property int episode: session.download.episode ?? 0
 
                     Layout.fillWidth: true
-                    visible: episode > 0
-                    text: !visible ? "" : session.episodeTitle === ""
+                    visible: episode > 0 || !!player.trailer
+                    text: player.trailer ? qsTrId("itemTrailer")
+                        : !visible ? "" : session.episodeTitle === ""
                         ? qsTrId("playerEpisodeId").arg(season).arg(episode)
                         : qsTrId("playerEpisodeTitle").arg(season).arg(episode).arg(session.episodeTitle)
                     elide: Text.ElideRight
@@ -541,6 +546,20 @@ FocusScope {
                     glyph: "playlist_play"
                     tip: qsTrId("playerEpisodes")
                     onClicked: player.toggleMenu("episodes")
+                }
+
+                // What the title's own Play would start, from here; the
+                // trailer goes first.
+                PlayButton {
+                    objectName: "trailerPlay"
+                    visible: !!player.trailer?.play
+                    implicitHeight: 36
+                    Layout.rightMargin: 8
+                    text: player.trailer?.play ?? ""
+                    onClicked: {
+                        player.close()
+                        player.trailer.played()
+                    }
                 }
 
                 PlayerButton {

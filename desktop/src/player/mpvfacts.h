@@ -29,6 +29,9 @@ class MpvFacts : public QObject {
   // How to add a missing decoder here, where they are packaged apart.
   Q_PROPERTY(QString installHint READ installHint NOTIFY changed)
   Q_PROPERTY(QStringList installCommands READ installCommands NOTIFY changed)
+  // yt-dlp is on the PATH, which mpv runs to play a trailer's link; a test
+  // says so in place of the machine.
+  Q_PROPERTY(bool ytdl MEMBER m_ytdl NOTIFY changed)
 
 public:
   // The one everything reads, asked as the application starts.
@@ -99,4 +102,5 @@ private:
   QString m_version;
   QString m_hardware;
   QString m_osRelease;
+  bool m_ytdl = false;
 };

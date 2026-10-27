@@ -2992,5 +2992,35 @@
         <extracomment>Notification body when the window is closed into the background.</extracomment>
         <translation>Загрузки идут. Открыть снова — из меню приложений.</translation>
     </message>
+    <message id="itemTrailer">
+        <source>Trailer</source>
+        <extracomment>Trailer button tooltip on a title's page, and the line under the title in the player while a trailer plays.</extracomment>
+        <translation>Трейлер</translation>
+    </message>
+    <message id="itemTrailerSoundOn">
+        <source>Sound on</source>
+        <extracomment>Tooltip of the button over a title's banner that unmutes the trailer playing there.</extracomment>
+        <translation>Включить звук</translation>
+    </message>
+    <message id="itemTrailerSoundOff">
+        <source>Sound off</source>
+        <extracomment>Tooltip of the button over a title's banner that mutes the trailer playing there.</extracomment>
+        <translation>Выключить звук</translation>
+    </message>
+    <message id="playerTrailerFailed">
+        <source>The trailer did not open. yt-dlp may be out of date.</source>
+        <extracomment>Player, when a title's trailer, played through yt-dlp, would not open.</extracomment>
+        <translation>Трейлер не открылся. Возможно, устарел yt-dlp.</translation>
+    </message>
+    <message id="settingsTrailerPreviews">
+        <source>Background trailers</source>
+        <extracomment>Settings › Playback: switch for the muted trailer a title's page plays in place of its backdrop.</extracomment>
+        <translation>Трейлеры на фоне</translation>
+    </message>
+    <message id="settingsTrailerPreviewsHint">
+        <source>Muted, in place of a title's backdrop. YouTube sees each title you open.</source>
+        <extracomment>Settings › Playback: hint under Background trailers; the trailers come from YouTube.</extracomment>
+        <translation>Без звука, вместо фона страницы. YouTube видит каждый открытый тайтл.</translation>
+    </message>
 </context>
 </TS>

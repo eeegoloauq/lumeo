@@ -66,12 +66,14 @@ ApplicationWindow {
 
     // A film takes the screen when it starts; leaving it gives the window
     // back as it was (decisions/player.md). [kept]: Lumeo keeps the file,
-    // which it never does for one opened from this computer.
-    function play(downloadId, name, kept) {
+    // which it never does for one opened from this computer. [trailer]: a
+    // title's trailer plays in place of a download (Player.trailer).
+    function play(downloadId, name, kept, trailer) {
         const sitting = player
         if (!sitting)
             wasFullscreen = visibility === Window.FullScreen
-        player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name, kept: kept})
+        player = playerComponent.createObject(window.contentItem, {downloadId: downloadId, name: name, kept: kept,
+                                                                     trailer: trailer ?? null})
         player.forceActiveFocus()
         // Another copy or episode in the same sitting keeps the window as it
         // is.
@@ -169,6 +171,7 @@ ApplicationWindow {
         visible: !window.player?.visible
         focus: true
         onWatch: (downloadId, name) => window.play(downloadId, name, true)
+        onTrailer: (trailer, name) => window.play("", name, false, trailer)
     }
 
     // The corner's notice, one at a time: what just happened to the film

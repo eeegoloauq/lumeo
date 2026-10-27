@@ -10,6 +10,7 @@ Item {
     Component { id: shellComponent; Shell { anchors.fill: parent; focus: true } }
 
     SignalSpy { id: watched; signalName: "watch" }
+    SignalSpy { id: trailered; signalName: "trailer" }
 
     TestCase {
         name: "Title"
@@ -100,6 +101,36 @@ Item {
             compare(shell.page, "title")
             watched.wait(5000)
             compare(watched.signalArguments[0][0], "d1")
+        }
+
+        // A trailer is offered where yt-dlp can play it, with the title's
+        // Play to start from it.
+        function test_theTrailerPlaysWhereYtdlpIs() {
+            for (let i = 0; i < 3; ++i)
+                fakeCore.answer("GET", "/api/v1/items/tt" + (2000 + i), 200, {
+                    id: "tt" + (2000 + i), kind: "movie", title: "Film " + i, year: 1920 + i,
+                    trailers: ["https://www.youtube.com/watch?v=0000trailer"] })
+            LocalSettings.trailerPreviews = false
+            film()
+            const button = findChild(shell, "trailerButton")
+            verify(!button.visible, "no trailer without yt-dlp")
+
+            MpvFacts.ytdl = true
+            trailered.target = shell
+            trailered.clear()
+            verify(waitForPolish(button.parent))
+            mouseClick(button)
+            compare(trailered.count, 1)
+            const [trailer, name] = trailered.signalArguments[0]
+            compare(trailer.url, "https://www.youtube.com/watch?v=0000trailer")
+            compare(trailer.play, "Play")
+            trailer.played()
+            watched.wait(5000)
+            compare(watched.signalArguments[0][0], "d1")
+            compare(watched.signalArguments[0][1], name)
+
+            MpvFacts.ytdl = false
+            LocalSettings.trailerPreviews = true
         }
 
         function test_moreInfoOpensTheTitleAndStartsNothing() {

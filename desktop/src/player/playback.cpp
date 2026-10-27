@@ -119,6 +119,14 @@ QString Playback::decoderCodec(const QString &line) {
 
 // Each answer schedules the next ask, so polls never overlap.
 void Playback::refresh() {
+  if (!m_url.isEmpty()) {
+    if (m_mpv && !m_opened && !m_closing) {
+      m_opened = true;
+      m_mpv->open(m_url);
+      emit changed();
+    }
+    return;
+  }
   m_poll.stop();
   const QString path = "/api/v1/downloads/" + Core::segment(m_downloadId);
   m_core->get(path, {}, this, [this](const Core::Reply &reply) {
@@ -296,7 +304,8 @@ void Playback::onLoadFailed() {
   if (m_failure == WouldNotStart || m_reopenPending || !m_mpv)
     return;
   const QDateTime now = QDateTime::currentDateTime();
-  if (!m_mpv->hasPicture() &&
+  // A trailer has no bytes on their way: its failure is the answer.
+  if (m_url.isEmpty() && !m_mpv->hasPicture() &&
       (!m_firstFailure.isValid() || m_firstFailure.msecsTo(now) < openPatience)) {
     ++m_attempts;
     if (!m_firstFailure.isValid())
