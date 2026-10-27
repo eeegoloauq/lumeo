@@ -39,6 +39,24 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.15" date="2026-10-27" type="development">
+      <description>
+        <ul>
+          <li>Trailers on Windows: the app now carries what plays them and keeps it up to date.</li>
+          <li xml:lang="ru">Трейлеры на Windows: приложение теперь само ставит то, что их играет, и обновляет его.</li>
+          <li>The trailer behind a title's page has a fullscreen button: the player goes on from the same second, with sound.</li>
+          <li xml:lang="ru">У трейлера на фоне страницы тайтла есть кнопка «На весь экран»: плеер продолжает с той же секунды, со звуком.</li>
+          <li>The player lists a title's trailers, and goes back to the one before as well as on to the next.</li>
+          <li xml:lang="ru">Плеер показывает список трейлеров тайтла и умеет вернуться к предыдущему, а не только перейти к следующему.</li>
+          <li>Trailers play in up to 4K, in a format most graphics cards decode.</li>
+          <li xml:lang="ru">Трейлеры играют в качестве до 4K и в формате, который декодирует большинство видеокарт.</li>
+          <li>A trailer YouTube does not show in your country is skipped for the next one, and the Trailer button is gone when none plays.</li>
+          <li xml:lang="ru">Трейлер, который YouTube не показывает в вашей стране, пропускается, а если не играет ни один, кнопки «Трейлер» нет.</li>
+          <li>The app no longer waits for a closing player, or a page's trailer, to shut down.</li>
+          <li xml:lang="ru">Приложение больше не ждёт, пока закроется плеер или трейлер страницы.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.14" date="2026-10-27" type="development">
       <description>
         <ul>
