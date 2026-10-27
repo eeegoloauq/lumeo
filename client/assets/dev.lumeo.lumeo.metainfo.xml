@@ -39,6 +39,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.16" date="2026-10-27" type="development">
+      <description>
+        <ul>
+          <li>Settings › Appearance › Text size makes the whole interface smaller or larger, from the next start.</li>
+          <li xml:lang="ru">Настройки › Внешний вид › Размер текста уменьшает или увеличивает весь интерфейс, со следующего запуска.</li>
+          <li>A quick spin of the mouse wheel scrolls a page faster; a single notch moves it as before.</li>
+          <li xml:lang="ru">Быстрая прокрутка колесом мыши листает страницу быстрее, а один щелчок сдвигает её как раньше.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.15" date="2026-10-27" type="development">
       <description>
         <ul>
