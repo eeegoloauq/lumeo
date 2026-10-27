@@ -290,7 +290,10 @@ from the three things that mean it — an arrow at each end on hover, shift with
 the wheel, and a trackpad's own horizontal gesture. The page moves a long step
 per notch and glides to a stop, notches that come quickly adding up
 (`WheelScroll.qml`); left to the list's own wheel, a quick spin dropped what
-was left of each notch and scrolled less the faster it went.
+was left of each notch and scrolled less the faster it went. Notches under
+100 ms apart go farther each, up to four steps: Qt hands over the wheel as
+the system gives it, and neither Windows nor libinput speeds one up, so
+without it a long page took a spin per screen.
 
 Selecting an episode does not fetch its sources immediately. Clicking along a
 season would otherwise fire one provider request per card; the list is fetched

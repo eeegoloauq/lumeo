@@ -63,14 +63,19 @@ Item {
         }
 
         // Flickable's wheel dropped the rest of a notch when the next came,
-        // so spinning faster scrolled less.
-        function test_notchesThatComeQuicklyAddUp() {
+        // so spinning faster scrolled less; a spin now goes farther per notch.
+        function test_notchesThatComeQuicklyAddUpAndSpeedUp() {
             const list = findChild(shell, "shelves")
-            findChild(list, "wheel").duration = 0
+            const wheel = findChild(list, "wheel")
+            wheel.duration = 0
+            wheel.burst = 60000
             const start = list.contentY
             for (let i = 0; i < 3; ++i)
                 mouseWheel(list, 700, 300, 0, -120)
-            tryCompare(list, "contentY", start + 360, 2000)
+            tryCompare(list, "contentY", start + 120 + 180 + 240, 2000)
+            wheel.burst = 0
+            mouseWheel(list, 700, 300, 0, -120)
+            tryCompare(list, "contentY", start + 540 + 120, 2000)
         }
 
         function test_theArrowsWalkTheHeroAndTheShelvesAndEnterOpensATitle() {
