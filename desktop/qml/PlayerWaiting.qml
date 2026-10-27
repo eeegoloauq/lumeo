@@ -72,7 +72,7 @@ Item {
         if (switching)
             return copies.errorStatus >= 0 ? qsTrId("playerCouldNotStartCopy")
                                            : qsTrId("playerNoCopyOf").arg(title)
-        if (playback.url !== "")
+        if (playback.urls.length > 0)
             return qsTrId("playerTrailerFailed")
         if (playback.failure === Playback.CoreStopped)
             return qsTrId("playerCoreStopped")

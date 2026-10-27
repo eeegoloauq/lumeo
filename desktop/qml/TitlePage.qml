@@ -70,8 +70,9 @@ ShellPage {
             settle.restart()
     }
 
-    // The first trailer the metadata names, which mpv plays through yt-dlp.
-    readonly property string trailerUrl: MpvFacts.ytdl ? about.item.trailers?.[0] ?? "" : ""
+    // The trailers the metadata names, in its order, which mpv plays through
+    // yt-dlp; the banner plays the first.
+    readonly property var trailerUrls: MpvFacts.ytdl ? about.item.trailers ?? [] : []
     // How long the page is up before the trailer plays in its banner; a test
     // shortens it.
     property int previewDelay: 3000
@@ -272,7 +273,7 @@ ShellPage {
                     id: preview
                     property bool over: false
                     anchors.fill: parent
-                    active: LocalSettings.trailerPreviews && page.trailerUrl !== "" && page.visible
+                    active: LocalSettings.trailerPreviews && page.trailerUrls.length > 0 && page.visible
                             && previewDue.done && !over
                     onActiveChanged: if (!active && previewDue.done) over = true
 
@@ -281,6 +282,8 @@ ShellPage {
                         keepsLog: false
                         opacity: hasPicture && !ended ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 600 } }
+                        // Filling the banner would leave an upright one a sliver.
+                        onAspectChanged: if (aspect > 0 && aspect < 1) setFit(0)
                         // Scrolled to the episodes, it waits for the banner.
                         readonly property bool away: view.contentY > banner.height / 2
                         onAwayChanged: set("pause", away)
@@ -292,7 +295,9 @@ ShellPage {
                             set("volume", LocalSettings.volume)
                             // A banner, not a cinema: 4K would cost the network for nothing.
                             set("ytdl-format", "bv*[height<=1080]+ba/b")
-                            open(page.trailerUrl)
+                            // Filling the banner as its artwork does, cut at the edges.
+                            setFit(1)
+                            open(page.trailerUrls[0])
                         }
                     }
                 }
@@ -368,11 +373,11 @@ ShellPage {
 
                         TintButton {
                             objectName: "trailerButton"
-                            visible: page.trailerUrl !== ""
+                            visible: page.trailerUrls.length > 0
                             glyph: "movie"
                             tip: qsTrId("itemTrailer")
                             onClicked: page.trailer({
-                                url: page.trailerUrl,
+                                urls: page.trailerUrls,
                                 play: copies.playable ? page.playText : "",
                                 played: () => page.playEpisode(page.current),
                             }, page.shown.title)

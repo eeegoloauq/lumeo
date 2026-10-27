@@ -77,6 +77,9 @@ public slots:
     QFile trailer(qEnvironmentVariable("LUMEO_TEST_CLIP"));
     if (trailer.open(QIODevice::ReadOnly))
       fake->file("/trailer", trailer.readAll(), "video/x-matroska");
+    QFile upright(qEnvironmentVariable("LUMEO_TEST_UPRIGHT"));
+    if (upright.open(QIODevice::ReadOnly))
+      fake->file("/trailer-upright", upright.readAll(), "video/x-matroska");
     // A subtitle as the core serves one from the database, converted.
     fake->file("/api/v1/subtitles/ru", "1\n00:00:00,000 --> 00:00:20,000\nRussian\n", "text/plain");
     installTranslations(QLocale(QLocale::English));

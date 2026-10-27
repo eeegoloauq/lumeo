@@ -14,7 +14,7 @@ FocusScope {
     required property string downloadId
     // What the page that started it called it.
     required property string name
-    // A title's trailer in place of a download: {url, play, played}, [play]
+    // A title's trailers in place of a download: {urls, play, played}, [play]
     // naming what the title's Play starts and [played] starting it.
     property var trailer: null
 
@@ -121,7 +121,7 @@ FocusScope {
         id: session
         mpv: video
         downloadId: player.downloadId
-        url: player.trailer?.url ?? ""
+        urls: player.trailer?.urls ?? []
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
@@ -336,7 +336,9 @@ FocusScope {
 
                     Layout.fillWidth: true
                     visible: episode > 0 || !!player.trailer
-                    text: player.trailer ? qsTrId("itemTrailer")
+                    text: player.trailer ? (video.playlistCount > 1
+                                            ? qsTrId("playerTrailerOf").arg(video.playlistPos + 1).arg(video.playlistCount)
+                                            : qsTrId("itemTrailer"))
                         : !visible ? "" : session.episodeTitle === ""
                         ? qsTrId("playerEpisodeId").arg(season).arg(episode)
                         : qsTrId("playerEpisodeTitle").arg(season).arg(episode).arg(session.episodeTitle)
@@ -405,12 +407,14 @@ FocusScope {
                     onClicked: if (video.hasPicture) video.command(["cycle", "pause"])
                 }
 
+                // The next episode, or the next of a title's trailers.
                 PlayerButton {
                     objectName: "nextButton"
-                    visible: !!session.next?.episode.number
+                    readonly property bool trailer: !!player.trailer
+                    visible: trailer ? video.playlistPos + 1 < video.playlistCount : !!session.next?.episode.number
                     glyph: "skip_next"
-                    tip: qsTrId("playerNextEpisode")
-                    onClicked: session.next.advance()
+                    tip: trailer ? qsTrId("playerNextTrailer") : qsTrId("playerNextEpisode")
+                    onClicked: trailer ? video.command(["playlist-next"]) : session.next.advance()
                 }
 
                 // The slider shows under the pointer; the mark on it is 100%,

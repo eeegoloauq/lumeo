@@ -66,6 +66,11 @@ ffmpeg -loglevel error -f lavfi -i testsrc2=size=640x360:rate=24:duration=20 \
   -f lavfi -i sine=frequency=440:duration=20 -i "$log/chapters.txt" -map 0 -map 1 -map_chapters 2 \
   -c:v libx264 -preset ultrafast -c:a aac "$LUMEO_TEST_CLIP"
 
+# A trailer shot upright, as a phone's is.
+export LUMEO_TEST_UPRIGHT=$log/upright.mkv
+ffmpeg -loglevel error -f lavfi -i testsrc2=size=180x320:rate=24:duration=5 \
+  -c:v libx264 -preset ultrafast "$LUMEO_TEST_UPRIGHT"
+
 # An episode whose chapters name its ending.
 export LUMEO_TEST_EPISODE=$log/episode.mkv
 printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=14000\ntitle=Episode\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=14000\nEND=20000\ntitle=Ending\n' \

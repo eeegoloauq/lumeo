@@ -232,12 +232,18 @@ link through its ytdl hook, which runs yt-dlp: the client offers a trailer
 only where yt-dlp is on the PATH, and a trailer that fails says yt-dlp may be
 out of date, which is what an old one does once YouTube changes.
 
-A trailer is the film's player with a link in place of a download
-(`Playback.url`): mpv's keys, the bar and fullscreen are the same, and nothing
-about it goes to the core. Its Play button does what the title's Play would.
+A trailer is the film's player with links in place of a download
+(`Playback.urls`): mpv's keys, the bar and fullscreen are the same, and nothing
+about it goes to the core. A title's trailers are mpv's playlist in the
+metadata's order, the bar numbering them and its next button going on to the
+next; nothing ranks them, since Cinemeta gives them no names. Its Play button does what
+the title's Play would. The core's reconnect options are set on its own
+stream only: on YouTube's HLS, whose segments close early, they waited out
+every delay, half a minute before a trailer's first frame.
 
-A title's page also plays the trailer in its banner, muted, three seconds
-after it is up, under Settings › Playback › Background trailers. It pauses
-while the episodes are scrolled to and, once it has ended or the page was left
+A title's page also plays the first trailer in its banner, muted, three
+seconds after it is up, filling the banner as its artwork does (an upright one whole), under
+Settings › Playback › Background trailers. It pauses while the episodes are
+scrolled to and, once it has ended or the page was left
 for a film, does not come back on that page. That mpv keeps no log: the
 player's log is the last film's, which a report is about.

@@ -119,10 +119,12 @@ QString Playback::decoderCodec(const QString &line) {
 
 // Each answer schedules the next ask, so polls never overlap.
 void Playback::refresh() {
-  if (!m_url.isEmpty()) {
+  if (!m_urls.isEmpty()) {
     if (m_mpv && !m_opened && !m_closing) {
       m_opened = true;
-      m_mpv->open(m_url);
+      m_mpv->open(m_urls.first());
+      for (const QString &url : m_urls.mid(1))
+        m_mpv->command({"loadfile", url, "append"});
       emit changed();
     }
     return;
@@ -173,6 +175,9 @@ void Playback::open() {
     m_reopenPending = false;
     m_lastError.clear();
     const QString path = "/api/v1/downloads/" + Core::segment(m_downloadId) + "/stream";
+    // A dropped connection to the core resumes rather than ending the film;
+    // a trailer's HLS segments would wait out every reconnect delay.
+    m_mpv->set("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=30");
     m_mpv->open(m_core->url(path).toString(), m_core->headers());
     m_tracks->opened();
     m_next->opened();
@@ -305,7 +310,7 @@ void Playback::onLoadFailed() {
     return;
   const QDateTime now = QDateTime::currentDateTime();
   // A trailer has no bytes on their way: its failure is the answer.
-  if (m_url.isEmpty() && !m_mpv->hasPicture() &&
+  if (m_urls.isEmpty() && !m_mpv->hasPicture() &&
       (!m_firstFailure.isValid() || m_firstFailure.msecsTo(now) < openPatience)) {
     ++m_attempts;
     if (!m_firstFailure.isValid())

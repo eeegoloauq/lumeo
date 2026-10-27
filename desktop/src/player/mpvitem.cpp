@@ -41,6 +41,8 @@ enum Observed : uint64_t {
   Picture,
   Chapters,
   Chapter,
+  PlaylistPos,
+  PlaylistCount,
   Tracks,
   Aid,
   Sid,
@@ -320,7 +322,6 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"hr-seek", "yes"},
       {"keep-open", "yes"},
       {"input-default-bindings", "yes"},
-      {"stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=30"},
       {"cache-pause-initial", "yes"},
       {"volume-max", "150"},
       // mpv's bar would be drawn into the picture under ours; a seek shows
@@ -354,6 +355,8 @@ MpvItem::MpvItem(QQuickItem *parent)
       {Picture, {"video-out-params", MPV_FORMAT_NODE}},
       {Chapters, {"chapter-list", MPV_FORMAT_NODE}},
       {Chapter, {"chapter", MPV_FORMAT_INT64}},
+      {PlaylistPos, {"playlist-pos", MPV_FORMAT_INT64}},
+      {PlaylistCount, {"playlist-count", MPV_FORMAT_INT64}},
       {Tracks, {"track-list", MPV_FORMAT_NODE}},
       {Aid, {"aid", MPV_FORMAT_STRING}},
       {Sid, {"sid", MPV_FORMAT_STRING}},
@@ -639,15 +642,29 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   case Ended:
     update(m_ended, flag, &MpvItem::endedChanged);
     break;
-  case Picture:
-    update(m_hasPicture, node.toMap().value("w").toInt() > 0, &MpvItem::hasPictureChanged);
+  case Picture: {
+    const QVariantMap params = node.toMap();
+    update(m_hasPicture, params.value("w").toInt() > 0, &MpvItem::hasPictureChanged);
+    const double width = params.value("dw").toDouble(), height = params.value("dh").toDouble();
+    const bool turned = params.value("rotate").toInt() % 180 != 0;
+    update(m_aspect, width > 0 && height > 0 ? (turned ? height / width : width / height) : 0.0,
+           &MpvItem::aspectChanged);
     break;
+  }
   case Chapters:
     update(m_chapters, node.toList(), &MpvItem::chaptersChanged);
     break;
   case Chapter:
     update(m_chapter, data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1,
            &MpvItem::chapterChanged);
+    break;
+  case PlaylistPos:
+    update(m_playlistPos, data ? static_cast<int>(*static_cast<const int64_t *>(data)) : -1,
+           &MpvItem::playlistChanged);
+    break;
+  case PlaylistCount:
+    update(m_playlistCount, data ? static_cast<int>(*static_cast<const int64_t *>(data)) : 0,
+           &MpvItem::playlistChanged);
     break;
   case Tracks:
     update(m_tracks, node.toList(), &MpvItem::tracksChanged);

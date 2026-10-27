@@ -2352,6 +2352,16 @@
         <extracomment>Button or card for playing the next episode.</extracomment>
         <translation>Следующая серия</translation>
     </message>
+    <message id="playerNextTrailer">
+        <source>Next trailer</source>
+        <extracomment>Button in the player bar for playing a title's next trailer.</extracomment>
+        <translation>Следующий трейлер</translation>
+    </message>
+    <message id="playerTrailerOf">
+        <source>Trailer %1 of %2</source>
+        <extracomment>The line under the title in the player while one of a title's several trailers plays. (%1 which one, %2 how many)</extracomment>
+        <translation>Трейлер %1 из %2</translation>
+    </message>
     <message id="playerDownload">
         <source>Download</source>
         <extracomment>Player download button tooltip.</extracomment>

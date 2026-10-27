@@ -103,13 +103,13 @@ Item {
             compare(watched.signalArguments[0][0], "d1")
         }
 
-        // A trailer is offered where yt-dlp can play it, with the title's
-        // Play to start from it.
+        // Trailers are offered where yt-dlp can play them, all in the
+        // metadata's order, with the title's Play to start from them.
         function test_theTrailerPlaysWhereYtdlpIs() {
             for (let i = 0; i < 3; ++i)
                 fakeCore.answer("GET", "/api/v1/items/tt" + (2000 + i), 200, {
                     id: "tt" + (2000 + i), kind: "movie", title: "Film " + i, year: 1920 + i,
-                    trailers: ["https://www.youtube.com/watch?v=0000trailer"] })
+                    trailers: ["https://www.youtube.com/watch?v=0000trailer", "https://www.youtube.com/watch?v=1111trailer"] })
             LocalSettings.trailerPreviews = false
             film()
             const button = findChild(shell, "trailerButton")
@@ -122,7 +122,7 @@ Item {
             mouseClick(button)
             compare(trailered.count, 1)
             const [trailer, name] = trailered.signalArguments[0]
-            compare(trailer.url, "https://www.youtube.com/watch?v=0000trailer")
+            compare(trailer.urls, ["https://www.youtube.com/watch?v=0000trailer", "https://www.youtube.com/watch?v=1111trailer"])
             compare(trailer.play, "Play")
             trailer.played()
             watched.wait(5000)

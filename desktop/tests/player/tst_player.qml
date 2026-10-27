@@ -205,29 +205,51 @@ Item {
             tryCompare(player.mpv, "volume", volume, 5000)
         }
 
+        // A dropped stream from the core resumes rather than ending the film.
+        function test_theCoresStreamReconnects() {
+            playing()
+            let lavf = null
+            player.mpv.get("stream-lavf-o", value => lavf = value)
+            tryVerify(() => lavf !== null, 5000)
+            compare(lavf.reconnect, "1")
+        }
+
         function test_mpvQuittingClosesThePlayer() {
             playing()
             player.mpv.command(["quit"])
             tryCompare(closed, "count", 1, 5000)
         }
 
-        // A trailer is its link played as it is, nothing about it asked of
-        // the core or kept; its Play leaves it for the title's own.
-        function test_aTrailerPlaysItsLinkAndLeavesForTheTitle() {
+        // Trailers are their links played in order as they are, nothing
+        // about them asked of the core or kept, nor the core's reconnects;
+        // their Play leaves them for the title's own.
+        function test_trailersPlayTheirLinksAndLeaveForTheTitle() {
             let played = 0
             player = createTemporaryObject(playerComponent, root, {
                 downloadId: "", name: "Nosferatu",
-                trailer: { url: fakeCore.address + "/trailer", play: "Play", played: () => ++played } })
+                trailer: { urls: [fakeCore.address + "/trailer", fakeCore.address + "/trailer?second"],
+                           play: "Play", played: () => ++played } })
             closed.target = player
             closed.clear()
             tryVerify(() => player.mpv.hasPicture, 10000, "a picture")
+            let lavf = null
+            player.mpv.get("stream-lavf-o", value => lavf = value)
+            tryVerify(() => lavf !== null, 5000)
+            compare(Object.keys(lavf).length, 0, JSON.stringify(lavf))
             mouseMove(player, 640, 360)
+            const next = findChild(player, "nextButton")
+            verify(next.visible, "a second trailer to go to")
+            mouseClick(next)
+            tryCompare(player.mpv, "playlistPos", 1, 5000)
+            verify(!next.visible, "the last one")
             const play = findChild(player, "trailerPlay")
             verify(waitForPolish(play.parent))
             mouseClick(play)
             tryCompare(closed, "count", 1, 5000)
             compare(played, 1)
-            verify(!requests().some(r => r.startsWith("GET /api/v1/downloads/") || r.startsWith("PUT /api/v1/progress")),
+            // What a trailer would ask names no download. A request for one is
+            // the last test's player's, which can still be on its way.
+            verify(!requests().some(r => /^\w+ \/api\/v1\/(downloads|progress)\/($|[\/? ])/.test(r)),
                    requests().join("\n"))
         }
 
@@ -248,6 +270,7 @@ Item {
             let clip = null
             tryVerify(() => (clip = findChild(page, "trailerPreview"))?.hasPicture, 10000, "the trailer in the banner")
             verify(clip.muted)
+            tryCompare(clip, "fit", 1, 5000, "filling the banner")
             mouseClick(findChild(page, "trailerSound"))
             tryVerify(() => !clip.muted, 5000, "sound on")
 
@@ -258,6 +281,26 @@ Item {
             tryVerify(() => page.visible, 5000)
             wait(150)
             verify(!findChild(page, "trailerPreview"), "not back after the film")
+            MpvFacts.ytdl = ytdl
+        }
+
+        // An upright trailer plays in the banner whole: filling it would
+        // leave a sliver.
+        function test_anUprightTrailerPlaysWholeInTheBanner() {
+            const film = { id: "tt0063350", kind: "movie", title: "Nosferatu", year: 1922,
+                           trailers: [fakeCore.address + "/trailer-upright"] }
+            fakeCore.answer("GET", "/api/v1/items/tt0063350", 200, film)
+            const ytdl = MpvFacts.ytdl
+            MpvFacts.ytdl = true
+            const win = createTemporaryObject(windowComponent, null)
+            tryVerify(() => win.visible, 5000)
+            Opening.title(film)
+            let page = null
+            tryVerify(() => (page = findChild(win.contentItem, "title")) !== null, 5000, "the title page")
+            page.previewDelay = 50
+            let clip = null
+            tryVerify(() => (clip = findChild(page, "trailerPreview"))?.hasPicture, 10000, "the trailer in the banner")
+            tryCompare(clip, "fit", 0, 5000, "fitted, not filling")
             MpvFacts.ytdl = ytdl
         }
 
