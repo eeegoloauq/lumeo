@@ -57,10 +57,12 @@ ShellPage {
     }
     // The episode the copies are listed for: the current one, once a run of
     // clicks along the season has settled on it, so a provider is not asked
-    // for every card on the way.
+    // for every card on the way. Unpicked, it follows at once: as the title
+    // arrives these bindings pass through stale values (season 0, a special,
+    // for a moment), and the list is asked only once they settle.
     property var listed: null
     onCurrentChanged: {
-        if (!listed)
+        if (!listed || !picked)
             listed = current
         else
             settle.restart()

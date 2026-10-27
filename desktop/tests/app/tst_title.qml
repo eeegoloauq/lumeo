@@ -192,6 +192,26 @@ Item {
             tryCompare(findChild(shell, "titlePlay"), "text", "Play S1 E3")
         }
 
+        // Continue watching plays where watching goes on. The page passes
+        // through season 0 as the title arrives, and that once started a special.
+        function test_playFromContinueStartsTheNextEpisodeNotASpecial() {
+            const base = fakeCore.read("items.json").find(item => item.kind === "series")
+            const show = Object.assign({}, base, { episodes: base.episodes.concat([{ season: 0, number: 1 }]) })
+            fakeCore.answer("GET", "/api/v1/items/" + show.id, 200, show)
+            fakeCore.answer("GET", "/api/v1/progress/" + show.id, 200, {
+                entries: [{ season: 0, episode: 1, position: 300, duration: 1400, watched: false,
+                            updatedAt: "2026-09-01T00:00:00Z" },
+                          { season: 1, episode: 3, position: 0, duration: 2900, watched: true,
+                            updatedAt: "2026-09-02T00:00:00Z" }],
+                next: { season: 1, episode: 4, position: 0, duration: 0, watched: false,
+                        updatedAt: "2026-09-02T00:00:00Z" } })
+            fakeCore.answer("POST", "/api/v1/downloads", 201, { id: "d1", itemId: show.id, state: "active" })
+            shell.open(show, true, null)
+            watched.wait(5000)
+            verify(posted().length === 1 && posted()[0].includes('"season":1') && posted()[0].includes('"episode":4'),
+                   posted()[0])
+        }
+
         // A pick is the title's release, which the core keeps, so the next
         // episode goes on from it; nothing starts.
         function test_aCopyPickedInTheDrawerIsTheTitlesRelease() {
