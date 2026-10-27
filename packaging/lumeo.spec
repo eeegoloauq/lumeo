@@ -39,6 +39,10 @@ BuildRequires:  libappstream-glib
 # anyway for anyone who does not. The player says which decoder is missing, or
 # which one is going to lose the sound, and how to get it.
 Recommends:     libavcodec-freeworld
+# Trailers play through yt-dlp, which needs a JavaScript runtime for YouTube;
+# Fedora's yt-dlp turns on Node for it but does not pull it in.
+Recommends:     yt-dlp
+Recommends:     nodejs
 
 %description
 Lumeo is a media library, acquisition and playback platform: one Go binary

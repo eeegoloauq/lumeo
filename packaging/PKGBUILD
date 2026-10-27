@@ -21,6 +21,11 @@ depends=(
   xcb-util-cursor xcb-util-image xcb-util-keysyms xcb-util-renderutil
   xcb-util-wm zlib zstd
 )
+# Trailers play through yt-dlp, which needs a JavaScript runtime for YouTube.
+optdepends=(
+  'yt-dlp: trailers'
+  'deno: trailers from YouTube, with yt-dlp'
+)
 # The files go in as the tarball has them, so the package ships the same
 # bytes as every other release file. The Go core is built stripped, and
 # nothing here carries debug information to split off.
