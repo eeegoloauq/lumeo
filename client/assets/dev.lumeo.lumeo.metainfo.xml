@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.14" date="2026-10-27" type="development">
+      <description>
+        <ul>
+          <li>The Trailer button plays all of a title's trailers in turn; the bar shows which one, and the next button skips to the next.</li>
+          <li xml:lang="ru">Кнопка «Трейлер» играет все трейлеры тайтла по очереди: в панели видно, какой идёт, а кнопка «Следующий» переключает на следующий.</li>
+          <li>The trailer behind a title's page fills the banner, without bars at the sides.</li>
+          <li xml:lang="ru">Трейлер на фоне страницы тайтла заполняет баннер, без полей по бокам.</li>
+          <li>Trailers appear on titles that were already in the catalog.</li>
+          <li xml:lang="ru">Трейлеры появляются и у тайтлов, которые уже были в каталоге.</li>
+          <li>Trailers start in seconds instead of half a minute.</li>
+          <li xml:lang="ru">Трейлеры запускаются за секунды, а не за полминуты.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.13" date="2026-10-27" type="development">
       <description>
         <ul>
