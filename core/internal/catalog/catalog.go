@@ -46,6 +46,7 @@ type MediaItem struct {
 	IMDbRating  float64     `json:"imdbRating,omitempty"`
 	ExternalIDs ExternalIDs `json:"externalIds,omitempty"`
 	Episodes    []Episode   `json:"episodes,omitempty"` // series only, and only from Meta
+	Trailers    []string    `json:"trailers,omitempty"` // watch links, only from Meta
 }
 
 // IMDbID is the id every source provider we have speaks.

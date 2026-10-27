@@ -228,6 +228,11 @@ func TestMetaSeriesEpisodes(t *testing.T) {
 				"releaseInfo": "2008–2013",
 				"cast": ["Bryan Cranston"],
 				"genres": ["Crime", "Drama"],
+				"trailers": [
+					{"source": "HhesaQXLuRY", "type": "Trailer"},
+					{"source": "x\"&vf=lavfi", "type": "Trailer"},
+					{"source": "XZ8daibM3AE", "type": "Clip"}
+				],
 				"videos": [
 					{"name": "Grilled", "season": 2, "episode": 2, "number": 2, "overview": "Tuco", "thumbnail": "t2", "released": "2009-03-16T05:00:00.000Z", "firstAired": "2009-03-16T05:00:00.000Z"},
 					{"name": "Pilot", "season": 1, "episode": 1, "number": 1, "overview": "Cancer", "thumbnail": "t1", "released": "2008-01-21T05:00:00.000Z"},
@@ -261,6 +266,10 @@ func TestMetaSeriesEpisodes(t *testing.T) {
 	}
 	if len(item.Directors) != 0 {
 		t.Errorf("director null: %v", item.Directors)
+	}
+	// Trailers alone, and only an id of the right shape.
+	if len(item.Trailers) != 1 || item.Trailers[0] != "https://www.youtube.com/watch?v=HhesaQXLuRY" {
+		t.Errorf("trailers: %v", item.Trailers)
 	}
 	if len(item.Episodes) != 4 {
 		t.Fatalf("episodes: %d", len(item.Episodes))

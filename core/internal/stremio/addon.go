@@ -483,6 +483,10 @@ type metaObject struct {
 	TVDBID      anyString   `json:"tvdb_id"`
 	ReleaseInfo string      `json:"releaseInfo"`
 	Videos      []metaVideo `json:"videos"`
+	Trailers    []struct {
+		Source string `json:"source"`
+		Type   string `json:"type"`
+	} `json:"trailers"`
 }
 
 type metaVideo struct {
@@ -632,7 +636,13 @@ func escapeExtra(v string) string {
 	return strings.ReplaceAll(url.QueryEscape(v), "+", "%20")
 }
 
-func (m metaObject) toItem(withEpisodes bool) catalog.MediaItem {
+// youTubeID is the shape of a video id. An addon's trailer is a stranger's
+// text, so the player gets a link built here, never one the addon wrote.
+var youTubeID = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
+
+// toItem with [full], from Meta: what only the title's page needs too, its
+// episodes and trailers.
+func (m metaObject) toItem(full bool) catalog.MediaItem {
 	item := catalog.MediaItem{
 		Kind:       catalog.Kind(m.Type),
 		Title:      m.Name,
@@ -662,7 +672,14 @@ func (m metaObject) toItem(withEpisodes bool) catalog.MediaItem {
 	if len(ids) > 0 {
 		item.ExternalIDs = ids
 	}
-	if withEpisodes && len(m.Videos) > 0 {
+	if full {
+		for _, t := range m.Trailers {
+			if t.Type == "Trailer" && youTubeID.MatchString(t.Source) {
+				item.Trailers = append(item.Trailers, "https://www.youtube.com/watch?v="+t.Source)
+			}
+		}
+	}
+	if full && len(m.Videos) > 0 {
 		item.Episodes = make([]catalog.Episode, 0, len(m.Videos))
 		for _, v := range m.Videos {
 			n := v.Episode
