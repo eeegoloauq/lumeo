@@ -119,6 +119,11 @@ app. This revises "No browser playback" in decisions/foundations.md.
 ## Shipping
 
 - Copr, arm64, a self-hosted Flatpak remote.
+- `[?]` The Linux CI jobs' apt packages baked into an image on GHCR, pinned
+  by digest in `ci.yml` and `release.yml`: apt then runs when a dependency
+  changes, not on every run, and a slow Ubuntu mirror stops holding up a tag
+  (beta.12's apt step hung past its limit). Until then a stalled run is
+  re-run.
 - Windows: a signed installer if SmartScreen costs users; Snap Layouts on the
   maximise button.
 - Keep the Windows libmpv in a repository the push mirror does not own, at the
