@@ -81,7 +81,7 @@ func TestUpsertItemsKeepsStableIDAndSkipsUnidentifiedItems(t *testing.T) {
 	}
 }
 
-func TestUpsertItemsMergesMetadataAndKeepsDetailedData(t *testing.T) {
+func TestCatalogUpsertKeepsDetailedItem(t *testing.T) {
 	db := openTestDB(t, filepath.Join(t.TempDir(), "catalog.db"))
 	defer db.Close()
 	ctx := context.Background()
@@ -117,8 +117,8 @@ func TestUpsertItemsMergesMetadataAndKeepsDetailedData(t *testing.T) {
 	if !state.Found || !state.Detailed {
 		t.Fatalf("state = %+v, want found and detailed", state)
 	}
-	if item.Title != "Catalog title" || item.Overview != "Detailed overview" {
-		t.Fatalf("merged text fields = title %q, overview %q", item.Title, item.Overview)
+	if item.Title != "Detailed title" || item.Overview != "Detailed overview" {
+		t.Fatalf("text fields = title %q, overview %q, want Meta's kept past a catalog row", item.Title, item.Overview)
 	}
 	if len(item.Episodes) != 1 || item.Episodes[0].Title != "Pilot" {
 		t.Fatalf("episodes = %+v, want detailed episodes preserved", item.Episodes)
@@ -140,7 +140,7 @@ func TestUpsertItemsAddsExternalIDsFromMeta(t *testing.T) {
 		t.Fatalf("catalog upsert: %v", err)
 	}
 	updated, err := db.UpsertItems(ctx, catalog.NamespaceIMDb, []catalog.MediaItem{{
-		ExternalIDs: catalog.ExternalIDs{
+		Kind: catalog.KindMovie, Title: "Movie", ExternalIDs: catalog.ExternalIDs{
 			catalog.NamespaceIMDb: "tt-movie",
 			catalog.NamespaceTMDB: "300",
 			catalog.NamespaceTVDB: "400",
@@ -165,6 +165,41 @@ func TestUpsertItemsAddsExternalIDsFromMeta(t *testing.T) {
 	}
 	if _, found, err := db.ItemID(ctx, catalog.NamespaceIMDb, "tt-other"); err != nil || found {
 		t.Fatalf("ItemID of an unseen title = %v, %v; want not found", found, err)
+	}
+}
+
+func TestUpsertItemsKeepsTrailersFromMeta(t *testing.T) {
+	db := openTestDB(t, filepath.Join(t.TempDir(), "catalog.db"))
+	defer db.Close()
+	ctx := context.Background()
+	ids := catalog.ExternalIDs{catalog.NamespaceIMDb: "tt-movie"}
+	trailer := "https://www.youtube.com/watch?v=NKYea63tQmI"
+
+	if _, err := db.UpsertItems(ctx, catalog.NamespaceIMDb, []catalog.MediaItem{{
+		Kind: catalog.KindMovie, Title: "Movie", ExternalIDs: ids,
+	}}, false); err != nil {
+		t.Fatalf("catalog upsert: %v", err)
+	}
+	detailed, err := db.UpsertItems(ctx, catalog.NamespaceIMDb, []catalog.MediaItem{{
+		Kind: catalog.KindMovie, Title: "Movie", ExternalIDs: ids, Trailers: []string{trailer},
+	}}, true)
+	if err != nil {
+		t.Fatalf("metadata upsert: %v", err)
+	}
+	if len(detailed[0].Trailers) != 1 || detailed[0].Trailers[0] != trailer {
+		t.Fatalf("returned trailers = %v, want the one from meta", detailed[0].Trailers)
+	}
+	if _, err := db.UpsertItems(ctx, catalog.NamespaceIMDb, []catalog.MediaItem{{
+		Kind: catalog.KindMovie, Title: "Movie", ExternalIDs: ids,
+	}}, false); err != nil {
+		t.Fatalf("second catalog upsert: %v", err)
+	}
+	item, _, err := db.Item(ctx, detailed[0].ID)
+	if err != nil {
+		t.Fatalf("read item: %v", err)
+	}
+	if len(item.Trailers) != 1 || item.Trailers[0] != trailer {
+		t.Fatalf("stored trailers = %v, want kept past a catalog upsert", item.Trailers)
 	}
 }
 

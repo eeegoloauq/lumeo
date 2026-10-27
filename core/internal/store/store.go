@@ -141,21 +141,25 @@ func (d *DB) UpsertItems(ctx context.Context, namespace string, items []catalog.
 			return nil, err
 		}
 
-		var merged catalog.MediaItem
+		var stored catalog.MediaItem
+		var storedDetailed bool
 		if found {
-			stored, err := itemInTx(ctx, tx, itemID)
-			if err != nil {
-				return nil, err
-			}
-			merged = mergeItems(stored, incoming)
+			stored, storedDetailed, err = itemInTx(ctx, tx, itemID)
 		} else {
 			itemID, err = newItemID()
-			if err != nil {
-				return nil, err
-			}
-			merged = cloneItem(incoming)
-			merged.ID = itemID
 		}
+		if err != nil {
+			return nil, err
+		}
+		// A row is one answer whole, so a field the source drops is gone and
+		// a new field needs nothing here. A catalog row lacks what only Meta
+		// has, the episodes and trailers, so it leaves Meta's answer be.
+		merged := incoming
+		if storedDetailed && !detailed {
+			merged = stored
+		}
+		merged.ID = itemID
+		merged.ExternalIDs = mergeMaps(stored.ExternalIDs, incoming.ExternalIDs)
 
 		payload, err := json.Marshal(merged)
 		if err != nil {
@@ -322,16 +326,17 @@ func findItemID(ctx context.Context, q rowQuerier, namespace, externalID string)
 	return id, true, nil
 }
 
-func itemInTx(ctx context.Context, tx *sql.Tx, id string) (catalog.MediaItem, error) {
+func itemInTx(ctx context.Context, tx *sql.Tx, id string) (catalog.MediaItem, bool, error) {
 	var payload []byte
-	if err := tx.QueryRowContext(ctx, "SELECT payload FROM items WHERE id = ?", id).Scan(&payload); err != nil {
-		return catalog.MediaItem{}, fmt.Errorf("read item %q: %w", id, err)
+	var detailed bool
+	if err := tx.QueryRowContext(ctx, "SELECT payload, detailed FROM items WHERE id = ?", id).Scan(&payload, &detailed); err != nil {
+		return catalog.MediaItem{}, false, fmt.Errorf("read item %q: %w", id, err)
 	}
 	item, err := decodeItem(payload)
 	if err != nil {
-		return catalog.MediaItem{}, fmt.Errorf("decode item %q: %w", id, err)
+		return catalog.MediaItem{}, false, fmt.Errorf("decode item %q: %w", id, err)
 	}
-	return item, nil
+	return item, detailed, nil
 }
 
 func decodeItem(payload []byte) (catalog.MediaItem, error) {
@@ -346,65 +351,6 @@ func newItemID() (string, error) {
 		return "", fmt.Errorf("generate item id: %w", err)
 	}
 	return hex.EncodeToString(value[:]), nil
-}
-
-func cloneItem(item catalog.MediaItem) catalog.MediaItem {
-	cloned := item
-	cloned.ExternalIDs = mergeMaps(nil, item.ExternalIDs)
-	cloned.Genres = append([]string(nil), item.Genres...)
-	cloned.Cast = append([]string(nil), item.Cast...)
-	cloned.Directors = append([]string(nil), item.Directors...)
-	cloned.Episodes = append([]catalog.Episode(nil), item.Episodes...)
-	return cloned
-}
-
-func mergeItems(stored, incoming catalog.MediaItem) catalog.MediaItem {
-	merged := cloneItem(stored)
-	merged.ID = stored.ID
-	if incoming.Kind != "" {
-		merged.Kind = incoming.Kind
-	}
-	if incoming.Title != "" {
-		merged.Title = incoming.Title
-	}
-	if incoming.Year != 0 {
-		merged.Year = incoming.Year
-	}
-	if incoming.YearEnd != 0 {
-		merged.YearEnd = incoming.YearEnd
-	}
-	if incoming.Overview != "" {
-		merged.Overview = incoming.Overview
-	}
-	if incoming.Poster != "" {
-		merged.Poster = incoming.Poster
-	}
-	if incoming.Background != "" {
-		merged.Background = incoming.Background
-	}
-	if incoming.Logo != "" {
-		merged.Logo = incoming.Logo
-	}
-	if len(incoming.Genres) != 0 {
-		merged.Genres = append([]string(nil), incoming.Genres...)
-	}
-	if len(incoming.Cast) != 0 {
-		merged.Cast = append([]string(nil), incoming.Cast...)
-	}
-	if len(incoming.Directors) != 0 {
-		merged.Directors = append([]string(nil), incoming.Directors...)
-	}
-	if incoming.Runtime != "" {
-		merged.Runtime = incoming.Runtime
-	}
-	if incoming.IMDbRating != 0 {
-		merged.IMDbRating = incoming.IMDbRating
-	}
-	merged.ExternalIDs = mergeMaps(merged.ExternalIDs, incoming.ExternalIDs)
-	if len(incoming.Episodes) != 0 {
-		merged.Episodes = append([]catalog.Episode(nil), incoming.Episodes...)
-	}
-	return merged
 }
 
 func mergeMaps(stored, incoming catalog.ExternalIDs) catalog.ExternalIDs {
