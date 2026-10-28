@@ -174,6 +174,8 @@ private:
   void resume();
   void defineBindings();
   void applyScreenshots();
+  void applyPicture();
+  void rememberPicture();
   void stayAwake();
   void onLoadFailed();
   void onLogged(const QString &line);

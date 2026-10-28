@@ -45,6 +45,7 @@ enum Observed : uint64_t {
   Muted,
   Speed,
   Hwdec,
+  Decoding,
   Buffering,
   Ended,
   Picture,
@@ -374,6 +375,7 @@ MpvItem::MpvItem(QQuickItem *parent)
       {Muted, {"mute", MPV_FORMAT_FLAG}},
       {Speed, {"speed", MPV_FORMAT_DOUBLE}},
       {Hwdec, {"hwdec-current", MPV_FORMAT_STRING}},
+      {Decoding, {"hwdec", MPV_FORMAT_STRING}},
       {Buffering, {"paused-for-cache", MPV_FORMAT_FLAG}},
       {Ended, {"eof-reached", MPV_FORMAT_FLAG}},
       {Picture, {"video-out-params", MPV_FORMAT_NODE}},
@@ -657,6 +659,9 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
     break;
   case Hwdec:
     update(m_hwdec, text, &MpvItem::hwdecChanged);
+    break;
+  case Decoding:
+    update(m_decoding, text, &MpvItem::decodingChanged);
     break;
   case Buffering:
     update(m_buffering, flag, &MpvItem::bufferingChanged);

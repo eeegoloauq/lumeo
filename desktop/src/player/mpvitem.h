@@ -38,6 +38,8 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(bool muted READ muted NOTIFY mutedChanged)
   Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
   Q_PROPERTY(QString hwdec READ hwdec NOTIFY hwdecChanged)
+  // The decoding asked for, mpv's `hwdec`: "no" for software.
+  Q_PROPERTY(QString decoding READ decoding NOTIFY decodingChanged)
   // Waiting for the cache to fill, not paused or seeking.
   Q_PROPERTY(bool buffering READ buffering NOTIFY bufferingChanged)
   // `keep-open` holds the last frame; a seek back clears it.
@@ -87,6 +89,7 @@ public:
   bool muted() const { return m_muted; }
   double speed() const { return m_speed; }
   QString hwdec() const { return m_hwdec; }
+  QString decoding() const { return m_decoding; }
   bool buffering() const { return m_buffering; }
   bool ended() const { return m_ended; }
   bool hasPicture() const { return m_hasPicture; }
@@ -151,6 +154,7 @@ signals:
   void mutedChanged();
   void speedChanged();
   void hwdecChanged();
+  void decodingChanged();
   void bufferingChanged();
   void endedChanged();
   void hasPictureChanged();
@@ -190,6 +194,7 @@ private:
   bool m_muted = false;
   double m_speed = 1;
   QString m_hwdec;
+  QString m_decoding;
   bool m_buffering = false;
   bool m_ended = false;
   bool m_hasPicture = false;

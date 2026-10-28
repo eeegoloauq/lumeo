@@ -74,6 +74,9 @@ void Playback::setMpv(MpvItem *mpv) {
     if (m_settings)
       m_settings->setVolume(m_mpv->volume());
   });
+  connect(mpv, &MpvItem::fitChanged, this, &Playback::rememberPicture);
+  connect(mpv, &MpvItem::anime4kChanged, this, &Playback::rememberPicture);
+  connect(mpv, &MpvItem::decodingChanged, this, &Playback::rememberPicture);
   // A binding to `quit` ends mpv; the film goes with it rather than leaving
   // a dead picture.
   connect(mpv, &MpvItem::shutdown, this, &Playback::close);
@@ -207,6 +210,7 @@ void Playback::open() {
     // A dropped connection to the core resumes rather than ending the film;
     // a trailer's HLS segments would wait out every reconnect delay.
     m_mpv->set("stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=30");
+    applyPicture();
     m_mpv->open(m_core->url(path).toString(), m_core->headers());
     m_tracks->opened();
     m_next->opened();
@@ -303,6 +307,35 @@ void Playback::defineBindings() {
     for (const QVariant &binding : value.toList())
       m_mpv->bound.insert(binding.toMap().value("key").toString());
   });
+}
+
+// The title's picture as it was last left on this machine, set before the
+// file loads so that the decoder starts as it stays. Nothing for a title left
+// at the defaults: an mpv profile's own settings stand.
+void Playback::applyPicture() {
+  const QVariantMap picture = m_settings->picture(m_download.value("itemId").toString());
+  if (picture.contains("fit"))
+    m_mpv->setFit(picture.value("fit").toInt());
+  if (picture.contains("anime4k"))
+    m_mpv->setAnime4k(picture.value("anime4k").toString());
+  if (picture.contains("hwdec"))
+    m_mpv->set("hwdec", picture.value("hwdec").toString());
+}
+
+// Changed by the menu or a key: kept for the title, as mpv has it now.
+void Playback::rememberPicture() {
+  const QString itemId = m_download.value("itemId").toString();
+  if (!m_opened || m_closing || !m_mpv || itemId.isEmpty())
+    return;
+  QVariantMap picture;
+  if (m_mpv->fit() != 0)
+    picture["fit"] = m_mpv->fit();
+  // "other" is shaders of the viewer's own, which a profile sets anyway.
+  if (!m_mpv->anime4k().isEmpty() && m_mpv->anime4k() != "other")
+    picture["anime4k"] = m_mpv->anime4k();
+  if (m_mpv->decoding() == "no")
+    picture["hwdec"] = "no";
+  m_settings->setPicture(itemId, picture);
 }
 
 void Playback::stayAwake() {

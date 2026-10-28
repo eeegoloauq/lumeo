@@ -87,6 +87,10 @@ public:
   QString textScale() const;
   void setTextScale(const QString &scale);
   bool textScaleWaits() const { return textScale() != m_startScale; }
+  // A title's fit, Anime4K and decoding as last left: what this machine's
+  // screen and graphics make of it. Only what differs from the defaults.
+  QVariantMap picture(const QString &itemId) const;
+  void setPicture(const QString &itemId, const QVariantMap &picture);
   // A finished download stays in the downloads panel for a day, or until
   // its Clear: a fact of this screen, not of the core's disk.
   Q_INVOKABLE void clearFinished();

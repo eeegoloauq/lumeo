@@ -76,6 +76,13 @@ Item {
             verify(waitForRendering(menu()))
         }
 
+        // To the list of pages, laid out at its own width.
+        function back() {
+            click("menuBack")
+            tryCompare(menu(), "page", "")
+            verify(waitForRendering(menu()))
+        }
+
         function page(name) {
             click("page-" + name)
             tryCompare(menu(), "page", name)
@@ -110,10 +117,39 @@ Item {
             tryCompare(player.mpv, "fit", 1)
             click("fit-2")
             tryCompare(player.mpv, "fit", 2)
+            // Back as it was, since the film keeps it.
+            click("fit-0")
+            tryCompare(player.mpv, "fit", 0)
             click("anime4k-a")
             tryCompare(player.mpv, "anime4k", "a")
             click("anime4k-off")
             tryCompare(player.mpv, "anime4k", "")
+        }
+
+        // Kept for the film on this machine, and set before it loads again.
+        function test_thePictureIsKeptForTheFilm() {
+            playing_()
+            openGear()
+            page("picture")
+            click("fit-1")
+            click("anime4k-a")
+            back()
+            page("decoding")
+            click("software")
+            tryVerify(() => player.mpv.fit === 1 && player.mpv.anime4k === "a" && player.mpv.decoding === "no")
+            player.destroy()
+            playing_()
+            compare(player.mpv.fit, 1)
+            compare(player.mpv.anime4k, "a")
+            compare(player.mpv.decoding, "no")
+            openGear()
+            page("picture")
+            click("fit-0")
+            click("anime4k-off")
+            back()
+            page("decoding")
+            click("hardware")
+            tryVerify(() => player.mpv.fit === 0 && player.mpv.anime4k === "" && player.mpv.decoding !== "no")
         }
 
         function test_aChapterIsJumpedTo() {
@@ -132,6 +168,8 @@ Item {
             page("decoding")
             click("software")
             tryCompare(player.mpv, "hwdec", "no")
+            click("hardware")
+            tryVerify(() => player.mpv.decoding !== "no")
         }
 
         // The keys are read from this mpv, ours with the stored step among

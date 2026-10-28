@@ -134,6 +134,19 @@ QLocale LocalSettings::locale() const {
   return language().isEmpty() ? QLocale() : QLocale(language());
 }
 
+QVariantMap LocalSettings::picture(const QString &itemId) const {
+  return m_values.value("pictures").toObject().value(itemId).toObject().toVariantMap();
+}
+
+void LocalSettings::setPicture(const QString &itemId, const QVariantMap &picture) {
+  QJsonObject pictures = m_values.value("pictures").toObject();
+  if (picture.isEmpty())
+    pictures.remove(itemId);
+  else
+    pictures.insert(itemId, QJsonObject::fromVariantMap(picture));
+  set("pictures", pictures);
+}
+
 void LocalSettings::set(const QString &key, const QJsonValue &value) {
   if (m_values.value(key) == value)
     return;
@@ -153,7 +166,8 @@ void LocalSettings::write() {
 
 void LocalSettings::resetChoices() {
   const QString language = this->language();
-  for (const char *key : {"timelinePreviews", "screenshotsDir", "language", "background", "autostart", "textScale"})
+  for (const char *key : {"timelinePreviews", "screenshotsDir", "language", "background", "autostart", "textScale",
+                          "pictures"})
     m_values.remove(key);
   emit changed();
   if (!language.isEmpty())

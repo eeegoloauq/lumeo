@@ -190,6 +190,13 @@ film nobody has seen.
 so a drag along the bar that wanders above it does not hide them under the
 thumb still being dragged; the half second starts at the release.
 
+**A title keeps its picture, not its sound.** The fit, Anime4K and decoding
+picked while a title plays come back with its next episode: they belong to
+the release (its black bars, its line art, a file the graphics decode wrong)
+and to this machine's screen and graphics, so they are kept in client.json,
+not in the core. Volume and speed are not: the volume follows the room and the
+hour, and a series that kept last night's quiet would start quiet by day.
+
 **A playing film keeps the screen on.** mpv's `stop-screensaver` works through
 a window of mpv's own, which a render API client has none of, so the player
 holds it: `SetThreadExecutionState` on Windows, and on Linux the desktop
