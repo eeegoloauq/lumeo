@@ -79,8 +79,8 @@ QString ownLabel(const QString &cmd) {
 QString commandLabel(const QString &cmd) {
   static const QHash<QString, const char *> labels = {
       {"cycle pause", "playerCommandPause"},
-      {"no-osd seek 1 exact", "playerCommandExactForward"},
-      {"no-osd seek -1 exact", "playerCommandExactBackward"},
+      {"seek 1 exact", "playerCommandExactForward"},
+      {"seek -1 exact", "playerCommandExactBackward"},
       {"cycle mute", "playerCommandMute"},
       {"multiply speed 1/1.1", "playerCommandSlower"},
       {"multiply speed 1.1", "playerCommandFaster"},
@@ -125,7 +125,7 @@ QString sentence(const QString &comment) {
 // What has no label of ours and no comment of mpv's: our own arrows, said
 // the way mpv says its own, and a plain `add`.
 QString plain(const QString &cmd) {
-  static const QRegularExpression seek("^seek (-?)(\\d+)$");
+  static const QRegularExpression seek("^seek (-?)(\\d+)(?: exact)?$");
   const QRegularExpressionMatch byTime = seek.match(cmd);
   if (byTime.hasMatch()) {
     const int seconds = byTime.captured(2).toInt();
@@ -501,6 +501,12 @@ QStringList MpvFacts::ownBindings(int seekStep) {
       "MBTN_LEFT_DBL script-message lumeo fullscreen",
       QString("LEFT seek -%1").arg(seekStep),
       QString("RIGHT seek %1").arg(seekStep),
+      // mpv's exact seeks, without their `no-osd`: every seek shows where
+      // it landed.
+      "Shift+LEFT seek -1 exact",
+      "Shift+RIGHT seek 1 exact",
+      "Shift+DOWN seek -5 exact",
+      "Shift+UP seek 5 exact",
   };
 }
 

@@ -59,7 +59,9 @@ default), which is why they were absent: the player kept a table of a dozen
 keys of its own and dropped the rest, and had fewer keys than mpv while sitting
 on top of it. The bar is read back from mpv's properties — `volume`, `mute`,
 `speed`, `sub-delay`, `fullscreen` — so the key and the control always agree,
-and what is remembered for the next film is what mpv ended up at.
+and what is remembered for the next film is what mpv ended up at. Shift with
+the arrows is mpv's exact seek bound again without its `no-osd`: every seek
+says where it landed.
 
 Down and up, not a `keypress` per event the keyboard sends, because the
 repeat has to be mpv's: only mpv knows that a held arrow seeks again and a
