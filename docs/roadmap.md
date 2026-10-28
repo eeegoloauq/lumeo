@@ -4,14 +4,6 @@ What is next, not what was done: done work is in git and, where it set a
 rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle
 before code.
 
-## Next
-
-1. Check the Qt client on what nothing here runs: Windows (below), NVIDIA
-   under Wayland (an hour's pause, screenshots of an NVDEC film,
-   video-output.md, Open), KDE's tray and GNOME's notification.
-2. Skip the opening and ending of files whose chapters are unnamed, found by
-   the audio the episodes of a season share (`[?]`).
-
 ## Remote core
 
 The client already speaks HTTP to the core, so a core on another machine is a
@@ -130,13 +122,8 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## To check by hand
 
-Windows 10 and 11, on the Qt client: the installer over a Flutter-era
-install, the title bar and fullscreen, a second launch and "Open with", a
-`lumeo://` link, the core starting and stopping with the app, the tray, close
-to the background and login start, playback and seeking, mpv's console and
-statistics, subtitles and screenshots, the picture modes, the keyboard
-after closing to the tray, and trailers: the bundled yt-dlp with Deno playing
-one, its daily update, and no console window flashing up for either.
+A film playing past the screen's blanking time keeps it on: Windows, GNOME
+and KDE.
 
 A filtered line without a VPN: blank posters fill in within about 30 s.
 

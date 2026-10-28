@@ -24,7 +24,8 @@ rejected option is usually the tempting one. How the code is laid out is in
 
 Kept here so it stays not-done: an own decoder or codec stack, a transcoding
 matrix, live TV, DLNA, multi-user permissions, a plugin marketplace,
-Chromecast/AirPlay, intro detection, recommendations, every platform at once.
+Chromecast/AirPlay, intro detection (an opening in an unnamed chapter is a
+PgDn away), recommendations, every platform at once.
 In the client: a gallery of extra stills, a sleep timer, picture-in-picture on
 GNOME Wayland (a client cannot keep its window on top there), dimming the
 picture beyond the bottom gradient, episode trailers, a universe tree for film
