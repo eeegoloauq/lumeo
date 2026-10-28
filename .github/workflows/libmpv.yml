@@ -1,5 +1,5 @@
 # Mirrors one libmpv build for Windows into a release of this repository,
-# where packaging/build-windows.sh takes it from. Windows has no libmpv of its
+# where packaging/fetch-libmpv.sh takes it from. Windows has no libmpv of its
 # own and mpv publishes none to build against, so the bundle carries
 # shinchiro's (mpv-winbuild-cmake), the build mpv's installation page names
 # first; that repository keeps about a month of daily builds, and a release

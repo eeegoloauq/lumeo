@@ -9,15 +9,6 @@ cd "$(dirname "$0")/.."
 version=${1:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo 0.1.0)}
 bundle=dist/bundle
 
-# libmpv: shinchiro's build, mirrored into this repository by libmpv.yml and
-# checked against the digest its own release page lists. A bump is these
-# four lines and one run of that workflow; the commit is the one in the
-# file's name, in full.
-mpv_date=20261021
-mpv_file=mpv-dev-x86_64-20261021-git-e471496c56.7z
-mpv_sha256=efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633
-mpv_commit=e471496c56f0f49c133bd88b50aed62b845f1909
-
 # yt-dlp, which mpv runs for a trailer, and Deno, the JavaScript runtime it
 # needs for YouTube, found beside it. yt-dlp then updates itself
 # (MpvFacts::updateYtdl); 2026.10.21 is the first whose update cannot be
@@ -28,13 +19,10 @@ deno_version=2.9.7
 deno_sha256=a0c3101b4158d1dfb7d6a78a7bf0f3de80c96bb423c152beec8beb22786f2238
 
 rm -rf dist
-mkdir -p dist/mpv dist/deno
+mkdir -p dist/deno
 
 echo "==> libmpv"
-curl -fsSL -o "dist/$mpv_file" \
-  "https://github.com/eeegoloauq/lumeo/releases/download/deps-libmpv-$mpv_date/$mpv_file"
-echo "$mpv_sha256  dist/$mpv_file" | sha256sum -c
-7z x -bd -o"dist/mpv" "dist/$mpv_file" >/dev/null
+packaging/fetch-libmpv.sh dist/mpv
 
 echo "==> client"
 cmake -S desktop -B desktop/build/windows -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
@@ -61,18 +49,8 @@ cp dist/deno/deno.exe "$bundle/bin/"
 # What the licences of the programs the bundle carries ask to go with them.
 # libmpv is GPLv2+: its notice, the licence texts and where its source is.
 echo "==> licences"
-mkdir -p "$bundle/licenses/mpv" "$bundle/licenses/deno"
-for file in Copyright LICENSE.GPL LICENSE.LGPL; do
-  curl -fsSL -o "$bundle/licenses/mpv/$file" \
-    "https://raw.githubusercontent.com/mpv-player/mpv/$mpv_commit/$file"
-done
-cat > "$bundle/licenses/mpv/SOURCE.txt" <<SOURCE
-bin/libmpv-2.dll is mpv, licensed under the GPL version 2 or later (see
-Copyright and LICENSE.GPL here), built from
-https://github.com/mpv-player/mpv/tree/$mpv_commit
-by https://github.com/shinchiro/mpv-winbuild-cmake, whose recipe names every
-library built into it and where its source is. The build is $mpv_file.
-SOURCE
+mkdir -p "$bundle/licenses/deno"
+cp -r dist/mpv/licenses "$bundle/licenses/mpv"
 curl -fsSL -o "$bundle/licenses/deno/LICENSE.md" \
   "https://raw.githubusercontent.com/denoland/deno/v$deno_version/LICENSE.md"
 

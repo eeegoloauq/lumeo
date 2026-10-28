@@ -12,7 +12,7 @@ if(LINUX)
   find_package(Qt6 6.8 REQUIRED COMPONENTS DBus)
 endif()
 # libmpv is the system's on Linux. Windows has none to find: a pinned build
-# is unpacked into MPV_DIR (packaging/build-windows.sh) and ships in the bundle.
+# is unpacked into MPV_DIR (packaging/fetch-libmpv.sh) and ships in the bundle.
 if(WIN32)
   set(MPV_DIR "" CACHE PATH "An unpacked mpv-dev build: libmpv-2.dll, libmpv.dll.a, include/")
   add_library(libmpv SHARED IMPORTED)
