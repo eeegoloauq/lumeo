@@ -54,6 +54,9 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - "Identify as…" for a file matched to the wrong title or none (`[?]`).
 - A copy that is not the episode (another cut, a short), told by mpv's
   `duration` against the catalogue runtime. Only if somebody asks.
+- "Reduce loud sounds", off by default, in Settings › Audio: ffmpeg's
+  `dynaudnorm` through mpv's `af`, nothing to bundle. A release has no
+  loudness standard, and a 5.1 mix folded to stereo buries the voices.
 
 ## Application
 
