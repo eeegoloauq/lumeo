@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.17" date="2026-10-28" type="development">
+      <description>
+        <ul>
+          <li>Fit, Anime4K and decoding are kept for each film and series, and come back with its next episode.</li>
+          <li xml:lang="ru">Заполнение, Anime4K и декодирование запоминаются для каждого фильма и сериала и возвращаются со следующей серией.</li>
+          <li>The screen no longer dims or sleeps while a film plays.</li>
+          <li xml:lang="ru">Экран больше не тускнеет и не засыпает, пока идёт фильм.</li>
+          <li>Pressing → at the end of an episode no longer stops the countdown to the next one.</li>
+          <li xml:lang="ru">Нажатие → в конце серии больше не останавливает отсчёт до следующей.</li>
+          <li>Shift with the arrows shows the time it seeks to, as the arrows alone do.</li>
+          <li xml:lang="ru">Shift со стрелками показывает, куда перемотал, как и просто стрелки.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.16" date="2026-10-27" type="development">
       <description>
         <ul>
