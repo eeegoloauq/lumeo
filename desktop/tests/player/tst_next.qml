@@ -4,7 +4,8 @@ import Lumeo
 
 // What comes after an episode, over a real mpv: e1 is an episode whose last
 // six seconds are a chapter named Ending; d1 is a test card whose chapters
-// are Intro and Story, and names no ending.
+// are Intro and Story, and names no ending, its soundtrack two seconds longer
+// than its picture.
 Item {
     id: root
     width: 1280
@@ -166,6 +167,22 @@ Item {
             tryVerify(() => findChild(player, "nextCard").visible, 10000, "the card over the last frame")
             tryCompare(next, "count", 1, 5000)
             compare(next.signalArguments[0][0], "e2")
+        }
+
+        // A seek forward from the held frame steps back to the last
+        // picture, here seconds before the soundtrack ends: still the end.
+        // Only a seek back leaves it.
+        function test_onlyASeekBackLeavesTheEnd() {
+            playing("d1", { state: "active" })
+            player.playback.next.second = 1000
+            seek(19.5)
+            tryVerify(() => player.mpv.ended && findChild(player, "nextCard").visible, 10000, "the card over the last frame")
+            keyClick(Qt.Key_Right)
+            tryVerify(() => player.mpv.position < 20, 5000, "on the last picture")
+            verify(findChild(player, "nextCard").visible)
+            verify(player.playback.next.secondsLeft >= 0, "still counting down")
+            seek(10)
+            tryVerify(() => !findChild(player, "nextCard").visible, 5000, "the card gone")
         }
 
         function test_theOpeningIsSkipped() {

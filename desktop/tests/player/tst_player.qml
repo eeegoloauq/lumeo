@@ -187,10 +187,10 @@ Item {
             keyClick(Qt.Key_Space)
             tryVerify(() => player.mpv.paused)
             mouseMove(player, player.width / 2, player.height - 30)
-            mouseMove(bar, bar.width * 0.75, bar.height / 2)
-            compare(findChild(bar, "pointedTime").children[0].text, "0:15", "the time it would seek to")
-            mouseClick(bar, bar.width * 0.75, bar.height / 2)
-            tryVerify(() => Math.abs(player.mpv.position - 15) < 0.5, 5000, "sought to three quarters")
+            mouseMove(bar, bar.width / 2, bar.height / 2)
+            compare(findChild(bar, "pointedTime").children[0].text, "0:11", "the time it would seek to")
+            mouseClick(bar, bar.width / 2, bar.height / 2)
+            tryVerify(() => Math.abs(player.mpv.position - 11) < 0.5, 5000, "sought to the middle")
             verify(player.mpv.paused, "still paused")
         }
 

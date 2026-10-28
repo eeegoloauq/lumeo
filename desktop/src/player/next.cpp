@@ -129,22 +129,21 @@ Next::Next(MpvItem *mpv, Core *core, Preferences *preferences, Downloads *downlo
            QObject *parent)
     : QObject(parent), m_mpv(mpv), m_core(core), m_preferences(preferences),
       m_downloads(downloads) {
-  connect(mpv, &MpvItem::positionChanged, this, [this] {
-    // Back from the end: the held frame was not the end after all.
-    if ((m_fileEnded || m_endedAt.isValid()) && m_mpv->position() < m_endedPosition - 1) {
-      m_fileEnded = false;
-      m_endedAt = {};
-      m_countdown.stop();
-    }
-    recompute();
-  });
+  connect(mpv, &MpvItem::positionChanged, this, &Next::recompute);
   connect(mpv, &MpvItem::chaptersChanged, this, &Next::recompute);
   connect(mpv, &MpvItem::hasPictureChanged, this, &Next::recompute);
   // `keep-open` holds the last frame, and eof-reached says so; a seek back
-  // clears it.
+  // clears it. Not the position: a seek forward from the end steps back to
+  // the last frame, seconds before a soundtrack that outlasts the picture.
   connect(mpv, &MpvItem::endedChanged, this, [this] {
-    if (m_mpv->ended())
+    if (m_mpv->ended()) {
       onEnded();
+      return;
+    }
+    m_fileEnded = false;
+    m_endedAt = {};
+    m_countdown.stop();
+    recompute();
   });
   connect(downloads, &Downloads::changed, this, &Next::changed);
   m_countdown.setInterval(100);
