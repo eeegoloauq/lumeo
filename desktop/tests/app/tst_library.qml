@@ -83,6 +83,9 @@ Item {
             compare(findChild(shell, "fresh-" + show.id).line, "S1 E3 · Today")
             compare(findChild(shell, "comingUp-" + show.id).line, "S2 E1 · Tomorrow")
 
+            // The shelves above laid out first, or they push the tile away
+            // between the press and the release.
+            verify(waitForPolish(listed.parent.parent))
             mouseClick(listed)
             tryCompare(shell, "page", "title")
             fakeCore.answer("GET", "/api/v1/list", 200, { items: [] })
