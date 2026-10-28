@@ -26,8 +26,9 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
   the test shortens (`Core::patience`, `Next.second`); a check that something did not happen
   waits one or two cycles of the timer behind it; a setting is read back from mpv rather than
   proved by waiting for its effect.
-- Nothing here builds or runs the Windows client, so a `Q_OS_WIN` branch, `lumeo.iss` or
-  `build-windows.sh` is checked on a real Windows machine; the release workflow is its first build.
+- Nothing here builds or runs the Windows client. GitHub CI runs the units and app tests on Windows
+  on every client push; `lumeo.iss`, `build-windows.sh` and what a real desktop shows (tray,
+  focus, GPU) are checked on a real Windows machine, the release workflow being their first build.
 
 ## CI
 

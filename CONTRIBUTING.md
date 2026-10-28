@@ -67,9 +67,10 @@ file. GitHub CI runs all of it on every push to `main` that touches the client a
 and the release is published only when it passes. On a headless Weston without a GPU,
 `tool/no-libva-wayland.c` is preloaded, as `player-test.sh` does.
 
-Nothing here builds or runs the Windows client (`packaging/build-windows.sh` runs on Windows only),
-so a change to a Windows branch (`Q_OS_WIN`) or to the installer needs checking on a Windows
-machine; the release workflow is its first build.
+Nothing here builds or runs the Windows client. GitHub CI builds it and runs the units and app tests
+on Windows on every push to `main` that touches the client; the player tests, the installer
+(`build-windows.sh`, `lumeo.iss`) and anything a real desktop shows (tray, focus, GPU) still need
+checking on a Windows machine.
 
 ## The player
 
@@ -123,7 +124,7 @@ once they are checked.
 `build-rpm.sh` and `build-arch.sh` package that tarball, `build-windows.sh` the Windows installer.
 The Windows libmpv is a pinned build mirrored into this repository's releases by
 `.github/workflows/libmpv.yml`; a bump is that workflow run once and the four lines in
-`build-windows.sh`.
+`fetch-libmpv.sh`.
 
 ## Share site
 

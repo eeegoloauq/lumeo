@@ -5,10 +5,11 @@
 # Hence the path filter too. A commit that only touches docs, packaging or the
 # core builds nothing here, which is the common case.
 #
-# One job builds desktop/ once and runs every layer on it: units and app
-# tests offscreen, then the player tests on headless Weston with a real
-# libmpv (docs/decisions/testing.md). release.yml calls this too and
-# publishes only when it passes.
+# The desktop job builds desktop/ once and runs every layer on it: units and
+# app tests offscreen, then the player tests on headless Weston with a real
+# libmpv (docs/decisions/testing.md). The windows job runs the units and app
+# tests on Windows. release.yml calls this too and publishes only when it
+# passes.
 name: ci
 
 on:
@@ -18,6 +19,7 @@ on:
       - desktop/**
       - design/**
       - packaging/install-qt.sh
+      - packaging/fetch-libmpv.sh
       - .github/workflows/ci.yml
   workflow_dispatch:
   workflow_call:
@@ -81,3 +83,31 @@ jobs:
         working-directory: desktop
       - run: tool/player-test.sh
         working-directory: desktop
+
+  # The units and app tests on Windows, where the Q_OS_WIN branches are
+  # compiled and run; the player tests need Weston and stay on Linux. A
+  # Release build, as the installer is, with the release's Qt and libmpv.
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    # Git Bash, as build-windows.sh runs in.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: qt
+        run: |
+          dir=$(cygpath -u "$RUNNER_TEMP")/qt
+          qt=$(packaging/install-qt.sh "$dir")
+          for path in "$qt/bin" "$dir/Tools/mingw1310_64/bin" "$dir/Tools/Ninja"; do
+            cygpath -w "$path"
+          done >> "$GITHUB_PATH"
+          echo "CMAKE_PREFIX_PATH=$(cygpath -m "$qt")" >> "$GITHUB_ENV"
+      - name: libmpv
+        run: |
+          packaging/fetch-libmpv.sh dist/mpv
+          cygpath -w "$PWD/dist/mpv" >> "$GITHUB_PATH"
+      - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv"
+      - run: cmake --build desktop/build/ci
+      - run: ctest --test-dir desktop/build/ci --output-on-failure
