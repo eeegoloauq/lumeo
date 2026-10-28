@@ -188,6 +188,12 @@ film nobody has seen.
 so a drag along the bar that wanders above it does not hide them under the
 thumb still being dragged; the half second starts at the release.
 
+**A playing film keeps the screen on.** mpv's `stop-screensaver` works through
+a window of mpv's own, which a render API client has none of, so the player
+holds it: `SetThreadExecutionState` on Windows, and on Linux the desktop
+portal's `Inhibit`, which GNOME, KDE and a sandbox all answer, rather than
+each desktop's own screensaver interface. A pause lets go.
+
 **Chapters are marks on the bar, not a button.** Most films have none; an
 anime release has an opening and an ending. What every player that has them
 does is the same and is all there is to do: a gap in the track where each one

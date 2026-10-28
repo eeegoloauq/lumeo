@@ -1,5 +1,6 @@
 #pragma once
 
+#include "awake.h"
 #include "next.h"
 #include "previews.h"
 #include "tracks.h"
@@ -173,6 +174,7 @@ private:
   void resume();
   void defineBindings();
   void applyScreenshots();
+  void stayAwake();
   void onLoadFailed();
   void onLogged(const QString &line);
   void onPicture();
@@ -189,6 +191,7 @@ private:
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
+  Awake m_awake;
   QString m_downloadId;
   QStringList m_urls;
   double m_start = 0;

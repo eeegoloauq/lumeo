@@ -61,7 +61,9 @@ void Playback::setMpv(MpvItem *mpv) {
     if (m_mpv->ended() && m_trailer >= 0)
       playTrailer(m_trailer + 1);
   });
+  connect(mpv, &MpvItem::hasPictureChanged, this, &Playback::stayAwake);
   connect(mpv, &MpvItem::pausedChanged, this, [this] {
+    stayAwake();
     if (!m_mpv->paused())
       m_progress.start();
     else if (m_opened)
@@ -303,6 +305,10 @@ void Playback::defineBindings() {
   });
 }
 
+void Playback::stayAwake() {
+  m_awake.hold(m_mpv && m_mpv->hasPicture() && !m_mpv->paused() && !m_closing);
+}
+
 // mpv's own folder is the process's working directory, often `/` for an app
 // started from the menu, where a screenshot fails: the one chosen in the
 // settings, else Pictures/Lumeo, and the film's name on each.
@@ -505,6 +511,7 @@ void Playback::close() {
   if (m_closing)
     return;
   m_closing = true;
+  m_awake.hold(false);
   m_poll.stop();
   m_progress.stop();
   if (m_mpv) {

@@ -199,6 +199,7 @@ qt_add_qml_module(lumeo
     src/api/corestatus.h src/api/corestatus.cpp
     src/api/opening.h src/api/opening.cpp
     src/api/releases.h src/api/releases.cpp
+    src/platform/awake.h src/platform/awake.cpp
     src/platform/desktop.h src/platform/desktop.cpp
     src/platform/folders.h src/platform/folders.cpp
     src/platform/background.h src/platform/background.cpp
