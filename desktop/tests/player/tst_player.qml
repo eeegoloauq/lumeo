@@ -205,6 +205,28 @@ Item {
             tryCompare(player.mpv, "volume", volume, 5000)
         }
 
+        // Kept for the film on this machine, and set before it loads again. Set
+        // through mpv, not the menu: llvmpipe takes seconds over a frame with
+        // Anime4K, longer than the menu's waits for rendering.
+        function test_thePictureIsKeptForTheFilm() {
+            playing()
+            const decoding = player.mpv.decoding
+            player.mpv.setFit(1)
+            player.mpv.setAnime4k("a")
+            player.mpv.set("hwdec", "no")
+            tryVerify(() => player.mpv.fit === 1 && player.mpv.anime4k === "a" && player.mpv.decoding === "no")
+            player.destroy()
+            start()
+            tryVerify(() => player.mpv.hasPicture, 10000, "a picture")
+            const kept = [player.mpv.fit, player.mpv.anime4k, player.mpv.decoding]
+            // The defaults back before the check, so a failure leaves the next tests alone.
+            player.mpv.setFit(0)
+            player.mpv.setAnime4k("")
+            player.mpv.set("hwdec", decoding)
+            tryVerify(() => player.mpv.fit === 0 && player.mpv.anime4k === "" && player.mpv.decoding === decoding)
+            compare(kept, [1, "a", "no"])
+        }
+
         // A dropped stream from the core resumes rather than ending the film.
         function test_theCoresStreamReconnects() {
             playing()
