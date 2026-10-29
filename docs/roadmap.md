@@ -96,33 +96,30 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - original-language audio as the default track;
 - a season's own trailer, where TMDB has one (Cinemeta names the title's only).
 
-## Anime through Kitsu
+## Anime specials through Kitsu
 
-Cinemeta folds an anime's sequels into seasons of the first title, its OVAs,
-films and shorts into one Specials list with no type, and lags on what is
-airing: Re:Zero has 70 specials of 89, its fourth season's shorts missing.
-Anime Kitsu (`anime-kitsu.strem.fun`) speaks the same addon protocol with no
-key, keeps every season, part, OVA, film and short as an entry of its own with
-its type and numbering, and gives each entry its IMDb id and each episode its
-`imdbSeason`/`imdbEpisode`.
+Cinemeta lists an anime's OVAs, films and shorts as one Specials season with
+no type, from TVDB, which lags on what is airing: Re:Zero has 70 specials of
+89, its fourth season's shorts missing. Anime Kitsu (`anime-kitsu.strem.fun`)
+speaks the same addon protocol with no key, keeps every OVA, film and short
+series as an entry of its own with its type and numbering, and gives each
+episode its IMDb `imdbSeason`/`imdbEpisode`.
+
+Cinemeta keeps the seasons; Kitsu replaces season 0. The split is by that
+mapping, not by type: Kitsu episodes with `imdbSeason` above 0 are Cinemeta's
+seasons and are dropped (Attack on Titan's Final Chapters, a "special" in
+Kitsu, is season 4); the entries left become the Specials tabs, one per entry
+in airing order, each with its type and own numbering.
 
 - A title is anime when the anime ID map lists its IMDb id: Fribb/anime-lists
   (Kitsu, MAL, AniDB ↔ IMDb, TVDB; 1.2 MB gzipped), fetched by the core and
   refreshed weekly. Genre and country do not tell. `[?]` The list carries no
   licence: fetch it at run time, never commit it.
-- The page stays the IMDb title, so links, My list and the share page keep one
-  id. Its tabs are the Kitsu entries under that id in airing order, each with
-  its type and own numbering. Kitsu's Prequel and Sequel links lead to entries
-  under other ids (a film, a recut).
-- Search and rows keep Cinemeta's order. Kitsu's results group by IMDb id: a
-  group whose title Cinemeta also returned is that card, the others follow in
-  Kitsu's order, an entry with no IMDb id as a card of its own. No popularity
-  is compared across catalogs.
-- Sources are asked for `kitsu:<id>:<episode>`, which Torrentio answers.
-  Subtitles still go by IMDb through the episode's mapping; an episode
-  Cinemeta lacks gets none from OpenSubtitles.
-- Progress keys an anime episode by its Kitsu id; what was kept by IMDb season
-  and episode moves over through the same mapping, in a migration.
+- The page, search, rows, links and the share page stay Cinemeta's. A Kitsu
+  entry with no IMDb id is not shown.
+- A special's sources are asked for `kitsu:<id>:<episode>`, which Torrentio
+  answers; its progress is kept by that id. Progress on a Cinemeta special
+  moves over through `imdbEpisode`, in a migration.
 - `[?]` Openings and endings from AniSkip (`api.aniskip.com`, by MAL id and
   episode) as chapter marks on a release that has none: data where the
   dropped audio detection had to guess.
