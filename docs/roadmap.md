@@ -96,13 +96,42 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - original-language audio as the default track;
 - a season's own trailer, where TMDB has one (Cinemeta names the title's only).
 
+## Anime through Kitsu
+
+Cinemeta folds an anime's sequels into seasons of the first title, its OVAs,
+films and shorts into one Specials list with no type, and lags on what is
+airing: Re:Zero has 70 specials of 89, its fourth season's shorts missing.
+Anime Kitsu (`anime-kitsu.strem.fun`) speaks the same addon protocol with no
+key, keeps every season, part, OVA, film and short as an entry of its own with
+its type and numbering, and gives each entry its IMDb id and each episode its
+`imdbSeason`/`imdbEpisode`.
+
+- A title is anime when the anime ID map lists its IMDb id: Fribb/anime-lists
+  (Kitsu, MAL, AniDB ↔ IMDb, TVDB; 1.2 MB gzipped), fetched by the core and
+  refreshed weekly. Genre and country do not tell. `[?]` The list carries no
+  licence: fetch it at run time, never commit it.
+- The page stays the IMDb title, so links, My list and the share page keep one
+  id. Its tabs are the Kitsu entries under that id in airing order, each with
+  its type and own numbering. Kitsu's Prequel and Sequel links lead to entries
+  under other ids (a film, a recut).
+- Search and rows keep Cinemeta's order. Kitsu's results group by IMDb id: a
+  group whose title Cinemeta also returned is that card, the others follow in
+  Kitsu's order, an entry with no IMDb id as a card of its own. No popularity
+  is compared across catalogs.
+- Sources are asked for `kitsu:<id>:<episode>`, which Torrentio answers.
+  Subtitles still go by IMDb through the episode's mapping; an episode
+  Cinemeta lacks gets none from OpenSubtitles.
+- Progress keys an anime episode by its Kitsu id; what was kept by IMDb season
+  and episode moves over through the same mapping, in a migration.
+- `[?]` Openings and endings from AniSkip (`api.aniskip.com`, by MAL id and
+  episode) as chapter marks on a release that has none: data where the
+  dropped audio detection had to guess.
+
 ## Sources and the swarm
 
 - anacrolix/torrent v1.61.0 can freeze a download from few peers for up to a
   minute (#1070, fixed on master). Update to the first release with the fix
   and drop the skip in `TestBackendStreamsFromLocalPeer`.
-- Anime through Kitsu ids: Cinemeta folds sequels into seasons of the first
-  title, so episodes numbered per part go missing.
 - Playback jumping to the end of an episode, cause unknown. Next time: the
   core's `stream cut short` warning and `mpv.log` in `~/.local/state/lumeo`.
 - `[?]` A proxy per addon, beyond `HTTP_PROXY`.
