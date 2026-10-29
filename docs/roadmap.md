@@ -102,27 +102,29 @@ Cinemeta lists an anime's OVAs, films and shorts as one Specials season with
 no type, from TVDB, which lags on what is airing: Re:Zero has 70 specials of
 89, its fourth season's shorts missing. Anime Kitsu (`anime-kitsu.strem.fun`)
 speaks the same addon protocol with no key, keeps every OVA, film and short
-series as an entry of its own with its type and numbering, and gives each
-episode its IMDb `imdbSeason`/`imdbEpisode`.
+series as an entry of its own with its type, and maps each episode to IMDb as
+`imdbSeason`/`imdbEpisode`, in Cinemeta's own numbering of season 0 (Memory
+Snow is 26 in both; Break Time's fourth season goes on from 71).
 
-Cinemeta keeps the seasons; Kitsu replaces season 0. The split is by that
-mapping, not by type: Kitsu episodes with `imdbSeason` above 0 are Cinemeta's
-seasons and are dropped (Attack on Titan's Final Chapters, a "special" in
-Kitsu, is season 4); the entries left become the Specials tabs, one per entry
-in airing order, each with its type and own numbering.
+Cinemeta keeps the page, the seasons, search and sharing; Kitsu sorts and
+completes season 0.
 
-- A title is anime when the anime ID map lists its IMDb id: Fribb/anime-lists
-  (Kitsu, MAL, AniDB ↔ IMDb, TVDB; 1.2 MB gzipped), fetched by the core and
-  refreshed weekly. Genre and country do not tell. `[?]` The list carries no
-  licence: fetch it at run time, never commit it.
-- The page, search, rows, links and the share page stay Cinemeta's. A Kitsu
-  entry with no IMDb id is not shown.
-- A special's sources are asked for `kitsu:<id>:<episode>`, which Torrentio
-  answers; its progress is kept by that id. Progress on a Cinemeta special
-  moves over through `imdbEpisode`, in a migration.
+- Kitsu has no lookup by IMDb id, so a series in Cinemeta's Animation genre
+  searches Kitsu by its Cinemeta name and keeps the entries whose `imdb_id` is
+  the title's. None found: not anime, the page stays as it is. The search
+  returns at most 20 and ignores `skip`, so a large franchise can come back
+  short; what it misses stays in the remainder below.
+- Kitsu episodes with `imdbSeason` 0 become the Specials tabs, one per entry
+  in airing order, each with its type and own numbering. Cinemeta's season-0
+  episodes no Kitsu episode claims stay in one tab after them. Episodes above
+  season 0 are Cinemeta's seasons and are dropped (Attack on Titan's Final
+  Chapters, a "special" in Kitsu, is season 4).
+- A special keeps its IMDb key (`S00E26`), so progress needs no migration.
+  Its sources are asked for `kitsu:<id>:<episode>`, which Torrentio answers.
 - `[?]` Openings and endings from AniSkip (`api.aniskip.com`, by MAL id and
   episode) as chapter marks on a release that has none: data where the
-  dropped audio detection had to guess.
+  dropped audio detection had to guess. Needs the MAL id, which Kitsu's meta
+  does not give.
 
 ## Sources and the swarm
 
