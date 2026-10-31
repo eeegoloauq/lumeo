@@ -110,7 +110,9 @@ jobs:
           cygpath -w "$PWD/dist/mpv" >> "$GITHUB_PATH"
       - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv"
       - run: cmake --build desktop/build/ci
-      - run: ctest --test-dir desktop/build/ci --output-on-failure --output-junit test-results.xml
+      - run: |
+          set -o pipefail
+          ctest --test-dir desktop/build/ci --output-on-failure --output-junit test-results.xml 2>&1 | tee windows-test-output.log
       # Public annotations keep failures diagnosable when downloading the
       # full Actions log requires a GitHub login.
       - name: test failure details
@@ -126,7 +128,12 @@ jobs:
                   failure = case.find("failure")
                   if failure is None:
                       continue
-                  output = case.findtext("system-out") or failure.text or "Test failed"
+                  output = case.findtext("system-out") or failure.text or ET.tostring(case, encoding="unicode")
                   message = output[-12000:].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
                   print(f"::error title=Windows test {case.get('name')}::{message}")
+          console = Path("windows-test-output.log")
+          if console.exists():
+              output = console.read_text(encoding="utf-8", errors="replace")
+              message = output[-48000:].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::error title=Windows ctest output::{message}")
           PY
