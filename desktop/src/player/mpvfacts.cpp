@@ -213,17 +213,18 @@ void MpvFacts::ask() {
     mpv_destroy(mpv);
     return;
   }
-  struct Asking {
+  struct Asking : QObject {
+    Asking(mpv_handle *handle, MpvFacts *receiver) : mpv(handle), facts(receiver) {}
     mpv_handle *mpv;
     MpvFacts *facts;
     int left = 3;
   };
-  auto *asking = new Asking{mpv, this};
+  auto *asking = new Asking(mpv, this);
   mpv_set_wakeup_callback(
       mpv,
       [](void *context) {
         auto *asking = static_cast<Asking *>(context);
-        QMetaObject::invokeMethod(asking->facts, [asking] {
+        QMetaObject::invokeMethod(asking, [asking] {
           if (!asking->mpv)
             return;
           for (;;) {
@@ -252,7 +253,9 @@ void MpvFacts::ask() {
             mpv_set_wakeup_callback(done, nullptr, nullptr);
             QThreadPool::globalInstance()->start([done, asking] {
               mpv_terminate_destroy(done);
-              delete asking;
+              // Qt drops wakeups still queued on this receiver. Keep it alive
+              // until mpv has stopped every callback that can post another.
+              asking->deleteLater();
             });
             return;
           }
