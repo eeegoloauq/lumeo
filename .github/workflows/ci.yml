@@ -110,4 +110,23 @@ jobs:
           cygpath -w "$PWD/dist/mpv" >> "$GITHUB_PATH"
       - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv"
       - run: cmake --build desktop/build/ci
-      - run: ctest --test-dir desktop/build/ci --output-on-failure
+      - run: ctest --test-dir desktop/build/ci --output-on-failure --output-junit test-results.xml
+      # Public annotations keep failures diagnosable when downloading the
+      # full Actions log requires a GitHub login.
+      - name: test failure details
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report = Path("desktop/build/ci/test-results.xml")
+          if report.exists():
+              for case in ET.parse(report).iter("testcase"):
+                  failure = case.find("failure")
+                  if failure is None:
+                      continue
+                  output = case.findtext("system-out") or failure.text or "Test failed"
+                  message = output[-12000:].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                  print(f"::error title=Windows test {case.get('name')}::{message}")
+          PY
