@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.18" date="2026-10-31" type="development">
+      <description>
+        <ul>
+          <li>Connect to a remote core over HTTPS from Settings › General.</li>
+          <li xml:lang="ru">Подключение к удалённому ядру по HTTPS в Настройках › Общие.</li>
+          <li>Pair each device with a one-time code and revoke its access from the server console.</li>
+          <li xml:lang="ru">Каждое устройство подключается одноразовым кодом; его доступ можно отозвать из консоли сервера.</li>
+          <li>Switch between the local core and a saved server after restarting the app.</li>
+          <li xml:lang="ru">Переключение между локальным ядром и сохранённым сервером после перезапуска приложения.</li>
+          <li>The Linux archive includes a systemd service for running the core on a server.</li>
+          <li xml:lang="ru">В архиве для Linux есть служба systemd для запуска ядра на сервере.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.17" date="2026-10-28" type="development">
       <description>
         <ul>
