@@ -12,7 +12,10 @@ target_compile_definitions(fakecore PRIVATE
 foreach(name artwork connection core facts home l10n library mpv next opening releases search settings stores title tracks)
   qt_add_executable(${name}_test ${name}_test.cpp)
   target_link_libraries(${name}_test PRIVATE lumeo fakecore Qt6::Test)
-  add_test(NAME ${name} COMMAND ${name}_test)
+  # Some Windows runs leave CTest's captured stream empty on failure.
+  # QtTest's file logger preserves the assertion independently of that stream.
+  add_test(NAME ${name} COMMAND ${name}_test
+    -o ${CMAKE_CURRENT_BINARY_DIR}/${name}-results.txt,txt -o -,txt)
 endforeach()
 
 target_compile_definitions(connection_test PRIVATE LUMEO_TEST_TLS="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/localhost.pem")

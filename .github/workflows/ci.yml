@@ -128,7 +128,9 @@ jobs:
                   failure = case.find("failure")
                   if failure is None:
                       continue
-                  output = case.findtext("system-out") or failure.text or ET.tostring(case, encoding="unicode")
+                  log = Path("desktop/build/ci/tests") / f"{case.get('name')}-results.txt"
+                  output = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
+                  output = output or case.findtext("system-out") or failure.text or ET.tostring(case, encoding="unicode")
                   message = output[-12000:].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
                   print(f"::error title=Windows test {case.get('name')}::{message}")
           console = Path("windows-test-output.log")
