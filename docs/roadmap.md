@@ -128,6 +128,10 @@ completes season 0.
 
 ## Sources and the swarm
 
+- SOCKS5 for torrent traffic, with TCP and TCP + UDP modes and no direct
+  fallback. Scope, failure behaviour, dependency questions and required tests
+  are in [the planned work](torrent-proxy.md). Separate from remote-core access;
+  support on the real proxy still needs verification.
 - anacrolix/torrent v1.61.0 can freeze a download from few peers for up to a
   minute (#1070, fixed on master). Update to the first release with the fix
   and drop the skip in `TestBackendStreamsFromLocalPeer`.
