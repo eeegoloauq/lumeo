@@ -39,7 +39,7 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
-    <release version="0.1.79~beta.18" date="2026-10-31" type="development">
+    <release version="0.1.79~beta.19" date="2026-10-31" type="development">
       <description>
         <ul>
           <li>Connect to a remote core over HTTPS from Settings › General.</li>
