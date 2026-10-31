@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
   // The chosen language from the first frame, and every text again when
   // another is chosen.
   auto *settings = engine.singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
-  Background background(settings, instance.ownsCore());
+  Background background(settings, instance.installed());
   auto *releases = engine.singletonInstance<Releases *>("Lumeo", "Releases");
   const auto speak = [&engine, &background, settings, releases] {
     QLocale::setDefault(settings->locale());

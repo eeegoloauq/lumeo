@@ -46,11 +46,21 @@ func main() {
 }
 
 func run(log *slog.Logger) error {
-	return serve(config.FromEnv(), os.Stdin, log)
+	cfg := config.FromEnv()
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	if len(os.Args) > 1 {
+		return administer(cfg, os.Args[1:], os.Stdout)
+	}
+	return serve(cfg, os.Stdin, log)
 }
 
 // serve runs the core until a signal, or until stdin closes when cfg says so.
 func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	if cfg.ExitOnStdinEOF {
@@ -265,6 +275,8 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		About:       about,
 		Updates:     update.New(version),
 		Token:       secret,
+		PublicURL:   cfg.PublicURL,
+		Devices:     db,
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
 	}, log)

@@ -3057,5 +3057,90 @@
         <extracomment>Settings › Playback: hint under Background trailers; the trailers come from YouTube.</extracomment>
         <translation>Без звука, вместо фона страницы. YouTube видит каждый открытый тайтл.</translation>
     </message>
+    <message id="connectionCore">
+        <source>Core</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Ядро</translation>
+    </message>
+    <message id="connectionConnect">
+        <source>Connect to server</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Подключить сервер</translation>
+    </message>
+    <message id="connectionAddress">
+        <source>Server address (https://…)</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Адрес сервера (https://…)</translation>
+    </message>
+    <message id="connectionDeviceName">
+        <source>Device name</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Название устройства</translation>
+    </message>
+    <message id="connectionPairCode">
+        <source>Pairing code</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Код подключения</translation>
+    </message>
+    <message id="connectionPairHint">
+        <source>Run lumeo-core pair on the server to get a one-time code.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Выполните lumeo-core pair на сервере, чтобы получить одноразовый код.</translation>
+    </message>
+    <message id="connectionConnecting">
+        <source>Connecting…</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Подключение…</translation>
+    </message>
+    <message id="connectionUseLocal">
+        <source>Use local core</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Локальное ядро</translation>
+    </message>
+    <message id="connectionUseRemote">
+        <source>Use server</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Использовать сервер</translation>
+    </message>
+    <message id="connectionForget">
+        <source>Forget</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Забыть</translation>
+    </message>
+    <message id="connectionRestart">
+        <source>Restart</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Перезапустить</translation>
+    </message>
+    <message id="connectionRestartHint">
+        <source>Restart to apply the connection</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Перезапустите для смены подключения</translation>
+    </message>
+    <message id="connectionSaveFailed">
+        <source>Could not save the connection.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Не удалось сохранить подключение.</translation>
+    </message>
+    <message id="connectionInvalid">
+        <source>Enter an HTTPS server address, device name and pairing code.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Введите HTTPS-адрес сервера, название устройства и код подключения.</translation>
+    </message>
+    <message id="connectionCodeExpired">
+        <source>The pairing code is invalid or expired.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Код подключения неверен или истёк.</translation>
+    </message>
+    <message id="connectionFailed">
+        <source>Could not pair with the server. Check the address and its HTTPS certificate.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Не удалось подключиться к серверу. Проверьте адрес и его HTTPS-сертификат.</translation>
+    </message>
+    <message id="connectionLocalFile">
+        <source>Local files can only be opened with the local core.</source>
+        <extracomment>Opening a client file while connected to a remote server.</extracomment>
+        <translation>Локальные файлы можно открыть только через локальное ядро.</translation>
+    </message>
 </context>
 </TS>

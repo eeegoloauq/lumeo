@@ -9,7 +9,8 @@ How to run the core on its own, configure it and talk to its HTTP API. How it wo
     LUMEO_DATA=./data go run ./cmd/lumeo
 
 It listens on `127.0.0.1:7666`. Every request needs the token the core writes to `api-token` in its data directory (0600,
-so only your own account can read it); over a network it would travel in the clear, so keep it on localhost. A new database starts with Cinemeta for
+so only your own account can read it). For another machine, use
+[the remote deployment](remote-core.md) with HTTPS and per-device pairing. A new database starts with Cinemeta for
 the catalogue and OpenSubtitles v3 for subtitles; neither needs an API key. No source addon ships:
 add one to have something to play.
 Each addon's role is read from its manifest. Edit the list on the client's Sources page or over
@@ -18,6 +19,7 @@ Each addon's role is read from its manifest. Edit the list on the client's Sourc
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `LUMEO_ADDR` | `127.0.0.1:7666` | Listen address |
+| `LUMEO_PUBLIC_URL` | unset | External HTTPS origin behind a reverse proxy; no path or query |
 | `LUMEO_DATA` | `$XDG_DATA_HOME/lumeo` | Directory of the SQLite database and downloads |
 | `LUMEO_ADDONS` | Cinemeta, OpenSubtitles | Addons for an empty database: comma-separated URLs, optionally `name=url`, or `none` |
 | `LUMEO_SUBTITLE_LANGS` | `en` | Default subtitle language order; a preference set in the client wins |

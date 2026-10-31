@@ -6,6 +6,19 @@ import (
 	"testing"
 )
 
+func TestPublicURLRequiresAnHTTPSOrigin(t *testing.T) {
+	for _, value := range []string{"", "https://lumeo.example.com", "https://example.com:8443"} {
+		if err := (Config{PublicURL: value}).Validate(); err != nil {
+			t.Errorf("%q: %v", value, err)
+		}
+	}
+	for _, value := range []string{"http://example.com", "https://user:secret@example.com", "https://example.com/path", "https://example.com?x=1", "https://example.com#fragment", "https://"} {
+		if err := (Config{PublicURL: value}).Validate(); err == nil {
+			t.Errorf("accepted %q", value)
+		}
+	}
+}
+
 // An installed application must not write its library into whatever directory
 // it was started from — for a desktop launcher that is the user's home, or /.
 func TestDataDirFollowsXDG(t *testing.T) {

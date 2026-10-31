@@ -72,6 +72,18 @@ private slots:
     QVERIFY(failed.wait());
     QCOMPARE(failed.first(), (QVariantList{"notes.txt", "not a video file"}));
   }
+
+  void aLocalPathIsNeverSentToARemoteCore() {
+    Core remote(QUrl("https://lumeo.example.com"), {});
+    Downloads remoteDownloads(&remote);
+    Opening remoteOpening(&remote, &remoteDownloads);
+    QSignalSpy failed(&remoteOpening, &Opening::failed);
+    QSignalSpy play(&remoteOpening, &Opening::play);
+    remoteOpening.open("/films/night.mkv");
+    QCOMPARE(failed.size(), 1);
+    QVERIFY(!failed.first().at(1).toString().isEmpty());
+    QVERIFY(play.isEmpty());
+  }
 };
 
 QTEST_GUILESS_MAIN(OpeningTest)

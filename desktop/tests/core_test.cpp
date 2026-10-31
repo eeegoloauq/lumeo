@@ -36,6 +36,13 @@ class CoreTest : public QObject {
   }
 
 private slots:
+  void initTestCase() {
+    qputenv("XDG_CONFIG_HOME", dir.filePath("config").toUtf8());
+#ifdef Q_OS_WIN
+    qputenv("APPDATA", dir.filePath("config").toUtf8());
+#endif
+  }
+
   void init() { QFile::remove(tokenFile()); }
 
   void everyRequestCarriesTheTokenFromTheFile() {
@@ -102,6 +109,28 @@ private slots:
     Core core(Core::local, {});
     QCOMPARE(core.url("/api/v1/downloads/" + Core::segment("a/b") + "/stream").toString(),
              "http://127.0.0.1:7666/api/v1/downloads/a%2Fb/stream");
+  }
+
+  void authenticatedRequestsDoNotFollowRedirects() {
+    writeToken("abc");
+    FakeCore destination;
+    QVERIFY(destination.listen());
+    destination.answer("GET", "/stolen", 200, QJsonObject{});
+    QTcpServer redirect;
+    QVERIFY(redirect.listen(QHostAddress::LocalHost));
+    connect(&redirect, &QTcpServer::newConnection, &redirect, [&] {
+      QTcpSocket *socket = redirect.nextPendingConnection();
+      connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+        socket->readAll();
+        socket->write("HTTP/1.1 302 Found\r\nLocation: " + destination.address().resolved(QUrl("/stolen")).toEncoded() +
+                      "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        socket->disconnectFromHost();
+      });
+      connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+    });
+    Core core(QUrl(QString("http://127.0.0.1:%1").arg(redirect.serverPort())), tokenFile());
+    QCOMPARE(ask(core).status, 302);
+    QVERIFY(destination.requests().isEmpty());
   }
 
   void aRequestRefusedWhileTheCoreStartsIsSentAgainBodyAndAll() {

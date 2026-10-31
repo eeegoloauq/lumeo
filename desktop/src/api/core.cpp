@@ -1,4 +1,5 @@
 #include "core.h"
+#include "coreconnection.h"
 
 #include <QDir>
 #include <QJsonArray>
@@ -22,19 +23,32 @@ QString Core::dataDir() {
 #endif
 }
 
-namespace {
-
-QUrl chosenAddress() {
+QUrl Core::configuredAddress() {
   const QString address = qEnvironmentVariable("LUMEO_CORE");
-  return address.isEmpty() ? Core::local : QUrl(address);
+  if (!address.isEmpty())
+    return QUrl(address);
+  const QJsonObject saved = CoreConnection::read(CoreConnection::file());
+  return saved.value("enabled").toBool() ? QUrl(saved.value("address").toString()) : local;
 }
-
-} // namespace
 
 // The local core's secret goes to the local core only.
 Core::Core(QObject *parent)
-    : Core(chosenAddress(),
-           chosenAddress() == local ? dataDir() + "/api-token" : QString(), parent) {}
+    : QObject(parent) {
+  const QString overridden = qEnvironmentVariable("LUMEO_CORE");
+  // Read address and credential from one snapshot, even if another process
+  // replaces the saved connection while this client is starting.
+  const QJsonObject saved = overridden.isEmpty() ? CoreConnection::read(CoreConnection::file())
+                                                : QJsonObject{};
+  m_address = !overridden.isEmpty() ? QUrl(overridden)
+              : saved.value("enabled").toBool() ? QUrl(saved.value("address").toString())
+                                                 : local;
+  if (m_address == local) {
+    m_tokenPath = dataDir() + "/api-token";
+  } else if (overridden.isEmpty()) {
+    m_token = saved.value("token").toString().toUtf8();
+    m_tokenRead = true;
+  }
+}
 
 Core::Core(const QUrl &address, const QString &tokenPath, QObject *parent)
     : QObject(parent), m_address(address), m_tokenPath(tokenPath) {}
@@ -95,6 +109,7 @@ void Core::send(const QByteArray &method, const QString &path, const QUrlQuery &
 
 void Core::attempt(const std::shared_ptr<Attempt> &pending) {
   QNetworkRequest request(pending->url);
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
   request.setTransferTimeout(patience);
   const QByteArray sent = token();
   if (!sent.isEmpty())

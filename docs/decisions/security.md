@@ -43,8 +43,18 @@ the artwork addresses derive from it and the cache behind them outlives a
 restart, and a new one per start protects nothing a same-user process could
 not read again. Artwork goes by an unguessable address instead of the
 header, because an image on screen sends none (`architecture.md`, The API
-token). Server mode needs the same token over the network, and TLS under it:
+token). Server mode needs TLS under bearer credentials:
 a bearer token on plain HTTP is readable on the way.
+
+Remote deployment uses per-device keys issued through an owner-created,
+single-use pairing code over verified HTTPS ([setup](../remote-core.md)).
+The owner token stays on the server for console administration. Device keys
+are stored as hashes and can be revoked individually; enrollment management
+requires the owner token. Revocation blocks new requests, while an already
+authorized stream can finish. The external origin is configured explicitly,
+never inferred from untrusted proxy headers.
+On a loopback listener the Host guard also permits that configured public
+hostname, so a local reverse proxy can preserve Host without disabling the guard.
 
 ## Confinement is a deployment property, not a library choice
 

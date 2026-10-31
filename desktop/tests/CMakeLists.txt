@@ -9,11 +9,13 @@ target_compile_definitions(fakecore PRIVATE
 )
 
 # Units: one executable per file under QtTest.
-foreach(name artwork core facts home l10n library mpv next opening releases search settings stores title tracks)
+foreach(name artwork connection core facts home l10n library mpv next opening releases search settings stores title tracks)
   qt_add_executable(${name}_test ${name}_test.cpp)
   target_link_libraries(${name}_test PRIVATE lumeo fakecore Qt6::Test)
   add_test(NAME ${name} COMMAND ${name}_test)
 endforeach()
+
+target_compile_definitions(connection_test PRIVATE LUMEO_TEST_TLS="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/localhost.pem")
 
 # Pictures are decoded under a QGuiApplication, which needs a platform.
 set_tests_properties(artwork PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

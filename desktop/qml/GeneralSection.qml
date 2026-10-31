@@ -58,4 +58,45 @@ SettingsBlock {
             }
         }
     }
+
+    SettingsCard {
+        visible: !CoreConnection.overridden
+        SettingRow {
+            label: qsTrId("connectionCore")
+            RowButton {
+                objectName: "connectCore"
+                text: qsTrId("connectionConnect")
+                onClicked: pairing.open()
+            }
+        }
+        SettingRow {
+            visible: CoreConnection.address !== ""
+            label: CoreConnection.address
+            Row {
+                spacing: 8
+                RowButton {
+                    objectName: "switchCore"
+                    text: CoreConnection.remote ? qsTrId("connectionUseLocal") : qsTrId("connectionUseRemote")
+                    onClicked: CoreConnection.remote ? CoreConnection.useLocal() : CoreConnection.useRemote()
+                }
+                RowButton {
+                    objectName: "forgetCore"
+                    text: qsTrId("connectionForget")
+                    onClicked: CoreConnection.forget()
+                }
+            }
+        }
+        SettingRow {
+            visible: CoreConnection.restartNeeded
+            label: qsTrId("connectionRestartHint")
+            RowButton {
+                objectName: "restartCore"
+                text: qsTrId("connectionRestart")
+                onClicked: Instance.restart()
+            }
+        }
+        ErrorRow { message: CoreConnection.error }
+    }
+
+    ConnectionDialog { id: pairing }
 }

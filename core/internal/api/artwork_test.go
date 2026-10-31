@@ -20,6 +20,21 @@ import (
 
 type artworkMeta struct{ item catalog.MediaItem }
 
+func TestArtworkUsesConfiguredOriginWithoutTrustingProxyHeaders(t *testing.T) {
+	s := New(Deps{Token: "owner", PublicURL: "https://lumeo.example.com"}, slog.Default())
+	defer s.Close()
+	r := httptest.NewRequest("GET", "http://private.example/api/v1/catalog", nil)
+	r.Header.Set("X-Forwarded-Host", "attacker.example")
+	r.Header.Set("X-Forwarded-Proto", "http")
+	// An artwork store registers a key; no network request is needed here.
+	_, db, _ := artworkServer(t, catalog.MediaItem{})
+	s.artwork = db
+	got := s.artworkURL(r, "https://images.example/poster.jpg", make(map[string]string))
+	if !strings.HasPrefix(got, "https://lumeo.example.com/api/v1/artwork/") {
+		t.Fatal(got)
+	}
+}
+
 func (artworkMeta) ID() string                                  { return "art" }
 func (artworkMeta) Name() string                                { return "Art" }
 func (artworkMeta) Namespace() string                           { return catalog.NamespaceIMDb }

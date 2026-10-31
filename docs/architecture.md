@@ -237,7 +237,8 @@ served (a link called film.mkv to a key file is refused, and so is a video
 swapped for one after it was opened), and a download request cannot name a
 file: only `POST /api/v1/local` and a linked folder add one. Because the
 core reads files by path, on a loopback listener it answers only
-loopback `Host` names: a page that rebinds its own domain to 127.0.0.1 would
+loopback `Host` names and the explicit `LUMEO_PUBLIC_URL` hostname: a page
+that rebinds its own domain to 127.0.0.1 would
 otherwise read them. A request a browser sends from another site that would
 change something is refused on its `Sec-Fetch-Site` or `Origin` header,
 whatever its content type.
@@ -253,11 +254,22 @@ exactly the set that may control the core; other accounts on the machine
 reach the port and get nothing.
 
 The client reads the file from the data directory the core picks (LUMEO_DATA
-first, as the core does) when it talks to the default address, and never
-sends it to an address set by hand. It reads the file again after a 401 and
+first, as the core does) when it talks to the default address. An address
+overridden with `LUMEO_CORE` gets neither this token nor a saved remote key.
+It reads the local token file again after a 401 and
 retries once if the token changed: a core started for the first time writes
 it after the client may have looked. mpv gets it as `http-header-fields`,
 through `Core::headers()` for the player and the frame grabber.
+
+A remote client pairs over verified HTTPS with a random single-use code the
+owner issues through `lumeo-core pair`. The code expires in ten minutes and
+is replaced on the next issue. The core stores the device's token hash in
+SQLite, and the desktop keeps the issued token in a private `core.json` in
+its configuration directory. It applies only to that saved origin; switching
+cores requires restarting the app. Console `devices` and `revoke` commands
+use the owner token locally; device tokens cannot administer enrollment.
+The reverse proxy deployment uses `LUMEO_PUBLIC_URL` for external artwork
+addresses instead of trusting forwarded headers. See [remote-core.md](remote-core.md).
 
 Artwork is the one route without it: an image fetches by address
 alone. The address is the credential instead, its key an HMAC of the

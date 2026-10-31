@@ -34,6 +34,8 @@ public:
   bool start();
   bool background() const { return m_background; }
   bool ownsCore() const { return m_core; }
+  bool installed() const { return m_server; }
+  Q_INVOKABLE void restart();
   // What the launch asked to open: a file, as an absolute path, or a
   // lumeo:// link; empty for neither.
   Q_INVOKABLE QString target() const { return m_target; }

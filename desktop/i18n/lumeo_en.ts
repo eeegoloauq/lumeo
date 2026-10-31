@@ -3023,5 +3023,90 @@
         <extracomment>Settings › Playback: hint under Background trailers; the trailers come from YouTube.</extracomment>
         <translation>Muted, in place of a title's backdrop. YouTube sees each title you open.</translation>
     </message>
+    <message id="connectionCore">
+        <source>Core</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Core</translation>
+    </message>
+    <message id="connectionConnect">
+        <source>Connect to server</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Connect to server</translation>
+    </message>
+    <message id="connectionAddress">
+        <source>Server address (https://…)</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Server address (https://…)</translation>
+    </message>
+    <message id="connectionDeviceName">
+        <source>Device name</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Device name</translation>
+    </message>
+    <message id="connectionPairCode">
+        <source>Pairing code</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Pairing code</translation>
+    </message>
+    <message id="connectionPairHint">
+        <source>Run lumeo-core pair on the server to get a one-time code.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Run lumeo-core pair on the server to get a one-time code.</translation>
+    </message>
+    <message id="connectionConnecting">
+        <source>Connecting…</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Connecting…</translation>
+    </message>
+    <message id="connectionUseLocal">
+        <source>Use local core</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Use local core</translation>
+    </message>
+    <message id="connectionUseRemote">
+        <source>Use server</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Use server</translation>
+    </message>
+    <message id="connectionForget">
+        <source>Forget</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Forget</translation>
+    </message>
+    <message id="connectionRestart">
+        <source>Restart</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Restart</translation>
+    </message>
+    <message id="connectionRestartHint">
+        <source>Restart to apply the connection</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Restart to apply the connection</translation>
+    </message>
+    <message id="connectionSaveFailed">
+        <source>Could not save the connection.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Could not save the connection.</translation>
+    </message>
+    <message id="connectionInvalid">
+        <source>Enter an HTTPS server address, device name and pairing code.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Enter an HTTPS server address, device name and pairing code.</translation>
+    </message>
+    <message id="connectionCodeExpired">
+        <source>The pairing code is invalid or expired.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>The pairing code is invalid or expired.</translation>
+    </message>
+    <message id="connectionFailed">
+        <source>Could not pair with the server. Check the address and its HTTPS certificate.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Could not pair with the server. Check the address and its HTTPS certificate.</translation>
+    </message>
+    <message id="connectionLocalFile">
+        <source>Local files can only be opened with the local core.</source>
+        <extracomment>Opening a client file while connected to a remote server.</extracomment>
+        <translation>Local files can only be opened with the local core.</translation>
+    </message>
 </context>
 </TS>

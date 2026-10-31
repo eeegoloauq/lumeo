@@ -3,6 +3,8 @@
 package config
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,9 +29,10 @@ type Addon struct {
 }
 
 type Config struct {
-	Addr     string // HTTP listen address
-	DataDir  string // SQLite + library metadata
-	CacheDir string // downloaded artwork
+	Addr      string // HTTP listen address
+	DataDir   string // SQLite + library metadata
+	CacheDir  string // downloaded artwork
+	PublicURL string // external HTTPS origin when behind a reverse proxy
 	// Addons a fresh database starts with. What each one is for — catalog,
 	// metadata, streams, subtitles — is read from its manifest, not set here.
 	Addons []Addon
@@ -54,9 +57,10 @@ func (c Config) DownloadDir() string { return filepath.Join(c.DataDir, "download
 // checkout run without a config file.
 func FromEnv() Config {
 	c := Config{
-		Addr:     envOr("LUMEO_ADDR", "127.0.0.1:7666"),
-		DataDir:  envOr("LUMEO_DATA", defaultDataDir()),
-		CacheDir: envOr("LUMEO_CACHE", defaultCacheDir()),
+		Addr:      envOr("LUMEO_ADDR", "127.0.0.1:7666"),
+		DataDir:   envOr("LUMEO_DATA", defaultDataDir()),
+		CacheDir:  envOr("LUMEO_CACHE", defaultCacheDir()),
+		PublicURL: strings.TrimRight(os.Getenv("LUMEO_PUBLIC_URL"), "/"),
 	}
 	// LUMEO_ADDONS: comma-separated addon URLs, optionally "name=url". It is
 	// what a database with no addons starts with — the list is edited over
@@ -79,6 +83,19 @@ func FromEnv() Config {
 	c.TorrentPort, _ = strconv.Atoi(os.Getenv("LUMEO_TORRENT_PORT"))
 	c.ExitOnStdinEOF = os.Getenv("LUMEO_EXIT_ON_STDIN_EOF") == "1"
 	return c
+}
+
+// Validate refuses an origin that would produce links to another endpoint.
+// Proxy headers never substitute for this explicit setting.
+func (c Config) Validate() error {
+	if c.PublicURL == "" {
+		return nil
+	}
+	u, err := url.Parse(c.PublicURL)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+		return fmt.Errorf("LUMEO_PUBLIC_URL must be an HTTPS origin, such as https://lumeo.example.com")
+	}
+	return nil
 }
 
 // defaultDataDir is where an installed copy keeps the library. A desktop

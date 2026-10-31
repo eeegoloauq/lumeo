@@ -12,8 +12,10 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	"github.com/eeegoloauq/lumeo/core/internal/addons"
@@ -49,6 +51,11 @@ type Server struct {
 	about     About
 	updates   *update.Checker
 	token     string
+	publicURL string
+	devices   *store.DB
+	pairMu    sync.Mutex
+	pairCode  string
+	pairUntil time.Time
 	log       *slog.Logger
 	artwork   *store.DB
 	cacheDir  string
@@ -104,9 +111,13 @@ type Deps struct {
 	// Token is what every request but artwork has to present, as
 	// "Authorization: Bearer <token>". Empty turns the check off, which only
 	// tests do; the core does not start without one.
-	Token    string
-	Artwork  *store.DB
-	CacheDir string
+	Token string
+	// PublicURL is a validated external HTTPS origin. Forwarded headers are
+	// ignored: direct callers must not choose the public origin.
+	PublicURL string
+	Devices   *store.DB
+	Artwork   *store.DB
+	CacheDir  string
 }
 
 func New(deps Deps, log *slog.Logger) *Server {
@@ -130,6 +141,8 @@ func New(deps Deps, log *slog.Logger) *Server {
 		about:     deps.About,
 		updates:   deps.Updates,
 		token:     deps.Token,
+		publicURL: deps.PublicURL,
+		devices:   deps.Devices,
 		log:       log,
 		artwork:   deps.Artwork,
 		cacheDir:  deps.CacheDir,
@@ -147,6 +160,9 @@ func (s *Server) Close() {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/pairings", s.handlePairing)
+	mux.HandleFunc("GET /api/v1/devices", s.handleDevices)
+	mux.HandleFunc("DELETE /api/v1/devices/{id}", s.handleRevokeDevice)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "providers": len(s.sources())})
 	})
@@ -205,6 +221,7 @@ func (s *Server) Handler() http.Handler {
 	// commit to a byte range.
 	mux.HandleFunc("GET /api/v1/downloads/{id}/stream", s.handleStream)
 	root := http.NewServeMux()
+	root.HandleFunc("POST /api/v1/pair", s.handlePair)
 	// Artwork is the one route without the token: an image widget fetches
 	// it by address alone. The address is the credential instead, its key an
 	// HMAC under the token (artworkKey), so only a client that listed a title
@@ -222,13 +239,18 @@ func (s *Server) Handler() http.Handler {
 	if ip := net.ParseIP(listenHost); err != nil || listenHost != "localhost" && (ip == nil || !ip.IsLoopback()) {
 		return handler
 	}
+	publicHost := ""
+	if public, err := url.Parse(s.publicURL); err == nil {
+		publicHost = public.Hostname()
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := r.Host
 		if h, _, err := net.SplitHostPort(host); err == nil {
 			host = h
 		}
 		host = strings.Trim(host, "[]")
-		if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+		if host != "localhost" && host != "127.0.0.1" && host != "::1" &&
+			(publicHost == "" || !strings.EqualFold(host, publicHost)) {
 			writeError(w, http.StatusForbidden, "invalid host")
 			return
 		}
@@ -244,7 +266,17 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 	want := []byte("Bearer " + s.token)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := []byte(r.Header.Get("Authorization"))
-		if subtle.ConstantTimeCompare(got, want) != 1 {
+		valid := subtle.ConstantTimeCompare(got, want) == 1
+		if !valid && s.devices != nil && strings.HasPrefix(string(got), "Bearer ") {
+			var err error
+			valid, err = s.devices.HasDeviceToken(r.Context(), strings.TrimPrefix(string(got), "Bearer "))
+			if err != nil {
+				s.log.Error("check device token", "err", err)
+				writeError(w, http.StatusServiceUnavailable, "authentication unavailable")
+				return
+			}
+		}
+		if !valid {
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			writeError(w, http.StatusUnauthorized, "missing or wrong api token")
 			return

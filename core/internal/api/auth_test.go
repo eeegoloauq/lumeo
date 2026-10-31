@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,6 +10,31 @@ import (
 
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 )
+
+// A proxy on the same machine preserves the public Host even though its
+// upstream is loopback. Only the explicitly configured name joins the guard.
+func TestLoopbackProxyAcceptsOnlyItsConfiguredPublicHost(t *testing.T) {
+	s := New(Deps{Addr: "127.0.0.1:7666", PublicURL: "https://lumeo.example.com", Token: "owner"}, slog.Default())
+	defer s.Close()
+	h := s.Handler()
+	for _, tc := range []struct {
+		host string
+		want int
+	}{
+		{"localhost:7666", 200}, {"lumeo.example.com", 200},
+		{"LUMEO.EXAMPLE.COM:443", 200}, {"attacker.example.com", 403},
+	} {
+		r := httptest.NewRequest("GET", "/healthz", nil)
+		r.Host = tc.host
+		r.Header.Set("Authorization", "Bearer owner")
+		r.Header.Set("X-Forwarded-Host", "lumeo.example.com")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Errorf("Host %q: %d, want %d", tc.host, w.Code, tc.want)
+		}
+	}
+}
 
 func authRequest(t *testing.T, h http.Handler, path, authorization string) *httptest.ResponseRecorder {
 	t.Helper()

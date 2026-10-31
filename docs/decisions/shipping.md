@@ -78,10 +78,15 @@ patented decoders, so nothing there plays the part of `libavcodec-freeworld`.
 The icon sizes are rendered once, in `build-dist.sh`, and the tarball carries
 them.
 
-No systemd unit. Starting at login is the desktop's autostart entry for the
+In local mode, starting at login is the desktop's autostart entry for the
 app itself (interface.md), which keeps the one rule that the app owns its
 core: a separate service would be a second owner, and the core opens outbound
 BitTorrent connections and a loopback HTTP port, neither of which wants root.
+
+A remote core belongs to the server's unprivileged systemd service
+([remote deployment](../remote-core.md)). A client with a saved remote connection
+does not start its bundled core. The installed app still owns its session socket
+and background lifecycle.
 
 Flathub is not the near-term target even though a media app belongs there: its
 rules forbid prebuilt binaries, so libmpv and ffmpeg would have to be built

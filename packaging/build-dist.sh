@@ -44,6 +44,7 @@ cp packaging/icon.svg "$stage/icons/hicolor/scalable/apps/dev.lumeo.lumeo.svg"
 cp packaging/lumeo.sh packaging/dev.lumeo.lumeo.desktop \
    client/assets/dev.lumeo.lumeo.metainfo.xml "$stage/"
 cp LICENSE README.md "$stage/"
+cp -R packaging/server "$stage/server"
 
 tar czf "dist/lumeo-$version-linux-x86_64.tar.gz" -C dist "lumeo-$version-linux-x86_64"
 echo "==> dist/lumeo-$version-linux-x86_64.tar.gz"

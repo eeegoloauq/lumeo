@@ -26,6 +26,10 @@ void Opening::open(const QString &target) {
 
 void Opening::openFile(const QString &path) {
   const QString name = QFileInfo(path).fileName();
+  if (!m_core->onThisMachine()) {
+    emit failed(name, qtTrId("connectionLocalFile"));
+    return;
+  }
   m_downloads->openLocal(path, this, [this, name](const Core::Reply &reply) {
     if (!reply.ok()) {
       emit failed(name, reply.message());

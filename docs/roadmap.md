@@ -6,18 +6,18 @@ before code.
 
 ## Remote core
 
-The client already speaks HTTP to the core, so a core on another machine is a
-deployment, not a rewrite. Before anyone runs one:
+The first deployment uses an HTTPS reverse proxy, one-time pairing and
+revocable device credentials ([setup](remote-core.md)). The client remembers
+one remote core alongside its local mode; switching applies on restart so
+in-flight requests and final playback progress stay with their original core.
+The server has a confined systemd unit and console administration.
 
-- Pairing: the core shows a one-time code, the client trades it with the
-  address for a token of its own, revocable per device.
 - TLS in the core: a self-signed certificate whose fingerprint the client
-  pins at pairing (mpv gets it as `tls-ca-file`); a reverse proxy with a
-  real certificate also works.
-- A confined deployment shipped with the binary: a systemd unit and a
-  container, unprivileged, writing to the data directory only.
-- More than one core address in the client, switchable, each with its token
-  (`Core`'s address changing at runtime).
+  pins at pairing (mpv gets it as `tls-ca-file`), for deployments without
+  a reverse proxy.
+- A confined container, unprivileged, writing to the data directory only.
+- Multiple saved remote cores and switching without restarting. Every store,
+  in-flight request and playback session must remain scoped to its core.
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 

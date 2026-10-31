@@ -1,4 +1,5 @@
 #include "artwork.h"
+#include "core.h"
 #include "fakecore.h"
 #include "fonts.h"
 #include "language.h"
@@ -51,6 +52,11 @@ public slots:
   }
 
   void qmlEngineAvailable(QQmlEngine *engine) {
+    // Capture the fake address before loading screens, then leave the normal
+    // connection controls available for the app tests.
+    qputenv("LUMEO_CORE", fake->address().toString().toUtf8());
+    engine->singletonInstance<Core *>("Lumeo", "Core");
+    qunsetenv("LUMEO_CORE");
     engine->rootContext()->setContextProperty("fakeCore", fake.get());
     Artwork::install(engine);
   }

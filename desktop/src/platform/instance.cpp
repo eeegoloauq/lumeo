@@ -1,6 +1,7 @@
 #include "instance.h"
 
 #include "folders.h"
+#include "core.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -101,8 +102,16 @@ bool Instance::start() {
 #ifndef Q_OS_WIN
   std::tie(m_exeDevice, m_exeInode) = identity(m_exe);
 #endif
-  startCore(core);
+  if (Core::configuredAddress() == Core::local)
+    startCore(core);
   return true;
+}
+
+void Instance::restart() {
+  m_exe = QCoreApplication::applicationFilePath();
+  m_relaunch.clear();
+  m_relaunching = true;
+  emit replaced();
 }
 
 // A login launch that finds the app running shows nothing extra
@@ -199,11 +208,11 @@ void Instance::startCore(const QString &path) {
 }
 
 void Instance::release() {
-  if (!m_server)
-    return;
-  m_server->close();
-  delete m_server;
-  m_server = nullptr;
+  if (m_server) {
+    m_server->close();
+    delete m_server;
+    m_server = nullptr;
+  }
   if (m_relaunching && !QProcess::startDetached(m_exe, m_relaunch.isEmpty() ? QStringList() : QStringList{m_relaunch}))
     qWarning("could not start the new version");
 }

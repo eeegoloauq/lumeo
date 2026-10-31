@@ -130,6 +130,7 @@ qt_add_qml_module(lumeo
     qml/StorageBar.qml
     qml/ErrorRow.qml
     qml/GeneralSection.qml
+    qml/ConnectionDialog.qml
     qml/NumberDialog.qml
     qml/PlaybackSection.qml
     qml/PreferenceStepper.qml
@@ -184,6 +185,7 @@ qt_add_qml_module(lumeo
     icons/volume_up.svg
   SOURCES
     src/api/core.h src/api/core.cpp
+    src/api/coreconnection.h src/api/coreconnection.cpp
     src/api/artwork.h src/api/artwork.cpp
     src/api/home.h src/api/home.cpp
     src/api/title.h src/api/title.cpp

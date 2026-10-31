@@ -37,7 +37,14 @@ func (s *Server) artworkURL(r *http.Request, raw string, urls map[string]string)
 	if key == "" {
 		return raw
 	}
-	return "http://" + r.Host + "/api/v1/artwork/" + key
+	base := s.publicURL
+	if base == "" {
+		base = "http://" + r.Host
+		if r.TLS != nil {
+			base = "https://" + r.Host
+		}
+	}
+	return base + "/api/v1/artwork/" + key
 }
 
 func webURL(raw string) bool {

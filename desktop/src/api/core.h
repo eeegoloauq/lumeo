@@ -46,10 +46,12 @@ public:
   static const QUrl local;
   // Where the core keeps its data, LUMEO_DATA first.
   static QString dataDir();
+  static QUrl configuredAddress();
 
   QUrl address() const { return m_address; }
   bool onThisMachine() const {
-    return m_address.host() == "127.0.0.1" || m_address.host() == "localhost";
+    return m_address.scheme() == "http" &&
+           (m_address.host() == "127.0.0.1" || m_address.host() == "localhost");
   }
   QString tokenPath() const { return m_tokenPath; }
   // A path the core named, as an address mpv can open.
