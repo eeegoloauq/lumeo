@@ -144,6 +144,7 @@ qt_add_qml_module(lumeo
     qml/ShortcutsSection.qml
     qml/SourcesSection.qml
     qml/Words.qml
+    qml/RatingScale.qml
     qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
   RESOURCES
