@@ -8,8 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -61,7 +63,7 @@ func TestACoreKeepsALinkTheMediaServerTook(t *testing.T) {
 	t.Cleanup(fullServer.Close)
 
 	h, dir, _ := localCore(t, "", nil)
-	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); view != (linkView{}) {
+	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); !reflect.DeepEqual(view, linkView{Saved: []string{}}) {
 		t.Fatalf("an unlinked core says %+v", view)
 	}
 	refused := []struct {
@@ -82,7 +84,7 @@ func TestACoreKeepsALinkTheMediaServerTook(t *testing.T) {
 	}
 
 	view := readLink(t, deviceRequest(h, "PUT", "/api/v1/link", "owner", linkBody(server.URL+"/", credential)))
-	if view != (linkView{URL: server.URL}) {
+	if !reflect.DeepEqual(view, linkView{URL: server.URL, Saved: []string{server.URL}}) {
 		t.Fatalf("linked: %+v; want the server from the next start, nothing now", view)
 	}
 	saved, ok, err := remote.Load(dir)
@@ -92,11 +94,55 @@ func TestACoreKeepsALinkTheMediaServerTook(t *testing.T) {
 	if strings.Contains(deviceRequest(h, "GET", "/api/v1/link", "owner", "").Body.String(), credential) {
 		t.Fatal("the credential is given back")
 	}
-	if view := readLink(t, deviceRequest(h, "DELETE", "/api/v1/link", "owner", "")); view != (linkView{}) {
+	if view := readLink(t, deviceRequest(h, "DELETE", "/api/v1/link", "owner", "")); !reflect.DeepEqual(view, linkView{Saved: []string{}}) {
 		t.Fatalf("unlinked: %+v", view)
 	}
 	if _, ok, _ := remote.Load(dir); ok {
 		t.Fatal("the link outlived unlinking")
+	}
+}
+
+// Every media server this core was linked to stays saved, so switching
+// between them needs no new pairing code; forgetting one keeps the others.
+func TestACoreSwitchesBetweenSavedLinks(t *testing.T) {
+	first, firstCredential := modeServer(t, remote.ModeMedia)
+	firstServer := httptest.NewServer(first)
+	t.Cleanup(firstServer.Close)
+	second, secondCredential := modeServer(t, remote.ModeMedia)
+	secondServer := httptest.NewServer(second)
+	t.Cleanup(secondServer.Close)
+	h, dir, _ := localCore(t, "", nil)
+	readLink(t, deviceRequest(h, "PUT", "/api/v1/link", "owner", linkBody(firstServer.URL, firstCredential)))
+	view := readLink(t, deviceRequest(h, "PUT", "/api/v1/link", "owner", linkBody(secondServer.URL, secondCredential)))
+	both := []string{firstServer.URL, secondServer.URL}
+	if !reflect.DeepEqual(view, linkView{URL: secondServer.URL, Saved: both}) {
+		t.Fatalf("linked twice: %+v", view)
+	}
+
+	use := func(url string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]string{"url": url})
+		return deviceRequest(h, "PATCH", "/api/v1/link", "owner", string(body))
+	}
+	if view := readLink(t, use(firstServer.URL+"/")); !reflect.DeepEqual(view, linkView{URL: firstServer.URL, Saved: both}) {
+		t.Fatalf("switched back: %+v", view)
+	}
+	if link, _, _ := remote.Load(dir); link.Token != firstCredential {
+		t.Fatalf("in use %+v; want the first server's own credential", link)
+	}
+	if w := use("https://elsewhere.example.com"); w.Code != http.StatusNotFound {
+		t.Fatalf("a server never linked: %d %s", w.Code, w.Body)
+	}
+	if view := readLink(t, use("")); !reflect.DeepEqual(view, linkView{Saved: both}) {
+		t.Fatalf("none in use: %+v", view)
+	}
+
+	readLink(t, use(secondServer.URL))
+	forget := deviceRequest(h, "DELETE", "/api/v1/link?url="+url.QueryEscape(firstServer.URL), "owner", "")
+	if view := readLink(t, forget); !reflect.DeepEqual(view, linkView{URL: secondServer.URL, Saved: []string{secondServer.URL}}) {
+		t.Fatalf("forgot one not in use: %+v", view)
+	}
+	if view := readLink(t, deviceRequest(h, "DELETE", "/api/v1/link", "owner", "")); !reflect.DeepEqual(view, linkView{Saved: []string{}}) {
+		t.Fatalf("forgot the one in use: %+v", view)
 	}
 }
 
@@ -107,7 +153,7 @@ func TestOnlyTheOwnerLinksACore(t *testing.T) {
 	server := httptest.NewServer(media)
 	t.Cleanup(server.Close)
 	h, dir, device := localCore(t, "", nil)
-	for _, method := range []string{"GET", "PUT", "DELETE"} {
+	for _, method := range []string{"GET", "PUT", "PATCH", "DELETE"} {
 		if w := deviceRequest(h, method, "/api/v1/link", device, linkBody(server.URL, credential)); w.Code != http.StatusForbidden {
 			t.Errorf("%s from a device: %d %s", method, w.Code, w.Body)
 		}
@@ -137,7 +183,7 @@ func TestAMediaServerIsNotLinked(t *testing.T) {
 func TestALinkedCoreSaysWhereItForwards(t *testing.T) {
 	running := remote.New(remote.Link{URL: "https://media.example.com", Token: "credential"}, slog.New(slog.DiscardHandler))
 	h, dir, _ := localCore(t, "", running)
-	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); view != (linkView{Running: "https://media.example.com"}) {
+	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); !reflect.DeepEqual(view, linkView{Running: "https://media.example.com", Saved: []string{}}) {
 		t.Fatalf("a running link without a saved one: %+v", view)
 	}
 	if err := remote.Save(dir, remote.Link{URL: "https://media.example.com", Token: "credential"}); err != nil {

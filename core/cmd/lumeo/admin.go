@@ -33,10 +33,19 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 	case (len(args) == 3 || len(args) == 4) && args[0] == "link":
 		return link(cfg, args[1:], out)
 	case len(args) == 1 && args[0] == "unlink":
-		if err := remote.Remove(cfg.DataDir); err != nil {
+		// The server in use; links saved beside it stay.
+		in, ok, err := remote.Load(cfg.DataDir)
+		if err != nil {
 			return err
 		}
-		_, err := fmt.Fprintln(out, "Unlinked. Restart the core; revoke the device on the server to remove its access.")
+		if !ok {
+			_, err = fmt.Fprintln(out, "Not linked.")
+			return err
+		}
+		if err := remote.Forget(cfg.DataDir, in.URL); err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(out, "Unlinked. Restart the core; revoke the device on the server to remove its access.")
 		return err
 	case len(args) == 1 && args[0] == "pair":
 		method, path = "POST", "/api/v1/pairings"

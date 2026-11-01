@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"runtime"
+	"slices"
 	"testing"
 )
 
@@ -51,11 +52,35 @@ func TestLinkIsKeptForThisAccountOnly(t *testing.T) {
 			t.Fatalf("mode %v, %v; want 0600", info.Mode().Perm(), err)
 		}
 	}
-	if err := Remove(dir); err != nil {
+	if err := Forget(dir, want.URL); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok, _ := Load(dir); ok {
-		t.Fatal("still linked after Remove")
+		t.Fatal("still linked after Forget")
+	}
+	if _, err := os.Stat(dir + "/" + FileName); !os.IsNotExist(err) {
+		t.Fatalf("the file outlived its last link: %v", err)
+	}
+}
+
+// A core from before several links kept the one it used as the whole file,
+// and goes on using it.
+func TestALinkFromBeforeSeveralIsTheOneInUse(t *testing.T) {
+	dir := t.TempDir()
+	old := `{"url": "https://lumeo.example.com/", "token": "secret"}`
+	if err := os.WriteFile(dir+"/"+FileName, []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	want := Link{URL: "https://lumeo.example.com", Token: "secret"}
+	if got, ok, err := Load(dir); err != nil || !ok || got != want {
+		t.Fatalf("loaded %+v, %v, %v", got, ok, err)
+	}
+	if err := Save(dir, Link{URL: "https://other.example.com", Token: "another"}); err != nil {
+		t.Fatal(err)
+	}
+	if urls, use, err := Saved(dir); err != nil || use != "https://other.example.com" ||
+		!slices.Equal(urls, []string{want.URL, "https://other.example.com"}) {
+		t.Fatalf("saved %v, using %q, %v", urls, use, err)
 	}
 }
 

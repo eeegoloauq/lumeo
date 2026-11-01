@@ -22,12 +22,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
-// FileName is the link in the data directory: the server's address and this
-// core's device credential, so owner-only, as the api token is.
+// FileName is the links in the data directory: each server's address and this
+// core's device credential there, so owner-only, as the api token is.
 const FileName = "server.json"
 
 type Link struct {
@@ -84,32 +86,68 @@ func loopback(host string) bool {
 	return host == "localhost" || ip != nil && ip.IsLoopback()
 }
 
-// Load reads the link; ok is false when this core has none.
-func Load(dataDir string) (link Link, ok bool, err error) {
-	data, err := os.ReadFile(filepath.Join(dataDir, FileName))
-	if errors.Is(err, os.ErrNotExist) {
-		return Link{}, false, nil
-	}
-	if err != nil {
-		return Link{}, false, err
-	}
-	if err := json.Unmarshal(data, &link); err != nil {
-		return Link{}, false, fmt.Errorf("read %s: %w", FileName, err)
-	}
-	link.URL = strings.TrimRight(link.URL, "/")
-	if err := link.Validate(); err != nil {
-		return Link{}, false, fmt.Errorf("%s: %w", FileName, err)
-	}
-	return link, true, nil
+// saved is the file: every media server this core holds a device credential
+// for, in the order they were first linked, and the one it forwards to, none
+// when Use is empty. Switching between them needs no new pairing code.
+type saved struct {
+	Use   string `json:"use,omitempty"`
+	Links []Link `json:"links"`
 }
 
-// Save writes the link, readable by this account only.
-func Save(dataDir string, link Link) error {
-	link.URL = strings.TrimRight(link.URL, "/")
-	if err := link.Validate(); err != nil {
+// The API reads the file, changes it and writes it back; one change at a time.
+var savedMu sync.Mutex
+
+// ErrNotSaved is a server this core holds no link to.
+var ErrNotSaved = errors.New("no saved link to that server")
+
+func read(dataDir string) (saved, error) {
+	data, err := os.ReadFile(filepath.Join(dataDir, FileName))
+	if errors.Is(err, os.ErrNotExist) {
+		return saved{}, nil
+	}
+	if err != nil {
+		return saved{}, err
+	}
+	var s saved
+	if err := json.Unmarshal(data, &s); err != nil {
+		return saved{}, fmt.Errorf("read %s: %w", FileName, err)
+	}
+	// A core from before several links kept the one it used as the file.
+	if s.Links == nil {
+		var one Link
+		if err := json.Unmarshal(data, &one); err == nil && one.URL != "" {
+			s = saved{Use: one.URL, Links: []Link{one}}
+		}
+	}
+	s.Use = strings.TrimRight(s.Use, "/")
+	for i := range s.Links {
+		s.Links[i].URL = strings.TrimRight(s.Links[i].URL, "/")
+		if err := s.Links[i].Validate(); err != nil {
+			return saved{}, fmt.Errorf("%s: %w", FileName, err)
+		}
+	}
+	if s.Use != "" && s.find(s.Use) < 0 {
+		return saved{}, fmt.Errorf("%s uses %s, which it holds no link to", FileName, s.Use)
+	}
+	return s, nil
+}
+
+func (s saved) find(url string) int {
+	return slices.IndexFunc(s.Links, func(l Link) bool { return l.URL == url })
+}
+
+// write keeps the file readable by this account only, and removes it once it
+// holds no link.
+func write(dataDir string, s saved) error {
+	path := filepath.Join(dataDir, FileName)
+	if len(s.Links) == 0 {
+		err := os.Remove(path)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		return err
 	}
-	data, err := json.MarshalIndent(link, "", "  ")
+	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -132,17 +170,87 @@ func Save(dataDir string, link Link) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), filepath.Join(dataDir, FileName))
+	return os.Rename(tmp.Name(), path)
 }
 
-// Remove forgets the link. The server keeps the device until it is revoked
-// there.
-func Remove(dataDir string) error {
-	err := os.Remove(filepath.Join(dataDir, FileName))
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
+func change(dataDir string, edit func(*saved) error) error {
+	savedMu.Lock()
+	defer savedMu.Unlock()
+	s, err := read(dataDir)
+	if err != nil {
+		return err
 	}
-	return err
+	if err := edit(&s); err != nil {
+		return err
+	}
+	return write(dataDir, s)
+}
+
+// Load reads the link this core forwards to; ok is false when it uses none.
+func Load(dataDir string) (link Link, ok bool, err error) {
+	s, err := read(dataDir)
+	if err != nil || s.Use == "" {
+		return Link{}, false, err
+	}
+	return s.Links[s.find(s.Use)], true, nil
+}
+
+// Saved lists the servers this core holds a link to, and the one it uses,
+// empty for none.
+func Saved(dataDir string) (urls []string, use string, err error) {
+	s, err := read(dataDir)
+	if err != nil {
+		return nil, "", err
+	}
+	for _, l := range s.Links {
+		urls = append(urls, l.URL)
+	}
+	return urls, s.Use, nil
+}
+
+// Save keeps link, in place of an earlier one to the same server, and uses it.
+func Save(dataDir string, link Link) error {
+	link.URL = strings.TrimRight(link.URL, "/")
+	if err := link.Validate(); err != nil {
+		return err
+	}
+	return change(dataDir, func(s *saved) error {
+		if i := s.find(link.URL); i >= 0 {
+			s.Links[i] = link
+		} else {
+			s.Links = append(s.Links, link)
+		}
+		s.Use = link.URL
+		return nil
+	})
+}
+
+// Use makes the saved link to url the one forwarded to; empty uses none and
+// keeps every link.
+func Use(dataDir, url string) error {
+	url = strings.TrimRight(url, "/")
+	return change(dataDir, func(s *saved) error {
+		if url != "" && s.find(url) < 0 {
+			return ErrNotSaved
+		}
+		s.Use = url
+		return nil
+	})
+}
+
+// Forget drops the link to url, and uses none if it was the one in use. The
+// server keeps the device until it is revoked there.
+func Forget(dataDir, url string) error {
+	url = strings.TrimRight(url, "/")
+	return change(dataDir, func(s *saved) error {
+		if i := s.find(url); i >= 0 {
+			s.Links = slices.Delete(s.Links, i, i+1)
+		}
+		if s.Use == url {
+			s.Use = ""
+		}
+		return nil
+	})
 }
 
 // ErrIsMediaServer refuses a link on a core that is a media server itself:

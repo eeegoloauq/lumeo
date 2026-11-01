@@ -201,6 +201,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/devices/{id}", s.handleRevokeDevice)
 	mux.HandleFunc("GET /api/v1/link", s.handleLink)
 	mux.HandleFunc("PUT /api/v1/link", s.handlePutLink)
+	mux.HandleFunc("PATCH /api/v1/link", s.handleUseLink)
 	mux.HandleFunc("DELETE /api/v1/link", s.handleUnlink)
 	mux.HandleFunc("GET /healthz", s.forwarded(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "providers": len(s.sources())})
