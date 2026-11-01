@@ -19,7 +19,8 @@ Each addon's role is read from its manifest. Edit the list on the client's Sourc
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `LUMEO_ADDR` | `127.0.0.1:7666` | Listen address |
-| `LUMEO_PUBLIC_URL` | unset | External HTTPS origin behind a reverse proxy; no path or query |
+| `LUMEO_PUBLIC_URL` | unset | External HTTPS origin, a reverse proxy's or with `LUMEO_TLS` the core's own; no path or query |
+| `LUMEO_TLS` | unset | `self-signed`: serve HTTPS with a certificate of the core's own for the host of `LUMEO_PUBLIC_URL`, which devices pin at pairing ([remote-core.md](remote-core.md#without-a-reverse-proxy)) |
 | `LUMEO_DATA` | `$XDG_DATA_HOME/lumeo` | Directory of the SQLite database and downloads |
 | `LUMEO_ADDONS` | Cinemeta, OpenSubtitles | Addons for an empty database: comma-separated URLs, optionally `name=url`, or `none` |
 | `LUMEO_SUBTITLE_LANGS` | `en` | Default subtitle language order; a preference set in the client wins |

@@ -267,10 +267,15 @@ retries once if the token changed: a core started for the first time writes
 it after the client may have looked. mpv gets it as `http-header-fields`,
 through `Core::headers()` for the player and the frame grabber. Both check an
 HTTPS core's certificate (`tls-verify`, off in mpv by default); on Windows
-against the certificates Qt reads from the system, given as `tls-ca-file`.
+against the certificates Qt reads from the system, given as `tls-ca-file`,
+and everywhere with a core's own pinned certificate beside them.
 
 A remote client pairs over verified HTTPS with a random single-use code the
-owner issues through `lumeo-core pair`. The code expires in ten minutes and
+owner issues through `lumeo-core pair`. A core serving its own certificate
+(`LUMEO_TLS`) is paired by a proof of the code over that certificate, which
+the client pins in `core.json`, or hands to the local core with a media
+server's credential (decisions/security.md). `Pins` lets the client's
+requests to that origin, its artwork included, past the one certificate. The code expires in ten minutes and
 is replaced on the next issue. The core stores the device's token hash in
 SQLite. The pair answer says the server's mode: the desktop keeps a full
 server's token in a private `core.json` in its configuration directory, and

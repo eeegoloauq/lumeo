@@ -6,7 +6,8 @@
 #
 # The trial runs the image as compose.yaml does (read-only, no capabilities)
 # and drives it from outside: it must turn healthy, issue a pairing code
-# through `docker exec`, and pair a device over its port.
+# through `docker exec`, and pair a device over its port; and serving its own
+# certificate, one that verifies for the address it is published on.
 name: image
 
 on:
@@ -52,3 +53,20 @@ jobs:
             python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
           curl -sf -o /dev/null -H "Authorization: Bearer $token" http://127.0.0.1:7666/api/v1/about
           docker exec lumeo lumeo-core devices | grep -q ci
+      - name: try it serving its own certificate
+        run: |
+          docker run -d --name lumeo-tls -p 127.0.0.1:7667:7666 \
+            -e LUMEO_TLS=self-signed -e LUMEO_PUBLIC_URL=https://127.0.0.1:7667 \
+            --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+            lumeo-core:trial
+          trap 'docker logs lumeo-tls' EXIT
+          for _ in $(seq 60); do
+            docker exec lumeo-tls lumeo-core health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          docker exec lumeo-tls lumeo-core health
+          docker exec lumeo-tls lumeo-core pair | grep -q '^Pairing code: '
+          # The certificate it made verifies for the address clients use, and
+          # nothing is served without the token.
+          docker cp lumeo-tls:/data/tls/cert.pem cert.pem
+          test "$(curl -s -o /dev/null -w '%{http_code}' --cacert cert.pem https://127.0.0.1:7667/healthz)" = 401

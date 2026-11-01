@@ -1,6 +1,8 @@
 # Remote core
 
-The desktop streams from a standalone core through an HTTPS reverse proxy.
+The desktop streams from a standalone core over HTTPS: through a reverse proxy
+with a certificate of its own, or from the core itself with one it makes
+([below](#without-a-reverse-proxy)).
 The server downloads while playing; the player reads ahead into its bounded
 buffer. A full copy on the client is not required. Downloads, preferences and
 watch progress belong to the selected core; switching does not merge libraries.
@@ -48,7 +50,9 @@ filesystem read-only, drops every capability and forbids gaining privileges.
 A bind mount instead of a named volume must belong to 65532. The API listens
 on port 7666, published to the host's loopback for the reverse proxy below;
 with the proxy on another machine, publish it on the private interface
-instead. BitTorrent uses port 42069 over TCP and UDP (`LUMEO_TORRENT_PORT`),
+instead. With no proxy, the core serves HTTPS itself
+([below](#without-a-reverse-proxy)): set `LUMEO_TLS` and publish the port on
+the address in `LUMEO_PUBLIC_URL`. BitTorrent uses port 42069 over TCP and UDP (`LUMEO_TORRENT_PORT`),
 published so peers can connect in. Docker's health check runs
 `lumeo-core health`.
 
@@ -83,6 +87,35 @@ Buffering is disabled so the proxy does not spool video to disk.
 `LUMEO_PUBLIC_URL` is an HTTPS origin without a path, query or credentials. It
 sets public artwork addresses; forwarded host/protocol headers are ignored.
 
+## Without a reverse proxy
+
+The core can serve HTTPS itself, with a certificate it makes on first start.
+Set the address clients use, with the port, and turn it on:
+
+```ini
+LUMEO_ADDR=0.0.0.0:7666
+LUMEO_PUBLIC_URL=https://192.168.1.50:7666
+LUMEO_TLS=self-signed
+```
+
+The certificate names the host of `LUMEO_PUBLIC_URL`, an IP address or a name,
+and clients connect by exactly that address: the player checks the name. It is
+kept in `tls/` in the data directory, private to the service user, never
+expires and is not a certificate authority. The log gives its SHA-256 on every
+start. Changing the host makes a new one, and paired devices pair again.
+
+No authority vouches for it, so a device pins it when it pairs. The pairing
+code proves it: the client sends a proof of the code made over the certificate
+it was shown, never the code itself, and the server checks the proof against
+its own certificate. A certificate shown by anything in between fails, and the
+server answers with a proof of its own before the client keeps the
+certificate. From then on the client, the player and a linked core trust that
+certificate alone for the server.
+
+Bind the listener only where clients reach it, such as a home network or a
+VPN. A core open to the internet still needs the reverse proxy, which has a
+certificate others can check.
+
 ## Devices
 
 On the server, run as the service user with the same data directory and listen
@@ -98,7 +131,8 @@ a random single-use code valid for ten minutes. A new code or a server restart
 invalidates the old one. Share it privately: it authorizes one device.
 
 In Settings → General → Connect to server, enter the HTTPS address, device name
-and code. Certificate errors and redirects are refused. The server issues a
+and code. Redirects are refused, and so is any certificate error other than a
+core's own certificate ([above](#without-a-reverse-proxy)). The server issues a
 separate device credential and stores only its SHA-256 hash. The client stores
 its credential in `core.json` beside `client.json`, with owner-only permissions;
 the pairing code is not saved. On Windows this is the user's AppData directory,
@@ -113,7 +147,8 @@ remote connection. One remote can be remembered in this version. `LUMEO_CORE`
 remains a development override: connection controls are hidden and saved keys
 are never sent to the overridden address.
 
-With the same environment and service user, `lumeo-core devices` lists device IDs
+The commands find a core's own certificate in the data directory and reach it
+over HTTPS. With the same service user, `lumeo-core devices` lists device IDs
 and names. `lumeo-core revoke <device-id>` refuses subsequent requests by that
 device, restarts included. An already open stream may finish. Forgetting a
 connection only erases its local key; revoke it on the server to remove access.

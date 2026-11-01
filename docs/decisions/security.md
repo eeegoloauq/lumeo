@@ -69,6 +69,35 @@ API. The core checks a handed credential with the server before keeping it,
 the route takes the owner token only, so a device paired with this core
 cannot point it elsewhere, and the answer never carries the credential back.
 
+## A core's own certificate is pinned, and the pairing code proves it
+
+A server reached without a reverse proxy (`LUMEO_TLS=self-signed`) serves a
+certificate it made, which no authority vouches for. It is one P-256
+certificate for the host of `LUMEO_PUBLIC_URL`, not a CA, so a device that
+trusts it trusts nothing it signs, and with RFC 5280's no-expiry date, since a
+renewed certificate is a new one for every device to pair again. It must name
+that host: FFmpeg's GnuTLS verifies the name, IP addresses included, so mpv
+on Linux plays nothing from a certificate for another, and pairing refuses
+one up front with that reason.
+
+The device never sends the code over a connection it cannot verify. It sends
+an HMAC of the code over the SHA-256 of the certificate it was shown, which the
+server checks against its own: a certificate put in between yields a proof
+the server refuses, and the code, 130 random bits, cannot be recovered from
+it. The server answers with an HMAC of its own under another label, which only
+a holder of the code makes, before the device pins the certificate, so a
+server that never issued the code cannot be pinned. Afterwards the exact
+certificate is trusted for that origin: Qt lets a request past only that
+certificate (`Pins`), mpv gets it beside the system's certificates as
+`tls-ca-file` (a trailer still verifies), and a linked core makes it its one
+root.
+
+Rejected: trust on first use, which is what an attacker on the first
+connection wants; showing a fingerprint for the owner to compare, which
+people skip; TLS channel binding through exported keying material, which Qt
+does not expose; a private CA minting a certificate per name, more to get
+right for names a server cannot learn from inside a container anyway.
+
 ## Confinement is a deployment property, not a library choice
 
 The core parses hostile input from the internet: peer wire, bencode, DHT, uTP,

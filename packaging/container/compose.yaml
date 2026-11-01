@@ -8,6 +8,9 @@ services:
     image: ghcr.io/eeegoloauq/lumeo-core:beta
     restart: unless-stopped
     environment:
+      # The address clients use. With no reverse proxy in front, add the port
+      # (https://192.168.1.50:7666), set LUMEO_TLS: self-signed and publish
+      # 7666 on that address instead of loopback.
       LUMEO_PUBLIC_URL: https://lumeo.example.com
       # media: the server keeps files, each device its own history.
       LUMEO_MODE: full
