@@ -206,6 +206,30 @@ func TestHideFromContinueUntilNextPlay(t *testing.T) {
 	}
 }
 
+func TestWatchedThroughRoute(t *testing.T) {
+	h := progressServerFor(t, catalog.MediaItem{
+		ID: "series", Kind: catalog.KindSeries, Title: "Series",
+		Episodes: []catalog.Episode{{Season: 1, Number: 1}, {Season: 1, Number: 2}, {Season: 1, Number: 3}},
+	})
+	rec := requestJSON(t, h, http.MethodPost, "/api/v1/progress/series/watched-through", `{"season":1,"episode":2}`)
+	var watching progress.Watching
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &watching) != nil {
+		t.Fatalf("watched through: status %d: %s", rec.Code, rec.Body)
+	}
+	if watching.Next == nil || watching.Next.Episode != 3 || len(watching.Entries) != 2 {
+		t.Fatalf("watched through S1E2 = %s", rec.Body)
+	}
+	rec = requestJSON(t, h, http.MethodPost, "/api/v1/progress/series/watched-through", `{}`)
+	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &watching) != nil || watching.Next != nil {
+		t.Fatalf("the whole series: status %d: %s", rec.Code, rec.Body)
+	}
+	for _, body := range []string{`{"season":1}`, `{"season":1,"episode":9}`, `{"season":-1,"episode":1}`} {
+		if rec := requestJSON(t, h, http.MethodPost, "/api/v1/progress/series/watched-through", body); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d: %s", body, rec.Code, rec.Body)
+		}
+	}
+}
+
 func TestProgressRoutesWithoutServiceSaySo(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	h := New(Deps{}, log).Handler()

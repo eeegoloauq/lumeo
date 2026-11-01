@@ -89,6 +89,32 @@ func (d *DB) DeleteProgress(ctx context.Context, itemID string, season, episode 
 	return nil
 }
 
+// MarkWatched marks [episodes] of [itemID] watched at [at], in one
+// transaction. A position goes, as it does for one marked watched by hand;
+// the duration and the subtitle timing stay.
+func (d *DB) MarkWatched(ctx context.Context, itemID string, episodes [][2]int, at time.Time) error {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("mark %q watched: %w", itemID, err)
+	}
+	defer tx.Rollback()
+	for _, e := range episodes {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO progress(item_id, season, episode, position, duration, watched, updated_at)
+			VALUES (?, ?, ?, 0, 0, 1, ?)
+			ON CONFLICT(item_id, season, episode) DO UPDATE SET
+				position = 0, watched = 1, updated_at = excluded.updated_at, hidden = 0`,
+			itemID, e[0], e[1], at.Unix())
+		if err != nil {
+			return fmt.Errorf("mark %q watched: %w", itemID, err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("mark %q watched: %w", itemID, err)
+	}
+	return nil
+}
+
 // HideFromContinue marks every entry of [itemID] hidden from Continue
 // watching, until the next write to one of them.
 func (d *DB) HideFromContinue(ctx context.Context, itemID string) error {

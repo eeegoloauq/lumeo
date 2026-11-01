@@ -233,6 +233,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/storage", s.forwarded(s.handleClearStorage, s.remoteClearStorage))
 	mux.HandleFunc("PUT /api/v1/progress/{id}", s.viewerData(s.holdsChange(s.handlePutProgress)))
 	mux.HandleFunc("GET /api/v1/progress/{id}", s.viewerData(s.handleProgress))
+	mux.HandleFunc("POST /api/v1/progress/{id}/watched-through", s.viewerData(s.holdsChange(s.handleWatchedThrough)))
 	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.viewerData(s.holdsChange(s.handleDeleteProgress)))
 	mux.HandleFunc("GET /api/v1/continue", s.viewerData(s.handleContinue))
 	mux.HandleFunc("DELETE /api/v1/continue/{id}", s.viewerData(s.handleHideFromContinue))

@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/watchlist"
 )
@@ -47,14 +49,19 @@ func (s *Server) handlePutProgress(w http.ResponseWriter, r *http.Request) {
 	if s.library != nil && entry.Watched && entry.Position == 0 {
 		s.library.Kick()
 	}
-	// What someone starts watching belongs in their list. Only the first time:
-	// a title taken out of the list stays out while it is being finished.
+	s.listWhatIsWatched(r.Context(), id, before)
+	writeJSON(w, http.StatusOK, entry)
+}
+
+// listWhatIsWatched puts a title someone starts watching in their list. Only
+// the first time, [before] having no entries: a title taken out of the list
+// stays out while it is being finished.
+func (s *Server) listWhatIsWatched(ctx context.Context, id string, before progress.Watching) {
 	if len(before.Entries) == 0 && s.watchlist != nil {
-		if _, err := s.watchlist.Add(r.Context(), id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
+		if _, err := s.watchlist.Add(ctx, id); err != nil && !errors.Is(err, watchlist.ErrUnknown) {
 			s.log.Warn("adding to the list failed", "item", id, "err", err)
 		}
 	}
-	writeJSON(w, http.StatusOK, entry)
 }
 
 func (s *Server) handleChoice(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +152,53 @@ func (s *Server) handleDeleteProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleWatchedThrough marks a series watched up to the episode in the body,
+// or every aired one for an empty object.
+func (s *Server) handleWatchedThrough(w http.ResponseWriter, r *http.Request) {
+	if !s.haveProgress(w) {
+		return
+	}
+	var body struct {
+		Season  *int `json:"season"`
+		Episode *int `json:"episode"`
+	}
+	if !readJSON(w, r, &body) {
+		return
+	}
+	if (body.Season == nil) != (body.Episode == nil) {
+		writeError(w, http.StatusBadRequest, "season and episode must be provided together")
+		return
+	}
+	var through *[2]int
+	if body.Season != nil {
+		through = &[2]int{*body.Season, *body.Episode}
+	}
+	id := r.PathValue("id")
+	before, err := s.progress.Get(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	watching, err := s.progress.WatchedThrough(r.Context(), id, through)
+	if errors.Is(err, progress.ErrInvalid) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, catalog.ErrNotFound) {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if s.library != nil {
+		s.library.Kick()
+	}
+	s.listWhatIsWatched(r.Context(), id, before)
+	writeJSON(w, http.StatusOK, watching)
 }
 
 // handleHideFromContinue takes a title out of Continue watching until it is

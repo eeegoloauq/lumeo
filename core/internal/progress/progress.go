@@ -41,6 +41,9 @@ type Store interface {
 	AllProgress(context.Context) ([]Entry, error)
 	History(ctx context.Context, limit, offset int) ([]Entry, error)
 	DeleteProgress(context.Context, string, *int, *int) error
+	// MarkWatched marks the episodes ({season, episode}) of a title watched
+	// at [at], all or none.
+	MarkWatched(ctx context.Context, itemID string, episodes [][2]int, at time.Time) error
 	HideFromContinue(context.Context, string) error
 	HiddenFromContinue(context.Context) (map[string]bool, error)
 	Choice(context.Context, string) (Choice, error)
@@ -291,6 +294,65 @@ func (s *Service) Delete(ctx context.Context, itemID string, season, episode *in
 	return s.store.DeleteProgress(ctx, itemID, season, episode)
 }
 
+// WatchedThrough marks a series watched up to and including the episode
+// named, or up to the last one aired when none is: what someone saw
+// elsewhere, so the series goes on from there. Specials are left as they are,
+// and so is an episode already watched, which keeps its day in the history;
+// the last is marked again whatever it was, so that it is where watching goes
+// on from. An episode not out yet is not marked.
+func (s *Service) WatchedThrough(ctx context.Context, itemID string, through *[2]int) (Watching, error) {
+	if through != nil && (through[0] < 1 || through[1] < 0) {
+		return Watching{}, invalidError{"season must be positive and episode not negative"}
+	}
+	if s.catalog == nil {
+		return Watching{}, invalidError{"no catalogue to list the episodes"}
+	}
+	item, err := s.catalog.Item(ctx, itemID)
+	if err != nil {
+		return Watching{}, err
+	}
+	if item.Kind != catalog.KindSeries {
+		return Watching{}, invalidError{"only a series has episodes to mark"}
+	}
+	entries, err := s.store.Progress(ctx, itemID)
+	if err != nil {
+		return Watching{}, err
+	}
+	seen := make(map[[2]int]bool, len(entries))
+	for _, e := range entries {
+		seen[[2]int{e.Season, e.Episode}] = e.Watched && e.Position == 0
+	}
+	now := s.now()
+	var marked [][2]int
+	var last [2]int
+	for _, e := range inOrder(&item) {
+		if e.Season == 0 || !e.Released.IsZero() && e.Released.After(now) {
+			continue
+		}
+		key := [2]int{e.Season, e.Number}
+		if through != nil && before(through[0], through[1], e.Season, e.Number) {
+			break
+		}
+		if !seen[key] {
+			marked = append(marked, key)
+		}
+		last = key
+	}
+	if through != nil && last != *through {
+		return Watching{}, invalidError{"the series has no such aired episode"}
+	}
+	if last[0] == 0 {
+		return s.Get(ctx, itemID)
+	}
+	if n := len(marked); n == 0 || marked[n-1] != last {
+		marked = append(marked, last)
+	}
+	if err := s.store.MarkWatched(ctx, itemID, marked, now.UTC()); err != nil {
+		return Watching{}, err
+	}
+	return s.Get(ctx, itemID)
+}
+
 // HideFromContinue takes a title out of Continue watching, keeping where it
 // was left. It comes back the next time any of it is played or marked.
 func (s *Service) HideFromContinue(ctx context.Context, itemID string) error {
@@ -455,22 +517,7 @@ func followingEpisode(item *catalog.MediaItem, season, episode int) *catalog.Epi
 	if item == nil || item.Kind != catalog.KindSeries {
 		return nil
 	}
-	episodes := append([]catalog.Episode(nil), item.Episodes...)
-	sort.SliceStable(episodes, func(i, j int) bool {
-		a, b := episodes[i], episodes[j]
-		if a.Season != b.Season {
-			// Season 0 is where a provider files the specials, and it goes
-			// last rather than before the pilot — which is where the title
-			// page already puts it. Sorted the other way the core and the
-			// page disagree about what follows the last special: the page
-			// says "nothing after this", the player starts the pilot.
-			if a.Season == 0 || b.Season == 0 {
-				return b.Season == 0
-			}
-			return a.Season < b.Season
-		}
-		return a.Number < b.Number
-	})
+	episodes := inOrder(item)
 	index := make(map[[2]int]int, len(episodes))
 	for i, e := range episodes {
 		index[[2]int{e.Season, e.Number}] = i
@@ -494,11 +541,40 @@ func followingEpisode(item *catalog.MediaItem, season, episode int) *catalog.Epi
 	return &following
 }
 
+// inOrder is a series' episodes in the order they are watched.
+func inOrder(item *catalog.MediaItem) []catalog.Episode {
+	episodes := append([]catalog.Episode(nil), item.Episodes...)
+	sort.SliceStable(episodes, func(i, j int) bool {
+		return before(episodes[i].Season, episodes[i].Number, episodes[j].Season, episodes[j].Number)
+	})
+	return episodes
+}
+
+// before says whether episode (season, number) comes before (otherSeason,
+// otherNumber) in watching order.
+func before(season, number, otherSeason, otherNumber int) bool {
+	if season != otherSeason {
+		// Season 0 is where a provider files the specials, and it goes
+		// last rather than before the pilot — which is where the title
+		// page already puts it. Sorted the other way the core and the
+		// page disagree about what follows the last special: the page
+		// says "nothing after this", the player starts the pilot.
+		if season == 0 || otherSeason == 0 {
+			return otherSeason == 0
+		}
+		return season < otherSeason
+	}
+	return number < otherNumber
+}
+
+// latestEntry is the entry updated last; of several marked in one moment,
+// the one furthest on.
 func latestEntry(entries []Entry) *Entry {
 	var latest *Entry
 	for i := range entries {
 		entry := &entries[i]
-		if latest == nil || entry.UpdatedAt.After(latest.UpdatedAt) {
+		if latest == nil || entry.UpdatedAt.After(latest.UpdatedAt) ||
+			entry.UpdatedAt.Equal(latest.UpdatedAt) && before(latest.Season, latest.Episode, entry.Season, entry.Episode) {
 			latest = entry
 		}
 	}

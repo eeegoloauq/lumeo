@@ -2,6 +2,7 @@ package progress
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -21,6 +22,22 @@ func (m *memoryStore) History(context.Context, int, int) ([]Entry, error) {
 	panic("not used")
 }
 func (m *memoryStore) DeleteProgress(context.Context, string, *int, *int) error {
+	return nil
+}
+func (m *memoryStore) MarkWatched(_ context.Context, itemID string, episodes [][2]int, at time.Time) error {
+	for _, e := range episodes {
+		marked := Entry{ItemID: itemID, Season: e[0], Episode: e[1], Watched: true, UpdatedAt: at}
+		found := false
+		for i := range m.entries {
+			if m.entries[i].Season == e[0] && m.entries[i].Episode == e[1] {
+				marked.Duration = m.entries[i].Duration
+				m.entries[i], found = marked, true
+			}
+		}
+		if !found {
+			m.entries = append(m.entries, marked)
+		}
+	}
 	return nil
 }
 func (m *memoryStore) HideFromContinue(context.Context, string) error { panic("not used") }
@@ -272,5 +289,67 @@ func TestACaughtUpSeriesHasNoNextUntilTheEpisodeIsOut(t *testing.T) {
 	}
 	if watching, err = service.Get(context.Background(), "series"); err != nil || watching.Upcoming != nil {
 		t.Fatalf("upcoming once out = %+v, %v", watching.Upcoming, err)
+	}
+}
+
+// Marked up to an episode, a series goes on from the one after it. What was
+// watched already keeps its day, specials and what has not aired are left
+// alone, and the episode named is marked again so that it is the latest.
+func TestWatchedThroughGoesOnAfterTheEpisodeNamed(t *testing.T) {
+	now := time.Unix(1_000_000, 0).UTC()
+	long := now.Add(-30 * 24 * time.Hour)
+	aired := now.Add(-time.Hour)
+	item := catalog.MediaItem{ID: "series", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+		{Season: 2, Number: 2, Released: aired},
+		{Season: 1, Number: 1, Released: aired},
+		{Season: 1, Number: 2, Released: aired},
+		{Season: 0, Number: 1, Released: aired},
+		{Season: 2, Number: 1, Released: aired},
+		{Season: 2, Number: 3, Released: now.Add(time.Hour)},
+	}}
+	store := &memoryStore{entries: []Entry{
+		{ItemID: "series", Season: 1, Episode: 1, Watched: true, UpdatedAt: long},
+		{ItemID: "series", Season: 1, Episode: 2, Position: 300, Duration: 1200, UpdatedAt: long},
+		{ItemID: "series", Season: 2, Episode: 1, Watched: true, UpdatedAt: long},
+	}}
+	service := New(store, memoryCatalog{item})
+	service.now = func() time.Time { return now }
+
+	watching, err := service.WatchedThrough(context.Background(), "series", &[2]int{2, 1})
+	if err != nil {
+		t.Fatalf("watched through: %v", err)
+	}
+	if watching.Next == nil || watching.Next.Season != 2 || watching.Next.Episode != 2 {
+		t.Fatalf("next = %+v, want S2E2", watching.Next)
+	}
+	byEpisode := map[[2]int]Entry{}
+	for _, e := range store.entries {
+		byEpisode[[2]int{e.Season, e.Episode}] = e
+	}
+	if e := byEpisode[[2]int{1, 1}]; !e.UpdatedAt.Equal(long) {
+		t.Errorf("an episode watched before was marked again: %+v", e)
+	}
+	if e := byEpisode[[2]int{1, 2}]; !e.Watched || e.Position != 0 || !e.UpdatedAt.Equal(now) {
+		t.Errorf("the episode stopped part way = %+v, want watched now", e)
+	}
+	if e := byEpisode[[2]int{2, 1}]; !e.UpdatedAt.Equal(now) {
+		t.Errorf("the episode named was not marked again: %+v", e)
+	}
+	if _, ok := byEpisode[[2]int{0, 1}]; ok {
+		t.Error("a special was marked")
+	}
+
+	// The whole series is every aired episode: not the one out in an hour.
+	if watching, err = service.WatchedThrough(context.Background(), "series", nil); err != nil {
+		t.Fatalf("the whole series: %v", err)
+	}
+	if watching.Next != nil || watching.Upcoming == nil || watching.Upcoming.Number != 3 {
+		t.Fatalf("after the whole series, next = %+v, upcoming = %+v", watching.Next, watching.Upcoming)
+	}
+
+	for _, through := range [][2]int{{2, 3}, {0, 1}, {3, 1}} {
+		if _, err := service.WatchedThrough(context.Background(), "series", &through); !errors.Is(err, ErrInvalid) {
+			t.Errorf("through %v: err = %v, want ErrInvalid", through, err)
+		}
 	}
 }
