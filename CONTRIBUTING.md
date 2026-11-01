@@ -122,6 +122,9 @@ releases page; their tags stay. Betas go out when there is something to try; the
 once they are checked.
 `packaging/build-dist.sh` makes the bundle and tarball, with the Qt of `install-qt.sh` in it;
 `build-rpm.sh` and `build-arch.sh` package that tarball, `build-windows.sh` the Windows installer.
+`packaging/container/Containerfile` is the server image, built from `core/` (its first lines say
+how); the release pushes it to GHCR after publishing. The first push of the package leaves it
+private: make it public once in the package's settings on GitHub.
 The Windows libmpv is a pinned build mirrored into this repository's releases by
 `.github/workflows/libmpv.yml`; a bump is that workflow run once and the four lines in
 `fetch-libmpv.sh`.

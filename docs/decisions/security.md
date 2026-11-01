@@ -83,8 +83,12 @@ bodies are capped, and the API binds to localhost unless told otherwise.
 
 What actually contains a compromised parser — unprivileged user, no
 capabilities, a read-only root with one writable directory, a syscall filter —
-belongs to the unit file and the container, and lands with the first real
-deployment. In-process sandboxing (Landlock, seccomp) is the fallback for when
+belongs to the unit file and the container image
+(`packaging/server/lumeo-core.service`, `packaging/container/`), which run the
+core as an unprivileged user writing only to its data and cache directories;
+the container's example adds the read-only root and drops every capability.
+The container runs under the engine's default seccomp profile; the
+unit has no `SystemCallFilter` yet. In-process sandboxing (Landlock, seccomp) is the fallback for when
 we ship a desktop binary that no unit file wraps; it is not worth a dependency
 and a Linux-only code path before there is something to ship.
 

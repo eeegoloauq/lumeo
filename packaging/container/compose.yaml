@@ -1,0 +1,33 @@
+# The core as a server container (docs/remote-core.md, Container). Clients
+# reach it through an HTTPS reverse proxy; pair a device with
+#     docker compose exec core lumeo-core pair
+services:
+  core:
+    # A version, such as 0.1.80-beta.1, changes only when changed here; beta
+    # and latest move with each release.
+    image: ghcr.io/eeegoloauq/lumeo-core:beta
+    restart: unless-stopped
+    environment:
+      LUMEO_PUBLIC_URL: https://lumeo.example.com
+      # media: the server keeps files, each device its own history.
+      LUMEO_MODE: full
+    ports:
+      # The API for the reverse proxy on this host only; never the internet.
+      - 127.0.0.1:7666:7666
+      # BitTorrent, so peers can connect in.
+      - 42069:42069/tcp
+      - 42069:42069/udp
+    volumes:
+      - data:/data
+      - cache:/cache
+    # What the systemd unit confines, for the container: nothing to write but
+    # its volumes, no capabilities, no way to gain privileges.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  data:
+  cache:

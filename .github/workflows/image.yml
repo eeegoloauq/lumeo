@@ -1,0 +1,54 @@
+# The core's server image (packaging/container/Containerfile). On main it is
+# built and tried whenever the core or its packaging changes, so a tag is not
+# the image's first build. release.yml calls it before publishing and pushes
+# the tag's image after, so the image appears with a published release or not
+# at all.
+#
+# The trial runs the image as compose.yaml does (read-only, no capabilities)
+# and drives it from outside: it must turn healthy, issue a pairing code
+# through `docker exec`, and pair a device over its port.
+name: image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - core/**
+      - packaging/container/**
+      - .github/workflows/image.yml
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  try:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: build
+        run: |
+          docker buildx build --load -f packaging/container/Containerfile -t lumeo-core:trial core
+      - name: try
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' lumeo-core:trial)" = 65532:65532
+          docker run -d --name lumeo -p 127.0.0.1:7666:7666 \
+            --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+            lumeo-core:trial
+          trap 'docker logs lumeo' EXIT
+          for _ in $(seq 60); do
+            docker exec lumeo lumeo-core health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          docker exec lumeo lumeo-core health
+          code=$(docker exec lumeo lumeo-core pair | sed -n 's/^Pairing code: //p')
+          test -n "$code"
+          token=$(curl -sf -H 'Content-Type: application/json' \
+            -d "{\"code\":\"$code\",\"name\":\"ci\"}" http://127.0.0.1:7666/api/v1/pair |
+            python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
+          curl -sf -o /dev/null -H "Authorization: Bearer $token" http://127.0.0.1:7666/api/v1/about
+          docker exec lumeo lumeo-core devices | grep -q ci

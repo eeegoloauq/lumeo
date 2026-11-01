@@ -33,6 +33,31 @@ directory needs a unit override granting write access to that directory.
 Run `systemctl daemon-reload` and `systemctl enable --now lumeo-core`.
 Logs are in `journalctl -u lumeo-core`. Closing a remote client leaves it running.
 
+## Container
+
+Each release publishes `ghcr.io/eeegoloauq/lumeo-core` for amd64 and arm64,
+tagged with its version, such as `0.1.80-beta.1`; `beta` follows the latest
+beta and `latest` the latest release. Start from
+[the compose example](../packaging/container/compose.yaml): set
+`LUMEO_PUBLIC_URL` and the version, then `docker compose up -d`.
+
+The image holds the binary and CA certificates, no shell. It runs as user
+65532 and writes to two volumes: `/data` (database, downloads, owner token)
+and `/cache` (artwork, safe to lose). The example also makes the root
+filesystem read-only, drops every capability and forbids gaining privileges.
+A bind mount instead of a named volume must belong to 65532. The API listens
+on port 7666, published to the host's loopback for the reverse proxy below;
+with the proxy on another machine, publish it on the private interface
+instead. BitTorrent uses port 42069 over TCP and UDP (`LUMEO_TORRENT_PORT`),
+published so peers can connect in. Docker's health check runs
+`lumeo-core health`.
+
+The commands under [Devices](#devices) run in the container with its
+environment: `docker compose exec core lumeo-core pair`, and the same for
+`devices`, `revoke` and `health`. Logs are in `docker compose logs core`. The
+owner token for a `curl` on the host is `api-token` in the data volume
+(`docker volume inspect` gives its path).
+
 ## Nginx Proxy Manager
 
 Create a Proxy Host for `lumeo.example.com`, forwarding HTTP to the core's
@@ -146,7 +171,8 @@ downloads that would exhaust available disk. On a media server a file its
 devices hold goes by their keep rules instead, watched or not, once no hold
 on it lasts. Torrent upload limits are separate from HTTP delivery.
 
-Check `systemctl is-active lumeo-core` and an authenticated `GET /healthz` through
+Check `systemctl is-active lumeo-core` (in a container, that `docker compose ps`
+says healthy) and an authenticated `GET /healthz` through
 public HTTPS. Verify that an unauthenticated call returns 401. Before considering
 deployment complete, play a video, seek to an uncached part, pause and resume,
 and advance to the next episode through the actual proxy.
@@ -155,4 +181,6 @@ Before upgrading, stop the service, back up its entire data directory including
 SQLite sidecar files, and keep the old binary. Start the new version and repeat
 health and playback checks. To roll back, stop it, restore the old binary and
 its matching data backup, then start and check again. Do not roll back by running
-an old binary against the upgraded database.
+an old binary against the upgraded database. In a container the binary is the
+image: upgrade by changing its version in the compose file, and roll back to
+the old version with the data volume restored from its backup.

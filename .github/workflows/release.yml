@@ -25,6 +25,10 @@ jobs:
   checks:
     uses: ./.github/workflows/ci.yml
 
+  # The core's server image, tried here and pushed only after publish.
+  image-check:
+    uses: ./.github/workflows/image.yml
+
   dist:
     # Named, not latest: the machine the bundle is built on sets the oldest
     # glibc it runs on.
@@ -128,7 +132,7 @@ jobs:
   # Waits for every build and the checks: the release appears whole and
   # tested, with one SHA256SUMS over all of its files, or not at all.
   publish:
-    needs: [checks, dist, rpm, arch, windows]
+    needs: [checks, image-check, dist, rpm, arch, windows]
     runs-on: ubuntu-latest
     # The only job that writes to the repository.
     permissions:
@@ -182,3 +186,39 @@ jobs:
             [ "$(printf '%s\n' "$base" "$current" | sort -V | tail -1)" = "$current" ] || continue
             gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes
           done
+
+  # The tag's server image, pushed to GHCR once the release is published.
+  image:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # The only job that writes a package.
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/lumeo-core
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: push
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          # A beta (0.1.80-beta.1) moves beta; a release moves latest, as the
+          # app's update check sees only releases.
+          case "$version" in *-*) moving=beta ;; *) moving=latest ;; esac
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          # The default driver builds only the runner's own platform.
+          docker buildx create --use --name lumeo
+          docker buildx build --push --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION="$version" \
+            --label org.opencontainers.image.source="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label org.opencontainers.image.version="$version" \
+            --label org.opencontainers.image.licenses=MIT \
+            --annotation "index:org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            -f packaging/container/Containerfile \
+            -t "$IMAGE:$version" -t "$IMAGE:$moving" core

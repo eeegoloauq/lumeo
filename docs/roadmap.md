@@ -10,12 +10,12 @@ The first deployment uses an HTTPS reverse proxy, one-time pairing and
 revocable device credentials ([setup](remote-core.md)). The client remembers
 one remote core alongside its local mode; switching applies on restart so
 in-flight requests and final playback progress stay with their original core.
-The server has a confined systemd unit and console administration.
+The server has a confined systemd unit or container image and console
+administration.
 
 - TLS in the core: a self-signed certificate whose fingerprint the client
   pins at pairing (mpv gets it as `tls-ca-file`), for deployments without
   a reverse proxy.
-- A confined container, unprivileged, writing to the data directory only.
 - Multiple saved remote cores and switching without restarting. Every store,
   in-flight request and playback session must remain scoped to its core.
 

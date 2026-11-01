@@ -83,8 +83,11 @@ app itself (interface.md), which keeps the one rule that the app owns its
 core: a separate service would be a second owner, and the core opens outbound
 BitTorrent connections and a loopback HTTP port, neither of which wants root.
 
-A remote core belongs to the server's unprivileged systemd service
-([remote deployment](../remote-core.md)). A client with a saved remote connection
+A remote core belongs to the server's unprivileged systemd service or its
+container ([remote deployment](../remote-core.md)). The image is distroless
+with the static core alone, built for amd64 and arm64 from the tag without
+emulation, since the core is pure Go; each release pushes it to GHCR after
+publishing, and `image.yml` tries it on main whenever the core changes. A client with a saved remote connection
 does not start its bundled core. The installed app still owns its session socket
 and background lifecycle.
 

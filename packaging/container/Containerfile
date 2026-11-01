@@ -1,0 +1,43 @@
+# The core as a server container: one static binary on distroless, running
+# unprivileged, writing to /data and /cache only (docs/remote-core.md,
+# Container). Built from core/:
+#
+#     docker build -f packaging/container/Containerfile --build-arg VERSION=0.1.80 core
+#
+# Both images are pinned by digest, so a rebuild of a tag is the same image;
+# a bump is a commit. The build stage is the Go of packaging/ci/Containerfile.
+FROM --platform=$BUILDPLATFORM golang:1.27.2-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS build
+ARG TARGETOS TARGETARCH
+ARG VERSION=dev
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download -x && go mod verify
+COPY cmd cmd
+COPY internal internal
+# Pure Go, SQLite included, so it cross-compiles for every platform from the
+# build machine's own: no emulation, and nothing for a libc to resolve.
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -mod=readonly -trimpath -ldflags "-s -w -X main.version=$VERSION" \
+    -o /out/lumeo-core ./cmd/lumeo
+# The volumes' mount points, owned by distroless's nonroot user (65532), so a
+# fresh named volume starts out writable by the core and by nobody else.
+RUN install -d -m 0700 -o 65532 -g 65532 /out/data /out/cache
+
+# CA certificates for addons and trackers, tzdata, a nonroot user; no shell.
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:25ac8f0c3b2334a9eb05452266bd4697864a8c8ef0ef71e5e6480d7f92868329
+COPY --from=build /out/lumeo-core /usr/local/bin/lumeo-core
+COPY --from=build --chown=65532:65532 /out/data /data
+COPY --from=build --chown=65532:65532 /out/cache /cache
+# Listens on every interface of the container's own network; which of the
+# host's it reaches is the port mapping's choice. The torrent port is fixed
+# so it can be published: the core's default asks the OS for a random one.
+ENV LUMEO_ADDR=0.0.0.0:7666 \
+    LUMEO_DATA=/data \
+    LUMEO_CACHE=/cache \
+    LUMEO_TORRENT_PORT=42069
+EXPOSE 7666/tcp 42069/tcp 42069/udp
+VOLUME ["/data", "/cache"]
+USER 65532:65532
+HEALTHCHECK --interval=30s --timeout=15s --start-period=30s --retries=3 \
+    CMD ["/usr/local/bin/lumeo-core", "health"]
+ENTRYPOINT ["/usr/local/bin/lumeo-core"]
