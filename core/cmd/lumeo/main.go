@@ -27,6 +27,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/searches"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
@@ -136,7 +137,20 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		<-refreshing
 	}()
 
-	cat := catalog.NewService(installed.Metadata, db, log)
+	// A core linked to a server forwards to it what it owns, and takes it as
+	// the one metadata provider: the titles here are the server's.
+	link, linked, err := remote.Load(cfg.DataDir)
+	if err != nil {
+		return err
+	}
+	var server *remote.Server
+	metadata := installed.Metadata
+	if linked {
+		server = remote.New(link, log)
+		metadata = catalog.Fixed(server.Provider())
+		log.Info("forwarding to a server", "url", link.URL)
+	}
+	cat := catalog.NewService(metadata, db, log)
 	defer cat.Close()
 	subs := subtitles.NewService(installed.Subtitles, cfg.SubtitleLanguages, log)
 
@@ -281,8 +295,19 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Devices:     db,
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
+		Remote:      server,
 	}, log)
 	defer handler.Close()
+	marking := make(chan struct{})
+	go func() {
+		defer close(marking)
+		handler.KeepWatchedMarks(ctx)
+	}()
+	// It reads the progress, so it ends before the store closes.
+	defer func() {
+		stop()
+		<-marking
+	}()
 	srv := &http.Server{
 		Handler:           handler.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,

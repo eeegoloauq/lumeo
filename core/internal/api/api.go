@@ -27,6 +27,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/searches"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
@@ -61,6 +62,9 @@ type Server struct {
 	log       *slog.Logger
 	artwork   *store.DB
 	cacheDir  string
+	remote    *remote.Server
+	// watchedKick asks KeepWatchedMarks for a pass.
+	watchedKick chan struct{}
 	// artworkFetches joins the requests for an image not cached yet.
 	artworkFetches *flight.Group[int]
 
@@ -121,6 +125,9 @@ type Deps struct {
 	Devices   *store.DB
 	Artwork   *store.DB
 	CacheDir  string
+	// Remote is the server this core forwards to, nil for one that holds
+	// everything itself (remote.go).
+	Remote *remote.Server
 }
 
 func New(deps Deps, log *slog.Logger) *Server {
@@ -151,6 +158,9 @@ func New(deps Deps, log *slog.Logger) *Server {
 		artwork:   deps.Artwork,
 		cacheDir:  deps.CacheDir,
 		hashes:    make(map[string]string),
+		remote:    deps.Remote,
+
+		watchedKick: make(chan struct{}, 1),
 
 		artworkFetches: flight.New[int](),
 	}
@@ -167,9 +177,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/pairings", s.handlePairing)
 	mux.HandleFunc("GET /api/v1/devices", s.handleDevices)
 	mux.HandleFunc("DELETE /api/v1/devices/{id}", s.handleRevokeDevice)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /healthz", s.forwarded(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "providers": len(s.sources())})
-	})
+	}, s.remoteHealth))
 	mux.HandleFunc("GET /api/v1/catalogs", s.handleCatalogs)
 	mux.HandleFunc("GET /api/v1/catalog", s.handleCatalog)
 	mux.HandleFunc("GET /api/v1/search", s.handleSearch)
@@ -179,29 +189,29 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/find", s.handleFind)
 	mux.HandleFunc("GET /api/v1/items/{id}", s.handleItem)
 	mux.HandleFunc("GET /api/v1/items/{id}/after", s.handleEpisodeAfter)
-	mux.HandleFunc("GET /api/v1/items/{id}/folders", s.handleFolders)
+	mux.HandleFunc("GET /api/v1/items/{id}/folders", s.forwarded(s.handleFolders, s.remoteFolders))
 	mux.HandleFunc("POST /api/v1/items/{id}/folders", s.handleLinkFolder)
-	mux.HandleFunc("GET /api/v1/sources", s.handleSources)
-	mux.HandleFunc("GET /api/v1/subtitles", s.handleSubtitles)
-	mux.HandleFunc("GET /api/v1/subtitles/{token}", s.handleSubtitleFile)
-	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles", s.handleKeptSubtitles)
-	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles/{file}", s.handleKeptSubtitle)
+	mux.HandleFunc("GET /api/v1/sources", s.forwarded(s.handleSources, s.remoteSources))
+	mux.HandleFunc("GET /api/v1/subtitles", s.forwarded(s.handleSubtitles, s.remoteSubtitles))
+	mux.HandleFunc("GET /api/v1/subtitles/{token}", s.forwarded(s.handleSubtitleFile, s.remoteSubtitleFile))
+	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles", s.eitherDownload(s.handleKeptSubtitles, s.forward))
+	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles/{file}", s.eitherDownload(s.handleKeptSubtitle, s.forward))
 	mux.HandleFunc("GET /api/v1/preferences", s.handlePreferences)
 	mux.HandleFunc("PATCH /api/v1/preferences", s.handlePatchPreferences)
 	mux.HandleFunc("DELETE /api/v1/preferences", s.handleResetPreferences)
 	mux.HandleFunc("GET /api/v1/preferences/languages", s.handlePreferenceLanguages)
 	mux.HandleFunc("GET /api/v1/about", s.handleAbout)
 	mux.HandleFunc("GET /api/v1/update", s.handleUpdate)
-	mux.HandleFunc("GET /api/v1/storage", s.handleStorage)
-	mux.HandleFunc("DELETE /api/v1/cache", s.handleClearCache)
-	mux.HandleFunc("DELETE /api/v1/storage", s.handleClearStorage)
-	mux.HandleFunc("PUT /api/v1/progress/{id}", s.handlePutProgress)
+	mux.HandleFunc("GET /api/v1/storage", s.forwarded(s.handleStorage, s.remoteStorage))
+	mux.HandleFunc("DELETE /api/v1/cache", s.forwarded(s.handleClearCache, s.remoteClearCache))
+	mux.HandleFunc("DELETE /api/v1/storage", s.forwarded(s.handleClearStorage, s.remoteClearStorage))
+	mux.HandleFunc("PUT /api/v1/progress/{id}", s.progressChanged(s.handlePutProgress))
 	mux.HandleFunc("GET /api/v1/progress/{id}", s.handleProgress)
-	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.handleDeleteProgress)
+	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.progressChanged(s.handleDeleteProgress))
 	mux.HandleFunc("GET /api/v1/continue", s.handleContinue)
 	mux.HandleFunc("GET /api/v1/history", s.handleHistory)
 	mux.HandleFunc("GET /api/v1/personal", s.handleExportPersonal)
-	mux.HandleFunc("POST /api/v1/personal", s.handleImportPersonal)
+	mux.HandleFunc("POST /api/v1/personal", s.progressChanged(s.handleImportPersonal))
 	mux.HandleFunc("GET /api/v1/list", s.handleList)
 	mux.HandleFunc("GET /api/v1/list/{id}", s.handleListEntry)
 	mux.HandleFunc("PUT /api/v1/list/{id}", s.handleAddToList)
@@ -209,23 +219,24 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/new-episodes", s.shelf((*watchlist.Service).NewEpisodes))
 	mux.HandleFunc("GET /api/v1/coming-up", s.shelf((*watchlist.Service).ComingUp))
 	mux.HandleFunc("GET /api/v1/ratings/{id}", s.handleRatings)
-	mux.HandleFunc("PUT /api/v1/ratings/{id}", s.handleRate)
+	// A score marks what was scored as watched (markScored).
+	mux.HandleFunc("PUT /api/v1/ratings/{id}", s.progressChanged(s.handleRate))
 	mux.HandleFunc("DELETE /api/v1/ratings/{id}", s.handleUnrate)
 	mux.HandleFunc("GET /api/v1/choices/{id}", s.handleChoice)
 	mux.HandleFunc("PATCH /api/v1/choices/{id}", s.handlePatchChoice)
-	mux.HandleFunc("GET /api/v1/addons", s.handleAddons)
-	mux.HandleFunc("POST /api/v1/addons", s.handleAddAddon)
-	mux.HandleFunc("PATCH /api/v1/addons/{id}", s.handlePatchAddon)
-	mux.HandleFunc("DELETE /api/v1/addons/{id}", s.handleRemoveAddon)
-	mux.HandleFunc("POST /api/v1/downloads", s.handleStartDownload)
+	mux.HandleFunc("GET /api/v1/addons", s.forwarded(s.handleAddons, s.forward))
+	mux.HandleFunc("POST /api/v1/addons", s.forwarded(s.handleAddAddon, s.forward))
+	mux.HandleFunc("PATCH /api/v1/addons/{id}", s.forwarded(s.handlePatchAddon, s.forward))
+	mux.HandleFunc("DELETE /api/v1/addons/{id}", s.forwarded(s.handleRemoveAddon, s.forward))
+	mux.HandleFunc("POST /api/v1/downloads", s.forwarded(s.handleStartDownload, s.remoteStartDownload))
 	mux.HandleFunc("POST /api/v1/local", s.handleLocal)
-	mux.HandleFunc("GET /api/v1/downloads", s.handleDownloads)
-	mux.HandleFunc("GET /api/v1/downloads/{id}", s.handleDownload)
-	mux.HandleFunc("PATCH /api/v1/downloads/{id}", s.handlePatchDownload)
-	mux.HandleFunc("DELETE /api/v1/downloads/{id}", s.handleRemoveDownload)
+	mux.HandleFunc("GET /api/v1/downloads", s.forwarded(s.handleDownloads, s.remoteDownloads))
+	mux.HandleFunc("GET /api/v1/downloads/{id}", s.eitherDownload(s.handleDownload, s.remoteDownload))
+	mux.HandleFunc("PATCH /api/v1/downloads/{id}", s.eitherDownload(s.handlePatchDownload, s.remoteDownload))
+	mux.HandleFunc("DELETE /api/v1/downloads/{id}", s.eitherDownload(s.handleRemoveDownload, s.forward))
 	// GET also serves HEAD, which players use to learn the size before they
 	// commit to a byte range.
-	mux.HandleFunc("GET /api/v1/downloads/{id}/stream", s.handleStream)
+	mux.HandleFunc("GET /api/v1/downloads/{id}/stream", s.eitherDownload(s.handleStream, s.forward))
 	root := http.NewServeMux()
 	root.HandleFunc("POST /api/v1/pair", s.handlePair)
 	// Artwork is the one route without the token: an image widget fetches

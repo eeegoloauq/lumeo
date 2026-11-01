@@ -20,21 +20,25 @@ func (d *DB) SaveDownload(ctx context.Context, download acquire.Download) error 
 	if err != nil {
 		return fmt.Errorf("encode download locator %q: %w", download.ID, err)
 	}
-	var pausedAt int64
+	var pausedAt, watchedAt int64
 	if download.PausedByUser {
 		pausedAt = download.Progress.Completed
+	}
+	if !download.WatchedAt.IsZero() {
+		watchedAt = download.WatchedAt.Unix()
 	}
 	_, err = d.db.ExecContext(ctx, `
 		INSERT INTO downloads(
 			id, item_id, season, episode, name, scheme, locator,
 			dir, file_path, size, state, error, created_at, updated_at,
-			paused_by_user, paused_at_bytes, binge_group, pack_path
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			paused_by_user, paused_at_bytes, binge_group, pack_path, watched_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			paused_by_user = excluded.paused_by_user,
 			paused_at_bytes = excluded.paused_at_bytes,
 			binge_group = excluded.binge_group,
 			pack_path = excluded.pack_path,
+			watched_at = excluded.watched_at,
 			item_id = excluded.item_id,
 			season = excluded.season,
 			episode = excluded.episode,
@@ -51,7 +55,7 @@ func (d *DB) SaveDownload(ctx context.Context, download acquire.Download) error 
 		download.ID, download.ItemID, download.Season, download.Episode, download.Name,
 		download.Locator.Scheme, locator, download.Dir, download.FilePath, download.Size,
 		string(download.State), download.Error, download.CreatedAt.Unix(), download.UpdatedAt.Unix(),
-		download.PausedByUser, pausedAt, download.BingeGroup, download.PackPath)
+		download.PausedByUser, pausedAt, download.BingeGroup, download.PackPath, watchedAt)
 	if err != nil {
 		return fmt.Errorf("save download %q: %w", download.ID, err)
 	}
@@ -62,7 +66,7 @@ func (d *DB) Downloads(ctx context.Context) ([]acquire.Download, error) {
 	rows, err := d.db.QueryContext(ctx, `
 		SELECT id, item_id, season, episode, name, locator,
 		       dir, file_path, size, state, error, created_at, updated_at,
-		       paused_by_user, paused_at_bytes, binge_group, pack_path
+		       paused_by_user, paused_at_bytes, binge_group, pack_path, watched_at
 		FROM downloads
 		ORDER BY created_at DESC`)
 	if err != nil {
@@ -88,7 +92,7 @@ func (d *DB) Download(ctx context.Context, id string) (acquire.Download, bool, e
 	row := d.db.QueryRowContext(ctx, `
 		SELECT id, item_id, season, episode, name, locator,
 		       dir, file_path, size, state, error, created_at, updated_at,
-		       paused_by_user, paused_at_bytes, binge_group, pack_path
+		       paused_by_user, paused_at_bytes, binge_group, pack_path, watched_at
 		FROM downloads
 		WHERE id = ?`, id)
 	download, err := scanDownload(row.Scan)
@@ -112,11 +116,11 @@ func scanDownload(scan func(dest ...any) error) (acquire.Download, error) {
 	var download acquire.Download
 	var locator []byte
 	var state string
-	var createdAt, updatedAt, pausedAt int64
+	var createdAt, updatedAt, pausedAt, watchedAt int64
 	if err := scan(
 		&download.ID, &download.ItemID, &download.Season, &download.Episode, &download.Name,
 		&locator, &download.Dir, &download.FilePath, &download.Size, &state, &download.Error,
-		&createdAt, &updatedAt, &download.PausedByUser, &pausedAt, &download.BingeGroup, &download.PackPath,
+		&createdAt, &updatedAt, &download.PausedByUser, &pausedAt, &download.BingeGroup, &download.PackPath, &watchedAt,
 	); err != nil {
 		return acquire.Download{}, err
 	}
@@ -129,5 +133,8 @@ func scanDownload(scan func(dest ...any) error) (acquire.Download, error) {
 	download.State = acquire.State(state)
 	download.CreatedAt = time.Unix(createdAt, 0).UTC()
 	download.UpdatedAt = time.Unix(updatedAt, 0).UTC()
+	if watchedAt != 0 {
+		download.WatchedAt = time.Unix(watchedAt, 0).UTC()
+	}
 	return download, nil
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
@@ -131,28 +132,35 @@ func (s *Server) handleClearStorage(w http.ResponseWriter, r *http.Request) {
 	if oneItem {
 		wanted = itemID[0]
 	}
-	var matches []acquire.Download
-	for _, row := range s.downloads.List(r.Context()) {
-		if row.Locator.Scheme == "file" {
-			continue
-		}
-		if !oneItem || row.ItemID == wanted {
-			matches = append(matches, row)
-		}
-	}
-	if oneItem && len(matches) == 0 {
+	matched, err := s.clearStorage(r.Context(), wanted, oneItem)
+	if oneItem && matched == 0 {
 		writeError(w, http.StatusNotFound, "unknown item")
 		return
 	}
-	var first error
-	for _, row := range matches {
-		if err := s.downloads.Remove(r.Context(), row.ID, true); err != nil && first == nil {
-			first = err
-		}
-	}
-	if first != nil {
-		writeError(w, http.StatusInternalServerError, first.Error())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// clearStorage deletes the downloads of one title, or of all when oneItem is
+// false, with their data; files on this machine stay. matched is how many
+// there were, and err the first removal that failed.
+func (s *Server) clearStorage(ctx context.Context, itemID string, oneItem bool) (matched int, err error) {
+	var matches []acquire.Download
+	for _, row := range s.downloads.List(ctx) {
+		if row.Locator.Scheme == "file" {
+			continue
+		}
+		if !oneItem || row.ItemID == itemID {
+			matches = append(matches, row)
+		}
+	}
+	for _, row := range matches {
+		if removeErr := s.downloads.Remove(ctx, row.ID, true); removeErr != nil && err == nil {
+			err = removeErr
+		}
+	}
+	return len(matches), err
 }

@@ -37,6 +37,10 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "source.locator is required")
 		return
 	}
+	s.startDownload(w, r, req)
+}
+
+func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req startDownloadRequest) {
 	// Only the core knows what the downloads take and which of them the limit
 	// would free, so whether a prefetch fits is its answer.
 	if req.Prefetch {
@@ -81,20 +85,26 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	if s.library != nil && !req.Prefetch {
 		s.library.Picked(d.ID)
 	}
-	// Replaying a copy listed from disk is not a new pick, and a copy of the
-	// release already chosen leaves the choice as it was, picked by hand or not.
-	if s.progress != nil && req.Source.ProviderID != "local" && !s.alreadyChosen(r.Context(), req.ItemID, req.Source) {
-		if err := s.progress.RememberSource(r.Context(), req.ItemID, packOf(req.Source)); err != nil {
-			// The download is running; forgetting the pick costs the next
-			// episode its default, not this one its start.
-			s.log.Warn("remembering the source failed", "item", req.ItemID, "err", err)
-		}
-	}
+	s.rememberPick(r.Context(), req)
 	// A new download can take the library over its ceiling.
 	if s.library != nil {
 		s.library.Kick()
 	}
 	writeJSON(w, http.StatusCreated, d)
+}
+
+// rememberPick makes the pack of a started copy the one Play continues from.
+// Replaying a copy listed from disk is not a new pick, and a copy of the
+// release already chosen leaves the choice as it was, picked by hand or not.
+func (s *Server) rememberPick(ctx context.Context, req startDownloadRequest) {
+	if s.progress == nil || req.Source.ProviderID == "local" || s.alreadyChosen(ctx, req.ItemID, req.Source) {
+		return
+	}
+	if err := s.progress.RememberSource(ctx, req.ItemID, packOf(req.Source)); err != nil {
+		// The download is running; forgetting the pick costs the next
+		// episode its default, not this one its start.
+		s.log.Warn("remembering the source failed", "item", req.ItemID, "err", err)
+	}
 }
 
 // roomFor refuses a copy larger than the free disk: it would fill the disk
@@ -177,8 +187,11 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, d)
 }
 
-// handlePatchDownload pauses or resumes a download: {"paused": true} or
-// {"paused": false}, nothing else.
+// handlePatchDownload pauses or resumes a download, {"paused": true} or
+// {"paused": false}, or marks its episode watched or not, {"watched": true}
+// or {"watched": false}: one of them, nothing else. The mark is what a core
+// that keeps the viewer's progress itself tells this one, whose keep policy
+// frees only what was watched.
 func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
@@ -189,20 +202,33 @@ func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	// Spelled out: null would decode into a bool as false, a resume nobody
 	// asked for.
-	value := string(patch["paused"])
-	if len(patch) != 1 || value != "true" && value != "false" {
-		writeError(w, http.StatusBadRequest, `request body must be {"paused": true} or {"paused": false}`)
+	var key string
+	for k := range patch {
+		key = k
+	}
+	value := string(patch[key])
+	if len(patch) != 1 || key != "paused" && key != "watched" || value != "true" && value != "false" {
+		writeError(w, http.StatusBadRequest, `request body must be {"paused": true|false} or {"watched": true|false}`)
 		return
 	}
-	paused := value == "true"
-	d, err := s.downloads.SetPaused(r.Context(), r.PathValue("id"), paused)
+	id, on := r.PathValue("id"), value == "true"
+	var d acquire.Download
+	var err error
+	if key == "watched" {
+		d, err = s.downloads.SetWatched(r.Context(), id, on)
+		if err == nil && on && s.library != nil {
+			s.library.Kick()
+		}
+	} else {
+		d, err = s.downloads.SetPaused(r.Context(), id, on)
+	}
 	switch {
 	case errors.Is(err, acquire.ErrNotFound):
 		writeError(w, http.StatusNotFound, "unknown download")
 	case errors.Is(err, acquire.ErrNothingToFetch):
 		writeError(w, http.StatusBadRequest, "download has nothing left to fetch")
 	case err != nil:
-		s.log.Warn("pausing download failed", "download", r.PathValue("id"), "paused", paused, "err", err)
+		s.log.Warn("changing a download failed", "download", id, key, on, "err", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 	default:
 		writeJSON(w, http.StatusOK, d)

@@ -229,6 +229,11 @@ func (s *Service) After(ctx context.Context, itemID string, season, episode int)
 	return NextEpisode(&item, season, episode, s.now()), nil
 }
 
+// AllProgress is every entry of every title.
+func (s *Service) AllProgress(ctx context.Context) ([]Entry, error) {
+	return s.store.AllProgress(ctx)
+}
+
 func (s *Service) Choice(ctx context.Context, itemID string) (Choice, error) {
 	return s.store.Choice(ctx, itemID)
 }

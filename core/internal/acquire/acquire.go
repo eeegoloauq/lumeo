@@ -84,7 +84,11 @@ type Download struct {
 	WaitingSince time.Time `json:"waitingSince,omitzero"`
 	// Offline is a download waiting while the machine has no address beyond
 	// its own: it waits for the network, not for peers.
-	Offline   bool      `json:"offline,omitempty"`
+	Offline bool `json:"offline,omitempty"`
+	// WatchedAt is when a device whose core keeps the viewer's progress said
+	// this episode was watched; zero when none has. The keep policy counts it
+	// as watched from then, as it does a watched entry of its own.
+	WatchedAt time.Time `json:"watchedAt,omitzero"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

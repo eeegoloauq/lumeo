@@ -76,6 +76,8 @@ Downloads take the source object from `/api/v1/sources` unchanged:
     curl "localhost:7666/api/v1/downloads"          # progress: bytes, peers, rate
     curl -X DELETE "localhost:7666/api/v1/downloads/<id>"            # stop, keep the data
     curl -X DELETE "localhost:7666/api/v1/downloads/<id>?data=true"  # stop and delete the data
+    curl -X PATCH -H 'content-type: application/json' -d '{"watched":true}' \
+         "localhost:7666/api/v1/downloads/<id>"     # what a linked core says of a watched episode
 
 A file can be played while it downloads. A range request fetches the pieces it needs first, so
 seeking works from the start:
@@ -95,3 +97,18 @@ UTF-8, and only fetches from the provider, never from arbitrary addresses.
 
 Downloads are stored in `<data>/downloads/<id>` and resume after a restart.
 
+
+## Linked to a server
+
+A core can forward to a server what the server owns: addons, metadata, sources, downloads,
+streams, storage and the subtitles of a download. History, scores, My list, searches and
+preferences stay with it ([architecture](architecture.md), A core linked to a server). The client
+talks to it as to any other core. Link it while it is stopped, with a pairing code from the
+server's `lumeo-core pair`:
+
+    LUMEO_DATA=./data go run ./cmd/lumeo link https://lumeo.example.com <code> [device name]
+    LUMEO_DATA=./data go run ./cmd/lumeo unlink
+
+The link is `server.json` in the data directory, owner-only, read at start. The address is the
+server's `LUMEO_PUBLIC_URL`; plain HTTP is accepted only on loopback. Unlinking keeps the device
+on the server until it is revoked there.

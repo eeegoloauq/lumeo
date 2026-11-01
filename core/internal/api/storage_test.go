@@ -349,8 +349,18 @@ func TestACopyThatDoesNotFitGoesLast(t *testing.T) {
 	remux, small := at(4<<20, "remux"), at(1024, "small")
 	remux.Seeders, remux.Release.Resolution = 300, "2160p"
 	all := []sources.MediaSource{remux, small, begun}
-	rankSources(all, nil, nil, New(Deps{Downloads: manager, Library: lib, Preferences: prefs}, log).fitting(context.Background()))
+	server := New(Deps{Downloads: manager, Library: lib, Preferences: prefs}, log)
+	fits := server.fitting(context.Background())
+	rankSources(all, nil, nil, fits)
 	if all[2].Locator.InfoHash != "remux" {
 		t.Fatalf("ranked %+v, want the remux over the limit last", all)
+	}
+	// And the list says so, for a core forwarding here that ranks the
+	// copies itself.
+	listed := server.preferKnown(context.Background(), "", false, all, fits, server.onDiskState(context.Background()))
+	for _, l := range listed {
+		if l.Fits == nil || *l.Fits != (l.Locator.InfoHash != "remux") {
+			t.Fatalf("%s: fits = %v", l.Locator.InfoHash, l.Fits)
+		}
 	}
 }

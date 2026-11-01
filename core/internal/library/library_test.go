@@ -212,6 +212,29 @@ func TestUntilWatchedFreesWhatIsWatched(t *testing.T) {
 	}
 }
 
+// A core that keeps the viewer's progress itself marks the downloads it
+// watched here, where there is no progress of theirs: a mark is watched from
+// when it was made, settle time included.
+func TestADownloadMarkedWatchedIsFreedAsWatched(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "watched"})
+	for _, tc := range []struct {
+		id  string
+		ago time.Duration
+	}{{"marked", 2 * time.Hour}, {"marked-now", time.Minute}} {
+		dir := filepath.Join(downloads.dir, tc.id)
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		downloads.rows = append(downloads.rows, acquire.Download{
+			ID: tc.id, ItemID: "film", Locator: sources.Locator{Scheme: "torrent"}, Dir: dir,
+			State: acquire.StateDone, WatchedAt: now.Add(-tc.ago),
+		})
+	}
+	if removed := clean(t, s, downloads); !slices.Contains(removed, "marked") || slices.Contains(removed, "marked-now") {
+		t.Fatalf("freed %v, want marked and not marked-now", removed)
+	}
+}
+
 func TestDaysCountFromWatching(t *testing.T) {
 	tests := []struct {
 		days int

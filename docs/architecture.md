@@ -58,6 +58,10 @@
     internal/personal  the viewer's own data as one file, titles named by
                        IMDb id, for moving it to another core
     internal/token     the API token in the data directory
+    internal/remote    a core's link to the server it forwards to: the
+                       credential, the HTTP client and stream proxy, the
+                       server as a metadata provider, and the server's ids
+                       seen in its answers
     internal/release   release-name parser (the structure addons do not give us)
     internal/library   the keep policy: frees watched downloads when Keep or
                        the disk limit says so, and a half copy of an episode
@@ -279,6 +283,45 @@ Artwork is the one route without it: an image fetches by address
 alone. The address is the credential instead, its key an HMAC of the
 picture's source address under the token, so it cannot be worked out from a
 poster URL and reaches only a client that listed the title.
+
+## A core linked to a server
+
+A core with `<data>/server.json` (written by `lumeo-core link`) forwards to
+that server what the server owns, and the client talks to it as to any other
+core. The server streams; this core passes the bytes on.
+
+- Its catalogue takes the server as its one metadata provider
+  (`remote.Provider`): rows, pages, searches and details come from the
+  server's own providers, and this core mints its own ids for them by IMDb id.
+  The server's artwork addresses are passed through unchanged, since the
+  artwork route needs no credential.
+- Item ids are translated at the boundary: a forwarded request carries the
+  server's id, found by IMDb id with `/find`; an answer comes back with ours,
+  through `/items/{id}` and our catalogue. Both directions are remembered in
+  memory, so most lookups do not reach the network.
+- Addons go to the server as they are. Downloads, streams, the subtitles of a
+  download and storage go to the server, ids rewritten. Exceptions are a
+  download this core already has, a file opened on this machine or one begun
+  before the link: their routes stay here. Streams go through
+  `httputil.ReverseProxy` with every chunk flushed at once, so nothing is
+  buffered beyond its copy buffer. Range and validators pass unchanged.
+- Progress, scores, My list, searches, preferences and the copy chosen stay
+  here, and the server never sees them. `/sources` is the server's copies
+  plus the ones on this machine, ranked here by `rankSources` and
+  `preferKnown` with this core's languages and choice. The server adds what
+  only it knows to each copy: whether it is on its disk (`local`) and whether
+  it fits there (`fits`). Folders are the server's and this machine's, the
+  current one by the choice kept here.
+- The server's keep policy frees only what was watched, and the watching is
+  recorded here. `KeepWatchedMarks` compares the two after every change of
+  progress and every ten minutes, and sets or clears `watched` on the
+  server's downloads (`PATCH /downloads/{id}`). `library.finished` counts a
+  mark as watched from when it was made. A rewatch under way clears it.
+- A server that does not answer leaves what is here working. `/sources` lists
+  the copies on this machine and names the server as the provider that
+  failed, and the download list is this core's. A refused credential
+  becomes a 502, never a 401, which the client would take for a wrong token
+  of its own.
 
 ## Streaming
 

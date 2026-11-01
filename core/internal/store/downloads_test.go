@@ -40,6 +40,7 @@ func TestDownloadRoundTrip(t *testing.T) {
 				Trackers: []string{"http://t1", "http://t2"},
 			},
 			State:     acquire.StateActive,
+			WatchedAt: time.Unix(1_700_000_250, 0).UTC(),
 			CreatedAt: time.Unix(1_700_000_200, 0).UTC(),
 			UpdatedAt: time.Unix(1_700_000_300, 0).UTC(),
 		},

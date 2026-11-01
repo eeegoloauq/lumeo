@@ -36,7 +36,7 @@ default for a person who wants a server to hold everything.
 | | Full core (today) | Media core |
 |---|---|---|
 | Downloads, files, streaming | Server | Server |
-| Addons, metadata, artwork | Server | Server |
+| Addons, metadata, artwork | Server | Server, through the local core |
 | Ratings, history, progress, lists, settings | Server | Each client's local core |
 
 - People sharing a media core share files and storage. Their history stays on
@@ -44,8 +44,39 @@ default for a person who wants a server to hold everything.
 - The server sets the mode, for example `LUMEO_MODE=full|media`, and reports it
   at pairing. The client follows it and shows it, with no setting of its own, so
   both sides agree on where personal data lives.
-- In this mode the client always runs its local core and sends each request to
-  the core that owns the data. Title pages combine answers from both.
+- In this mode the client talks only to its local core, as it does without a
+  server. That core holds the device credential and forwards to the server
+  what the server owns: addons, metadata, sources, downloads, streams,
+  storage and the subtitles of a download. The client is the same in every
+  mode, and the device-side rules (holds, keep rules from watched state) live
+  in the core that knows what was watched.
+- Item ids are minted by each core, so the local core translates them at the
+  boundary by IMDb id, as the export of personal data does: a forwarded
+  request carries the server's id, an answer comes back with the local one.
+  Its catalogue takes the server as its one metadata provider, so shelves
+  built from local history show the server's titles and artwork.
+- What a server answer used to read from the server's personal data, the
+  local core supplies. It ranks the server's copies itself, by its languages
+  and the copy chosen before (`Pack`); the server only says, per copy,
+  whether it is on its disk and whether it fits there. It sends the
+  languages that pick subtitles with the request, and in step 2 the subtitle
+  languages a download keeps. Choosing a source is recorded locally, not on
+  the server.
+- The server frees only what was watched, so the local core marks the
+  server's downloads of episodes watched on it (`watched` on the download),
+  and clears the mark for a rewatch. It carries no progress or history.
+- Files opened from this machine stay with the local core and play from it;
+  its download list is the server's with them added. A full core cannot open
+  them, a media core's client can.
+- Preferences split by owner: viewer preferences are the local core's; the
+  download folder and transfer limits are the server owner's and are not
+  shown to devices; keep rules are per device (below).
+- Order of work: the local core forwarding to a paired server, which can be a
+  full core at first (done: `lumeo-core link`, docs/core.md); then the
+  server's mode, which refuses personal data from devices, and the subtitle
+  languages a download keeps; then pairing in the client handing the
+  credential to the local core; then holds, limits and keep rules, and the
+  preferences split by owner.
 - Each device has a disk limit set by the server. A file counts in full against
   every device holding it, though the server stores it once. A download over the
   limit is refused.
@@ -56,9 +87,8 @@ default for a person who wants a server to hold everything.
 - A file stays while any device's hold on it lasts, and an active stream is never
   removed. Deleting releases only that device's hold. The server owner sets a
   maximum keep time, thirty days by default.
-- A torrent shares while it is fetching and stops when the file is complete,
-  including while that file plays. This revises "share while in use" in
-  decisions/downloads.md and applies to both modes.
+- A torrent shares while any device plays its file, as it shares while one
+  plays it on a full core (decisions/downloads.md, Acquisition).
 - Changing the mode of a server with data is a migration through the export
   and import of personal data (Settings → General).
 

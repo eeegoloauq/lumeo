@@ -72,41 +72,69 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 		}
 		all = append(all, found[i]...)
 	}
-	// What is on disk is a copy whether or not a provider lists it today: a
-	// file opened from this machine never is, and a download stays playable
-	// while the addon that found it refuses (Torrentio's 403).
-	if itemID != "" && s.downloads != nil {
-		for _, row := range s.downloads.List(r.Context()) {
-			if row.ItemID != itemID || row.Season != q.Season || row.Episode != q.Episode ||
-				row.State == acquire.StateFailed || listed(all, row.Locator) {
-				continue
-			}
-			// A local file that is not done is missing, and nothing can fetch it again.
-			if row.Locator.Scheme == "file" && row.State != acquire.StateDone {
-				continue
-			}
-			src := sources.MediaSource{
-				ProviderID: "local",
-				RawName:    row.Name,
-				Release:    release.Parse(row.Name),
-				Size:       row.Size,
-				Filename:   row.Name,
-				Path:       row.PackPath,
-				BingeGroup: row.BingeGroup,
-				Locator:    row.Locator,
-			}
-			if row.Locator.Scheme == "file" {
-				src.Tracker = "This computer"
-			}
-			all = append(all, src)
-		}
+	if itemID != "" {
+		all = append(all, s.onDisk(r.Context(), itemID, q.Season, q.Episode, all)...)
 	}
 	subs, audio := s.viewerLanguages(r.Context())
-	rankSources(all, subs, audio, s.fitting(r.Context()))
-	listed := s.preferKnown(r.Context(), itemID, q.Kind == catalog.KindSeries, all)
+	fits := s.fitting(r.Context())
+	rankSources(all, subs, audio, fits)
+	listed := s.preferKnown(r.Context(), itemID, q.Kind == catalog.KindSeries, all, fits, s.onDiskState(r.Context()))
 	// providers is how many source addons were asked: with none, an empty list
 	// means "add one", not "no copies".
 	writeJSON(w, http.StatusOK, map[string]any{"sources": listed, "failed": failed, "providers": len(providers)})
+}
+
+// onDisk is the copies of an episode on this core's disk that no provider
+// listed in all. What is on disk is a copy whether or not a provider lists it
+// today: a file opened from this machine never is, and a download stays
+// playable while the addon that found it refuses (Torrentio's 403).
+func (s *Server) onDisk(ctx context.Context, itemID string, season, episode int, all []sources.MediaSource) []sources.MediaSource {
+	if s.downloads == nil {
+		return nil
+	}
+	var out []sources.MediaSource
+	for _, row := range s.downloads.List(ctx) {
+		if row.ItemID != itemID || row.Season != season || row.Episode != episode ||
+			row.State == acquire.StateFailed || listed(all, row.Locator) || listed(out, row.Locator) {
+			continue
+		}
+		// A local file that is not done is missing, and nothing can fetch it again.
+		if row.Locator.Scheme == "file" && row.State != acquire.StateDone {
+			continue
+		}
+		src := sources.MediaSource{
+			ProviderID: "local",
+			RawName:    row.Name,
+			Release:    release.Parse(row.Name),
+			Size:       row.Size,
+			Filename:   row.Name,
+			Path:       row.PackPath,
+			BingeGroup: row.BingeGroup,
+			Locator:    row.Locator,
+		}
+		if row.Locator.Scheme == "file" {
+			src.Tracker = "This computer"
+		}
+		out = append(out, src)
+	}
+	return out
+}
+
+// onDiskState is how far this core has a copy: "done", "partial" or "".
+func (s *Server) onDiskState(ctx context.Context) func(sources.MediaSource) string {
+	return func(src sources.MediaSource) string {
+		if s.downloads == nil {
+			return ""
+		}
+		d, ok := s.downloads.Find(ctx, src.Locator)
+		switch {
+		case !ok || d.State == acquire.StateFailed:
+			return ""
+		case d.State == acquire.StateDone:
+			return "done"
+		}
+		return "partial"
+	}
 }
 
 func listed(all []sources.MediaSource, loc sources.Locator) bool {
@@ -271,6 +299,11 @@ type listedSource struct {
 	// the episode too: the pack author's own name for the version, and the
 	// only thing that tells the two rows apart.
 	PackFolder string `json:"folder,omitempty"`
+	// Fits is whether the copy fits the room a new download has (fitting),
+	// absent when that cannot be told. A core forwarding to this one ranks the
+	// copies itself, by its viewer's languages and choice, and learns the
+	// room of this one's disk from it.
+	Fits *bool `json:"fits,omitempty"`
 }
 
 // preferKnown moves ahead of the ranking what this library already chose: a
@@ -285,7 +318,10 @@ type listedSource struct {
 // however healthy: the catalogue numbers the broadcast cut, so a re-edit
 // offered for an episode is another part of the story. It stays listed for
 // whoever wants it, and once picked its folder is the one remembered.
-func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, all []sources.MediaSource) []listedSource {
+//
+// fits fills in Fits, and state says how far a copy is on disk.
+func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, all []sources.MediaSource,
+	fits func(sources.MediaSource) bool, state func(sources.MediaSource) string) []listedSource {
 	var choice progress.Choice
 	if s.progress != nil && itemID != "" {
 		var err error
@@ -300,13 +336,10 @@ func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, al
 		if twinned(src, all) {
 			listed[i].PackFolder = src.Folder()
 		}
-		if s.downloads != nil {
-			if d, ok := s.downloads.Find(ctx, src.Locator); ok && d.State != acquire.StateFailed {
-				listed[i].Local = "partial"
-				if d.State == acquire.StateDone {
-					listed[i].Local = "done"
-				}
-			}
+		listed[i].Local = state(src)
+		if fits != nil {
+			fit := fits(src)
+			listed[i].Fits = &fit
 		}
 	}
 	sort.SliceStable(listed, func(i, j int) bool {

@@ -29,7 +29,7 @@ func preferenceServer(t *testing.T, defaults preferences.Preferences) http.Handl
 	return New(Deps{Preferences: prefs}, log).Handler()
 }
 
-func requestJSON(t *testing.T, h http.Handler, method, path, body string) *httptest.ResponseRecorder {
+func requestJSON(t testing.TB, h http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	if body != "" {

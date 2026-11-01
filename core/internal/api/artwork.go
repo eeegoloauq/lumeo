@@ -33,6 +33,10 @@ func (s *Server) artworkURL(r *http.Request, raw string, urls map[string]string)
 	if !webURL(raw) {
 		return ""
 	}
+	// The server's own cache, which the client reaches as this core does.
+	if s.remote != nil && s.remote.Artwork(raw) {
+		return raw
+	}
 	key := s.artworkKey(raw, urls)
 	if key == "" {
 		return raw
@@ -314,13 +318,16 @@ func (s *Server) handleClearCache(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "artwork cache unavailable")
 		return
 	}
-	if err := os.RemoveAll(s.artworkDir()); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if err := s.artwork.ResetArtworkMissing(r.Context()); err != nil {
+	if err := s.clearArtwork(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) clearArtwork(ctx context.Context) error {
+	if err := os.RemoveAll(s.artworkDir()); err != nil {
+		return err
+	}
+	return s.artwork.ResetArtworkMissing(ctx)
 }

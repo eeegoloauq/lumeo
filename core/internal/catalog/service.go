@@ -287,6 +287,17 @@ func (s *Service) Find(ctx context.Context, namespace string, kind Kind, externa
 	return MediaItem{}, err
 }
 
+// IDFor is our id for the title a provider knows by externalID: Find, without
+// waiting on a provider for the details of a title already known.
+func (s *Service) IDFor(ctx context.Context, namespace string, kind Kind, externalID string) (string, error) {
+	id, found, err := s.store.ItemID(ctx, namespace, externalID)
+	if err != nil || found {
+		return id, err
+	}
+	item, err := s.Find(ctx, namespace, kind, externalID)
+	return item.ID, err
+}
+
 func (s *Service) ItemsByIDs(ctx context.Context, ids []string) ([]MediaItem, error) {
 	return s.store.ItemsByIDs(ctx, ids)
 }

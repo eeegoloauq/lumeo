@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/config"
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/token"
 )
@@ -23,6 +25,14 @@ import (
 func administer(cfg config.Config, args []string, out io.Writer) error {
 	method, path := "", ""
 	switch {
+	case (len(args) == 3 || len(args) == 4) && args[0] == "link":
+		return link(cfg, args[1:], out)
+	case len(args) == 1 && args[0] == "unlink":
+		if err := remote.Remove(cfg.DataDir); err != nil {
+			return err
+		}
+		_, err := fmt.Fprintln(out, "Unlinked. Restart the core; revoke the device on the server to remove its access.")
+		return err
 	case len(args) == 1 && args[0] == "pair":
 		method, path = "POST", "/api/v1/pairings"
 	case len(args) == 1 && args[0] == "devices":
@@ -30,7 +40,7 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 	case len(args) == 2 && args[0] == "revoke":
 		method, path = "DELETE", "/api/v1/devices/"+url.PathEscape(args[1])
 	default:
-		return fmt.Errorf("usage: lumeo-core [pair | devices | revoke <device-id>]")
+		return fmt.Errorf("usage: lumeo-core [pair | devices | revoke <device-id> | link <https-url> <code> [name] | unlink]")
 	}
 	secret, err := os.ReadFile(filepath.Join(cfg.DataDir, token.FileName))
 	if err != nil {
@@ -90,5 +100,26 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 	case "revoke":
 		_, err = fmt.Fprintln(out, "Device revoked. New requests will be refused; an existing stream may finish.")
 	}
+	return err
+}
+
+// link pairs this core with a server, as a device of it, and keeps the
+// credential in the data directory. It needs no running core: the link is
+// read when the core starts.
+func link(cfg config.Config, args []string, out io.Writer) error {
+	name := ""
+	if len(args) == 3 {
+		name = args[2]
+	} else if host, err := os.Hostname(); err == nil {
+		name = host
+	}
+	paired, err := remote.Pair(context.Background(), args[0], args[1], name)
+	if err != nil {
+		return err
+	}
+	if err := remote.Save(cfg.DataDir, paired); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(out, "Linked to %s as %q. Restart the core to use it.\n", paired.URL, name)
 	return err
 }

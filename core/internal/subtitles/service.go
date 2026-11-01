@@ -131,6 +131,14 @@ type Text struct {
 	Body   []byte
 }
 
+// Known says whether token is one this service minted and still serves.
+func (s *Service) Known(token string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, ok := s.tokens[token]
+	return ok && s.now().Sub(entry.at) <= tokenTTL
+}
+
 // Fetch downloads the file behind a token and hands back UTF-8. Doing this in
 // the core rather than in the player is what fixes the oldest problem in
 // subtitles: half of what these databases hold is single-byte text from

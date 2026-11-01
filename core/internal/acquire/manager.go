@@ -331,6 +331,29 @@ func (m *Manager) SetPaused(ctx context.Context, id string, paused bool) (Downlo
 	return current, nil
 }
 
+// SetWatched marks a download as watched now, or takes the mark off.
+func (m *Manager) SetWatched(ctx context.Context, id string, watched bool) (Download, error) {
+	m.mu.Lock()
+	row, ok := m.rows[id]
+	if !ok {
+		m.mu.Unlock()
+		return Download{}, ErrNotFound
+	}
+	if watched != !row.WatchedAt.IsZero() {
+		row.WatchedAt = time.Time{}
+		if watched {
+			row.WatchedAt = m.now()
+		}
+		if err := m.store.SaveDownload(ctx, row); err != nil {
+			m.mu.Unlock()
+			return Download{}, err
+		}
+		m.rows[id] = row
+	}
+	m.mu.Unlock()
+	return m.snapshot(ctx, row), nil
+}
+
 // StopSharing releases a finished torrent's task while leaving its file on disk.
 func (m *Manager) StopSharing(ctx context.Context, id string) error {
 	m.startMu.Lock()

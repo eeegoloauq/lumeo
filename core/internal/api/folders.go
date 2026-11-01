@@ -96,6 +96,12 @@ func foldersOf(rows []acquire.Download, itemID string, chosen progress.Pack) []f
 		})
 		out = append(out, *f)
 	}
+	sortFolders(out)
+	return out
+}
+
+// sortFolders puts the folder Play continues from first, then the fullest.
+func sortFolders(out []folder) {
 	slices.SortStableFunc(out, func(a, b folder) int {
 		if a.Current != b.Current {
 			if a.Current {
@@ -105,7 +111,6 @@ func foldersOf(rows []acquire.Download, itemID string, chosen progress.Pack) []f
 		}
 		return cmp.Compare(len(b.Episodes), len(a.Episodes))
 	})
-	return out
 }
 
 // folderKey groups the copies on disk the way a choice tells them apart: by
@@ -164,7 +169,7 @@ func (s *Server) handleLinkFolder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	s.handleFolders(w, r)
+	s.forwarded(s.handleFolders, s.remoteFolders)(w, r)
 }
 
 // chosenSource reads the source field of a choice patch: absent leaves the

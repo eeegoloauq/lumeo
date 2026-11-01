@@ -383,7 +383,8 @@ type candidate struct {
 
 // finished is what of rows the policy may free, the longest watched first:
 // downloads of an episode whose progress entry is the watched latch with no
-// position. A watched entry with a position is a rewatch under way.
+// position, and downloads a device marked watched, its progress being kept on
+// the device. A watched entry with a position is a rewatch under way.
 func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]candidate, error) {
 	entries, err := s.progress.AllProgress(ctx)
 	if err != nil {
@@ -402,6 +403,8 @@ func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]cand
 		}
 		if at, ok := finished[episodeOf(row)]; ok {
 			candidates = append(candidates, candidate{row, at})
+		} else if !row.WatchedAt.IsZero() {
+			candidates = append(candidates, candidate{row, row.WatchedAt})
 		}
 	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].watched.Before(candidates[j].watched) })
