@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"log/slog"
@@ -29,6 +30,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/searches"
+	"github.com/eeegoloauq/lumeo/core/internal/selfsigned"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
 	"github.com/eeegoloauq/lumeo/core/internal/token"
@@ -91,6 +93,21 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	secret, err := token.Load(cfg.DataDir)
 	if err != nil {
 		return err
+	}
+
+	// A server reached without a reverse proxy serves its own certificate,
+	// made on first start; the app's own core on loopback serves none.
+	var certificate *tls.Certificate
+	if cfg.TLS != "" {
+		cert, made, err := selfsigned.Load(cfg.TLSDir(), cfg.PublicHost())
+		if err != nil {
+			return err
+		}
+		if made {
+			log.Warn("made a new TLS certificate; devices paired before pair again", "host", cfg.PublicHost())
+		}
+		log.Info("serving HTTPS with the core's own certificate", "sha256", selfsigned.Fingerprint(cert.Certificate[0]))
+		certificate = &cert
 	}
 
 	// Listening comes before everything else the core opens, so the app that
@@ -293,6 +310,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Updates:     update.New(version),
 		Token:       secret,
 		PublicURL:   cfg.PublicURL,
+		Certificate: leaf(certificate),
 		Devices:     db,
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
@@ -323,7 +341,12 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	errc := make(chan error, 1)
 	go func() {
 		log.Info("lumeo core listening", "addr", cfg.Addr, "version", version)
-		if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		serve := func() error { return srv.Serve(listener) }
+		if certificate != nil {
+			srv.TLSConfig = &tls.Config{Certificates: []tls.Certificate{*certificate}}
+			serve = func() error { return srv.ServeTLS(listener, "", "") }
+		}
+		if err := serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errc <- err
 		}
 	}()
@@ -336,4 +359,12 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdown)
+}
+
+// leaf is the DER of the certificate the core serves, nil for plain HTTP.
+func leaf(cert *tls.Certificate) []byte {
+	if cert == nil {
+		return nil
+	}
+	return cert.Certificate[0]
 }

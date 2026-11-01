@@ -32,7 +32,7 @@ type Config struct {
 	Addr      string // HTTP listen address
 	DataDir   string // SQLite + library metadata
 	CacheDir  string // downloaded artwork
-	PublicURL string // external HTTPS origin when behind a reverse proxy
+	PublicURL string // external HTTPS origin, a reverse proxy's or this core's own with TLS
 	// Addons a fresh database starts with. What each one is for — catalog,
 	// metadata, streams, subtitles — is read from its manifest, not set here.
 	Addons []Addon
@@ -49,6 +49,22 @@ type Config struct {
 	// lives: "full" keeps it here, "media" leaves it on each device's own
 	// core, and this one holds the files. Empty is full.
 	Mode string
+	// TLS "self-signed" serves HTTPS with a certificate of the core's own
+	// for PublicURL's host, which devices pin at pairing; empty serves plain
+	// HTTP, for loopback or a reverse proxy.
+	TLS string
+}
+
+// TLSDir holds the core's own certificate and its key.
+func (c Config) TLSDir() string { return filepath.Join(c.DataDir, "tls") }
+
+// PublicHost is the host of PublicURL, the name the certificate carries.
+func (c Config) PublicHost() string {
+	u, err := url.Parse(c.PublicURL)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
 }
 
 // DBPath is the one SQLite file the core keeps everything in.
@@ -87,6 +103,7 @@ func FromEnv() Config {
 	c.TorrentPort, _ = strconv.Atoi(os.Getenv("LUMEO_TORRENT_PORT"))
 	c.ExitOnStdinEOF = os.Getenv("LUMEO_EXIT_ON_STDIN_EOF") == "1"
 	c.Mode = envOr("LUMEO_MODE", "full")
+	c.TLS = os.Getenv("LUMEO_TLS")
 	return c
 }
 
@@ -97,6 +114,13 @@ func (c Config) Validate() error {
 	// would keep the devices' personal data on the server.
 	if c.Mode != "" && c.Mode != "full" && c.Mode != "media" {
 		return fmt.Errorf("LUMEO_MODE must be full or media, not %q", c.Mode)
+	}
+	if c.TLS != "" && c.TLS != "self-signed" {
+		return fmt.Errorf("LUMEO_TLS must be self-signed or unset, not %q", c.TLS)
+	}
+	// The certificate names the address clients use, which is this one.
+	if c.TLS != "" && c.PublicURL == "" {
+		return fmt.Errorf("LUMEO_TLS needs LUMEO_PUBLIC_URL, the address clients reach this core at, such as https://192.168.1.50:7666")
 	}
 	if c.PublicURL == "" {
 		return nil

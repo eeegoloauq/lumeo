@@ -9,7 +9,10 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +33,10 @@ const FileName = "server.json"
 type Link struct {
 	URL   string `json:"url"`
 	Token string `json:"token"`
+	// Certificate is the PEM of the server's own certificate, pinned at
+	// pairing, when no authority vouches for the one it serves; empty
+	// trusts the system's authorities, as behind a reverse proxy.
+	Certificate string `json:"certificate,omitempty"`
 }
 
 // Validate refuses an address that is not an HTTPS origin, or plain HTTP on
@@ -45,7 +52,31 @@ func (l Link) Validate() error {
 	if l.Token == "" {
 		return errors.New("server link has no credential")
 	}
+	if l.Certificate != "" {
+		if _, err := l.pinned(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// pinned is the link's certificate as the one root a connection trusts, nil
+// for a link that trusts the system's authorities.
+func (l Link) pinned() (*x509.CertPool, error) {
+	if l.Certificate == "" {
+		return nil, nil
+	}
+	block, _ := pem.Decode([]byte(l.Certificate))
+	if block == nil || block.Type != "CERTIFICATE" {
+		return nil, errors.New("server link's certificate is not a PEM certificate")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("server link's certificate: %w", err)
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(cert)
+	return pool, nil
 }
 
 func loopback(host string) bool {
@@ -134,19 +165,35 @@ func Verify(ctx context.Context, link Link) error {
 }
 
 // Pair trades a pairing code the server's owner issued for a device
-// credential of this core's own.
+// credential of this core's own. A server whose certificate no authority
+// vouches for is paired by proving the code over the certificate it shows,
+// which the link then pins (proof.go).
 func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	link := Link{URL: strings.TrimRight(address, "/"), Token: "-"}
 	if err := link.Validate(); err != nil {
 		return Link{}, err
 	}
-	body, err := json.Marshal(map[string]string{"code": code, "name": name})
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	shown, trusted, err := showCertificate(ctx, link.URL)
 	if err != nil {
 		return Link{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	client := &http.Client{Transport: newTransport(), CheckRedirect: refuseRedirect}
+	body := map[string]string{"code": code, "name": name}
+	if shown != nil && !trusted {
+		link.Certificate = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: shown.Raw}))
+		body = map[string]string{"proof": DeviceProof(code, shown.Raw), "name": name}
+	}
+	data, err := json.Marshal(body)
+	if err != nil {
+		return Link{}, err
+	}
+	// From here on only the certificate just seen, or an authority's.
+	transport, err := newTransport(link)
+	if err != nil {
+		return Link{}, err
+	}
+	client := &http.Client{Transport: transport, CheckRedirect: refuseRedirect}
 	defer client.CloseIdleConnections()
 	// Every answer says the server's mode, a refusal of no credential too:
 	// asked first, a full server is turned down before it pairs a device
@@ -166,7 +213,7 @@ func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	if resp.Header.Get(ModeHeader) == "" {
 		return Link{}, fmt.Errorf("contact server: it answered %s", resp.Status)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, link.URL+"/api/v1/pair", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, link.URL+"/api/v1/pair", bytes.NewReader(data))
 	if err != nil {
 		return Link{}, err
 	}
@@ -186,9 +233,15 @@ func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	var paired struct {
 		Token string `json:"token"`
 		Mode  string `json:"mode"`
+		Proof string `json:"proof"`
 	}
 	if err := json.Unmarshal(answer, &paired); err != nil || paired.Token == "" {
 		return Link{}, errors.New("server answered without a credential")
+	}
+	// Only a holder of the code proves it: anything else is not the server
+	// the owner issued it on, and its certificate is not kept.
+	if link.Certificate != "" && !ProofHolds(ServerProof(code, shown.Raw), paired.Proof) {
+		return Link{}, errors.New("the server did not prove it issued the code; nothing was linked")
 	}
 	// Its mode changed since it was asked. The device is paired by now, and
 	// its owner revokes it there.
@@ -198,4 +251,55 @@ func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	}
 	link.Token = paired.Token
 	return link, nil
+}
+
+// showCertificate asks address for nothing but its health, with no
+// credential, and returns the certificate it shows and whether the system's
+// authorities vouch for it under the address's name. Plain HTTP on loopback
+// has none.
+func showCertificate(ctx context.Context, address string) (*x509.Certificate, bool, error) {
+	u, err := url.Parse(address)
+	if err != nil {
+		return nil, false, err
+	}
+	if u.Scheme != "https" {
+		return nil, false, nil
+	}
+	transport, _ := newTransport(Link{})
+	// The player checks the name too, so a certificate for another one would
+	// pair and then play nothing: it ends the handshake, before anything is
+	// sent. Whether an authority vouches for it is checked after, by hand:
+	// a certificate none does is what this asks for.
+	wrongName := fmt.Errorf("the server's certificate is not for %s; use the address in its LUMEO_PUBLIC_URL", u.Hostname())
+	transport.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+		VerifyConnection: func(state tls.ConnectionState) error {
+			if len(state.PeerCertificates) == 0 || state.PeerCertificates[0].VerifyHostname(u.Hostname()) != nil {
+				return wrongName
+			}
+			return nil
+		},
+	}
+	client := &http.Client{Transport: transport, CheckRedirect: refuseRedirect}
+	defer client.CloseIdleConnections()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address+"/healthz", nil)
+	if err != nil {
+		return nil, false, err
+	}
+	resp, err := client.Do(req)
+	if errors.Is(err, wrongName) {
+		return nil, false, wrongName
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("contact server: %w", err)
+	}
+	resp.Body.Close()
+	chain := resp.TLS.PeerCertificates
+	leaf := chain[0]
+	intermediates := x509.NewCertPool()
+	for _, c := range chain[1:] {
+		intermediates.AddCert(c)
+	}
+	_, err = leaf.Verify(x509.VerifyOptions{DNSName: u.Hostname(), Intermediates: intermediates})
+	return leaf, err == nil, nil
 }

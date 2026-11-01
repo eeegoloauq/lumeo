@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/config"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
@@ -84,5 +86,66 @@ func TestHealthFollowsTheRunningCore(t *testing.T) {
 	core.stop(t)
 	if err := administer(cfg, []string{"health"}, io.Discard); err == nil {
 		t.Fatal("health passed with the core stopped")
+	}
+}
+
+// With its own certificate the core serves HTTPS only, its administration
+// commands reach it over that certificate, and a device pairs by proving the
+// code over the certificate it was shown.
+func TestACoreWithItsOwnCertificate(t *testing.T) {
+	cfg := testConfig(t, t.TempDir(), true)
+	cfg.TLS = "self-signed"
+	cfg.PublicURL = "https://" + cfg.Addr
+	core := startCore(t, cfg)
+	defer core.stop(t)
+	deadline := time.Now().Add(20 * time.Second)
+	for administer(cfg, []string{"health"}, io.Discard) != nil {
+		if time.Now().After(deadline) {
+			t.Fatal("core did not start")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	// Go's answer to plain HTTP on a TLS port is a 400 and nothing else.
+	if plain, err := http.Get("http://" + cfg.Addr + "/healthz"); err == nil {
+		plain.Body.Close()
+		if plain.StatusCode != http.StatusBadRequest {
+			t.Fatalf("plain HTTP answered %d beside HTTPS", plain.StatusCode)
+		}
+	}
+	var out bytes.Buffer
+	if err := administer(cfg, []string{"pair"}, &out); err != nil {
+		t.Fatal(err)
+	}
+	code := strings.TrimPrefix(strings.Split(out.String(), "\n")[0], "Pairing code: ")
+
+	// What a device does: take the certificate as shown, prove the code
+	// over it, and trust that certificate alone from then on.
+	var shown []byte
+	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+		VerifyConnection: func(state tls.ConnectionState) error {
+			shown = state.PeerCertificates[0].Raw
+			return nil
+		},
+	}}}
+	defer client.CloseIdleConnections()
+	if _, err := client.Get("https://" + cfg.Addr + "/healthz"); err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Post("https://"+cfg.Addr+"/api/v1/pair", "application/json",
+		strings.NewReader(`{"proof":"`+remote.DeviceProof(code, shown)+`","name":"Laptop"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var paired struct {
+		Token string `json:"token"`
+		Proof string `json:"proof"`
+	}
+	if response.StatusCode != 201 || json.NewDecoder(response.Body).Decode(&paired) != nil {
+		t.Fatalf("pair: %d", response.StatusCode)
+	}
+	if paired.Proof != remote.ServerProof(code, shown) {
+		t.Fatal("the core did not prove the code over the certificate it showed")
 	}
 }

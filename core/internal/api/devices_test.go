@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 )
 
@@ -128,5 +129,52 @@ func TestPairingExpiresAndOnlyOneConcurrentClientWins(t *testing.T) {
 	}
 	if successes != 1 {
 		t.Fatalf("%d clients used the same code", successes)
+	}
+}
+
+// Over its own certificate the core takes a proof of the code bound to that
+// certificate, and answers with its own: a proof over any other certificate,
+// one a connection in between would show, pairs nothing.
+func TestPairingWithAProofOverTheCoresCertificate(t *testing.T) {
+	db, err := store.Open(filepath.Join(t.TempDir(), "core.db"), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	certificate := []byte("the core's certificate")
+	s := New(Deps{Devices: db, Token: "owner", Certificate: certificate}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(s.Close)
+	h := s.Handler()
+
+	code := pairingCode(t, h)
+	other := remote.DeviceProof(code, []byte("a certificate in between"))
+	if w := deviceRequest(h, "POST", "/api/v1/pair", "", `{"proof":"`+other+`","name":"Laptop"}`); w.Code != 401 {
+		t.Fatalf("a proof over another certificate: %d %s", w.Code, w.Body)
+	}
+	if w := deviceRequest(h, "POST", "/api/v1/pair", "", `{"code":"`+code+`","proof":"x","name":"Laptop"}`); w.Code != 400 {
+		t.Fatalf("code and proof: %d", w.Code)
+	}
+	w := deviceRequest(h, "POST", "/api/v1/pair", "", `{"proof":"`+remote.DeviceProof(code, certificate)+`","name":"Laptop"}`)
+	var paired struct {
+		Token string `json:"token"`
+		Proof string `json:"proof"`
+	}
+	if w.Code != 201 || json.Unmarshal(w.Body.Bytes(), &paired) != nil || paired.Token == "" {
+		t.Fatalf("pair with a proof: %d %s", w.Code, w.Body)
+	}
+	if paired.Proof != remote.ServerProof(code, certificate) {
+		t.Fatal("the core did not prove it holds the code")
+	}
+	if w := deviceRequest(h, "POST", "/api/v1/pair", "", `{"proof":"`+remote.DeviceProof(code, certificate)+`","name":"Again"}`); w.Code != 401 {
+		t.Fatalf("a used code paired again: %d", w.Code)
+	}
+}
+
+// A core serving plain HTTP has no certificate to bind a code to.
+func TestAProofNeedsTheCoresOwnCertificate(t *testing.T) {
+	h := deviceServer(t).Handler()
+	code := pairingCode(t, h)
+	if w := deviceRequest(h, "POST", "/api/v1/pair", "", `{"proof":"`+remote.DeviceProof(code, nil)+`","name":"Laptop"}`); w.Code != 400 {
+		t.Fatalf("%d %s", w.Code, w.Body)
 	}
 }

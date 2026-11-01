@@ -38,33 +38,34 @@ import (
 )
 
 type Server struct {
-	sources   func() []sources.Provider
-	catalog   *catalog.Service
-	downloads *acquire.Manager
-	library   *library.Service
-	local     *local.Service
-	addr      string
-	subtitles *subtitles.Service
-	prefs     *preferences.Service
-	progress  *progress.Service
-	watchlist *watchlist.Service
-	ratings   *ratings.Service
-	addons    *addons.Service
-	searches  *searches.Service
-	personal  *personal.Service
-	about     About
-	updates   *update.Checker
-	token     string
-	publicURL string
-	devices   *store.DB
-	pairMu    sync.Mutex
-	pairCode  string
-	pairUntil time.Time
-	log       *slog.Logger
-	artwork   *store.DB
-	cacheDir  string
-	dataDir   string
-	remote    *remote.Server
+	sources     func() []sources.Provider
+	catalog     *catalog.Service
+	downloads   *acquire.Manager
+	library     *library.Service
+	local       *local.Service
+	addr        string
+	subtitles   *subtitles.Service
+	prefs       *preferences.Service
+	progress    *progress.Service
+	watchlist   *watchlist.Service
+	ratings     *ratings.Service
+	addons      *addons.Service
+	searches    *searches.Service
+	personal    *personal.Service
+	about       About
+	updates     *update.Checker
+	token       string
+	publicURL   string
+	devices     *store.DB
+	certificate []byte
+	pairMu      sync.Mutex
+	pairCode    string
+	pairUntil   time.Time
+	log         *slog.Logger
+	artwork     *store.DB
+	cacheDir    string
+	dataDir     string
+	remote      *remote.Server
 	// mode is remote.ModeMedia on a server that leaves its devices'
 	// personal data on them (mode.go).
 	mode string
@@ -143,6 +144,9 @@ type Deps struct {
 	// Mode is "media" for a server whose devices keep their viewers' data
 	// themselves; "full" or empty keeps it here.
 	Mode string
+	// Certificate is the DER of the core's own TLS certificate, nil when it
+	// serves plain HTTP: pairing binds the code to it (remote.DeviceProof).
+	Certificate []byte
 }
 
 func New(deps Deps, log *slog.Logger) *Server {
@@ -150,32 +154,33 @@ func New(deps Deps, log *slog.Logger) *Server {
 		deps.Sources = func() []sources.Provider { return nil }
 	}
 	return &Server{
-		sources:   deps.Sources,
-		catalog:   deps.Catalog,
-		downloads: deps.Downloads,
-		library:   deps.Library,
-		local:     deps.Local,
-		addr:      deps.Addr,
-		subtitles: deps.Subtitles,
-		prefs:     deps.Preferences,
-		progress:  deps.Progress,
-		watchlist: deps.Watchlist,
-		ratings:   deps.Ratings,
-		addons:    deps.Addons,
-		searches:  deps.Searches,
-		personal:  deps.Personal,
-		about:     deps.About,
-		updates:   deps.Updates,
-		token:     deps.Token,
-		publicURL: deps.PublicURL,
-		devices:   deps.Devices,
-		log:       log,
-		artwork:   deps.Artwork,
-		cacheDir:  deps.CacheDir,
-		dataDir:   deps.DataDir,
-		hashes:    make(map[string]string),
-		remote:    deps.Remote,
-		mode:      deps.Mode,
+		sources:     deps.Sources,
+		catalog:     deps.Catalog,
+		downloads:   deps.Downloads,
+		library:     deps.Library,
+		local:       deps.Local,
+		addr:        deps.Addr,
+		subtitles:   deps.Subtitles,
+		prefs:       deps.Preferences,
+		progress:    deps.Progress,
+		watchlist:   deps.Watchlist,
+		ratings:     deps.Ratings,
+		addons:      deps.Addons,
+		searches:    deps.Searches,
+		personal:    deps.Personal,
+		about:       deps.About,
+		updates:     deps.Updates,
+		token:       deps.Token,
+		publicURL:   deps.PublicURL,
+		certificate: deps.Certificate,
+		devices:     deps.Devices,
+		log:         log,
+		artwork:     deps.Artwork,
+		cacheDir:    deps.CacheDir,
+		dataDir:     deps.DataDir,
+		hashes:      make(map[string]string),
+		remote:      deps.Remote,
+		mode:        deps.Mode,
 
 		holdsKick: make(chan struct{}, 1),
 

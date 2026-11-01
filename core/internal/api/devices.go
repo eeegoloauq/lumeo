@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 )
 
@@ -32,9 +33,12 @@ func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	// Code over a connection the device verified; Proof, bound to the
+	// certificate it saw, over one it could not (remote.DeviceProof).
 	var body struct {
-		Code string `json:"code"`
-		Name string `json:"name"`
+		Code  string `json:"code"`
+		Proof string `json:"proof"`
+		Name  string `json:"name"`
 	}
 	if !readJSON(w, r, &body) {
 		return
@@ -44,9 +48,23 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "device name must be 1 to 128 bytes without control characters")
 		return
 	}
+	if (body.Code == "") == (body.Proof == "") {
+		writeError(w, http.StatusBadRequest, "send a pairing code or a proof of one")
+		return
+	}
+	if body.Proof != "" && s.certificate == nil {
+		writeError(w, http.StatusBadRequest, "this core has no certificate of its own to prove a code over")
+		return
+	}
 	s.pairMu.Lock()
 	defer s.pairMu.Unlock()
-	if s.devices == nil || s.pairCode == "" || !time.Now().Before(s.pairUntil) || subtle.ConstantTimeCompare([]byte(body.Code), []byte(s.pairCode)) != 1 {
+	valid := s.devices != nil && s.pairCode != "" && time.Now().Before(s.pairUntil)
+	if body.Proof != "" {
+		valid = valid && remote.ProofHolds(remote.DeviceProof(s.pairCode, s.certificate), body.Proof)
+	} else {
+		valid = valid && subtle.ConstantTimeCompare([]byte(body.Code), []byte(s.pairCode)) == 1
+	}
+	if !valid {
 		writeError(w, http.StatusUnauthorized, "invalid or expired pairing code")
 		return
 	}
@@ -57,10 +75,14 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "cannot save device")
 		return
 	}
-	s.pairCode = ""
 	// The mode, so a core about to forward here, or a client, knows where the
 	// viewer's data will live (mode.go).
-	writeJSON(w, http.StatusCreated, map[string]any{"device": device, "token": credential, "mode": cmp.Or(s.mode, "full")})
+	answer := map[string]any{"device": device, "token": credential, "mode": cmp.Or(s.mode, "full")}
+	if body.Proof != "" {
+		answer["proof"] = remote.ServerProof(s.pairCode, s.certificate)
+	}
+	s.pairCode = ""
+	writeJSON(w, http.StatusCreated, answer)
 }
 
 func (s *Server) requireAdministrator(w http.ResponseWriter, r *http.Request) bool {

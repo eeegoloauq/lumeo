@@ -19,6 +19,20 @@ func TestPublicURLRequiresAnHTTPSOrigin(t *testing.T) {
 	}
 }
 
+// The certificate names the public address, so TLS without one is refused,
+// as is a value that is not a kind of TLS the core knows.
+func TestTLSNeedsThePublicAddress(t *testing.T) {
+	ok := Config{TLS: "self-signed", PublicURL: "https://192.168.1.50:7666"}
+	if err := ok.Validate(); err != nil || ok.PublicHost() != "192.168.1.50" {
+		t.Fatalf("%v %q", err, ok.PublicHost())
+	}
+	for _, c := range []Config{{TLS: "self-signed"}, {TLS: "yes", PublicURL: "https://lumeo.lan"}} {
+		if err := c.Validate(); err == nil {
+			t.Errorf("accepted %+v", c)
+		}
+	}
+}
+
 // An installed application must not write its library into whatever directory
 // it was started from — for a desktop launcher that is the user's home, or /.
 func TestDataDirFollowsXDG(t *testing.T) {

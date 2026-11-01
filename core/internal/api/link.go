@@ -19,6 +19,9 @@ import (
 type linkView struct {
 	URL     string `json:"url"`
 	Running string `json:"running"`
+	// Certificate is the running server's pinned one, for the client's own
+	// requests there: the server's artwork, which needs no credential.
+	Certificate string `json:"certificate,omitempty"`
 }
 
 func (s *Server) currentLink(w http.ResponseWriter) {
@@ -31,6 +34,7 @@ func (s *Server) currentLink(w http.ResponseWriter) {
 	view := linkView{URL: saved.URL}
 	if s.remote != nil {
 		view.Running = s.remote.URL()
+		view.Certificate = s.remote.Certificate()
 	}
 	writeJSON(w, http.StatusOK, view)
 }
@@ -61,14 +65,16 @@ func (s *Server) handlePutLink(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, remote.ErrIsMediaServer.Error())
 		return
 	}
+	// Certificate is the one the client pinned when it paired, if any.
 	var body struct {
-		URL   string `json:"url"`
-		Token string `json:"token"`
+		URL         string `json:"url"`
+		Token       string `json:"token"`
+		Certificate string `json:"certificate"`
 	}
 	if !readJSON(w, r, &body) {
 		return
 	}
-	link := remote.Link{URL: strings.TrimRight(body.URL, "/"), Token: body.Token}
+	link := remote.Link{URL: strings.TrimRight(body.URL, "/"), Token: body.Token, Certificate: body.Certificate}
 	if err := link.Validate(); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

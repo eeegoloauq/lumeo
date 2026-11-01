@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -99,7 +100,12 @@ type Server struct {
 
 func New(link Link, log *slog.Logger) *Server {
 	link.URL = strings.TrimRight(link.URL, "/")
-	transport := newTransport()
+	// A link that loads has a certificate that parses (Validate).
+	transport, err := newTransport(link)
+	if err != nil {
+		log.Error("the link's certificate", "err", err)
+		transport, _ = newTransport(Link{})
+	}
 	s := &Server{
 		link:     link,
 		client:   &http.Client{Transport: transport, CheckRedirect: refuseRedirect},
@@ -156,12 +162,21 @@ const RefusedMessage = "the server refused this device"
 
 var errRefused = errors.New(RefusedMessage)
 
-func newTransport() *http.Transport {
+func newTransport(link Link) (*http.Transport, error) {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	// Long enough for the server's own waits behind an answer: a magnet link
 	// learning its file, a subtitle lookup, every source addon.
 	t.ResponseHeaderTimeout = time.Minute
-	return t
+	// A pinned certificate is the one root, checked under the link's name
+	// as any other: pairing made sure it carries that name.
+	pool, err := link.pinned()
+	if err != nil {
+		return nil, err
+	}
+	if pool != nil {
+		t.TLSClientConfig = &tls.Config{RootCAs: pool}
+	}
+	return t, nil
 }
 
 // The credential must not follow a redirect to another host.
@@ -169,6 +184,11 @@ func refuseRedirect(*http.Request, []*http.Request) error { return http.ErrUseLa
 
 // URL is the server's origin.
 func (s *Server) URL() string { return s.link.URL }
+
+// Certificate is the PEM of the server's pinned certificate, empty when the
+// link trusts the system's authorities: the client loads the server's
+// artwork itself, and pins the same one.
+func (s *Server) Certificate() string { return s.link.Certificate }
 
 // Artwork says whether raw is an image address on the server: its artwork
 // route needs no credential, so the client loads it from there directly.

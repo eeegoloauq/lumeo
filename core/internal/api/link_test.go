@@ -1,7 +1,9 @@
 package api
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"encoding/pem"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
+	"github.com/eeegoloauq/lumeo/core/internal/selfsigned"
 )
 
 // localCore is a device's own core, with its data in dir and a device of its
@@ -142,5 +145,40 @@ func TestALinkedCoreSaysWhereItForwards(t *testing.T) {
 	}
 	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); view.URL != view.Running {
 		t.Fatalf("the same link: %+v", view)
+	}
+}
+
+// A media server with its own certificate is linked with the certificate the
+// client pinned when it paired, and not without it; the running link's
+// certificate is given to the client, which loads the server's artwork.
+func TestALinkKeepsTheCertificateTheClientPinned(t *testing.T) {
+	media, credential := modeServer(t, remote.ModeMedia)
+	cert, _, err := selfsigned.Load(filepath.Join(t.TempDir(), "tls"), "127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewUnstartedServer(media)
+	server.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	server.StartTLS()
+	t.Cleanup(server.Close)
+	pinned := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]}))
+
+	h, dir, _ := localCore(t, "", nil)
+	if w := deviceRequest(h, "PUT", "/api/v1/link", "owner", linkBody(server.URL, credential)); w.Code != http.StatusBadGateway {
+		t.Fatalf("without the certificate: %d %s", w.Code, w.Body)
+	}
+	body, _ := json.Marshal(map[string]string{"url": server.URL, "token": credential, "certificate": pinned})
+	if w := deviceRequest(h, "PUT", "/api/v1/link", "owner", string(body)); w.Code != http.StatusOK {
+		t.Fatalf("with the certificate: %d %s", w.Code, w.Body)
+	}
+	saved, _, err := remote.Load(dir)
+	if err != nil || saved.Certificate != pinned {
+		t.Fatalf("saved %+v, %v", saved, err)
+	}
+
+	running := remote.New(saved, slog.New(slog.DiscardHandler))
+	h, _, _ = localCore(t, "", running)
+	if view := readLink(t, deviceRequest(h, "GET", "/api/v1/link", "owner", "")); view.Certificate != pinned {
+		t.Fatalf("the running link's certificate is not given: %+v", view)
 	}
 }

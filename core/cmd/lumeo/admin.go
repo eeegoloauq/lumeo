@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -16,6 +19,7 @@ import (
 
 	"github.com/eeegoloauq/lumeo/core/internal/config"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
+	"github.com/eeegoloauq/lumeo/core/internal/selfsigned"
 	"github.com/eeegoloauq/lumeo/core/internal/store"
 	"github.com/eeegoloauq/lumeo/core/internal/token"
 )
@@ -57,7 +61,23 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 	if host == "" || host == "0.0.0.0" || host == "::" {
 		host = "127.0.0.1"
 	}
-	request, err := http.NewRequest(method, "http://"+net.JoinHostPort(host, port)+path, bytes.NewBufferString("{}"))
+	transport := &http.Transport{Proxy: nil}
+	scheme := "http"
+	if cfg.TLS != "" {
+		// The core's own certificate and nothing else, under the name it
+		// carries: the address here is loopback.
+		pem, err := os.ReadFile(selfsigned.CertPath(cfg.TLSDir()))
+		if err != nil {
+			return fmt.Errorf("read running core's certificate: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return errors.New("read running core's certificate: no certificate in it")
+		}
+		transport.TLSClientConfig = &tls.Config{RootCAs: pool, ServerName: cfg.PublicHost()}
+		scheme = "https"
+	}
+	request, err := http.NewRequest(method, scheme+"://"+net.JoinHostPort(host, port)+path, bytes.NewBufferString("{}"))
 	if err != nil {
 		return err
 	}
@@ -65,7 +85,7 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 	request.Header.Set("Content-Type", "application/json")
 	// A local administrative call must not send its token through HTTP_PROXY
 	// or follow a redirect to another machine.
-	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	defer client.CloseIdleConnections()
 	response, err := client.Do(request)
 	if err != nil {
