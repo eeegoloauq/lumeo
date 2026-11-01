@@ -106,6 +106,15 @@ type Provider interface {
 	Meta(ctx context.Context, kind Kind, externalID string) (*MediaItem, error)
 }
 
+// Relay is a provider standing for providers elsewhere, as a server does for
+// its own: its rows carry their ids, as the server answers them, and a page
+// asked of a provider none here has goes to it.
+type Relay interface {
+	Provider
+	// Relays reports whether it takes requests naming providerID.
+	Relays(providerID string) bool
+}
+
 // ItemState is what the store knows about a cached item besides its contents.
 type ItemState struct {
 	Found    bool

@@ -106,8 +106,11 @@ func (s *Service) Browse(ctx context.Context, req BrowseRequest) ([]MediaItem, e
 	if err != nil {
 		return nil, err
 	}
-	req.ProviderID = p.ID()
-	key := pageKey(req)
+	// A relay is told the provider asked for, which its own end resolves.
+	if _, relay := p.(Relay); !relay {
+		req.ProviderID = p.ID()
+	}
+	key := pageKey(p, req)
 
 	cached, fetchedAt, err := s.store.Page(ctx, key)
 	if err != nil {
@@ -356,6 +359,11 @@ func (s *Service) provider(id string) (Provider, error) {
 			return p, nil
 		}
 	}
+	for _, p := range providers {
+		if relay, ok := p.(Relay); ok && relay.Relays(id) {
+			return p, nil
+		}
+	}
 	return nil, fmt.Errorf("catalog: unknown provider %q", id)
 }
 
@@ -364,10 +372,15 @@ func (s *Service) fresh(t time.Time, ttl time.Duration) bool {
 }
 
 // pageKey has to be stable across restarts, so it is built from the request
-// fields rather than from anything hashed in memory.
-func pageKey(req BrowseRequest) string {
+// fields rather than from anything hashed in memory. A relay's pages are kept
+// apart from those of a provider here with the same id.
+func pageKey(p Provider, req BrowseRequest) string {
+	providerID := req.ProviderID
+	if _, relay := p.(Relay); relay {
+		providerID = p.ID() + ">" + providerID
+	}
 	return fmt.Sprintf("%s|%s|%s|genre=%s|search=%s|skip=%d",
-		req.ProviderID, req.Kind, req.CatalogID, req.Genre, req.Search, req.Skip)
+		providerID, req.Kind, req.CatalogID, req.Genre, req.Search, req.Skip)
 }
 
 // identified drops what the store could not key: an item the provider returned

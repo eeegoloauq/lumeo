@@ -275,6 +275,70 @@ func TestALinkedCoreShowsTheServersTitles(t *testing.T) {
 	}
 }
 
+// topMeta is a metadata provider named id whose one row, "top", holds item.
+type topMeta struct {
+	id   string
+	item catalog.MediaItem
+}
+
+func (m topMeta) ID() string      { return m.id }
+func (m topMeta) Name() string    { return m.id }
+func (topMeta) Namespace() string { return catalog.NamespaceIMDb }
+func (m topMeta) Rows(context.Context) ([]catalog.Row, error) {
+	return []catalog.Row{{ProviderID: m.id, ID: "top", Kind: catalog.KindMovie, Name: m.id}}, nil
+}
+func (m topMeta) Browse(context.Context, catalog.BrowseRequest) ([]catalog.MediaItem, error) {
+	return []catalog.MediaItem{m.item}, nil
+}
+func (topMeta) Meta(context.Context, catalog.Kind, string) (*catalog.MediaItem, error) {
+	return nil, catalog.ErrNotFound
+}
+
+// A client picks its shelves by row id, so a linked core answers the
+// server's rows as the server does, and two of its providers may both have
+// a "top" row whose pages each come from their own.
+func TestALinkedCoreAnswersTheServersRowsAsTheServerDoes(t *testing.T) {
+	l := linkedCores(t, nil, laptopToken)
+	film := func(imdb, title string) catalog.MediaItem {
+		return catalog.MediaItem{Kind: catalog.KindMovie, Title: title, ExternalIDs: catalog.ExternalIDs{catalog.NamespaceIMDb: imdb}}
+	}
+	db, _ := openStore(t)
+	serverCatalog := catalog.NewService(catalog.Fixed(topMeta{"cinemeta", film("tt0111161", "The Shawshank Redemption")},
+		topMeta{"other", film("tt0068646", "The Godfather")}), db, l.log)
+	t.Cleanup(serverCatalog.Close)
+	deps := l.serverDeps
+	deps.Catalog = serverCatalog
+	l.serve(deps)
+
+	rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/catalogs", "")
+	var rows struct {
+		Catalogs []catalog.Row `json:"catalogs"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil {
+		t.Fatalf("catalogs: status %d: %s", rec.Code, rec.Body)
+	}
+	want := []catalog.Row{{ProviderID: "cinemeta", ID: "top", Kind: catalog.KindMovie, Name: "cinemeta"},
+		{ProviderID: "other", ID: "top", Kind: catalog.KindMovie, Name: "other"}}
+	if !slices.EqualFunc(rows.Catalogs, want, func(a, b catalog.Row) bool {
+		return a.ProviderID == b.ProviderID && a.ID == b.ID && a.Kind == b.Kind
+	}) {
+		t.Fatalf("catalogs = %+v, want the server's %+v", rows.Catalogs, want)
+	}
+	for _, row := range rows.Catalogs {
+		query := url.Values{"provider": {row.ProviderID}, "kind": {string(row.Kind)}, "id": {row.ID}}
+		rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/catalog?"+query.Encode(), "")
+		var page struct {
+			Items []catalog.MediaItem `json:"items"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &page); err != nil || len(page.Items) != 1 {
+			t.Fatalf("%s's row: status %d: %s", row.ProviderID, rec.Code, rec.Body)
+		}
+		if title := map[string]string{"cinemeta": "The Shawshank Redemption", "other": "The Godfather"}[row.ProviderID]; page.Items[0].Title != title {
+			t.Errorf("%s's row holds %q, want %q", row.ProviderID, page.Items[0].Title, title)
+		}
+	}
+}
+
 // A download starts on the server under its id, the pick is kept here, and
 // the linked core lists it and plays it under its own.
 func TestALinkedCoreDownloadsOnTheServerAndStreamsFromIt(t *testing.T) {

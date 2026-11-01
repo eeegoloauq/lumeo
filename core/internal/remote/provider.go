@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 )
@@ -26,9 +25,13 @@ func (provider) ID() string        { return ProviderID }
 func (provider) Name() string      { return "Server" }
 func (provider) Namespace() string { return catalog.NamespaceIMDb }
 
-// Rows are the server's, each named by the server's provider and its own id
-// in one: requests for a row come back here, and the server needs both. The
-// last rows read stand in while the server cannot be asked.
+// Relays every provider id: the server answers for those it has, and refuses
+// the rest.
+func (provider) Relays(string) bool { return true }
+
+// Rows are the server's as it answers them, named by its own providers, so a
+// client picks its shelves here as it would there. The last rows read stand
+// in while the server cannot be asked.
 func (p provider) Rows(ctx context.Context) ([]catalog.Row, error) {
 	var answer struct {
 		Catalogs []catalog.Row `json:"catalogs"`
@@ -41,20 +44,16 @@ func (p provider) Rows(ctx context.Context) ([]catalog.Row, error) {
 		}
 		return nil, err
 	}
-	rows := make([]catalog.Row, 0, len(answer.Catalogs))
-	for _, row := range answer.Catalogs {
-		row.ID = url.PathEscape(row.ProviderID) + "/" + url.PathEscape(row.ID)
-		row.ProviderID = ProviderID
-		rows = append(rows, row)
-	}
+	rows := answer.Catalogs
 	p.s.rowsMu.Lock()
 	p.s.rows = rows
 	p.s.rowsMu.Unlock()
 	return rows, nil
 }
 
-// Browse asks for one page of a row, or a search, which the server runs on
-// every provider it has.
+// Browse asks for one page of a row of the server's provider req names, its
+// first for none or this one, or a search, which the server runs on every
+// provider it has.
 func (p provider) Browse(ctx context.Context, req catalog.BrowseRequest) ([]catalog.MediaItem, error) {
 	var answer struct {
 		Items []catalog.MediaItem `json:"items"`
@@ -63,14 +62,11 @@ func (p provider) Browse(ctx context.Context, req catalog.BrowseRequest) ([]cata
 	if req.Search != "" {
 		err = p.s.Do(ctx, http.MethodGet, "/api/v1/search", url.Values{"kind": {string(req.Kind)}, "q": {req.Search}}, nil, &answer)
 	} else {
-		providerID, catalogID, ok := strings.Cut(req.CatalogID, "/")
-		if providerID, err = url.PathUnescape(providerID); err != nil || !ok {
-			return nil, errors.New("remote: not a row of the server")
+		providerID := req.ProviderID
+		if providerID == ProviderID {
+			providerID = ""
 		}
-		if catalogID, err = url.PathUnescape(catalogID); err != nil {
-			return nil, errors.New("remote: not a row of the server")
-		}
-		query := url.Values{"provider": {providerID}, "kind": {string(req.Kind)}, "id": {catalogID}, "skip": {itoa(req.Skip)}}
+		query := url.Values{"provider": {providerID}, "kind": {string(req.Kind)}, "id": {req.CatalogID}, "skip": {itoa(req.Skip)}}
 		if req.Genre != "" {
 			query.Set("genre", req.Genre)
 		}
