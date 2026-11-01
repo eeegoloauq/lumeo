@@ -157,7 +157,7 @@ func TestPatchTrackPreferencesStoreAndReset(t *testing.T) {
 	defaults := testDefaults()
 	service := New(store, defaults)
 	got, err := service.Patch(context.Background(), []byte(
-		`{"audioLanguages":["jpn","JA","en"],"subtitleMode":"foreign","subtitleScale":1.25,"subtitlePosition":85,"subtitleBackground":"box","subtitleColor":"cream","subtitleKeepStyling":false,"accent":"teal","keep":"days","keepDays":14,"diskLimit":107374182400,"prefetch":false,"checkUpdates":false,"nextCountdown":0,"nextNotice":45,"seekStep":10,"uploadLimit":1048576,"downloadLimit":0,"deviceMaxKeepDays":14,"serverKeepWatchedDays":0,"serverKeepUnwatchedDays":3}`))
+		`{"audioLanguages":["jpn","JA","en"],"subtitleMode":"foreign","subtitleScale":1.25,"subtitlePosition":85,"subtitleBackground":"box","subtitleColor":"cream","subtitleKeepStyling":false,"accent":"teal","keep":"days","keepDays":14,"diskLimit":107374182400,"prefetch":false,"checkUpdates":false,"nextCountdown":0,"nextNotice":45,"seekStep":10,"uploadLimit":1048576,"downloadLimit":0,"deviceDiskLimit":10737418240,"deviceMaxKeepDays":14,"serverKeepWatchedDays":0,"serverKeepUnwatchedDays":3}`))
 	if err != nil {
 		t.Fatalf("patch: %v", err)
 	}
@@ -177,6 +177,7 @@ func TestPatchTrackPreferencesStoreAndReset(t *testing.T) {
 		NextNotice:         45,
 		SeekStep:           10,
 		UploadLimit:        1 << 20,
+		DeviceDiskLimit:    10 << 30,
 		DeviceMaxKeepDays:  14,
 		// 0 is a value of its own, not the default of 1.
 		ServerKeepWatchedDays:   0,
@@ -186,7 +187,7 @@ func TestPatchTrackPreferencesStoreAndReset(t *testing.T) {
 		t.Fatalf("preferences = %+v, want %+v", got, want)
 	}
 	got, err = service.Patch(context.Background(), []byte(
-		`{"audioLanguages":null,"subtitleMode":null,"subtitleScale":null,"subtitlePosition":null,"subtitleBackground":null,"subtitleColor":null,"subtitleKeepStyling":null,"accent":null,"keep":null,"keepDays":null,"diskLimit":null,"prefetch":null,"checkUpdates":null,"nextCountdown":null,"nextNotice":null,"seekStep":null,"uploadLimit":null,"downloadLimit":null,"deviceMaxKeepDays":null,"serverKeepWatchedDays":null,"serverKeepUnwatchedDays":null}`))
+		`{"audioLanguages":null,"subtitleMode":null,"subtitleScale":null,"subtitlePosition":null,"subtitleBackground":null,"subtitleColor":null,"subtitleKeepStyling":null,"accent":null,"keep":null,"keepDays":null,"diskLimit":null,"prefetch":null,"checkUpdates":null,"nextCountdown":null,"nextNotice":null,"seekStep":null,"uploadLimit":null,"downloadLimit":null,"deviceDiskLimit":null,"deviceMaxKeepDays":null,"serverKeepWatchedDays":null,"serverKeepUnwatchedDays":null}`))
 	if err != nil {
 		t.Fatalf("reset: %v", err)
 	}
@@ -264,6 +265,7 @@ func TestPatchRejectsInvalidDocumentsWithoutWriting(t *testing.T) {
 		{name: "prefetch not boolean", body: `{"prefetch":"yes"}`, message: "prefetch must be true or false"},
 		{name: "next countdown too long", body: `{"nextCountdown":61}`, message: "nextCountdown must be between 0 and 60"},
 		{name: "next countdown fraction", body: `{"nextCountdown":2.5}`, message: "nextCountdown must be a whole number"},
+		{name: "device disk limit negative", body: `{"deviceDiskLimit":-1}`, message: "deviceDiskLimit must be between 0 and 1125899906842624"},
 		{name: "device keep zero", body: `{"deviceMaxKeepDays":0}`, message: "deviceMaxKeepDays must be between 1 and 365"},
 		{name: "server keep watched over a year", body: `{"serverKeepWatchedDays":366}`, message: "serverKeepWatchedDays must be between 0 and 365"},
 		{name: "server keep unwatched zero", body: `{"serverKeepUnwatchedDays":0}`, message: "serverKeepUnwatchedDays must be between 1 and 365"},

@@ -7,12 +7,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
+	"github.com/eeegoloauq/lumeo/core/internal/sources"
 )
 
 // modeServer is a core in mode with one device paired, and that device's
@@ -177,6 +179,56 @@ func TestADeviceDeletingADownloadLetsGoOfItsHoldAlone(t *testing.T) {
 	}
 	if _, err := laptop.theirs.Get(context.Background(), owners.ID); err != nil {
 		t.Fatalf("the owner's download is gone: %v", err)
+	}
+}
+
+// The owner's limit on what each device holds counts every file a device's
+// hold lasts on in full, shared or not: a download that would take a device
+// over it is refused with what is left, while another device and a download
+// the device already holds go ahead. Letting go of a file makes room.
+func TestADeviceIsHeldToTheOwnersLimit(t *testing.T) {
+	laptop := linkedCores(t, nil, laptopToken)
+	laptop.open()
+	server := *laptop.served.Load()
+	if w := deviceRequest(server, http.MethodPatch, "/api/v1/preferences", "server-token", `{"deviceDiskLimit":50}`); w.Code != http.StatusOK {
+		t.Fatalf("the owner's limit: %d %s", w.Code, w.Body)
+	}
+	if w := deviceRequest(server, http.MethodPatch, "/api/v1/preferences", laptopToken, `{"deviceDiskLimit":0}`); w.Code != http.StatusForbidden {
+		t.Fatalf("a device lifted its own limit: %d %s", w.Code, w.Body)
+	}
+	sized := func(name, hash string) sources.MediaSource {
+		src := torrentSource(name, hash, 30, "group")
+		src.Size = 30
+		return src
+	}
+	first, second := sized("Severance.S01E01.1080p", "aaa"), sized("Severance.S01E02.1080p", "bbb")
+	d := laptop.start(first)
+	start := func(l *linked, src sources.MediaSource) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(startDownloadRequest{ItemID: l.itemID, Season: 1, Episode: 2, Source: src})
+		return requestJSON(t, l.local, http.MethodPost, "/api/v1/downloads", string(body))
+	}
+
+	rec := start(laptop, second)
+	var refusal struct {
+		Size, Free, Limit int64
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &refusal); err != nil || rec.Code != http.StatusInsufficientStorage ||
+		refusal.Size != 30 || refusal.Free != 50-int64(len(payload())) || refusal.Limit != 50 {
+		t.Fatalf("over the limit: %d %s; want 507 with the copy's size and what is left", rec.Code, rec.Body)
+	}
+	if rec := start(laptop, first); rec.Code != http.StatusCreated {
+		t.Errorf("starting what the laptop holds again: %d %s", rec.Code, rec.Body)
+	}
+	tv := laptop.another(tvToken)
+	if rec := start(tv, second); rec.Code != http.StatusCreated {
+		t.Errorf("the TV, holding nothing: %d %s", rec.Code, rec.Body)
+	}
+
+	if rec := requestJSON(t, laptop.local, http.MethodDelete, "/api/v1/downloads/"+d.ID+"?data=true", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete: %d %s", rec.Code, rec.Body)
+	}
+	if rec := start(laptop, second); rec.Code != http.StatusCreated {
+		t.Errorf("after letting go of the first: %d %s", rec.Code, rec.Body)
 	}
 }
 

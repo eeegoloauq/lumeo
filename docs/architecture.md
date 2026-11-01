@@ -364,7 +364,10 @@ core. The server streams; this core passes the bytes on.
   `library.finished` frees a held download once no hold lasts, watched or
   not, unless the server's own viewer has an entry: one they are part way
   through stays, one they watched goes by their Keep. Over the disk limit,
-  one every lasting holder watched goes as any watched download does. The Keeper keeps every lasting holder's languages, or the
+  one every lasting holder watched goes as any watched download does.
+  The owner's `deviceDiskLimit` caps what one device holds: every file its
+  hold lasts on counts in full (`deviceRoomFor`), so a device cannot spend
+  the server's disk by joining files others started. The Keeper keeps every lasting holder's languages, or the
   owner's for a download nobody held. The manager keeps holds apart from
   rows, so a row written back later never takes a newer hold with it.
 - A server that does not answer leaves what is here working. `/sources` lists

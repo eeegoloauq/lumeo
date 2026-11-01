@@ -94,6 +94,11 @@ type Preferences struct {
 	// bytes per second; 0 is no cap.
 	UploadLimit   int64 `json:"uploadLimit"`
 	DownloadLimit int64 `json:"downloadLimit"`
+	// DeviceDiskLimit is a media server's owner's ceiling in bytes on what
+	// each of its devices holds, 0 for none. Every file a device holds
+	// counts in full, though the server stores it once, and a download that
+	// would take the device over it is refused.
+	DeviceDiskLimit int64 `json:"deviceDiskLimit"`
 	// DeviceMaxKeepDays is a media server's owner's ceiling on the keep rules
 	// of its devices: no device keeps a file longer than this after its last
 	// activity on it.
@@ -203,6 +208,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "downloadDir", &effective.DownloadDir)
 	overlay(stored, "uploadLimit", &effective.UploadLimit)
 	overlay(stored, "downloadLimit", &effective.DownloadLimit)
+	overlay(stored, "deviceDiskLimit", &effective.DeviceDiskLimit)
 	overlay(stored, "deviceMaxKeepDays", &effective.DeviceMaxKeepDays)
 	overlay(stored, "serverKeepWatchedDays", &effective.ServerKeepWatchedDays)
 	overlay(stored, "serverKeepUnwatchedDays", &effective.ServerKeepUnwatchedDays)
@@ -340,7 +346,7 @@ func validate(document map[string]json.RawMessage) (map[string]json.RawMessage, 
 			changes[key], err = oneOf(key, raw, Keeps)
 		case "keepDays":
 			changes[key], err = integer(key, raw, 1, 365)
-		case "diskLimit":
+		case "diskLimit", "deviceDiskLimit":
 			changes[key], err = integer(key, raw, 0, 1<<50)
 		case "nextCountdown":
 			changes[key], err = integer(key, raw, 0, 60)
@@ -435,7 +441,7 @@ func known(key string) bool {
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
 		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "checkUpdates",
 		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
-		"uploadLimit", "downloadLimit", "deviceMaxKeepDays", "serverKeepWatchedDays", "serverKeepUnwatchedDays":
+		"uploadLimit", "downloadLimit", "deviceDiskLimit", "deviceMaxKeepDays", "serverKeepWatchedDays", "serverKeepUnwatchedDays":
 		return true
 	}
 	return false

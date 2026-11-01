@@ -24,6 +24,7 @@
   "downloadDir": "",
   "uploadLimit": 0,
   "downloadLimit": 0,
+  "deviceDiskLimit": 0,
   "deviceMaxKeepDays": 30,
   "serverKeepWatchedDays": 1,
   "serverKeepUnwatchedDays": 7

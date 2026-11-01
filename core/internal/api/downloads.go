@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
+	"github.com/eeegoloauq/lumeo/core/internal/library"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 )
@@ -74,6 +76,9 @@ func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req start
 		}
 	}
 	if !req.Prefetch && !s.roomFor(r.Context(), w, req.Source) {
+		return
+	}
+	if !s.deviceRoomFor(r, w, req.Source) {
 		return
 	}
 	start := func() (acquire.Download, error) {
@@ -159,6 +164,50 @@ func (s *Server) roomFor(ctx context.Context, w http.ResponseWriter, src sources
 		"error": fmt.Sprintf("not enough free space: the copy needs %d bytes, %d are free", src.Size, max(disk, 0)),
 		"size":  src.Size,
 		"free":  max(disk, 0),
+	})
+	return false
+}
+
+// deviceRoomFor refuses a download that would take a device of this media
+// server over the owner's limit on what each device holds. Every file a
+// device's hold lasts on counts in full against it, though the server stores
+// it once: sharing a file is not sharing its cost. A download the device
+// already holds asks for no more, and a copy of unknown size is let in, as
+// roomFor lets it. The refusal is roomFor's, free being what the limit leaves.
+func (s *Server) deviceRoomFor(r *http.Request, w http.ResponseWriter, src sources.MediaSource) bool {
+	if s.viewerHere(r) || s.prefs == nil || src.Locator.Scheme == "file" {
+		return true
+	}
+	prefs, err := s.prefs.Get(r.Context())
+	if err != nil {
+		// Not knowing the limit is no reason to refuse a film.
+		s.log.Warn("reading the device limit failed", "err", err)
+		return true
+	}
+	if prefs.DeviceDiskLimit == 0 {
+		return true
+	}
+	device, now := deviceOf(r), time.Now()
+	var used int64
+	for _, row := range s.downloads.List(r.Context()) {
+		i := slices.IndexFunc(row.Holds, func(h acquire.Hold) bool { return h.Device == device })
+		if i < 0 || !library.Lasts(row.Holds[i], row, now, prefs.DeviceMaxKeepDays) {
+			continue
+		}
+		if row.Locator.Same(src.Locator) {
+			return true
+		}
+		used += max(row.Size, 0)
+	}
+	if src.Size <= 0 || used+src.Size <= prefs.DeviceDiskLimit {
+		return true
+	}
+	free := max(prefs.DeviceDiskLimit-used, 0)
+	writeJSON(w, http.StatusInsufficientStorage, map[string]any{
+		"error": fmt.Sprintf("over this device's limit on the server: the copy needs %d bytes, %d are left", src.Size, free),
+		"size":  src.Size,
+		"free":  free,
+		"limit": prefs.DeviceDiskLimit,
 	})
 	return false
 }

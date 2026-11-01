@@ -121,10 +121,12 @@ A device keeps a file on the server by its own keep rules, set on its own
 core: a watched file one day, an unwatched one seven days after it was last
 started or played. The server applies them while the device is offline too,
 and no device keeps a file longer than the owner's maximum, thirty days unless
-set with the owner token on the server:
+set with the owner token on the server. The owner can also cap what each
+device holds, in bytes; every file a device holds counts in full against it,
+and a download over it is refused (no limit unless set):
 
     curl -X PATCH -H "Authorization: Bearer $(sudo cat /var/lib/lumeo/api-token)" \
-         -H 'content-type: application/json' -d '{"deviceMaxKeepDays":14}' \
+         -H 'content-type: application/json' -d '{"deviceMaxKeepDays":14,"deviceDiskLimit":107374182400}' \
          localhost:7666/api/v1/preferences
 
 Changing the mode of a server with data is a migration: export each viewer's

@@ -79,9 +79,9 @@ default for a person who wants a server to hold everything.
   handing the credential to the local core (done); then limits and keep rules on the
   holds, deleting as releasing a hold, and the preferences split by owner,
   the server's download folder no longer shown to devices.
-- Each device has a disk limit set by the server. A file counts in full against
-  every device holding it, though the server stores it once. A download over the
-  limit is refused.
+- Each device has a disk limit set by the server (done). A file counts in full
+  against every device holding it, though the server stores it once. A download
+  over the limit is refused.
 - Each device sets two keep rules and sends them with its hold on a file
   (done). By
   default a watched file goes after one day, and an unwatched one seven days

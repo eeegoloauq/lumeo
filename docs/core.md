@@ -149,3 +149,8 @@ download leaves that device's lists, stays for any device whose hold lasts, and 
 all, once none does, unless a stream of it is open. Playing it again holds it again. A download
 no device ever held is the owner's, and deleting it from a device is refused with 403. Revoking a
 device releases its holds.
+
+The owner's `deviceDiskLimit` (bytes, none unless set) caps what each device holds: every file a
+device's hold lasts on counts in full, though the server stores it once. A download that would
+take the device over it is refused with 507, `size` the copy's and `free` what the limit leaves,
+as a copy larger than the free disk is. Playing a file another device holds is never refused.

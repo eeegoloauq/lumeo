@@ -191,7 +191,13 @@ series is not another's, and one device's rules are not another's. The
 owner's own viewer keeps the say they have on a full core: a file they are
 part way through stays, and one they watched goes by their Keep. Over the
 disk limit, a file every device still holding it has watched goes as any
-watched file does.
+watched file does. The owner can also cap what each device holds
+(`deviceDiskLimit`, none unless set). A file counts in full against every
+device holding it, though the server stores it once: splitting its cost
+between holders would let a device hold more by holding what others started,
+and would change a device's room whenever another device let go of a file.
+A download over the cap is refused, as one over the free disk is; playing a
+file another device holds is not, since the file is there already.
 
 Prefetch is the policy's one addition rather than removal: once the episode
 playing is on disk, the next one starts downloading, so a series goes on
