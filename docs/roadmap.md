@@ -18,6 +18,10 @@ The server has a confined systemd unit and console administration.
 - A confined container, unprivileged, writing to the data directory only.
 - Multiple saved remote cores and switching without restarting. Every store,
   in-flight request and playback session must remain scoped to its core.
+- Export and import of personal data (ratings, history, progress, lists,
+  settings) between cores, as a file. It moves a person's data between a local
+  core and a server, and comes before the media-only mode, whose mode change
+  depends on it.
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
@@ -27,6 +31,40 @@ First, with no FFmpeg, offer a browser only the sources it plays as they are
 as WebVTT. Then, if that proves too few: remux MKV and convert the audio
 through FFmpeg, where seeking is the hard part. Everything else opens in the
 app. This revises "No browser playback" in decisions/foundations.md.
+
+### Media-only remote core
+
+A second deployment mode beside the current one. The current mode remains the
+default for a person who wants a server to hold everything.
+
+| | Full core (today) | Media core |
+|---|---|---|
+| Downloads, files, streaming | Server | Server |
+| Addons, metadata, artwork | Server | Server |
+| Ratings, history, progress, lists, settings | Server | Each client's local core |
+
+- People sharing a media core share files and storage. Their history stays on
+  their clients. The server still sees what is requested and streamed.
+- The server sets the mode, for example `LUMEO_MODE=full|media`, and reports it
+  at pairing. The client follows it and shows it, with no setting of its own, so
+  both sides agree on where personal data lives.
+- In this mode the client always runs its local core and sends each request to
+  the core that owns the data. Title pages combine answers from both.
+- Each device has a disk limit set by the server. A file counts in full against
+  every device holding it, though the server stores it once. A download over the
+  limit is refused.
+- Each device sets two keep rules and sends them with its hold on a file. By
+  default a watched file goes after one day, and an unwatched one seven days
+  after its last download or playback activity. The server applies both clocks
+  whether or not the device is online, so nothing is held indefinitely.
+- A file stays while any device's hold on it lasts, and an active stream is never
+  removed. Deleting releases only that device's hold. The server owner sets a
+  maximum keep time, thirty days by default.
+- A torrent shares while it is fetching and stops when the file is complete,
+  including while that file plays. This revises "share while in use" in
+  decisions/downloads.md and applies to both modes.
+- Changing the mode of a server with data is a migration through the export
+  and import above.
 
 ## Library and storage
 
