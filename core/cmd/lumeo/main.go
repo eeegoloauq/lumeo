@@ -150,6 +150,9 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		metadata = catalog.Fixed(server.Provider())
 		log.Info("forwarding to a server", "url", link.URL)
 	}
+	if cfg.Mode == remote.ModeMedia {
+		log.Info("media server: the personal data of paired devices stays on them")
+	}
 	cat := catalog.NewService(metadata, db, log)
 	defer cat.Close()
 	subs := subtitles.NewService(installed.Subtitles, cfg.SubtitleLanguages, log)
@@ -245,14 +248,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		<-cleaned
 	}()
 	keeper := subtitles.NewKeeper(subs, downloads, cat, func(ctx context.Context, itemID string) []string {
-		var langs []string
-		if c, err := watchProgress.Choice(ctx, itemID); err == nil && c.Subtitle != nil && c.Subtitle.Language != "" {
-			langs = append(langs, subtitles.Language(c.Subtitle.Language))
-		}
-		if p, err := prefs.Get(ctx); err == nil {
-			langs = append(langs, p.SubtitleLanguages...)
-		}
-		return langs
+		return api.SubtitleLanguages(ctx, watchProgress, prefs, itemID)
 	}, log)
 	keeping, stopKeeping := context.WithCancel(ctx)
 	kept := make(chan struct{})
@@ -296,12 +292,13 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
 		Remote:      server,
+		Mode:        cfg.Mode,
 	}, log)
 	defer handler.Close()
 	marking := make(chan struct{})
 	go func() {
 		defer close(marking)
-		handler.KeepWatchedMarks(ctx)
+		handler.KeepHolds(ctx)
 	}()
 	// It reads the progress, so it ends before the store closes.
 	defer func() {

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmp"
 	"crypto/rand"
 	"crypto/subtle"
 	"net/http"
@@ -57,7 +58,9 @@ func (s *Server) handlePair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.pairCode = ""
-	writeJSON(w, http.StatusCreated, map[string]any{"device": device, "token": credential})
+	// The mode, so a core about to forward here, or a client, knows where the
+	// viewer's data will live (mode.go).
+	writeJSON(w, http.StatusCreated, map[string]any{"device": device, "token": credential, "mode": cmp.Or(s.mode, "full")})
 }
 
 func (s *Server) requireAdministrator(w http.ResponseWriter, r *http.Request) bool {
@@ -92,6 +95,14 @@ func (s *Server) handleRevokeDevice(w http.ResponseWriter, r *http.Request) {
 	if s.devices == nil {
 		writeError(w, http.StatusServiceUnavailable, "devices unavailable")
 		return
+	}
+	// Its holds go first: a hold left behind would keep its files forever.
+	if s.downloads != nil {
+		if err := s.downloads.ReleaseDevice(r.Context(), r.PathValue("id")); err != nil {
+			s.log.Error("release a revoked device's holds", "err", err)
+			writeError(w, http.StatusInternalServerError, "cannot release the device's downloads")
+			return
+		}
 	}
 	found, err := s.devices.RevokeDevice(r.Context(), r.PathValue("id"))
 	if err != nil {

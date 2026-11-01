@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	acquirelocal "github.com/eeegoloauq/lumeo/core/internal/acquire/local"
@@ -46,8 +48,8 @@ func (m shelfMeta) Meta(_ context.Context, _ catalog.Kind, id string) (*catalog.
 	return &item, nil
 }
 
-// linked is a full core as the server and a core linked to it, as a device
-// runs one.
+// linked is a media server and a core linked to it, as a device runs one.
+// The server has two devices paired: laptop and tv.
 type linked struct {
 	t         testing.TB
 	server    *httptest.Server
@@ -59,21 +61,32 @@ type linked struct {
 	requested chan string
 	// itemID is the series' id on the linked core, theirID on the server.
 	itemID, theirID string
+	// serverDeps build the server, served is what answers at its address.
+	serverDeps  Deps
+	served      *atomic.Pointer[http.Handler]
+	serverWatch *progress.Service
+	log         *slog.Logger
+}
+
+const (
+	laptopToken = "laptop-token"
+	tvToken     = "tv-token"
+)
+
+func openStore(t testing.TB) (*store.DB, string) {
+	t.Helper()
+	dir := t.TempDir()
+	db, err := store.Open(filepath.Join(dir, "lumeo.db"), "test")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db, dir
 }
 
 func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	t.Helper()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	open := func() (*store.DB, string) {
-		dir := t.TempDir()
-		db, err := store.Open(filepath.Join(dir, "lumeo.db"), "test")
-		if err != nil {
-			t.Fatalf("open store: %v", err)
-		}
-		t.Cleanup(func() { _ = db.Close() })
-		return db, dir
-	}
-
 	images := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("\xff\xd8\xff"))
@@ -83,51 +96,82 @@ func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	item.ID = ""
 	item.Poster = images.URL + "/severance.jpg"
 	item.Episodes = []catalog.Episode{{Season: 1, Number: 1, Thumbnail: images.URL + "/s1e1.jpg"}, {Season: 1, Number: 2}}
-	serverDB, serverDir := open()
+	serverDB, serverDir := openStore(t)
+	for id, credential := range map[string]string{"laptop": laptopToken, "tv": tvToken} {
+		if err := serverDB.AddDevice(context.Background(), store.Device{ID: id, Name: id, CreatedAt: time.Now()}, credential); err != nil {
+			t.Fatal(err)
+		}
+	}
 	serverCatalog := catalog.NewService(catalog.Fixed(shelfMeta{item}), serverDB, log)
 	t.Cleanup(serverCatalog.Close)
 	backend := &fakeStreamBackend{task: &fakeStreamTask{file: &fakeStreamFile{name: "e.mkv", data: payload()}}}
 	theirs := acquire.NewManager(t.TempDir(), []acquire.Backend{backend}, newFakeStore(), log)
 	t.Cleanup(func() { theirs.Close() })
-	server := New(Deps{
+	serverWatch := progress.New(serverDB, serverCatalog)
+	l := &linked{t: t, theirs: theirs, serverWatch: serverWatch, log: log, served: &atomic.Pointer[http.Handler]{},
+		requested: make(chan string, 100)}
+	l.serverDeps = Deps{
 		Sources:   func() []sources.Provider { return []sources.Provider{found} },
 		Catalog:   serverCatalog,
 		Downloads: theirs,
-		Progress:  progress.New(serverDB, serverCatalog),
+		Progress:  serverWatch,
 		Artwork:   serverDB,
+		Devices:   serverDB,
 		CacheDir:  serverDir,
 		Token:     "server-token",
-	}, log)
-	t.Cleanup(server.Close)
-	requested := make(chan string, 100)
-	handler := server.Handler()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Mode:      remote.ModeMedia,
+	}
+	l.serve(l.serverDeps)
+	l.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
-		case requested <- r.Method + " " + r.URL.Path:
+		case l.requested <- r.Method + " " + r.URL.Path:
 		default:
 		}
-		handler.ServeHTTP(w, r)
+		(*l.served.Load()).ServeHTTP(w, r)
 	}))
-	t.Cleanup(ts.Close)
+	t.Cleanup(l.server.Close)
+	l.link(token)
+	return l
+}
 
-	db, dir := open()
-	link := remote.New(remote.Link{URL: ts.URL, Token: token}, log)
-	cat := catalog.NewService(catalog.Fixed(link.Provider()), db, log)
-	t.Cleanup(cat.Close)
-	ours := acquire.NewManager(t.TempDir(), []acquire.Backend{acquirelocal.Backend{}}, newFakeStore(), log)
-	t.Cleanup(func() { ours.Close() })
-	watch := progress.New(db, cat)
-	core := New(Deps{
+// serve makes the server one built on deps, as a restart with them would.
+func (l *linked) serve(deps Deps) {
+	server := New(deps, l.log)
+	l.t.Cleanup(server.Close)
+	handler := server.Handler()
+	l.served.Store(&handler)
+}
+
+// link sets up this side as a core linked to the server with credential.
+func (l *linked) link(credential string) {
+	db, dir := openStore(l.t)
+	link := remote.New(remote.Link{URL: l.server.URL, Token: credential}, l.log)
+	cat := catalog.NewService(catalog.Fixed(link.Provider()), db, l.log)
+	l.t.Cleanup(cat.Close)
+	l.ours = acquire.NewManager(l.t.TempDir(), []acquire.Backend{acquirelocal.Backend{}}, newFakeStore(), l.log)
+	l.t.Cleanup(func() { l.ours.Close() })
+	l.watch = progress.New(db, cat)
+	l.core = New(Deps{
 		Catalog:     cat,
-		Downloads:   ours,
-		Progress:    watch,
+		Downloads:   l.ours,
+		Progress:    l.watch,
 		Preferences: preferences.New(db, preferences.Preferences{SubtitleLanguages: []string{"ru"}}),
 		Artwork:     db,
 		CacheDir:    dir,
 		Remote:      link,
-	}, log)
-	t.Cleanup(core.Close)
-	return &linked{t: t, server: ts, local: core.Handler(), core: core, theirs: theirs, ours: ours, watch: watch, requested: requested}
+	}, l.log)
+	l.t.Cleanup(l.core.Close)
+	l.local = l.core.Handler()
+}
+
+// another is a second device's core, linked to the same server.
+func (l *linked) another(credential string) *linked {
+	other := *l
+	other.link(credential)
+	if l.itemID != "" {
+		other.open()
+	}
+	return &other
 }
 
 // open finds the series through the linked core's catalogue, which mints
@@ -177,7 +221,7 @@ func (l *linked) start(src sources.MediaSource) acquire.Download {
 // The server's catalogue under the linked core's ids, its artwork loaded from
 // the server, which needs no credential for it.
 func TestALinkedCoreShowsTheServersTitles(t *testing.T) {
-	l := linkedCores(t, nil, "server-token")
+	l := linkedCores(t, nil, laptopToken)
 	rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/catalogs", "")
 	var rows struct {
 		Catalogs []catalog.Row `json:"catalogs"`
@@ -225,7 +269,7 @@ func TestALinkedCoreShowsTheServersTitles(t *testing.T) {
 // A download starts on the server under its id, the pick is kept here, and
 // the linked core lists it and plays it under its own.
 func TestALinkedCoreDownloadsOnTheServerAndStreamsFromIt(t *testing.T) {
-	l := linkedCores(t, nil, "server-token")
+	l := linkedCores(t, nil, laptopToken)
 	l.open()
 	src := torrentSource("Severance.S01E01.1080p", "aaa", 30, "group")
 	d := l.start(src)
@@ -241,6 +285,12 @@ func TestALinkedCoreDownloadsOnTheServerAndStreamsFromIt(t *testing.T) {
 	}
 	if choice, err := l.watch.Choice(context.Background(), l.itemID); err != nil || choice.Pack.InfoHash != "aaa" {
 		t.Fatalf("pick kept here = %+v, %v", choice.Pack, err)
+	}
+	if choice, err := l.serverWatch.Choice(context.Background(), l.theirID); err != nil || choice.Pack != (progress.Pack{}) {
+		t.Fatalf("pick kept on the server too: %+v, %v", choice.Pack, err)
+	}
+	if len(row.Holds) != 1 || row.Holds[0].Device != "laptop" || !slices.Equal(row.Holds[0].SubtitleLanguages, []string{"ru"}) {
+		t.Fatalf("holds on the server: %+v; want the laptop's, with its languages", row.Holds)
 	}
 
 	rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/downloads", "")
@@ -275,7 +325,7 @@ func TestALinkedCoreRanksTheServersCopiesByItsOwnChoice(t *testing.T) {
 		torrentSource("Severance.S01E01.2160p", "aaa", 80, "big"),
 		torrentSource("Severance.S01E01.720p", "bbb", 10, "small"),
 	}
-	l := linkedCores(t, found, "server-token")
+	l := linkedCores(t, found, laptopToken)
 	l.open()
 	if err := l.watch.RememberSource(context.Background(), l.itemID, progress.Pack{BingeGroup: "small", InfoHash: "bbb", Picked: true}); err != nil {
 		t.Fatal(err)
@@ -316,60 +366,93 @@ func TestALinkedCoreRanksTheServersCopiesByItsOwnChoice(t *testing.T) {
 	}
 }
 
-// The server frees only what was watched; the progress is kept here, so the
-// linked core marks the server's downloads, and takes the mark back for a
-// rewatch. None of the viewer's own data goes to the server.
-func TestALinkedCoreMarksWhatWasWatchedOnTheServer(t *testing.T) {
-	l := linkedCores(t, nil, "server-token")
-	l.open()
-	d := l.start(torrentSource("Severance.S01E01.1080p", "aaa", 30, "group"))
-	marked := func() bool {
-		row, err := l.theirs.Get(context.Background(), d.ID)
+// The server frees only what was watched, and keeps the subtitles wanted;
+// the progress and preferences are kept on each device, so each device's
+// core tells the server through its own hold. One device's word never
+// overrides another's: the laptop not having watched an episode does not
+// take back the TV's mark. None of the viewer's own data goes to the server.
+func TestEachDeviceHoldsTheServersDownloadsItself(t *testing.T) {
+	laptop := linkedCores(t, nil, laptopToken)
+	laptop.open()
+	d := laptop.start(torrentSource("Severance.S01E01.1080p", "aaa", 30, "group"))
+	tv := laptop.another(tvToken)
+	holds := func() map[string]acquire.Hold {
+		t.Helper()
+		row, err := laptop.theirs.Get(context.Background(), d.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return !row.WatchedAt.IsZero()
+		out := make(map[string]acquire.Hold)
+		for _, h := range row.Holds {
+			out[h.Device] = h
+		}
+		return out
 	}
-	sync := func() {
-		if err := l.core.syncWatched(context.Background()); err != nil {
+	sync := func(l *linked) {
+		t.Helper()
+		if err := l.core.syncHolds(context.Background()); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
 	}
-	for len(l.requested) > 0 {
-		<-l.requested
-	}
-
-	put := func(body string) {
+	put := func(l *linked, body string) {
+		t.Helper()
 		if rec := requestJSON(t, l.local, http.MethodPut, "/api/v1/progress/"+l.itemID, body); rec.Code != http.StatusOK {
 			t.Fatalf("progress: status %d: %s", rec.Code, rec.Body)
 		}
 	}
-	put(`{"season":1,"episode":1,"position":600,"duration":3000}`)
-	sync()
-	if marked() {
-		t.Fatal("marked part way through")
+	for len(laptop.requested) > 0 {
+		<-laptop.requested
 	}
-	put(`{"season":1,"episode":1,"watched":true}`)
-	sync()
-	if !marked() {
-		t.Fatal("not marked once watched")
-	}
-	put(`{"season":1,"episode":1,"position":600,"duration":3000}`)
-	sync()
-	if marked() {
-		t.Fatal("still marked through a rewatch")
-	}
-	requestJSON(t, l.local, http.MethodPut, "/api/v1/list/"+l.itemID, "")
-	requestJSON(t, l.local, http.MethodPut, "/api/v1/ratings/"+l.itemID, `{"rating":8}`)
-	requestJSON(t, l.local, http.MethodGet, "/api/v1/continue", "")
 
-	close(l.requested)
-	for path := range l.requested {
+	// Started on the laptop: its hold, with its languages. The TV never
+	// played it, so it holds nothing.
+	sync(tv)
+	if got := holds(); len(got) != 1 || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"ru"}) {
+		t.Fatalf("after the start: %+v; want the laptop's alone", got)
+	}
+
+	put(tv, `{"season":1,"episode":1,"watched":true}`)
+	put(laptop, `{"season":1,"episode":1,"position":600,"duration":3000}`)
+	sync(tv)
+	sync(laptop)
+	sync(tv)
+	got := holds()
+	if got["tv"].WatchedAt.IsZero() || !got["laptop"].WatchedAt.IsZero() {
+		t.Fatalf("holds = %+v; want the TV's watched and the laptop's not", got)
+	}
+
+	// A rewatch on the TV takes its mark back; a change of the laptop's
+	// languages reaches its hold.
+	put(tv, `{"season":1,"episode":1,"position":600,"duration":3000}`)
+	if rec := requestJSON(t, laptop.local, http.MethodPatch, "/api/v1/preferences", `{"subtitleLanguages":["de","en"]}`); rec.Code != http.StatusOK {
+		t.Fatalf("preferences: status %d: %s", rec.Code, rec.Body)
+	}
+	sync(tv)
+	sync(laptop)
+	got = holds()
+	if !got["tv"].WatchedAt.IsZero() || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"de", "en"}) {
+		t.Fatalf("holds = %+v; want the TV's mark gone and the laptop on German and English", got)
+	}
+
+	requestJSON(t, laptop.local, http.MethodPut, "/api/v1/list/"+laptop.itemID, "")
+	requestJSON(t, laptop.local, http.MethodPut, "/api/v1/ratings/"+laptop.itemID, `{"rating":8}`)
+	requestJSON(t, laptop.local, http.MethodGet, "/api/v1/continue", "")
+	close(laptop.requested)
+	for path := range laptop.requested {
 		for _, personal := range []string{"/progress", "/list", "/ratings", "/continue", "/choices", "/preferences"} {
 			if strings.Contains(path, personal) {
 				t.Errorf("the server was asked %s", path)
 			}
 		}
+	}
+
+	// Revoking the TV releases its hold.
+	revoke := httptest.NewRequest(http.MethodDelete, "/api/v1/devices/tv", nil)
+	revoke.Header.Set("Authorization", "Bearer server-token")
+	rec := httptest.NewRecorder()
+	(*laptop.served.Load()).ServeHTTP(rec, revoke)
+	if _, held := holds()["tv"]; rec.Code != http.StatusNoContent || held {
+		t.Fatalf("revoking the TV: status %d, holds %+v", rec.Code, holds())
 	}
 }
 
@@ -386,7 +469,7 @@ func TestALinkedCoreWithoutItsServer(t *testing.T) {
 		}
 	}
 
-	l := linkedCores(t, nil, "server-token")
+	l := linkedCores(t, nil, laptopToken)
 	l.open()
 	path := filepath.Join(t.TempDir(), "Severance.S01E01.mkv")
 	if err := os.WriteFile(path, matroska(), 0o600); err != nil {
@@ -399,7 +482,7 @@ func TestALinkedCoreWithoutItsServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	l.server.Close()
-	l.core.remote = remote.New(remote.Link{URL: l.server.URL, Token: "server-token"}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	l.core.remote = remote.New(remote.Link{URL: l.server.URL, Token: laptopToken}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	local := l.core.Handler()
 
 	rec := requestJSON(t, local, http.MethodGet, "/api/v1/sources?item="+l.itemID+"&season=1&episode=1", "")

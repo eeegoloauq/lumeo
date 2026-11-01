@@ -104,6 +104,16 @@ They share one owner's library, history, addons and settings and may control
 downloads, so pair only trusted devices. Local client files cannot be opened
 through the remote core.
 
+## Media server
+
+With `LUMEO_MODE=media` the server keeps files, not people: each device's
+history, scores, My list and preferences stay on a core of its own, linked to
+the server with `lumeo-core link` ([core](core.md), Linked to a server), and
+the server refuses them from devices. The client cannot pair this way yet;
+until it can, a desktop client pairs with a full server as above. Changing the
+mode of a server with data is a migration: export each viewer's personal data
+first, and import it on their device.
+
 ## Storage and operations
 
 The existing [keep policy](decisions/downloads.md) applies: the default retains

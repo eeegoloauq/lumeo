@@ -44,10 +44,14 @@ func (s *Server) handleFolders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	itemID := r.PathValue("id")
-	choice, err := s.progress.Choice(r.Context(), itemID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
+	// A device of a media server keeps its choice itself (remoteFolders).
+	var choice progress.Choice
+	if s.viewerHere(r) {
+		var err error
+		if choice, err = s.progress.Choice(r.Context(), itemID); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"folders": foldersOf(s.downloads.List(r.Context()), itemID, choice.Pack),

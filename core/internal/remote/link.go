@@ -7,6 +7,7 @@ package remote
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -125,14 +126,32 @@ func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	client := &http.Client{Transport: newTransport(), CheckRedirect: refuseRedirect}
+	defer client.CloseIdleConnections()
+	// Every answer says the server's mode, a refusal of no credential too:
+	// asked first, a full server is turned down before it pairs a device
+	// its owner would have to revoke.
+	probe, err := http.NewRequestWithContext(ctx, http.MethodGet, link.URL+"/healthz", nil)
+	if err != nil {
+		return Link{}, err
+	}
+	resp, err := client.Do(probe)
+	if err != nil {
+		return Link{}, fmt.Errorf("contact server: %w", err)
+	}
+	resp.Body.Close()
+	if err := checkMode(resp); err != nil {
+		return Link{}, err
+	}
+	if resp.Header.Get(ModeHeader) == "" {
+		return Link{}, fmt.Errorf("contact server: it answered %s", resp.Status)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, link.URL+"/api/v1/pair", bytes.NewReader(body))
 	if err != nil {
 		return Link{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{Transport: newTransport(), CheckRedirect: refuseRedirect}
-	defer client.CloseIdleConnections()
-	resp, err := client.Do(req)
+	resp, err = client.Do(req)
 	if err != nil {
 		return Link{}, fmt.Errorf("contact server: %w", err)
 	}
@@ -146,9 +165,16 @@ func Pair(ctx context.Context, address, code, name string) (Link, error) {
 	}
 	var paired struct {
 		Token string `json:"token"`
+		Mode  string `json:"mode"`
 	}
 	if err := json.Unmarshal(answer, &paired); err != nil || paired.Token == "" {
 		return Link{}, errors.New("server answered without a credential")
+	}
+	// Its mode changed since it was asked. The device is paired by now, and
+	// its owner revokes it there.
+	if paired.Mode != ModeMedia {
+		return Link{}, fmt.Errorf("%w: it became %s while pairing; set LUMEO_MODE=media on it and pair again",
+			ErrNotMedia, cmp.Or(paired.Mode, "full"))
 	}
 	link.Token = paired.Token
 	return link, nil

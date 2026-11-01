@@ -116,3 +116,19 @@ func TestAddonsCanBeTurnedOff(t *testing.T) {
 		t.Errorf("got %+v, want none", got)
 	}
 }
+
+func TestModeDefaultAndValidation(t *testing.T) {
+	t.Setenv("LUMEO_MODE", "")
+	if got := FromEnv().Mode; got != "full" {
+		t.Errorf("default mode = %q, want full", got)
+	}
+	t.Setenv("LUMEO_MODE", "media")
+	if c := FromEnv(); c.Mode != "media" || c.Validate() != nil {
+		t.Errorf("media: mode %q, %v", c.Mode, c.Validate())
+	}
+	// A typo must not quietly keep the devices' data on the server.
+	t.Setenv("LUMEO_MODE", "medai")
+	if err := FromEnv().Validate(); err == nil {
+		t.Error("accepted an unknown mode")
+	}
+}

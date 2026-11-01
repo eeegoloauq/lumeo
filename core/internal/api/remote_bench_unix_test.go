@@ -23,7 +23,7 @@ import (
 //
 //	go test ./internal/api -run '^$' -bench Stream -benchtime 4x
 func BenchmarkStream(b *testing.B) {
-	l := linkedCores(b, nil, "server-token")
+	l := linkedCores(b, nil, laptopToken)
 	data := make([]byte, 256<<20)
 	backend := &fakeStreamBackend{task: &fakeStreamTask{file: &fakeStreamFile{name: "remux.mkv", data: data}}}
 	manager := acquire.NewManager(b.TempDir(), []acquire.Backend{backend}, newFakeStore(), l.core.log)

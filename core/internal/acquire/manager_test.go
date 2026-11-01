@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -27,7 +28,21 @@ func newMemStore() *memStore { return &memStore{rows: map[string]Download{}} }
 func (m *memStore) SaveDownload(_ context.Context, d Download) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// Holds are saved on their own, as the database keeps them.
+	d.Holds = m.rows[d.ID].Holds
 	m.rows[d.ID] = d
+	return nil
+}
+
+func (m *memStore) SaveHolds(_ context.Context, id string, holds []Hold) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	d, ok := m.rows[id]
+	if !ok {
+		return errors.New("no such download")
+	}
+	d.Holds = holds
+	m.rows[id] = d
 	return nil
 }
 
@@ -1008,5 +1023,56 @@ func TestBadPiecesAreLogged(t *testing.T) {
 	}
 	if !strings.Contains(log.String(), "pieces=2") {
 		t.Fatalf("logged the wrong count:\n%s", log.String())
+	}
+}
+
+// Each device's hold is its own: setting one leaves the others, a watched
+// mark keeps the time it was first made, and a restart, which writes the row
+// back, keeps them all. Revoking a device releases its holds.
+func TestHoldsArePerDevice(t *testing.T) {
+	ctx := context.Background()
+	m, st, _ := testManager(t, &fakeBackend{scheme: "torrent"})
+	clock := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	m.now = func() time.Time { return clock }
+	d, err := m.Start(ctx, torrentRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SetHold(ctx, d.ID, "laptop", true, []string{"ru"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SetHold(ctx, d.ID, "tv", false, []string{"en"}); err != nil {
+		t.Fatal(err)
+	}
+	clock = clock.Add(time.Hour)
+	if _, err := m.SetHold(ctx, d.ID, "laptop", true, []string{"ru", "en"}); err != nil {
+		t.Fatal(err)
+	}
+	m.fail(ctx, m.row(d.ID), errors.New("tracker gone"))
+
+	again := NewManager(t.TempDir(), []Backend{&fakeBackend{scheme: "torrent"}}, st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err := again.Resume(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got, err := again.Get(ctx, d.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Hold{
+		{Device: "tv", SubtitleLanguages: []string{"en"}},
+		{Device: "laptop", WatchedAt: clock.Add(-time.Hour), SubtitleLanguages: []string{"ru", "en"}},
+	}
+	if !reflect.DeepEqual(got.Holds, want) {
+		t.Fatalf("holds = %+v, want %+v", got.Holds, want)
+	}
+
+	if err := again.ReleaseDevice(ctx, "laptop"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := again.Get(ctx, d.ID); len(got.Holds) != 1 || got.Holds[0].Device != "tv" {
+		t.Fatalf("after revoking the laptop: %+v", got.Holds)
+	}
+	if _, err := again.SetHold(ctx, "missing", "tv", false, nil); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("hold on a missing download: %v", err)
 	}
 }

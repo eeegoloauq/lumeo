@@ -54,7 +54,8 @@ type Keeper struct {
 	service   *Service
 	downloads Downloads
 	items     Items
-	// languages are the ones wanted for a title, best first.
+	// languages are the ones this core's viewer wants for a title, best
+	// first. A download devices hold on a media server is theirs instead.
 	languages func(ctx context.Context, itemID string) []string
 	log       *slog.Logger
 	now       func() time.Time
@@ -138,7 +139,7 @@ func (k *Keeper) keep(ctx context.Context, d acquire.Download) (bool, error) {
 		return false, err
 	}
 	var missing []string
-	for _, lang := range k.languages(ctx, d.ItemID) {
+	for _, lang := range k.wanted(ctx, d) {
 		kept := slices.ContainsFunc(idx.Files, func(f keptFile) bool { return f.Language == lang })
 		if !kept && k.now().Sub(idx.Tried[lang]) >= retryNone && !slices.Contains(missing, lang) {
 			missing = append(missing, lang)
@@ -234,6 +235,23 @@ func (k *Keeper) keep(ctx context.Context, d acquire.Download) (bool, error) {
 		}
 		return writeFile(filepath.Join(dir, indexName), body)
 	})
+}
+
+// wanted is the languages kept for d: every holding device's, each device's
+// order kept, or, with none holding it, this core's viewer's.
+func (k *Keeper) wanted(ctx context.Context, d acquire.Download) []string {
+	if len(d.Holds) == 0 {
+		return k.languages(ctx, d.ItemID)
+	}
+	var out []string
+	for _, hold := range d.Holds {
+		for _, lang := range hold.SubtitleLanguages {
+			if !slices.Contains(out, lang) {
+				out = append(out, lang)
+			}
+		}
+	}
+	return out
 }
 
 func hashFile(ctx context.Context, file acquire.File) (string, error) {

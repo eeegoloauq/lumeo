@@ -381,30 +381,44 @@ type candidate struct {
 	watched time.Time
 }
 
-// finished is what of rows the policy may free, the longest watched first:
-// downloads of an episode whose progress entry is the watched latch with no
-// position, and downloads a device marked watched, its progress being kept on
-// the device. A watched entry with a position is a rewatch under way.
+// finished is what of rows the policy may free, the longest watched first. A
+// download is watched once everyone with a say in it has watched it: the
+// viewer whose progress is kept here, when they have an entry for the
+// episode, and every device holding it on a media server, whose viewer's
+// progress is kept on the device. It counts from the latest of them. A
+// watched entry with a position is a rewatch under way.
 func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]candidate, error) {
 	entries, err := s.progress.AllProgress(ctx)
 	if err != nil {
 		return nil, err
 	}
-	finished := make(map[episode]time.Time)
+	type say struct {
+		watched bool
+		at      time.Time
+	}
+	own := make(map[episode]say)
 	for _, entry := range entries {
-		if entry.Watched && entry.Position == 0 {
-			finished[episode{entry.ItemID, entry.Season, entry.Episode}] = entry.UpdatedAt
-		}
+		own[episode{entry.ItemID, entry.Season, entry.Episode}] = say{entry.Watched && entry.Position == 0, entry.UpdatedAt}
 	}
 	var candidates []candidate
 	for _, row := range rows {
 		if row.Locator.Scheme == "file" || row.ItemID == "" {
 			continue
 		}
-		if at, ok := finished[episodeOf(row)]; ok {
+		mine, said := own[episodeOf(row)]
+		watched, at := !said || mine.watched, mine.at
+		for _, hold := range row.Holds {
+			said = true
+			if hold.WatchedAt.IsZero() {
+				watched = false
+				break
+			}
+			if hold.WatchedAt.After(at) {
+				at = hold.WatchedAt
+			}
+		}
+		if said && watched {
 			candidates = append(candidates, candidate{row, at})
-		} else if !row.WatchedAt.IsZero() {
-			candidates = append(candidates, candidate{row, row.WatchedAt})
 		}
 	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].watched.Before(candidates[j].watched) })

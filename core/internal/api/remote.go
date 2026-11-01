@@ -27,7 +27,9 @@ import (
 // forwarded request carries the server's id and the answer comes back with
 // ours, the two matched by IMDb id. What a server answer would read from the
 // viewer's data, this core works out on its own side: it ranks the server's
-// copies by its own languages and choice.
+// copies by its own languages and choice. The server is a media server, which
+// keeps none of its devices' data; what it must act on while nobody asks,
+// it is told through this core's hold on each of its downloads (KeepHolds).
 
 // errNoIMDb is a title the server cannot be asked about.
 var errNoIMDb = errors.New("item has no IMDb id, the server cannot look it up")
@@ -138,6 +140,8 @@ func (s *Server) writeRemoteError(w http.ResponseWriter, r *http.Request, err er
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, remote.ErrUnreachable):
 		writeError(w, http.StatusBadGateway, remote.ErrUnreachable.Error())
+	case errors.Is(err, remote.ErrNotMedia):
+		writeError(w, http.StatusBadGateway, err.Error())
 	default:
 		s.log.Warn("asking the server failed", "path", r.URL.Path, "err", err)
 		writeError(w, http.StatusBadGateway, err.Error())
@@ -195,7 +199,7 @@ func (s *Server) remoteSources(w http.ResponseWriter, r *http.Request) {
 	var lookupErr error
 	if itemID != "" {
 		serverID, item, err := s.serverID(r.Context(), itemID)
-		if err != nil && !errors.Is(err, remote.ErrUnreachable) && !remote.Unauthorized(err) {
+		if err != nil && !errors.Is(err, remote.ErrUnreachable) && !remote.Unauthorized(err) && !errors.Is(err, remote.ErrNotMedia) {
 			s.writeRemoteError(w, r, err)
 			return
 		}
@@ -235,8 +239,11 @@ func (s *Server) remoteSources(w http.ResponseWriter, r *http.Request) {
 		}
 		s.log.Warn("asking the server for sources failed", "err", err)
 		reason := "no answer"
-		if remote.Unauthorized(err) {
+		switch {
+		case remote.Unauthorized(err):
 			reason = remote.RefusedMessage
+		case errors.Is(err, remote.ErrNotMedia):
+			reason = remote.ErrNotMedia.Error()
 		}
 		failed = append(failed, failedProvider{Provider: "Server", Reason: reason})
 		answer.Providers = 1
@@ -331,6 +338,7 @@ func (s *Server) remoteDownload(w http.ResponseWriter, r *http.Request) {
 
 // remoteStartDownload starts a copy on the server, unless it is a file on
 // this machine or a download this core already has, and keeps the pick here.
+// The server keeps the subtitles of this core's viewer with the file.
 func (s *Server) remoteStartDownload(w http.ResponseWriter, r *http.Request) {
 	var req startDownloadRequest
 	if !readJSON(w, r, &req) {
@@ -355,6 +363,7 @@ func (s *Server) remoteStartDownload(w http.ResponseWriter, r *http.Request) {
 		}
 		theirs.ItemID = serverID
 	}
+	theirs.SubtitleLanguages = SubtitleLanguages(r.Context(), s.progress, s.prefs, req.ItemID)
 	var d acquire.Download
 	if err := s.remote.Do(r.Context(), http.MethodPost, "/api/v1/downloads", nil, theirs, &d); err != nil {
 		s.writeRemoteError(w, r, err)
@@ -520,52 +529,54 @@ func (s *Server) remoteFolders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"folders": folders, "chosen": choice.Pack != (progress.Pack{})})
 }
 
-// KeepWatchedMarks tells the server which of its downloads are of episodes
-// watched here, the progress being kept here: the server's keep policy frees
-// only what was watched. It compares the two on every change of progress and
-// every few minutes, so a mark missed while the server was away is sent once
-// it is back. It returns when ctx ends, and at once on a core without a
-// server.
-func (s *Server) KeepWatchedMarks(ctx context.Context) {
+// KeepHolds tells the server what it needs to know of this core's viewer for
+// each of its downloads the viewer has to do with: whether they watched the
+// episode, since the server's keep policy frees only what was watched, and
+// the subtitle languages to keep with the file. That is a download this core
+// started there or one of an episode with progress here. It compares the two
+// on every change of progress, preferences or choice and every few minutes,
+// so what changed while the server was away is sent once it is back. It
+// returns when ctx ends, and at once on a core without a server.
+func (s *Server) KeepHolds(ctx context.Context) {
 	if s.remote == nil || s.progress == nil {
 		return
 	}
-	ticker := time.NewTicker(watchedEvery)
+	ticker := time.NewTicker(holdsEvery)
 	defer ticker.Stop()
 	for {
-		if err := s.syncWatched(ctx); err != nil && ctx.Err() == nil {
-			s.log.Warn("telling the server what was watched failed", "err", err)
+		if err := s.syncHolds(ctx); err != nil && ctx.Err() == nil {
+			s.log.Warn("telling the server about its downloads failed", "err", err)
 		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-		case <-s.watchedKick:
+		case <-s.holdsKick:
 		}
 	}
 }
 
-// watchedEvery is how often the marks are compared with nothing changing
-// here: the server's own pass runs this often too.
-const watchedEvery = 10 * time.Minute
+// holdsEvery is how often the holds are compared with nothing changing here:
+// the server's own pass runs this often too.
+const holdsEvery = 10 * time.Minute
 
-// progressChanged asks for the watched marks to be compared again.
-func (s *Server) progressChanged(next http.HandlerFunc) http.HandlerFunc {
+// holdsChange asks for the holds to be compared again after next.
+func (s *Server) holdsChange(next http.HandlerFunc) http.HandlerFunc {
 	if s.remote == nil {
 		return next
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		next(w, r)
 		select {
-		case s.watchedKick <- struct{}{}:
+		case s.holdsKick <- struct{}{}:
 		default:
 		}
 	}
 }
 
-func (s *Server) syncWatched(ctx context.Context) error {
+func (s *Server) syncHolds(ctx context.Context) error {
 	var answer struct {
-		Downloads []acquire.Download `json:"downloads"`
+		Downloads []heldDownload `json:"downloads"`
 	}
 	if err := s.remote.Do(ctx, http.MethodGet, "/api/v1/downloads", nil, nil, &answer); err != nil {
 		return err
@@ -582,11 +593,10 @@ func (s *Server) syncWatched(ctx context.Context) error {
 	}
 	watched := make(map[episode]bool)
 	for _, e := range entries {
-		if e.Watched && e.Position == 0 {
-			watched[episode{e.ItemID, e.Season, e.Episode}] = true
-		}
+		watched[episode{e.ItemID, e.Season, e.Episode}] = e.Watched && e.Position == 0
 	}
 	ids := s.newLocalIDs()
+	languages := make(map[string][]string)
 	for _, row := range answer.Downloads {
 		if row.ItemID == "" {
 			continue
@@ -595,11 +605,23 @@ func (s *Server) syncWatched(ctx context.Context) error {
 		if local == "" {
 			continue
 		}
-		want := watched[episode{local, row.Season, row.Episode}]
-		if want == !row.WatchedAt.IsZero() {
+		done, seen := watched[episode{local, row.Season, row.Episode}]
+		if row.Hold == nil && !seen {
+			continue // another device's download this viewer never played
+		}
+		langs, ok := languages[local]
+		if !ok {
+			langs = SubtitleLanguages(ctx, s.progress, s.prefs, local)
+			if langs == nil {
+				langs = []string{}
+			}
+			languages[local] = langs
+		}
+		if row.Hold != nil && done == !row.Hold.WatchedAt.IsZero() && slices.Equal(row.Hold.SubtitleLanguages, langs) {
 			continue
 		}
-		if err := s.remote.Do(ctx, http.MethodPatch, "/api/v1/downloads/"+url.PathEscape(row.ID), nil, map[string]bool{"watched": want}, nil); err != nil {
+		body := holdBody{Watched: &done, SubtitleLanguages: langs}
+		if err := s.remote.Do(ctx, http.MethodPut, "/api/v1/downloads/"+url.PathEscape(row.ID)+"/hold", nil, body, nil); err != nil {
 			return err
 		}
 	}

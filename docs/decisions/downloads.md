@@ -152,7 +152,10 @@ or the limit behind every copy that does, ahead of health, so Play picks one
 that fits whenever there is one.
 
 Watched is the progress entry's latch with no position: a rewatch under way
-is not finished. The days count from when it was finished. A download
+is not finished. On a media server, whose devices keep their progress, each
+device holding a download says whether its viewer watched it, and the
+download is watched once every holder and the server's own viewer, when they
+have an entry, have: one person's finishing a series is not another's. The days count from when it was finished. A download
 that is playing, or stopped playing or was finished less than ten minutes
 ago, is left for the next pass (the finishing time is the progress row's, so
 a core started again right after still waits it out): a player reconnects on every seek, and the credits of an

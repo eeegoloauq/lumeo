@@ -1,6 +1,11 @@
 package remote
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"runtime"
 	"testing"
@@ -51,5 +56,36 @@ func TestLinkIsKeptForThisAccountOnly(t *testing.T) {
 	}
 	if _, ok, _ := Load(dir); ok {
 		t.Fatal("still linked after Remove")
+	}
+}
+
+// Only a media server is linked to, and a full one is turned down before it
+// pairs a device its owner would have to revoke.
+func TestPairLinksOnlyToAMediaServer(t *testing.T) {
+	for _, mode := range []string{"media", "full", ""} {
+		paired := false
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if mode != "" {
+				w.Header().Set(ModeHeader, mode)
+			}
+			if r.URL.Path != "/api/v1/pair" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			paired = true
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]string{"token": "credential", "mode": mode})
+		}))
+		link, err := Pair(context.Background(), server.URL, "code", "laptop")
+		server.Close()
+		if mode == ModeMedia {
+			if err != nil || link.Token != "credential" {
+				t.Errorf("media: %+v, %v", link, err)
+			}
+			continue
+		}
+		if !errors.Is(err, ErrNotMedia) || paired {
+			t.Errorf("mode %q: err %v, paired %v; want refused before pairing", mode, err, paired)
+		}
 	}
 }

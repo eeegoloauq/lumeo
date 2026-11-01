@@ -152,3 +152,38 @@ func TestKeeperTriesAgainWhenNoProviderAnswers(t *testing.T) {
 		t.Fatalf("a failed lookup left files behind: %v", err)
 	}
 }
+
+// A download devices hold on a media server keeps what each of them wants,
+// not what the server's own viewer does; a device changing its languages
+// gets the new one on the next pass.
+func TestKeeperKeepsTheLanguagesOfTheDevicesHoldingADownload(t *testing.T) {
+	files := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "1\n00:00:01,000 --> 00:00:02,000\n"+r.URL.Path+"\n")
+	}))
+	defer files.Close()
+	p := &countingProvider{stubProvider: stubProvider{id: "os", subs: []Subtitle{
+		{ProviderID: "os", ID: "1", Language: "en", SourceURL: files.URL + "/en"},
+		{ProviderID: "os", ID: "2", Language: "ru", SourceURL: files.URL + "/ru"},
+		{ProviderID: "os", ID: "3", Language: "fr", SourceURL: files.URL + "/fr"},
+	}}}
+	keeper, row := testKeeper(t, p, "fr")
+	downloads := keeper.downloads.(*keepDownloads)
+	downloads.row.Holds = []acquire.Hold{{Device: "laptop", SubtitleLanguages: []string{"ru"}}, {Device: "tv", SubtitleLanguages: []string{}}}
+
+	languages := func() []string {
+		var out []string
+		for _, sub := range Kept(row.ExtrasDir(), "/") {
+			out = append(out, sub.Language)
+		}
+		return out
+	}
+	keeper.Pass(context.Background())
+	if got := languages(); len(got) != 1 || got[0] != "ru" {
+		t.Fatalf("kept %v, want the laptop's Russian alone", got)
+	}
+	downloads.row.Holds[1].SubtitleLanguages = []string{"en"}
+	keeper.Pass(context.Background())
+	if got := languages(); len(got) != 2 || got[1] != "en" {
+		t.Fatalf("kept %v, want the TV's English added", got)
+	}
+}

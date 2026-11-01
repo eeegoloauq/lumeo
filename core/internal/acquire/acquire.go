@@ -85,12 +85,25 @@ type Download struct {
 	// Offline is a download waiting while the machine has no address beyond
 	// its own: it waits for the network, not for peers.
 	Offline bool `json:"offline,omitempty"`
-	// WatchedAt is when a device whose core keeps the viewer's progress said
-	// this episode was watched; zero when none has. The keep policy counts it
-	// as watched from then, as it does a watched entry of its own.
-	WatchedAt time.Time `json:"watchedAt,omitzero"`
+	// Holds are the devices of a media server that hold this download, its
+	// viewers' progress being kept on them. The manager keeps them apart
+	// from the row and attaches them to every read.
+	Holds     []Hold    `json:"-"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// Hold is a device's interest in a download on a media server, whose
+// devices keep their viewers' progress themselves: whether its viewer
+// watched the episode, which the keep policy needs to free the file, and the
+// subtitle languages it wants kept with it. Each device says only its own,
+// so one device's word never overrides another's.
+type Hold struct {
+	Device string `json:"-"`
+	// WatchedAt is when the device said its viewer watched the episode, zero
+	// while they have not.
+	WatchedAt         time.Time `json:"watchedAt,omitzero"`
+	SubtitleLanguages []string  `json:"subtitleLanguages"`
 }
 
 // ExtrasDir is where files that go with the download but are not its bytes,
@@ -184,6 +197,9 @@ type Store interface {
 	Downloads(ctx context.Context) ([]Download, error)
 	Download(ctx context.Context, id string) (Download, bool, error)
 	DeleteDownload(ctx context.Context, id string) error
+	// SaveHolds replaces the holds on a download. Downloads and Download
+	// read them back with the rows.
+	SaveHolds(ctx context.Context, id string, holds []Hold) error
 }
 
 func newID() string {

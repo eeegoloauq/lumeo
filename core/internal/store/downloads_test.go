@@ -40,7 +40,6 @@ func TestDownloadRoundTrip(t *testing.T) {
 				Trackers: []string{"http://t1", "http://t2"},
 			},
 			State:     acquire.StateActive,
-			WatchedAt: time.Unix(1_700_000_250, 0).UTC(),
 			CreatedAt: time.Unix(1_700_000_200, 0).UTC(),
 			UpdatedAt: time.Unix(1_700_000_300, 0).UTC(),
 		},
@@ -246,5 +245,45 @@ func TestOpenAppliesDownloadsMigrationOnExistingV1Database(t *testing.T) {
 		CreatedAt: time.Unix(10, 0).UTC(), UpdatedAt: time.Unix(10, 0).UTC(),
 	}); err != nil {
 		t.Fatalf("save after upgrade: %v", err)
+	}
+}
+
+// Each device's hold comes back with the download, survives the download
+// being saved again, and goes with it.
+func TestHoldsRoundTrip(t *testing.T) {
+	db := openTestDB(t, filepath.Join(t.TempDir(), "catalog.db"))
+	defer db.Close()
+	ctx := context.Background()
+	row := acquire.Download{
+		ID: "dl", ItemID: "item", Season: 1, Episode: 2, Locator: sources.Locator{Scheme: "torrent", InfoHash: "abc"},
+		State: acquire.StateDone, CreatedAt: time.Unix(1_700_000_000, 0).UTC(), UpdatedAt: time.Unix(1_700_000_000, 0).UTC(),
+	}
+	if err := db.SaveDownload(ctx, row); err != nil {
+		t.Fatal(err)
+	}
+	holds := []acquire.Hold{
+		{Device: "laptop", WatchedAt: time.Unix(1_700_000_500, 0).UTC(), SubtitleLanguages: []string{"ru", "en"}},
+		{Device: "tv", SubtitleLanguages: []string{}},
+	}
+	if err := db.SaveHolds(ctx, "dl", holds); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SaveDownload(ctx, row); err != nil {
+		t.Fatal(err)
+	}
+	got, _, err := db.Download(ctx, "dl")
+	if err != nil || !reflect.DeepEqual(got.Holds, holds) {
+		t.Fatalf("holds = %#v, %v; want %#v", got.Holds, err, holds)
+	}
+	all, err := db.Downloads(ctx)
+	if err != nil || len(all) != 1 || !reflect.DeepEqual(all[0].Holds, holds) {
+		t.Fatalf("listed holds = %#v, %v", all, err)
+	}
+	if err := db.DeleteDownload(ctx, "dl"); err != nil {
+		t.Fatal(err)
+	}
+	var left int
+	if err := db.db.QueryRow("SELECT count(*) FROM holds").Scan(&left); err != nil || left != 0 {
+		t.Fatalf("holds left after the download: %d, %v", left, err)
 	}
 }

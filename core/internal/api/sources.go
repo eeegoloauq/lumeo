@@ -75,10 +75,17 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 	if itemID != "" {
 		all = append(all, s.onDisk(r.Context(), itemID, q.Season, q.Episode, all)...)
 	}
-	subs, audio := s.viewerLanguages(r.Context())
+	// A device of a media server ranks the copies itself, by its own
+	// languages and choice: none of this core's viewer's go into its list.
+	var subs, audio []string
+	chosenFor := ""
+	if s.viewerHere(r) {
+		subs, audio = s.viewerLanguages(r.Context())
+		chosenFor = itemID
+	}
 	fits := s.fitting(r.Context())
 	rankSources(all, subs, audio, fits)
-	listed := s.preferKnown(r.Context(), itemID, q.Kind == catalog.KindSeries, all, fits, s.onDiskState(r.Context()))
+	listed := s.preferKnown(r.Context(), chosenFor, q.Kind == catalog.KindSeries, all, fits, s.onDiskState(r.Context()))
 	// providers is how many source addons were asked: with none, an empty list
 	// means "add one", not "no copies".
 	writeJSON(w, http.StatusOK, map[string]any{"sources": listed, "failed": failed, "providers": len(providers)})
@@ -319,7 +326,8 @@ type listedSource struct {
 // offered for an episode is another part of the story. It stays listed for
 // whoever wants it, and once picked its folder is the one remembered.
 //
-// fits fills in Fits, and state says how far a copy is on disk.
+// fits fills in Fits, and state says how far a copy is on disk. An empty
+// itemID has no choice.
 func (s *Server) preferKnown(ctx context.Context, itemID string, series bool, all []sources.MediaSource,
 	fits func(sources.MediaSource) bool, state func(sources.MediaSource) string) []listedSource {
 	var choice progress.Choice

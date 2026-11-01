@@ -290,6 +290,17 @@ A core with `<data>/server.json` (written by `lumeo-core link`) forwards to
 that server what the server owns, and the client talks to it as to any other
 core. The server streams; this core passes the bytes on.
 
+- The server is a media server (`LUMEO_MODE=media`): it keeps none of its
+  devices' personal data and answers a device asking for it with 403. Its
+  owner's token never leaves its machine, so the owner keeps a full core
+  there. Every answer carries the mode (`Lumeo-Mode`); `link` refuses a full
+  server before pairing, and a linked core refuses any answer from a server
+  that is no longer media, forwarding nothing until it is again. Carrying on
+  would leave the viewer's data split between the two.
+- What a media server answers a device reads nothing of its owner's data:
+  no choice in `/sources` or `/folders`, no languages in the ranking or a
+  subtitle lookup, and a download a device starts records no pick there.
+
 - Its catalogue takes the server as its one metadata provider
   (`remote.Provider`): rows, pages, searches and details come from the
   server's own providers, and this core mints its own ids for them by IMDb id.
@@ -312,11 +323,20 @@ core. The server streams; this core passes the bytes on.
   only it knows to each copy: whether it is on its disk (`local`) and whether
   it fits there (`fits`). Folders are the server's and this machine's, the
   current one by the choice kept here.
-- The server's keep policy frees only what was watched, and the watching is
-  recorded here. `KeepWatchedMarks` compares the two after every change of
-  progress and every ten minutes, and sets or clears `watched` on the
-  server's downloads (`PATCH /downloads/{id}`). `library.finished` counts a
-  mark as watched from when it was made. A rewatch under way clears it.
+- The server's keep policy frees only what was watched, and keeps the
+  subtitles its viewers want, but both are recorded on the devices. Each
+  device holds the server's downloads it started or has progress on
+  (`acquire.Hold`, the `holds` table): whether its viewer watched the
+  episode, and the subtitle languages to keep. Each device writes only its
+  own (`PUT /downloads/{id}/hold`), so one device not having watched an
+  episode never takes back another's mark. `KeepHolds` compares them with
+  what is here after every change of progress, preferences or choice and
+  every ten minutes. `library.finished` frees a download once everyone with
+  a say watched it, the server's own viewer included when they have an entry,
+  from the latest mark; a rewatch under way clears a mark. The Keeper keeps
+  every holder's languages, or the owner's for a download nobody holds. The
+  manager keeps holds apart from rows, so a row written back later never
+  takes a newer hold with it.
 - A server that does not answer leaves what is here working. `/sources` lists
   the copies on this machine and names the server as the provider that
   failed, and the download list is this core's. A refused credential

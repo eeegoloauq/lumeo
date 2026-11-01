@@ -22,6 +22,36 @@ import (
 // ErrUnreachable is a request that got no answer from the server.
 var ErrUnreachable = errors.New("server unreachable")
 
+// ModeHeader carries a core's mode on every answer it gives, so a core
+// forwarding to it learns at once when it stops being a media server.
+const ModeHeader = "Lumeo-Mode"
+
+// ModeMedia is a server that leaves its devices' personal data on them. It
+// is the only kind a core forwards to: a full server keeps that data itself,
+// and the two would disagree about where it lives.
+const ModeMedia = "media"
+
+// ErrNotMedia is an answer from a server that is not, or is no longer, a
+// media server. Nothing is forwarded to it then: carrying on would leave the
+// viewer's data split between the two cores.
+var ErrNotMedia = errors.New("the server is not a media server")
+
+// checkMode refuses an answer from a server that does not say it is a media
+// server. An answer without the header and with a gateway error is the proxy
+// in front of the server talking, not the server, and is left to the caller.
+func checkMode(resp *http.Response) error {
+	mode := resp.Header.Get(ModeHeader)
+	switch {
+	case mode == ModeMedia:
+		return nil
+	case mode == "" && resp.StatusCode >= 500:
+		return nil
+	case mode == "":
+		return fmt.Errorf("%w: it did not say what it is; update it", ErrNotMedia)
+	}
+	return fmt.Errorf("%w: its owner set it to %s, so the viewer's data would live there; set LUMEO_MODE=media on it, or pair the client with it directly", ErrNotMedia, mode)
+}
+
 // StatusError is the server answering with an error. Body is its answer as
 // it came, for a caller that passes it on.
 type StatusError struct {
@@ -91,6 +121,9 @@ func New(link Link, log *slog.Logger) *Server {
 		// beyond the copy's own buffer.
 		FlushInterval: -1,
 		ModifyResponse: func(resp *http.Response) error {
+			if err := checkMode(resp); err != nil {
+				return err
+			}
 			if resp.StatusCode == http.StatusUnauthorized {
 				return errRefused
 			}
@@ -102,6 +135,11 @@ func New(link Link, log *slog.Logger) *Server {
 			}
 			if errors.Is(err, errRefused) {
 				writeError(w, http.StatusBadGateway, RefusedMessage)
+				return
+			}
+			if errors.Is(err, ErrNotMedia) {
+				s.log.Error("the server is not a media server", "err", err)
+				writeError(w, http.StatusBadGateway, err.Error())
 				return
 			}
 			s.log.Warn("forwarding to the server failed", "path", r.URL.Path, "err", err)
@@ -169,6 +207,10 @@ func (s *Server) Do(ctx context.Context, method, path string, query url.Values, 
 		return fmt.Errorf("%w: %v", ErrUnreachable, err)
 	}
 	defer resp.Body.Close()
+	if err := checkMode(resp); err != nil {
+		s.log.Error("the server is not a media server", "err", err)
+		return err
+	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
 	if err != nil {
 		if ctx.Err() != nil {

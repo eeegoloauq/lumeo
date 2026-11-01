@@ -120,6 +120,6 @@ func link(cfg config.Config, args []string, out io.Writer) error {
 	if err := remote.Save(cfg.DataDir, paired); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(out, "Linked to %s as %q. Restart the core to use it.\n", paired.URL, name)
+	_, err = fmt.Fprintf(out, "Linked to the media server %s as %q. Restart the core to use it.\n", paired.URL, name)
 	return err
 }

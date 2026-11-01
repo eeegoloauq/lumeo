@@ -29,7 +29,21 @@ func newFakeStore() *fakeStore { return &fakeStore{rows: map[string]acquire.Down
 func (f *fakeStore) SaveDownload(_ context.Context, d acquire.Download) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	// Holds are saved on their own, as the database keeps them.
+	d.Holds = f.rows[d.ID].Holds
 	f.rows[d.ID] = d
+	return nil
+}
+
+func (f *fakeStore) SaveHolds(_ context.Context, id string, holds []acquire.Hold) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	d, ok := f.rows[id]
+	if !ok {
+		return errors.New("no such download")
+	}
+	d.Holds = holds
+	f.rows[id] = d
 	return nil
 }
 

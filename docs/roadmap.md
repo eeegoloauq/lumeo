@@ -41,9 +41,9 @@ default for a person who wants a server to hold everything.
 
 - People sharing a media core share files and storage. Their history stays on
   their clients. The server still sees what is requested and streamed.
-- The server sets the mode, for example `LUMEO_MODE=full|media`, and reports it
-  at pairing. The client follows it and shows it, with no setting of its own, so
-  both sides agree on where personal data lives.
+- The server sets the mode, `LUMEO_MODE=full|media`, and reports it at pairing
+  and on every answer (done). The client follows it and shows it, with no
+  setting of its own, so both sides agree on where personal data lives.
 - In this mode the client talks only to its local core, as it does without a
   server. That core holds the device credential and forwards to the server
   what the server owns: addons, metadata, sources, downloads, streams,
@@ -59,28 +59,31 @@ default for a person who wants a server to hold everything.
   local core supplies. It ranks the server's copies itself, by its languages
   and the copy chosen before (`Pack`); the server only says, per copy,
   whether it is on its disk and whether it fits there. It sends the
-  languages that pick subtitles with the request, and in step 2 the subtitle
-  languages a download keeps. Choosing a source is recorded locally, not on
-  the server.
-- The server frees only what was watched, so the local core marks the
-  server's downloads of episodes watched on it (`watched` on the download),
-  and clears the mark for a rewatch. It carries no progress or history.
+  languages that pick subtitles with the request, and the subtitle languages
+  a download keeps with its hold. Choosing a source is recorded locally, not
+  on the server.
+- The server frees only what was watched, so each local core holds the
+  server's downloads it started or played, and marks its hold watched or not
+  (done). A download is watched once every holder's viewer has watched it.
+  It carries no progress or history.
 - Files opened from this machine stay with the local core and play from it;
   its download list is the server's with them added. A full core cannot open
   them, a media core's client can.
 - Preferences split by owner: viewer preferences are the local core's; the
   download folder and transfer limits are the server owner's and are not
   shown to devices; keep rules are per device (below).
-- Order of work: the local core forwarding to a paired server, which can be a
-  full core at first (done: `lumeo-core link`, docs/core.md); then the
-  server's mode, which refuses personal data from devices, and the subtitle
-  languages a download keeps; then pairing in the client handing the
-  credential to the local core; then holds, limits and keep rules, and the
-  preferences split by owner.
+- Order of work: the local core forwarding to a paired server (done:
+  `lumeo-core link`, docs/core.md); the server's mode, which refuses personal
+  data from devices, with a hold per device carrying its watched mark and the
+  subtitle languages its downloads keep (done); then pairing in the client
+  handing the credential to the local core; then limits and keep rules on the
+  holds, deleting as releasing a hold, and the preferences split by owner,
+  the server's download folder no longer shown to devices.
 - Each device has a disk limit set by the server. A file counts in full against
   every device holding it, though the server stores it once. A download over the
   limit is refused.
-- Each device sets two keep rules and sends them with its hold on a file. By
+- Each device sets two keep rules and sends them with its hold on a file
+  (the hold exists; the rules do not yet). By
   default a watched file goes after one day, and an unwatched one seven days
   after its last download or playback activity. The server applies both clocks
   whether or not the device is online, so nothing is held indefinitely.

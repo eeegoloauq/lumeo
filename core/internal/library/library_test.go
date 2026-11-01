@@ -212,26 +212,47 @@ func TestUntilWatchedFreesWhatIsWatched(t *testing.T) {
 	}
 }
 
-// A core that keeps the viewer's progress itself marks the downloads it
-// watched here, where there is no progress of theirs: a mark is watched from
-// when it was made, settle time included.
-func TestADownloadMarkedWatchedIsFreedAsWatched(t *testing.T) {
+// On a media server each device holding a download says whether its viewer
+// watched it, their progress being kept on the device. The file goes once
+// everyone with a say has watched it, counted from the last of them, settle
+// time included: one device's word is not another's.
+func TestADownloadIsWatchedWhenEveryoneHoldingItWatchedIt(t *testing.T) {
 	s, downloads := library(t, preferences.Preferences{Keep: "watched"})
-	for _, tc := range []struct {
-		id  string
-		ago time.Duration
-	}{{"marked", 2 * time.Hour}, {"marked-now", time.Minute}} {
-		dir := filepath.Join(downloads.dir, tc.id)
+	watched := func(ago time.Duration) acquire.Hold { return acquire.Hold{WatchedAt: now.Add(-ago)} }
+	held := map[string][]acquire.Hold{
+		"both":        {watched(3 * time.Hour), watched(2 * time.Hour)},
+		"one-of-two":  {watched(3 * time.Hour), {}},
+		"just-now":    {watched(3 * time.Hour), watched(time.Minute)},
+		"nobody-yet":  {{}},
+		"one-watched": {watched(3 * time.Hour)},
+	}
+	for id, holds := range held {
+		dir := filepath.Join(downloads.dir, id)
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			t.Fatal(err)
 		}
 		downloads.rows = append(downloads.rows, acquire.Download{
-			ID: tc.id, ItemID: "film", Locator: sources.Locator{Scheme: "torrent"}, Dir: dir,
-			State: acquire.StateDone, WatchedAt: now.Add(-tc.ago),
+			ID: id, ItemID: "film-" + id, Locator: sources.Locator{Scheme: "torrent"}, Dir: dir,
+			State: acquire.StateDone, Holds: holds,
 		})
 	}
-	if removed := clean(t, s, downloads); !slices.Contains(removed, "marked") || slices.Contains(removed, "marked-now") {
-		t.Fatalf("freed %v, want marked and not marked-now", removed)
+	// The viewer here has a say too: e1 they watched, e5 they are part way.
+	for i := range downloads.rows {
+		switch downloads.rows[i].ID {
+		case "e1":
+			downloads.rows[i].Holds = []acquire.Hold{{}}
+		case "e5":
+			downloads.rows[i].Holds = []acquire.Hold{watched(3 * time.Hour)}
+		}
+	}
+	removed := clean(t, s, downloads)
+	for id, want := range map[string]bool{
+		"both": true, "one-watched": true,
+		"one-of-two": false, "just-now": false, "nobody-yet": false, "e1": false, "e5": false,
+	} {
+		if slices.Contains(removed, id) != want {
+			t.Errorf("%s freed = %v, want %v (freed %v)", id, !want, want, removed)
+		}
 	}
 }
 

@@ -21,14 +21,15 @@ func (d *DB) AddDevice(ctx context.Context, device Device, token string) error {
 	return err
 }
 
-func (d *DB) HasDeviceToken(ctx context.Context, token string) (bool, error) {
+// DeviceByToken is the id of the device a credential belongs to, ok false
+// when none does.
+func (d *DB) DeviceByToken(ctx context.Context, token string) (id string, ok bool, err error) {
 	hash := sha256.Sum256([]byte(token))
-	var id string
-	err := d.db.QueryRowContext(ctx, "SELECT id FROM devices WHERE token_hash = ?", hash[:]).Scan(&id)
+	err = d.db.QueryRowContext(ctx, "SELECT id FROM devices WHERE token_hash = ?", hash[:]).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return "", false, nil
 	}
-	return err == nil, err
+	return id, err == nil, err
 }
 
 func (d *DB) Devices(ctx context.Context) ([]Device, error) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
@@ -23,6 +24,9 @@ type startDownloadRequest struct {
 	// Prefetch is a download nobody asked for yet: the next episode, started
 	// only when it fits inside the free disk and the disk limit.
 	Prefetch bool `json:"prefetch"`
+	// SubtitleLanguages are the ones a device of a media server wants kept
+	// with the file, its viewer's preferences being kept on the device.
+	SubtitleLanguages []string `json:"subtitleLanguages,omitempty"`
 }
 
 func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +39,10 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Source.Locator.Scheme == "" {
 		writeError(w, http.StatusBadRequest, "source.locator is required")
+		return
+	}
+	if !validLanguages(req.SubtitleLanguages) {
+		writeError(w, http.StatusBadRequest, errLanguages)
 		return
 	}
 	s.startDownload(w, r, req)
@@ -85,12 +93,24 @@ func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req start
 	if s.library != nil && !req.Prefetch {
 		s.library.Picked(d.ID)
 	}
-	s.rememberPick(r.Context(), req)
+	if s.viewerHere(r) {
+		s.rememberPick(r.Context(), req)
+	} else {
+		// A device starting a copy is about to watch it, so not watched; the
+		// pick is remembered on the device.
+		// Its core holds it again on its next pass if this fails.
+		hold, err := s.downloads.SetHold(r.Context(), d.ID, deviceOf(r), false, req.SubtitleLanguages)
+		if err != nil {
+			s.log.Warn("recording a device's hold failed", "download", d.ID, "err", err)
+		} else {
+			d.Holds = append(slices.DeleteFunc(d.Holds, func(h acquire.Hold) bool { return h.Device == hold.Device }), hold)
+		}
+	}
 	// A new download can take the library over its ceiling.
 	if s.library != nil {
 		s.library.Kick()
 	}
-	writeJSON(w, http.StatusCreated, d)
+	writeJSON(w, http.StatusCreated, s.asSeenBy(r, d))
 }
 
 // rememberPick makes the pack of a started copy the one Play continues from.
@@ -168,7 +188,12 @@ func (s *Server) handleDownloads(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"downloads": s.downloads.List(r.Context())})
+	rows := s.downloads.List(r.Context())
+	out := make([]heldDownload, len(rows))
+	for i, d := range rows {
+		out[i] = s.asSeenBy(r, d)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"downloads": out})
 }
 
 func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
@@ -184,14 +209,11 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, d)
+	writeJSON(w, http.StatusOK, s.asSeenBy(r, d))
 }
 
-// handlePatchDownload pauses or resumes a download, {"paused": true} or
-// {"paused": false}, or marks its episode watched or not, {"watched": true}
-// or {"watched": false}: one of them, nothing else. The mark is what a core
-// that keeps the viewer's progress itself tells this one, whose keep policy
-// frees only what was watched.
+// handlePatchDownload pauses or resumes a download: {"paused": true} or
+// {"paused": false}, nothing else.
 func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
@@ -202,36 +224,23 @@ func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	// Spelled out: null would decode into a bool as false, a resume nobody
 	// asked for.
-	var key string
-	for k := range patch {
-		key = k
-	}
-	value := string(patch[key])
-	if len(patch) != 1 || key != "paused" && key != "watched" || value != "true" && value != "false" {
-		writeError(w, http.StatusBadRequest, `request body must be {"paused": true|false} or {"watched": true|false}`)
+	value := string(patch["paused"])
+	if len(patch) != 1 || value != "true" && value != "false" {
+		writeError(w, http.StatusBadRequest, `request body must be {"paused": true} or {"paused": false}`)
 		return
 	}
-	id, on := r.PathValue("id"), value == "true"
-	var d acquire.Download
-	var err error
-	if key == "watched" {
-		d, err = s.downloads.SetWatched(r.Context(), id, on)
-		if err == nil && on && s.library != nil {
-			s.library.Kick()
-		}
-	} else {
-		d, err = s.downloads.SetPaused(r.Context(), id, on)
-	}
+	paused := value == "true"
+	d, err := s.downloads.SetPaused(r.Context(), r.PathValue("id"), paused)
 	switch {
 	case errors.Is(err, acquire.ErrNotFound):
 		writeError(w, http.StatusNotFound, "unknown download")
 	case errors.Is(err, acquire.ErrNothingToFetch):
 		writeError(w, http.StatusBadRequest, "download has nothing left to fetch")
 	case err != nil:
-		s.log.Warn("changing a download failed", "download", id, key, on, "err", err)
+		s.log.Warn("pausing download failed", "download", r.PathValue("id"), "paused", paused, "err", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 	default:
-		writeJSON(w, http.StatusOK, d)
+		writeJSON(w, http.StatusOK, s.asSeenBy(r, d))
 	}
 }
 

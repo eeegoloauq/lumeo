@@ -47,7 +47,9 @@ func (s *Server) handleSubtitles(w http.ResponseWriter, r *http.Request) {
 	}
 	q.Season, _ = strconv.Atoi(params.Get("season"))
 	q.Episode, _ = strconv.Atoi(params.Get("episode"))
-	if params.Get("lang") == "" && s.prefs != nil {
+	// A device of a media server sends its viewer's languages; without them
+	// it gets the core's default, never this core's viewer's.
+	if params.Get("lang") == "" && s.prefs != nil && s.viewerHere(r) {
 		prefs, err := s.prefs.Get(r.Context())
 		if err != nil {
 			s.log.Warn("reading subtitle language preferences failed", "err", err)

@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -63,8 +64,11 @@ type Server struct {
 	artwork   *store.DB
 	cacheDir  string
 	remote    *remote.Server
-	// watchedKick asks KeepWatchedMarks for a pass.
-	watchedKick chan struct{}
+	// mode is remote.ModeMedia on a server that leaves its devices'
+	// personal data on them (mode.go).
+	mode string
+	// holdsKick asks KeepHolds for a pass.
+	holdsKick chan struct{}
 	// artworkFetches joins the requests for an image not cached yet.
 	artworkFetches *flight.Group[int]
 
@@ -128,6 +132,9 @@ type Deps struct {
 	// Remote is the server this core forwards to, nil for one that holds
 	// everything itself (remote.go).
 	Remote *remote.Server
+	// Mode is "media" for a server whose devices keep their viewers' data
+	// themselves; "full" or empty keeps it here.
+	Mode string
 }
 
 func New(deps Deps, log *slog.Logger) *Server {
@@ -159,8 +166,9 @@ func New(deps Deps, log *slog.Logger) *Server {
 		cacheDir:  deps.CacheDir,
 		hashes:    make(map[string]string),
 		remote:    deps.Remote,
+		mode:      deps.Mode,
 
-		watchedKick: make(chan struct{}, 1),
+		holdsKick: make(chan struct{}, 1),
 
 		artworkFetches: flight.New[int](),
 	}
@@ -183,47 +191,48 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/catalogs", s.handleCatalogs)
 	mux.HandleFunc("GET /api/v1/catalog", s.handleCatalog)
 	mux.HandleFunc("GET /api/v1/search", s.handleSearch)
-	mux.HandleFunc("GET /api/v1/searches", s.handleSearches)
-	mux.HandleFunc("POST /api/v1/searches", s.handleRecordSearch)
-	mux.HandleFunc("DELETE /api/v1/searches", s.handleForgetSearches)
+	mux.HandleFunc("GET /api/v1/searches", s.viewerData(s.handleSearches))
+	mux.HandleFunc("POST /api/v1/searches", s.viewerData(s.handleRecordSearch))
+	mux.HandleFunc("DELETE /api/v1/searches", s.viewerData(s.handleForgetSearches))
 	mux.HandleFunc("GET /api/v1/find", s.handleFind)
 	mux.HandleFunc("GET /api/v1/items/{id}", s.handleItem)
 	mux.HandleFunc("GET /api/v1/items/{id}/after", s.handleEpisodeAfter)
 	mux.HandleFunc("GET /api/v1/items/{id}/folders", s.forwarded(s.handleFolders, s.remoteFolders))
-	mux.HandleFunc("POST /api/v1/items/{id}/folders", s.handleLinkFolder)
+	mux.HandleFunc("POST /api/v1/items/{id}/folders", s.viewerData(s.handleLinkFolder))
 	mux.HandleFunc("GET /api/v1/sources", s.forwarded(s.handleSources, s.remoteSources))
 	mux.HandleFunc("GET /api/v1/subtitles", s.forwarded(s.handleSubtitles, s.remoteSubtitles))
 	mux.HandleFunc("GET /api/v1/subtitles/{token}", s.forwarded(s.handleSubtitleFile, s.remoteSubtitleFile))
 	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles", s.eitherDownload(s.handleKeptSubtitles, s.forward))
 	mux.HandleFunc("GET /api/v1/downloads/{id}/subtitles/{file}", s.eitherDownload(s.handleKeptSubtitle, s.forward))
-	mux.HandleFunc("GET /api/v1/preferences", s.handlePreferences)
-	mux.HandleFunc("PATCH /api/v1/preferences", s.handlePatchPreferences)
-	mux.HandleFunc("DELETE /api/v1/preferences", s.handleResetPreferences)
+	mux.HandleFunc("GET /api/v1/preferences", s.viewerData(s.handlePreferences))
+	mux.HandleFunc("PATCH /api/v1/preferences", s.viewerData(s.holdsChange(s.handlePatchPreferences)))
+	mux.HandleFunc("DELETE /api/v1/preferences", s.viewerData(s.holdsChange(s.handleResetPreferences)))
 	mux.HandleFunc("GET /api/v1/preferences/languages", s.handlePreferenceLanguages)
 	mux.HandleFunc("GET /api/v1/about", s.handleAbout)
 	mux.HandleFunc("GET /api/v1/update", s.handleUpdate)
 	mux.HandleFunc("GET /api/v1/storage", s.forwarded(s.handleStorage, s.remoteStorage))
 	mux.HandleFunc("DELETE /api/v1/cache", s.forwarded(s.handleClearCache, s.remoteClearCache))
 	mux.HandleFunc("DELETE /api/v1/storage", s.forwarded(s.handleClearStorage, s.remoteClearStorage))
-	mux.HandleFunc("PUT /api/v1/progress/{id}", s.progressChanged(s.handlePutProgress))
-	mux.HandleFunc("GET /api/v1/progress/{id}", s.handleProgress)
-	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.progressChanged(s.handleDeleteProgress))
-	mux.HandleFunc("GET /api/v1/continue", s.handleContinue)
-	mux.HandleFunc("GET /api/v1/history", s.handleHistory)
-	mux.HandleFunc("GET /api/v1/personal", s.handleExportPersonal)
-	mux.HandleFunc("POST /api/v1/personal", s.progressChanged(s.handleImportPersonal))
-	mux.HandleFunc("GET /api/v1/list", s.handleList)
-	mux.HandleFunc("GET /api/v1/list/{id}", s.handleListEntry)
-	mux.HandleFunc("PUT /api/v1/list/{id}", s.handleAddToList)
-	mux.HandleFunc("DELETE /api/v1/list/{id}", s.handleRemoveFromList)
-	mux.HandleFunc("GET /api/v1/new-episodes", s.shelf((*watchlist.Service).NewEpisodes))
-	mux.HandleFunc("GET /api/v1/coming-up", s.shelf((*watchlist.Service).ComingUp))
-	mux.HandleFunc("GET /api/v1/ratings/{id}", s.handleRatings)
+	mux.HandleFunc("PUT /api/v1/progress/{id}", s.viewerData(s.holdsChange(s.handlePutProgress)))
+	mux.HandleFunc("GET /api/v1/progress/{id}", s.viewerData(s.handleProgress))
+	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.viewerData(s.holdsChange(s.handleDeleteProgress)))
+	mux.HandleFunc("GET /api/v1/continue", s.viewerData(s.handleContinue))
+	mux.HandleFunc("GET /api/v1/history", s.viewerData(s.handleHistory))
+	mux.HandleFunc("GET /api/v1/personal", s.viewerData(s.handleExportPersonal))
+	mux.HandleFunc("POST /api/v1/personal", s.viewerData(s.holdsChange(s.handleImportPersonal)))
+	mux.HandleFunc("GET /api/v1/list", s.viewerData(s.handleList))
+	mux.HandleFunc("GET /api/v1/list/{id}", s.viewerData(s.handleListEntry))
+	mux.HandleFunc("PUT /api/v1/list/{id}", s.viewerData(s.handleAddToList))
+	mux.HandleFunc("DELETE /api/v1/list/{id}", s.viewerData(s.handleRemoveFromList))
+	mux.HandleFunc("GET /api/v1/new-episodes", s.viewerData(s.shelf((*watchlist.Service).NewEpisodes)))
+	mux.HandleFunc("GET /api/v1/coming-up", s.viewerData(s.shelf((*watchlist.Service).ComingUp)))
+	mux.HandleFunc("GET /api/v1/ratings/{id}", s.viewerData(s.handleRatings))
 	// A score marks what was scored as watched (markScored).
-	mux.HandleFunc("PUT /api/v1/ratings/{id}", s.progressChanged(s.handleRate))
-	mux.HandleFunc("DELETE /api/v1/ratings/{id}", s.handleUnrate)
-	mux.HandleFunc("GET /api/v1/choices/{id}", s.handleChoice)
-	mux.HandleFunc("PATCH /api/v1/choices/{id}", s.handlePatchChoice)
+	mux.HandleFunc("PUT /api/v1/ratings/{id}", s.viewerData(s.holdsChange(s.handleRate)))
+	mux.HandleFunc("DELETE /api/v1/ratings/{id}", s.viewerData(s.handleUnrate))
+	mux.HandleFunc("GET /api/v1/choices/{id}", s.viewerData(s.handleChoice))
+	// A subtitle track picked is a language to keep with the downloads.
+	mux.HandleFunc("PATCH /api/v1/choices/{id}", s.viewerData(s.holdsChange(s.handlePatchChoice)))
 	mux.HandleFunc("GET /api/v1/addons", s.forwarded(s.handleAddons, s.forward))
 	mux.HandleFunc("POST /api/v1/addons", s.forwarded(s.handleAddAddon, s.forward))
 	mux.HandleFunc("PATCH /api/v1/addons/{id}", s.forwarded(s.handlePatchAddon, s.forward))
@@ -233,6 +242,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/downloads", s.forwarded(s.handleDownloads, s.remoteDownloads))
 	mux.HandleFunc("GET /api/v1/downloads/{id}", s.eitherDownload(s.handleDownload, s.remoteDownload))
 	mux.HandleFunc("PATCH /api/v1/downloads/{id}", s.eitherDownload(s.handlePatchDownload, s.remoteDownload))
+	mux.HandleFunc("PUT /api/v1/downloads/{id}/hold", s.handlePutHold)
 	mux.HandleFunc("DELETE /api/v1/downloads/{id}", s.eitherDownload(s.handleRemoveDownload, s.forward))
 	// GET also serves HEAD, which players use to learn the size before they
 	// commit to a byte range.
@@ -254,13 +264,13 @@ func (s *Server) Handler() http.Handler {
 	// to 127.0.0.1 would otherwise read the API, local files included.
 	listenHost, _, err := net.SplitHostPort(s.addr)
 	if ip := net.ParseIP(listenHost); err != nil || listenHost != "localhost" && (ip == nil || !ip.IsLoopback()) {
-		return handler
+		return s.stampMode(handler)
 	}
 	publicHost := ""
 	if public, err := url.Parse(s.publicURL); err == nil {
 		publicHost = public.Hostname()
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return s.stampMode(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host := r.Host
 		if h, _, err := net.SplitHostPort(host); err == nil {
 			host = h
@@ -272,7 +282,7 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		handler.ServeHTTP(w, r)
-	})
+	}))
 }
 
 // requireToken lets through the requests that carry the token.
@@ -285,12 +295,14 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 		got := []byte(r.Header.Get("Authorization"))
 		valid := subtle.ConstantTimeCompare(got, want) == 1
 		if !valid && s.devices != nil && strings.HasPrefix(string(got), "Bearer ") {
-			var err error
-			valid, err = s.devices.HasDeviceToken(r.Context(), strings.TrimPrefix(string(got), "Bearer "))
+			device, found, err := s.devices.DeviceByToken(r.Context(), strings.TrimPrefix(string(got), "Bearer "))
 			if err != nil {
 				s.log.Error("check device token", "err", err)
 				writeError(w, http.StatusServiceUnavailable, "authentication unavailable")
 				return
+			}
+			if valid = found; valid {
+				r = r.WithContext(context.WithValue(r.Context(), deviceKey{}, device))
 			}
 		}
 		if !valid {

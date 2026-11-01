@@ -28,10 +28,10 @@ func TestDeviceCredentialsAreHashedAndSurviveRestart(t *testing.T) {
 	}
 	db = openTestDB(t, path)
 	defer db.Close()
-	if found, err := db.HasDeviceToken(ctx, credential); !found || err != nil {
-		t.Fatalf("after restart: %v %v", found, err)
+	if id, found, err := db.DeviceByToken(ctx, credential); id != "one" || !found || err != nil {
+		t.Fatalf("after restart: %q %v %v", id, found, err)
 	}
-	if found, err := db.HasDeviceToken(ctx, "wrong"); found || err != nil {
+	if _, found, err := db.DeviceByToken(ctx, "wrong"); found || err != nil {
 		t.Fatalf("wrong credential: %v %v", found, err)
 	}
 }

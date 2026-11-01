@@ -25,6 +25,7 @@ Each addon's role is read from its manifest. Edit the list on the client's Sourc
 | `LUMEO_SUBTITLE_LANGS` | `en` | Default subtitle language order; a preference set in the client wins |
 | `LUMEO_TORRENT_PORT` | any free port | BitTorrent listen port |
 | `LUMEO_EPISODE_ARTWORK` | `show` | Default for unwatched episode stills: `show`, `blur` or `hide` |
+| `LUMEO_MODE` | `full` | Where paired devices' personal data lives: `full` keeps it here, `media` leaves it on each device's own core ([Linked to a server](#linked-to-a-server)) |
 
 ## API
 
@@ -76,8 +77,6 @@ Downloads take the source object from `/api/v1/sources` unchanged:
     curl "localhost:7666/api/v1/downloads"          # progress: bytes, peers, rate
     curl -X DELETE "localhost:7666/api/v1/downloads/<id>"            # stop, keep the data
     curl -X DELETE "localhost:7666/api/v1/downloads/<id>?data=true"  # stop and delete the data
-    curl -X PATCH -H 'content-type: application/json' -d '{"watched":true}' \
-         "localhost:7666/api/v1/downloads/<id>"     # what a linked core says of a watched episode
 
 A file can be played while it downloads. A range request fetches the pieces it needs first, so
 seeking works from the start:
@@ -100,7 +99,7 @@ Downloads are stored in `<data>/downloads/<id>` and resume after a restart.
 
 ## Linked to a server
 
-A core can forward to a server what the server owns: addons, metadata, sources, downloads,
+A core can forward to a media server what the server owns: addons, metadata, sources, downloads,
 streams, storage and the subtitles of a download. History, scores, My list, searches and
 preferences stay with it ([architecture](architecture.md), A core linked to a server). The client
 talks to it as to any other core. Link it while it is stopped, with a pairing code from the
@@ -112,3 +111,18 @@ server's `lumeo-core pair`:
 The link is `server.json` in the data directory, owner-only, read at start. The address is the
 server's `LUMEO_PUBLIC_URL`; plain HTTP is accepted only on loopback. Unlinking keeps the device
 on the server until it is revoked there.
+
+The server runs with `LUMEO_MODE=media`, and `link` refuses any other before pairing: a full
+server keeps its devices' personal data, and the two would disagree about where it lives. Every
+answer of a core says its mode in the `Lumeo-Mode` header, so a server switched to full is noticed
+on its next answer: the linked core forwards nothing more and answers 502 saying why.
+
+A media server answers a device's request for personal data (progress, history, My list,
+scores, choices, searches, preferences, the export) with 403. The owner's token, which stays on
+the server's machine, keeps a full core there. Each device holds the downloads it started or
+played, saying whether its viewer watched the episode and which subtitle languages to keep:
+
+    curl -X PUT -H "Authorization: Bearer <device credential>" -H 'content-type: application/json' \
+         -d '{"watched":true,"subtitleLanguages":["ru","en"]}' "https://lumeo.example.com/api/v1/downloads/<id>/hold"
+
+A device sees its own hold as `hold` in the download list. Revoking a device releases its holds.

@@ -68,6 +68,9 @@ type Manager struct {
 	rows  map[string]Download
 	tasks map[string]Task
 	flows map[string]*flow // by transfer
+	// holds are kept apart from rows: a row copied out and written back
+	// later (restart, fail) must not take a hold set in between with it.
+	held map[string][]Hold
 
 	// offline is kept by WatchNetwork.
 	offline atomic.Bool
@@ -83,6 +86,7 @@ func NewManager(dir string, backends []Backend, store Store, log *slog.Logger) *
 		rows:     make(map[string]Download),
 		tasks:    make(map[string]Task),
 		flows:    make(map[string]*flow),
+		held:     make(map[string][]Hold),
 	}
 	for _, b := range backends {
 		m.backends[b.Scheme()] = b
@@ -118,6 +122,10 @@ func (m *Manager) Resume(ctx context.Context) error {
 	}
 	for _, row := range rows {
 		m.mu.Lock()
+		if len(row.Holds) > 0 {
+			m.held[row.ID] = row.Holds
+		}
+		row.Holds = nil
 		m.rows[row.ID] = row
 		m.mu.Unlock()
 		if row.State != StateActive && row.State != StateFailed {
@@ -331,27 +339,56 @@ func (m *Manager) SetPaused(ctx context.Context, id string, paused bool) (Downlo
 	return current, nil
 }
 
-// SetWatched marks a download as watched now, or takes the mark off.
-func (m *Manager) SetWatched(ctx context.Context, id string, watched bool) (Download, error) {
+// SetHold records what a device says of a download: whether its viewer
+// watched the episode, the mark keeping the time it was first made, and the
+// subtitle languages it wants kept with the file.
+func (m *Manager) SetHold(ctx context.Context, id, device string, watched bool, languages []string) (Hold, error) {
 	m.mu.Lock()
-	row, ok := m.rows[id]
-	if !ok {
-		m.mu.Unlock()
-		return Download{}, ErrNotFound
+	defer m.mu.Unlock()
+	if _, ok := m.rows[id]; !ok {
+		return Hold{}, ErrNotFound
 	}
-	if watched != !row.WatchedAt.IsZero() {
-		row.WatchedAt = time.Time{}
-		if watched {
-			row.WatchedAt = m.now()
+	hold := Hold{Device: device, SubtitleLanguages: slices.Clone(languages)}
+	holds := make([]Hold, 0, len(m.held[id])+1)
+	for _, h := range m.held[id] {
+		if h.Device == device {
+			hold.WatchedAt = h.WatchedAt
+			continue
 		}
-		if err := m.store.SaveDownload(ctx, row); err != nil {
-			m.mu.Unlock()
-			return Download{}, err
-		}
-		m.rows[id] = row
+		holds = append(holds, h)
 	}
-	m.mu.Unlock()
-	return m.snapshot(ctx, row), nil
+	switch {
+	case !watched:
+		hold.WatchedAt = time.Time{}
+	case hold.WatchedAt.IsZero():
+		hold.WatchedAt = m.now()
+	}
+	if hold.SubtitleLanguages == nil {
+		hold.SubtitleLanguages = []string{}
+	}
+	holds = append(holds, hold)
+	if err := m.store.SaveHolds(ctx, id, holds); err != nil {
+		return Hold{}, err
+	}
+	m.held[id] = holds
+	return hold, nil
+}
+
+// ReleaseDevice takes a device's holds off every download: it was revoked.
+func (m *Manager) ReleaseDevice(ctx context.Context, device string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, holds := range m.held {
+		kept := slices.DeleteFunc(slices.Clone(holds), func(h Hold) bool { return h.Device == device })
+		if len(kept) == len(holds) {
+			continue
+		}
+		if err := m.store.SaveHolds(ctx, id, kept); err != nil {
+			return err
+		}
+		m.held[id] = kept
+	}
+	return nil
 }
 
 // StopSharing releases a finished torrent's task while leaving its file on disk.
@@ -531,6 +568,7 @@ func (m *Manager) Remove(ctx context.Context, id string, deleteData bool) error 
 	task := m.tasks[id]
 	delete(m.rows, id)
 	delete(m.tasks, id)
+	delete(m.held, id)
 	m.leaveFlow(id, transfer(row))
 	rest := make([]Download, 0, len(m.rows))
 	running := make(map[string]bool, len(m.tasks))
@@ -739,6 +777,7 @@ func (m *Manager) snapshot(ctx context.Context, row Download) Download {
 	row.Seeding = false
 	m.mu.Lock()
 	task := m.tasks[row.ID]
+	row.Holds = slices.Clone(m.held[row.ID])
 	m.mu.Unlock()
 	if task == nil {
 		updated := settled(row)

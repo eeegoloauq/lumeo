@@ -45,6 +45,10 @@ type Config struct {
 	// starts it as a child holds the pipe, and any death of the app closes
 	// it, kill -9 included; a core started by hand does not set it.
 	ExitOnStdinEOF bool
+	// Mode is where the personal data of the devices paired with this core
+	// lives: "full" keeps it here, "media" leaves it on each device's own
+	// core, and this one holds the files. Empty is full.
+	Mode string
 }
 
 // DBPath is the one SQLite file the core keeps everything in.
@@ -82,12 +86,18 @@ func FromEnv() Config {
 	}
 	c.TorrentPort, _ = strconv.Atoi(os.Getenv("LUMEO_TORRENT_PORT"))
 	c.ExitOnStdinEOF = os.Getenv("LUMEO_EXIT_ON_STDIN_EOF") == "1"
+	c.Mode = envOr("LUMEO_MODE", "full")
 	return c
 }
 
 // Validate refuses an origin that would produce links to another endpoint.
 // Proxy headers never substitute for this explicit setting.
 func (c Config) Validate() error {
+	// An unknown mode is refused rather than read as full: a typo for media
+	// would keep the devices' personal data on the server.
+	if c.Mode != "" && c.Mode != "full" && c.Mode != "media" {
+		return fmt.Errorf("LUMEO_MODE must be full or media, not %q", c.Mode)
+	}
 	if c.PublicURL == "" {
 		return nil
 	}
