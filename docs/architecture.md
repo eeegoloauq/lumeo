@@ -97,6 +97,13 @@ title asks for it three times at once (the page, its progress, its sources).
 The request runs on the catalog's own context (`internal/flight`), so a page
 closed before Cinemeta answered still gets its answer cached.
 
+The rows each provider last answered are kept too (`catalog_rows`) and stand
+in when it fails, so a home screen built from cached pages survives a
+provider that is down at start. A relay's kept rows (a linked core's server)
+answer at once, the server asked behind them: it is another machine, which
+may not answer at all, and an addon's rows come from its stored manifest
+anyway.
+
 The cache holds what the core's code made of Cinemeta's answer, so a core of
 another version starts with all of it past the TTL: a parser change takes
 effect on the next open, not a day later. It is still served while the new

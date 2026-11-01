@@ -86,7 +86,7 @@ type Server struct {
 	// time limit rather than an answer's.
 	artwork *http.Client
 	proxy   *httputil.ReverseProxy
-	log    *slog.Logger
+	log     *slog.Logger
 
 	// The server's ids for the titles seen in its answers, both ways. Kept in
 	// memory only: they are learned again from the next answer, and a link
@@ -97,9 +97,6 @@ type Server struct {
 	// unknown is the server's ids it said it has no item for, such as a
 	// file it opened that nothing matched: asked once, not on every list.
 	unknown map[string]error
-
-	rowsMu sync.Mutex
-	rows   []catalog.Row
 }
 
 func New(link Link, log *slog.Logger) *Server {

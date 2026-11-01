@@ -138,4 +138,7 @@ type Store interface {
 	ItemsByIDs(ctx context.Context, ids []string) ([]MediaItem, error)
 	SavePage(ctx context.Context, key string, itemIDs []string) error
 	Page(ctx context.Context, key string) ([]string, time.Time, error)
+	// ProviderRows is the rows last saved for a provider, nil for none.
+	SaveProviderRows(ctx context.Context, providerID string, rows []Row) error
+	ProviderRows(ctx context.Context, providerID string) ([]Row, error)
 }

@@ -17,6 +17,7 @@ import (
 // lock.
 type memStore struct {
 	mu     sync.Mutex
+	rows   map[string][]Row
 	items  map[string]MediaItem
 	state  map[string]ItemState
 	byExt  map[string]string // namespace|externalID -> internal id
@@ -28,6 +29,7 @@ type memStore struct {
 
 func newMemStore(now time.Time) *memStore {
 	return &memStore{
+		rows:   map[string][]Row{},
 		items:  map[string]MediaItem{},
 		state:  map[string]ItemState{},
 		byExt:  map[string]string{},
@@ -104,6 +106,19 @@ func (m *memStore) Page(_ context.Context, key string) ([]string, time.Time, err
 	return m.pages[key], m.pageAt[key], nil
 }
 
+func (m *memStore) SaveProviderRows(_ context.Context, providerID string, rows []Row) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.rows[providerID] = rows
+	return nil
+}
+
+func (m *memStore) ProviderRows(_ context.Context, providerID string) ([]Row, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.rows[providerID], nil
+}
+
 func (m *memStore) setNow(t time.Time) {
 	m.mu.Lock()
 	m.now = t
@@ -133,6 +148,9 @@ type fakeProvider struct {
 	err error
 	// gate, when set, holds every Browse and Meta until it is closed.
 	gate chan struct{}
+	// rowsErr fails Rows, and rowsGate holds it as gate does the others.
+	rowsErr  error
+	rowsGate chan struct{}
 
 	browses atomic.Int32
 	metas   atomic.Int32
@@ -141,8 +159,18 @@ type fakeProvider struct {
 func (f *fakeProvider) ID() string        { return f.id }
 func (f *fakeProvider) Name() string      { return f.id }
 func (f *fakeProvider) Namespace() string { return NamespaceIMDb }
-func (f *fakeProvider) Rows(context.Context) ([]Row, error) {
-	return f.rows, nil
+func (f *fakeProvider) Rows(ctx context.Context) ([]Row, error) {
+	f.mu.Lock()
+	rows, gate, err := f.rows, f.rowsGate, f.rowsErr
+	f.mu.Unlock()
+	if gate != nil {
+		select {
+		case <-gate:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return rows, err
 }
 func (f *fakeProvider) Browse(ctx context.Context, _ BrowseRequest) ([]MediaItem, error) {
 	f.browses.Add(1)
@@ -642,5 +670,51 @@ func TestFindUnknownTitle(t *testing.T) {
 	svc := testService(t, &fakeProvider{id: "meta", meta: &MediaItem{}}, newMemStore(time.Unix(1_700_000_000, 0)))
 	if _, err := svc.Find(context.Background(), NamespaceIMDb, KindMovie, "tt0000000"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("got %v, want ErrNotFound", err)
+	}
+}
+
+// fakeRelay stands for providers elsewhere, as a linked core's server does.
+type fakeRelay struct{ *fakeProvider }
+
+func (fakeRelay) Relays(string) bool { return true }
+
+// A provider that cannot be asked at start still leaves the rows it last
+// answered, which lead to the pages kept for them.
+func TestRowsStandInWhileTheProviderFails(t *testing.T) {
+	st := newMemStore(time.Unix(1_700_000_000, 0))
+	p := &fakeProvider{id: "meta", rows: []Row{{ProviderID: "meta", ID: "top", Kind: KindMovie}}}
+	if rows := testService(t, p, st).Rows(context.Background()); len(rows) != 1 {
+		t.Fatalf("rows = %+v", rows)
+	}
+	p.mu.Lock()
+	p.rowsErr = errors.New("down")
+	p.mu.Unlock()
+	if rows := testService(t, p, st).Rows(context.Background()); len(rows) != 1 || rows[0].ID != "top" {
+		t.Fatalf("rows after a restart without the provider = %+v; want the last ones", rows)
+	}
+}
+
+// A relay's kept rows answer at once, and the next answer has what it was
+// asked for behind them.
+func TestARelaysKeptRowsAnswerAtOnce(t *testing.T) {
+	st := newMemStore(time.Unix(1_700_000_000, 0))
+	p := &fakeProvider{id: "server", rows: []Row{{ProviderID: "cinemeta", ID: "top", Kind: KindMovie}}}
+	svc := NewService(Fixed(fakeRelay{p}), st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(svc.Close)
+	if rows := svc.Rows(context.Background()); len(rows) != 1 {
+		t.Fatalf("first rows = %+v; want them waited for", rows)
+	}
+	gate := make(chan struct{})
+	p.mu.Lock()
+	p.rows = append(p.rows, Row{ProviderID: "cinemeta", ID: "year", Kind: KindMovie})
+	p.rowsGate = gate
+	p.mu.Unlock()
+	if rows := svc.Rows(context.Background()); len(rows) != 1 {
+		t.Fatalf("rows while the relay is out = %+v; want the kept ones", rows)
+	}
+	close(gate)
+	svc.rows.Wait()
+	if rows := svc.Rows(context.Background()); len(rows) != 2 {
+		t.Fatalf("rows after the relay answered = %+v", rows)
 	}
 }

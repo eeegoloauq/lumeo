@@ -304,6 +304,37 @@ func (d *DB) Page(ctx context.Context, key string) ([]string, time.Time, error) 
 	return itemIDs, fetchedAt(updatedAt), nil
 }
 
+func (d *DB) SaveProviderRows(ctx context.Context, providerID string, rows []catalog.Row) error {
+	payload, err := json.Marshal(rows)
+	if err != nil {
+		return fmt.Errorf("encode rows of %q: %w", providerID, err)
+	}
+	_, err = d.db.ExecContext(ctx, `
+		INSERT INTO catalog_rows(provider_id, payload) VALUES (?, ?)
+		ON CONFLICT(provider_id) DO UPDATE SET payload = excluded.payload`, providerID, payload)
+	if err != nil {
+		return fmt.Errorf("save rows of %q: %w", providerID, err)
+	}
+	return nil
+}
+
+// ProviderRows is nil when none were kept for providerID.
+func (d *DB) ProviderRows(ctx context.Context, providerID string) ([]catalog.Row, error) {
+	var payload []byte
+	err := d.db.QueryRowContext(ctx, "SELECT payload FROM catalog_rows WHERE provider_id = ?", providerID).Scan(&payload)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read rows of %q: %w", providerID, err)
+	}
+	rows := []catalog.Row{}
+	if err := json.Unmarshal(payload, &rows); err != nil {
+		return nil, fmt.Errorf("decode rows of %q: %w", providerID, err)
+	}
+	return rows, nil
+}
+
 // fetchedAt reads a catalog row's updated_at. 0 is expireCatalog's mark for a
 // row another core version wrote, and it comes back as the zero time, which
 // is never fresh.

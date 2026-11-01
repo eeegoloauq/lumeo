@@ -67,6 +67,9 @@ type linked struct {
 	served      *atomic.Pointer[http.Handler]
 	serverWatch *progress.Service
 	log         *slog.Logger
+	// db and deps are the linked core's, for starting it again.
+	db   *store.DB
+	deps Deps
 }
 
 const (
@@ -162,7 +165,8 @@ func (l *linked) link(credential string) {
 	l.ours = acquire.NewManager(l.t.TempDir(), []acquire.Backend{acquirelocal.Backend{}}, newFakeStore(), l.log)
 	l.t.Cleanup(func() { l.ours.Close() })
 	l.watch = progress.New(db, cat)
-	l.core = New(Deps{
+	l.db = db
+	l.deps = Deps{
 		Catalog:   cat,
 		Downloads: l.ours,
 		Progress:  l.watch,
@@ -173,9 +177,23 @@ func (l *linked) link(credential string) {
 		Artwork:  db,
 		CacheDir: dir,
 		Remote:   link,
-	}, l.log)
+	}
+	l.core = New(l.deps, l.log)
 	l.t.Cleanup(l.core.Close)
 	l.local = l.core.Handler()
+}
+
+// restart starts the linked core again on what it kept, with credential.
+func (l *linked) restart(credential string) http.Handler {
+	link := remote.New(remote.Link{URL: l.server.URL, Token: credential}, l.log)
+	cat := catalog.NewService(catalog.Fixed(link.Provider()), l.db, l.log)
+	l.t.Cleanup(cat.Close)
+	deps := l.deps
+	deps.Catalog, deps.Remote = cat, link
+	deps.Progress = progress.New(l.db, cat)
+	core := New(deps, l.log)
+	l.t.Cleanup(core.Close)
+	return core.Handler()
 }
 
 // another is a second device's core, linked to the same server.
@@ -309,6 +327,44 @@ func (l *linked) askedFor(prefix string) int {
 		default:
 			return count
 		}
+	}
+}
+
+// A linked core started while its server is down shows what it kept: the
+// rows, their pages and the details of a title opened before.
+func TestALinkedCoreStartsWithoutItsServer(t *testing.T) {
+	l := linkedCores(t, nil, laptopToken)
+	l.open()
+	rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/catalogs", "")
+	var rows struct {
+		Catalogs []catalog.Row `json:"catalogs"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil || len(rows.Catalogs) != 1 {
+		t.Fatalf("catalogs: %s", rec.Body)
+	}
+	row := rows.Catalogs[0]
+	page := "/api/v1/catalog?" + url.Values{"provider": {row.ProviderID}, "kind": {string(row.Kind)}, "id": {row.ID}}.Encode()
+	if rec := requestJSON(t, l.local, http.MethodGet, page, ""); rec.Code != http.StatusOK {
+		t.Fatalf("page: status %d: %s", rec.Code, rec.Body)
+	}
+	if rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/items/"+l.itemID, ""); rec.Code != http.StatusOK {
+		t.Fatalf("item: status %d: %s", rec.Code, rec.Body)
+	}
+
+	l.server.Close()
+	local := l.restart(laptopToken)
+	rec = requestJSON(t, local, http.MethodGet, "/api/v1/catalogs", "")
+	if !strings.Contains(rec.Body.String(), `"id":"`+row.ID+`"`) {
+		t.Fatalf("catalogs without the server: status %d: %s", rec.Code, rec.Body)
+	}
+	rec = requestJSON(t, local, http.MethodGet, page, "")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), l.itemID) {
+		t.Fatalf("page without the server: status %d: %s", rec.Code, rec.Body)
+	}
+	rec = requestJSON(t, local, http.MethodGet, "/api/v1/items/"+l.itemID, "")
+	var item catalog.MediaItem
+	if err := json.Unmarshal(rec.Body.Bytes(), &item); err != nil || len(item.Episodes) != 2 {
+		t.Fatalf("item without the server: status %d: %s", rec.Code, rec.Body)
 	}
 }
 

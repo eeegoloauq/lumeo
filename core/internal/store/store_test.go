@@ -358,3 +358,27 @@ func TestAnotherCoreVersionExpiresTheCatalog(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderRowsRoundTrip(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "lumeo.db"), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	if rows, err := db.ProviderRows(ctx, "server"); err != nil || rows != nil {
+		t.Fatalf("rows never kept = %v, %v; want nil", rows, err)
+	}
+	for _, want := range [][]catalog.Row{
+		{{ProviderID: "cinemeta", ID: "top", Kind: catalog.KindMovie, Name: "Popular", Genres: []string{"Drama"}, Searchable: true}},
+		{},
+	} {
+		if err := db.SaveProviderRows(ctx, "server", want); err != nil {
+			t.Fatal(err)
+		}
+		got, err := db.ProviderRows(ctx, "server")
+		if err != nil || got == nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("rows = %#v, %v; want %#v", got, err, want)
+		}
+	}
+}

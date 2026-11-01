@@ -42,7 +42,9 @@ func (s *stubStore) ItemsByIDs(_ context.Context, ids []string) ([]catalog.Media
 	}
 	return items, nil
 }
-func (s *stubStore) SavePage(context.Context, string, []string) error { return nil }
+func (s *stubStore) SavePage(context.Context, string, []string) error              { return nil }
+func (s *stubStore) SaveProviderRows(context.Context, string, []catalog.Row) error { return nil }
+func (s *stubStore) ProviderRows(context.Context, string) ([]catalog.Row, error)   { return nil, nil }
 func (s *stubStore) Page(context.Context, string) ([]string, time.Time, error) {
 	return nil, time.Time{}, nil
 }

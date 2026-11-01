@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strings"
 	"time"
 
@@ -48,6 +49,7 @@ type Service struct {
 
 	items *flight.Group[MediaItem]
 	pages *flight.Group[[]MediaItem]
+	rows  *flight.Group[[]Row]
 
 	// background holds a slot for each refresh [Cached] started, so that a
 	// long list is refreshed a few titles at a time.
@@ -64,6 +66,7 @@ func NewService(providers func() []Provider, store Store, log *slog.Logger) *Ser
 		now:       time.Now,
 		items:     flight.New[MediaItem](),
 		pages:     flight.New[[]MediaItem](),
+		rows:      flight.New[[]Row](),
 
 		background: make(chan struct{}, 4),
 	}
@@ -74,6 +77,7 @@ func NewService(providers func() []Provider, store Store, log *slog.Logger) *Ser
 func (s *Service) Close() {
 	s.items.Close()
 	s.pages.Close()
+	s.rows.Close()
 }
 
 // Fixed is a provider list that never changes, for a core that was handed
@@ -87,14 +91,56 @@ func Fixed(providers ...Provider) func() []Provider {
 func (s *Service) Rows(ctx context.Context) []Row {
 	var out []Row
 	for _, p := range s.providers() {
-		rows, err := p.Rows(ctx)
+		rows, err := s.rowsOf(ctx, p)
 		if err != nil {
-			s.log.Warn("catalog rows failed", "provider", p.ID(), "err", err)
 			continue
 		}
 		out = append(out, rows...)
 	}
 	return out
+}
+
+// rowsOf is p's rows, or the last it answered when it cannot: the pages and
+// details behind them are cached, so a provider that is down at start still
+// leaves a home screen. A relay's kept rows answer at once and it is asked
+// behind them, since asking costs a round trip to another machine, which
+// may not answer at all. Others answer from their manifests, so an addon
+// added a moment ago shows on the home screen it is added for.
+func (s *Service) rowsOf(ctx context.Context, p Provider) ([]Row, error) {
+	kept, err := s.store.ProviderRows(ctx, p.ID())
+	if err != nil {
+		s.log.Warn("rows cache read failed", "provider", p.ID(), "err", err)
+		kept = nil
+	}
+	call := s.rows.Go(p.ID(), func(ctx context.Context) ([]Row, error) {
+		return s.fetchRows(ctx, p, kept)
+	})
+	if _, relay := p.(Relay); relay && kept != nil {
+		return kept, nil
+	}
+	rows, err := call.Wait(ctx)
+	if err != nil && kept != nil && ctx.Err() == nil {
+		return kept, nil
+	}
+	return rows, err
+}
+
+// fetchRows asks p for its rows and keeps them when they changed.
+func (s *Service) fetchRows(ctx context.Context, p Provider, kept []Row) ([]Row, error) {
+	rows, err := p.Rows(ctx)
+	if err != nil {
+		s.log.Warn("catalog rows failed", "provider", p.ID(), "err", err)
+		return nil, err
+	}
+	if rows == nil {
+		rows = []Row{}
+	}
+	if !reflect.DeepEqual(rows, kept) {
+		if err := s.store.SaveProviderRows(ctx, p.ID(), rows); err != nil {
+			s.log.Warn("rows cache write failed", "provider", p.ID(), "err", err)
+		}
+	}
+	return rows, nil
 }
 
 // Browse returns one page of one row. A cached page is served as it is: when
@@ -163,9 +209,8 @@ func (s *Service) Search(ctx context.Context, kind Kind, query string) ([]MediaI
 	var out []MediaItem
 	seen := make(map[string]bool)
 	for _, p := range s.providers() {
-		rows, err := p.Rows(ctx)
+		rows, err := s.rowsOf(ctx, p)
 		if err != nil {
-			s.log.Warn("catalog rows failed", "provider", p.ID(), "err", err)
 			continue
 		}
 		for _, r := range rows {

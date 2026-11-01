@@ -30,25 +30,16 @@ func (provider) Namespace() string { return catalog.NamespaceIMDb }
 func (provider) Relays(string) bool { return true }
 
 // Rows are the server's as it answers them, named by its own providers, so a
-// client picks its shelves here as it would there. The last rows read stand
-// in while the server cannot be asked.
+// client picks its shelves here as it would there. The catalogue keeps the
+// last ones for while the server cannot be asked.
 func (p provider) Rows(ctx context.Context) ([]catalog.Row, error) {
 	var answer struct {
 		Catalogs []catalog.Row `json:"catalogs"`
 	}
 	if err := p.s.Do(ctx, http.MethodGet, "/api/v1/catalogs", nil, nil, &answer); err != nil {
-		p.s.rowsMu.Lock()
-		defer p.s.rowsMu.Unlock()
-		if p.s.rows != nil {
-			return p.s.rows, nil
-		}
 		return nil, err
 	}
-	rows := answer.Catalogs
-	p.s.rowsMu.Lock()
-	p.s.rows = rows
-	p.s.rowsMu.Unlock()
-	return rows, nil
+	return answer.Catalogs, nil
 }
 
 // Browse asks for one page of a row of the server's provider req names, its
