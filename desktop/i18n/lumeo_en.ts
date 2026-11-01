@@ -2293,6 +2293,11 @@
         <extracomment>Player › Settings › Picture: no Anime4K upscaling shaders.</extracomment>
         <translation>Anime4K off</translation>
     </message>
+    <message id="playerAnime4kHeld">
+        <source>Not used at this resolution</source>
+        <extracomment>Picture menu, under the Anime4K presets: the one chosen is not run on a file as tall as the screen.</extracomment>
+        <translation>Not used at this resolution</translation>
+    </message>
     <message id="playerFill">
         <source>Fill</source>
         <extracomment>Fill player with picture.</extracomment>

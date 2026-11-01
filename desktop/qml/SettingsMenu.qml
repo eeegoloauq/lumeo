@@ -266,6 +266,13 @@ MenuPanel {
                             onClicked: menu.mpv.setAnime4k(modelData[0])
                         }
                     }
+                    // The choice stays for the title; a file this tall gets
+                    // nothing from it (decisions/player.md).
+                    Note {
+                        objectName: "anime4kHeld"
+                        visible: menu.mpv.anime4kHeld
+                        text: qsTrId("playerAnime4kHeld")
+                    }
                 }
 
                 Column {

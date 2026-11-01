@@ -4,16 +4,6 @@ What is next, not what was done: done work is in git and, where it set a
 rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle
 before code.
 
-## Quick actions
-
-Everything a title page can do, from any poster or card, is in, and Play
-ranks up to the screen ("Highest quality", decisions/sources.md). Left:
-
-- Anime4K is not applied to a file as tall as the screen or taller, where
-  its restore passes run on every pixel for nothing; the remembered choice
-  stays, and the Picture menu says it is not used at this resolution. Try an
-  mpv conditional profile first.
-
 ## Remote core
 
 A server is reached over HTTPS, through a reverse proxy or with the core's

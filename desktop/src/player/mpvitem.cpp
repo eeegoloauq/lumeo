@@ -11,6 +11,9 @@
 #include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QSaveFile>
+#include <QScreen>
+#include <QStandardPaths>
 #include <QQuickOpenGLUtils>
 #include <QJSEngine>
 #include <QQuickWindow>
@@ -62,6 +65,7 @@ enum Observed : uint64_t {
   Panscan,
   KeepAspect,
   Shaders,
+  Anime4kChosen,
 };
 
 // The shaders of Anime4K 4.0.1's high-end presets, in the order mpv runs them.
@@ -73,6 +77,42 @@ const QHash<QString, QStringList> anime4kPresets = {
     {"c", {"Clamp_Highlights", "Upscale_Denoise_CNN_x2_VL", "AutoDownscalePre_x2",
            "AutoDownscalePre_x4", "Upscale_CNN_x2_M"}},
 };
+
+// One conditional profile per preset: mpv runs its shaders while the viewer
+// has chosen it (user-data/lumeo/anime4k) and the file is shorter than the
+// screen (user-data/lumeo/screen), and puts back what was there otherwise.
+// A file as tall as the screen gains nothing from them: no upscale runs, and
+// the restore passes work every pixel to change little (decisions/player.md).
+// Written once a run, since it names the shaders where this copy of the app
+// keeps them; empty when it cannot be written.
+QString anime4kProfiles() {
+  static const QString path = [] {
+    const QString dir = QCoreApplication::applicationDirPath() + "/../share/lumeo/anime4k";
+    QByteArray text;
+    for (auto it = anime4kPresets.begin(); it != anime4kPresets.end(); ++it) {
+      QStringList paths;
+      for (const QString &shader : it.value())
+        paths << QDir::cleanPath(QString("%1/Anime4K_%2.glsl").arg(dir, shader));
+      // mpv's %length% quoting: a path may hold anything.
+      const QByteArray list = paths.join(QDir::listSeparator()).toUtf8();
+      text += "[lumeo-anime4k-" + it.key().toUtf8() + "]\n"
+              "profile-cond=get('user-data/lumeo/anime4k', '') == '" + it.key().toUtf8() +
+              "' and (get('user-data/lumeo/screen', 0) == 0 or "
+              "get('height', 0) < get('user-data/lumeo/screen', 0))\n"
+              "profile-restore=copy-equal\n"
+              "glsl-shaders=%" + QByteArray::number(list.size()) + "%" + list + "\n";
+    }
+    const QString folder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QSaveFile file(QDir(folder).filePath("anime4k.conf"));
+    if (!QDir().mkpath(folder) || !file.open(QIODevice::WriteOnly) || file.write(text) != text.size() ||
+        !file.commit()) {
+      qWarning("mpv: the Anime4K profiles could not be written to %s", qPrintable(folder));
+      return QString();
+    }
+    return file.fileName();
+  }();
+  return path;
+}
 
 // A QVariant as mpv's node, with the bytes it points at kept in [storage]
 // until the call that takes it returns; mpv copies what it is given.
@@ -363,6 +403,9 @@ MpvItem::MpvItem(QQuickItem *parent)
     map.u.list = &list;
     mpv_set_option(mpv, "script-opts", MPV_FORMAT_NODE, &map);
   }
+  const QString profiles = anime4kProfiles();
+  if (!profiles.isEmpty())
+    mpv_set_option_string(mpv, "include", QDir::toNativeSeparators(profiles).toUtf8().constData());
   if (mpv_initialize(mpv) < 0)
     qFatal("mpv_initialize failed");
   if (!profile.isEmpty())
@@ -393,10 +436,19 @@ MpvItem::MpvItem(QQuickItem *parent)
       {Panscan, {"panscan", MPV_FORMAT_DOUBLE}},
       {KeepAspect, {"keepaspect", MPV_FORMAT_FLAG}},
       {Shaders, {"glsl-shaders", MPV_FORMAT_NODE}},
+      // A node: as a string, mpv writes user-data as JSON, quotes and all.
+      {Anime4kChosen, {"user-data/lumeo/anime4k", MPV_FORMAT_NODE}},
   };
   for (const auto &[id, property] : observed)
     mpv_observe_property(mpv, id, property.first, property.second);
   mpv_set_wakeup_callback(mpv, wakeup, m_shared.get());
+
+  connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow *window) {
+    if (!window)
+      return;
+    connect(window, &QWindow::screenChanged, this, &MpvItem::tellScreen, Qt::UniqueConnection);
+    tellScreen();
+  });
 }
 
 MpvItem::~MpvItem() {
@@ -469,11 +521,13 @@ void MpvItem::setFit(int fit) {
 }
 
 void MpvItem::setAnime4k(const QString &preset) {
-  QStringList paths;
-  const QString dir = QCoreApplication::applicationDirPath() + "/../share/lumeo/anime4k";
-  for (const QString &shader : anime4kPresets.value(preset))
-    paths << QString("%1/Anime4K_%2.glsl").arg(dir, shader);
-  set("glsl-shaders", paths);
+  set("user-data/lumeo/anime4k", preset);
+}
+
+void MpvItem::tellScreen() {
+  const QScreen *screen = window() ? window()->screen() : nullptr;
+  if (screen)
+    set("user-data/lumeo/screen", qRound(screen->geometry().height() * screen->devicePixelRatio()));
 }
 
 QString MpvItem::keyName(int key, const QString &text, Qt::KeyboardModifiers modifiers,
@@ -728,8 +782,11 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
       if (names == files)
         preset = it.key();
     }
-    update(m_anime4k, preset, &MpvItem::anime4kChanged);
+    update(m_anime4kRunning, preset, &MpvItem::anime4kChanged);
     break;
   }
+  case Anime4kChosen:
+    update(m_anime4kChosen, node.toString(), &MpvItem::anime4kChanged);
+    break;
   }
 }

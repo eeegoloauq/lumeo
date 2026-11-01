@@ -64,9 +64,12 @@ class MpvItem : public QQuickFramebufferObject {
   Q_PROPERTY(double subPos READ subPos NOTIFY subPosChanged)
   // The picture fitted to the view (0), filling it (1) or stretched (2).
   Q_PROPERTY(int fit READ fit NOTIFY fitChanged)
-  // The Anime4K preset mpv runs: "" for none, "a", "b" or "c", and "other"
-  // for shaders that are none of them.
+  // The Anime4K preset chosen: "" for none, "a", "b" or "c"; with none
+  // chosen, "other" for shaders that are none of them. Read back from mpv.
   Q_PROPERTY(QString anime4k READ anime4k NOTIFY anime4kChanged)
+  // Chosen, and not running: mpv's profile holds it back from a file as
+  // tall as the screen or taller (decisions/player.md).
+  Q_PROPERTY(bool anime4kHeld READ anime4kHeld NOTIFY anime4kChanged)
   // Writes the player log, the one a report is about; set before it is
   // complete. A trailer in a title's banner leaves the film's log alone.
   Q_PROPERTY(bool keepsLog MEMBER m_keepsLog)
@@ -104,7 +107,10 @@ public:
   double subScale() const { return m_subScale; }
   double subPos() const { return m_subPos; }
   int fit() const { return m_keepAspect ? (m_panscan > 0 ? 1 : 0) : 2; }
-  QString anime4k() const { return m_anime4k; }
+  QString anime4k() const { return m_anime4kChosen.isEmpty() ? m_anime4kRunning : m_anime4kChosen; }
+  bool anime4kHeld() const {
+    return !m_anime4kChosen.isEmpty() && m_anime4kRunning != m_anime4kChosen;
+  }
 
   // Opens a file or address; [headers] go with every HTTP request mpv makes.
   Q_INVOKABLE void open(const QString &url, const QStringList &headers = {});
@@ -132,7 +138,8 @@ public:
   Q_INVOKABLE void wheel(QPointF angleDelta, int modifiers);
   Q_INVOKABLE void setFit(int fit);
   // Anime4K 4.0.1's high-end presets: A for 1080p anime, B for 720p, C for
-  // 480p; "" turns it off (decisions/player.md).
+  // 480p; "" turns it off (decisions/player.md). A choice, which mpv's
+  // profiles run on a file shorter than the screen.
   Q_INVOKABLE void setAnime4k(const QString &preset);
 
   // mpv's name for a key, modifiers included; empty for none. A printable
@@ -185,6 +192,9 @@ private slots:
 
 private:
   void onProperty(uint64_t id, const mpv_event_property *property);
+  // The height of the screen the window is on, in device pixels, as
+  // user-data/lumeo/screen, which the Anime4K profiles compare a file with.
+  void tellScreen();
 
   std::shared_ptr<MpvShared> m_shared;
   bool m_paused = false;
@@ -210,7 +220,10 @@ private:
   double m_subPos = 100;
   double m_panscan = 0;
   bool m_keepAspect = true;
-  QString m_anime4k;
+  // The preset the shaders mpv runs are, and the one chosen
+  // (user-data/lumeo/anime4k).
+  QString m_anime4kRunning;
+  QString m_anime4kChosen;
 
   // The mpv name sent on each held key's press, by physical key: a release
   // has no text, and Shift let go first changes what Qt calls the key.

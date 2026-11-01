@@ -227,6 +227,24 @@ Item {
             compare(kept, [1, "a", "no"])
         }
 
+        // Chosen, Anime4K runs on a file shorter than the screen and mpv's
+        // profile holds it back from one as tall: the choice stays, and the
+        // shaders come back with a taller screen.
+        function test_anime4kIsHeldBackFromAFileAsTallAsTheScreen() {
+            playing()
+            const lines = Math.round(root.Screen.height * root.Screen.devicePixelRatio)
+            verify(lines > 360, lines + " lines")
+            player.mpv.setAnime4k("a")
+            tryVerify(() => player.mpv.anime4k === "a" && !player.mpv.anime4kHeld, 10000, "running on the 360-line clip")
+            player.mpv.set("user-data/lumeo/screen", 360)
+            tryVerify(() => player.mpv.anime4kHeld, 10000, "held back on a 360-line screen")
+            compare(player.mpv.anime4k, "a")
+            player.mpv.set("user-data/lumeo/screen", lines)
+            tryVerify(() => !player.mpv.anime4kHeld, 10000, "back on this screen")
+            player.mpv.setAnime4k("")
+            tryVerify(() => player.mpv.anime4k === "" && !player.mpv.anime4kHeld, 10000, "off")
+        }
+
         // A dropped stream from the core resumes rather than ending the film.
         function test_theCoresStreamReconnects() {
             playing()

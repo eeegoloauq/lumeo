@@ -130,8 +130,22 @@ high-end presets need a discrete GPU at 4K. The shaders are Anime4K 4.0.1's
 (`Anime4K_v4.0.zip`, MIT, sha256
 `139cd282086457c5adc79caf7b75b8b825091d71c9b54958c18745fea62d7ed7`), only the
 files of its high-end A, B and C presets, in `desktop/anime4k`. The doubled modes
-(A+A and the like) are left out: they oversharpen on almost any source. mpv
-runs them as `glsl-shaders`, so the choice is read back from mpv.
+(A+A and the like) are left out: they oversharpen on almost any source.
+
+The preset is a choice, not the shaders: it is `user-data/lumeo/anime4k`, and
+one conditional profile per preset (written at start, since it names where
+this copy keeps the shaders, and `include`d before mpv starts) sets the
+`glsl-shaders` while that preset is chosen and the file is shorter than the
+screen, `user-data/lumeo/screen` in device pixels. On a file as tall as the
+screen or taller no upscale runs and the restore passes work every pixel to
+change little, so the profile takes them off (`profile-restore=copy-equal`)
+and the Picture menu says the choice is not used at this resolution; the
+choice stays, read back from mpv, and is what the title keeps. Setting the
+shaders from the client and reading them back, as it was, would have kept
+"off" for a title the moment a 4K file came, and a pick in the menu would
+have run them anyway. The profiles need mpv's Lua, which every libmpv we
+ship or meet has; mpv writes `user-data` as JSON when asked for a string, so
+it is observed as a node.
 
 On NVIDIA (GTX 1660 Ti) the Flutter client's Anime4K turned orange into
 green: mpv on GLES, the only API it could draw in inside Flutter's share
