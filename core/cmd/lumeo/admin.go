@@ -39,8 +39,12 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 		method, path = "GET", "/api/v1/devices"
 	case len(args) == 2 && args[0] == "revoke":
 		method, path = "DELETE", "/api/v1/devices/"+url.PathEscape(args[1])
+	case len(args) == 1 && args[0] == "health":
+		// A container's health check: a distroless image has no curl. /about
+		// is this core's own answer; /healthz on a linked core is the server's.
+		method, path = "GET", "/api/v1/about"
 	default:
-		return fmt.Errorf("usage: lumeo-core [pair | devices | revoke <device-id> | link <https-url> <code> [name] | unlink]")
+		return fmt.Errorf("usage: lumeo-core [pair | devices | revoke <device-id> | link <https-url> <code> [name] | unlink | health]")
 	}
 	secret, err := os.ReadFile(filepath.Join(cfg.DataDir, token.FileName))
 	if err != nil {
@@ -99,6 +103,8 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 		}
 	case "revoke":
 		_, err = fmt.Fprintln(out, "Device revoked. New requests will be refused; an existing stream may finish.")
+	case "health":
+		_, err = fmt.Fprintln(out, "ok")
 	}
 	return err
 }

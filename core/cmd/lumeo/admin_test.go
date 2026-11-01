@@ -70,3 +70,19 @@ func TestAdministratorPairsThroughTheRunningCore(t *testing.T) {
 		t.Fatal("revoked device can still connect")
 	}
 }
+
+// The container's health check passes while the core answers and fails once
+// it has stopped.
+func TestHealthFollowsTheRunningCore(t *testing.T) {
+	cfg := testConfig(t, t.TempDir(), true)
+	core := startCore(t, cfg)
+	core.waitListening(t)
+	var out bytes.Buffer
+	if err := administer(cfg, []string{"health"}, &out); err != nil || out.String() != "ok\n" {
+		t.Fatalf("health of a running core: %v %q", err, out.String())
+	}
+	core.stop(t)
+	if err := administer(cfg, []string{"health"}, io.Discard); err == nil {
+		t.Fatal("health passed with the core stopped")
+	}
+}
