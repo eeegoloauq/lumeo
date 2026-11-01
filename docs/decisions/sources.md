@@ -54,6 +54,21 @@ flags cannot tell a dub from a subtitle track, so the rule asks only whether
 the language is there; it never overrides health, because a copy that stalls
 is not watchable in any language.
 
+Inside a language step, sharper wins up to a ceiling, "Highest quality" in
+Settings › Playback: by default what fills the screen of the client asking,
+or 1080p, 4K or Any. It orders, it does not filter: a copy over the ceiling
+goes behind those under it, never out of the list, and below health and
+language, so a seeded 4K copy still beats a 1080p one nobody seeds. A 4K file
+on a 1080p screen costs four times the traffic and the decoding for a picture
+the screen throws away, and the remux at the top of a list is usually one.
+The preference is the viewer's, kept by the core; the screen is the
+client's, sent with each request (`screen=`), so two clients of one core get
+their own answer, and a device of a media server ranks the server's list by
+its own. The screen's ceiling is the step that fills it, not the one under it:
+on a 1050- or 768-line screen, 720p ahead of 1080p is a visible loss to save
+little. A client that does not say its screen gets no ceiling. A release
+picked for the title still wins, as everything the library has chosen does.
+
 "Copy to play" in Settings can be "Ask every time" instead of Automatic: Play
 then opens the sources drawer and the one picked plays. It is a preference
 of the viewer's, kept by the core like the rest. A finished copy on disk

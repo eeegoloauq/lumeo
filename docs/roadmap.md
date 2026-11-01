@@ -6,20 +6,13 @@ before code.
 
 ## Quick actions
 
-Everything a title page can do, from any poster or card. The right-click menu,
-the title page's ⋯, the eye on every poster and My list's stages are in; one
-step is left, with `decisions/` updated as it ships.
+Everything a title page can do, from any poster or card, is in, and Play
+ranks up to the screen ("Highest quality", decisions/sources.md). Left:
 
-1. **Quality for the screen.** "Highest quality" in Settings › Playback, by
-   default Up to this screen; 1080p, 4K and Any besides. It orders, it does
-   not filter: under health and language, a copy at or under the ceiling goes
-   ahead of a sharper one, so a seeded 4K copy still beats a 1080p one nobody
-   seeds. The client sends its screen height with each sources request, so
-   two clients of one core get their own answer. A release picked for the
-   title still wins. Anime4K is not applied to a file as tall as the screen
-   or taller, where its restore passes run on every pixel for nothing; the
-   remembered choice stays, and the Picture menu says it is not used at this
-   resolution. Try an mpv conditional profile first.
+- Anime4K is not applied to a file as tall as the screen or taller, where
+  its restore passes run on every pixel for nothing; the remembered choice
+  stays, and the Picture menu says it is not used at this resolution. Try an
+  mpv conditional profile first.
 
 ## Remote core
 

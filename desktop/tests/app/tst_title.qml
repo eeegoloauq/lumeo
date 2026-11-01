@@ -156,6 +156,11 @@ Item {
             mouseClick(findChild(shell, "moreInfo"))
             compare(shell.page, "title")
             tryVerify(() => findChild(shell, "titlePlay")?.enabled, 5000, "the copies listed")
+            // The core ranks up to the screen of whoever asks: two clients
+            // of one core get their own answer.
+            const lines = Math.round(window.Screen.height * window.Screen.devicePixelRatio)
+            verify(lines > 0 && requests().some(r => r.startsWith("GET /api/v1/sources?") && r.includes("screen=" + lines)),
+                   "the copies asked for this screen: " + requests().filter(r => r.includes("/api/v1/sources")))
             wait(50)
             compare(watched.count, 0)
             compare(posted().length, 0)

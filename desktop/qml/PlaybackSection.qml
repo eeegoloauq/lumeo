@@ -31,6 +31,24 @@ SettingsBlock {
                 onPicked: value => block.set("askCopy", value)
             }
         }
+        // It orders, it does not filter: a sharper copy that is better
+        // seeded still plays (decisions/sources.md).
+        SettingRow {
+            visible: block.current.maxQuality !== undefined
+            label: qsTrId("settingsHighestQuality")
+
+            Segments {
+                objectName: "maxQuality"
+                choices: [
+                    { value: "screen", label: qsTrId("settingsQualityScreen") },
+                    { value: "1080p", label: "1080p" },
+                    { value: "2160p", label: "4K" },
+                    { value: "any", label: qsTrId("settingsQualityAny") },
+                ]
+                selected: block.current.maxQuality
+                onPicked: value => block.set("maxQuality", value)
+            }
+        }
         SettingRow {
             visible: block.known
             label: qsTrId("settingsShowNextEpisode")

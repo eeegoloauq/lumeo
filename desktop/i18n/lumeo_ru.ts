@@ -462,6 +462,21 @@
         <extracomment>Playback setting: whether Play starts the best copy (Automatic) or asks every time.</extracomment>
         <translation>Какую копию играть</translation>
     </message>
+    <message id="settingsHighestQuality">
+        <source>Highest quality</source>
+        <extracomment>Settings › Playback row: the sharpest copy Play prefers.</extracomment>
+        <translation>Максимальное качество</translation>
+    </message>
+    <message id="settingsQualityScreen">
+        <source>This screen</source>
+        <extracomment>Highest quality choice: no sharper than the screen the app is on.</extracomment>
+        <translation>Как у экрана</translation>
+    </message>
+    <message id="settingsQualityAny">
+        <source>Any</source>
+        <extracomment>Highest quality choice: no ceiling.</extracomment>
+        <translation>Любое</translation>
+    </message>
     <message id="settingsAskEveryTime">
         <source>Ask every time</source>
         <extracomment>Copy to play setting: Play opens the list of copies and the one picked plays.</extracomment>

@@ -8,11 +8,26 @@
 #include <QGuiApplication>
 #include <QQmlEngine>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QTimer>
+#include <QWindow>
 
 Title::Title(Core *core, Downloads *downloads, const QString &itemId, QObject *parent)
     : QObject(parent), m_core(core), m_downloads(downloads), m_itemId(itemId) {
   load();
+}
+
+// How many lines the screen the window is on has, in device pixels: what
+// the core's "Highest quality: Up to this screen" ranks by. The primary
+// screen before a window shows; 0 with none.
+static int screenLines() {
+  QScreen *screen = QGuiApplication::primaryScreen();
+  for (QWindow *window : QGuiApplication::topLevelWindows())
+    if (window->isVisible() && window->screen()) {
+      screen = window->screen();
+      break;
+    }
+  return screen ? qRound(screen->geometry().height() * screen->devicePixelRatio()) : 0;
 }
 
 const QString Title::sharePage = "https://eeegoloauq.github.io/lumeo";
@@ -74,7 +89,8 @@ void Title::queueNext() {
   const int season = episode["season"].toInt(), number = episode["number"].toInt();
   const QUrlQuery query{{"item", m_itemId},
                         {"season", QString::number(season)},
-                        {"episode", QString::number(number)}};
+                        {"episode", QString::number(number)},
+                        {"screen", QString::number(screenLines())}};
   m_core->get("/api/v1/sources", query, this, [this, season, number](const Core::Reply &reply) {
     if (!reply.ok()) {
       stopQueue(reply.message());
@@ -313,6 +329,7 @@ void SourceChoice::load(bool follow) {
     query.addQueryItem("season", QString::number(m_season));
   if (m_episode > 0)
     query.addQueryItem("episode", QString::number(m_episode));
+  query.addQueryItem("screen", QString::number(screenLines()));
   m_core->get("/api/v1/sources", query, this, [this, load, follow](const Core::Reply &reply) {
     if (load != m_load)
       return;
