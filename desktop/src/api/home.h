@@ -124,6 +124,8 @@ private:
   QJsonObject m_hero;
   Shelf *m_lead = nullptr;
   QList<Shelf *> m_shelves;
+  // The last load's, still drawn by delegates on their way out.
+  QList<Shelf *> m_retired;
   // The watch progress shelf among them, if there is one.
   Shelf *m_continue = nullptr;
 

@@ -105,6 +105,9 @@ Item {
         // Taken out of the row, the series is read again and keeps where it
         // was: the core is asked to hide it, not to forget it.
         function test_aTitleIsTakenOutOfContinueWatching() {
+            // The emptied row's shelf went before the delegate drawing it,
+            // which read it as null.
+            failOnWarning(/ShelfRow\.qml/)
             const card = continuing()
             mouseClick(card, card.width / 2, 40, Qt.RightButton)
             const hide = row("menuHide")

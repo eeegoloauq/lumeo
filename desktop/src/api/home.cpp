@@ -208,11 +208,13 @@ void Home::refreshProgress() {
 void Home::settle() {
   if (!m_progressHere || !m_leadHere)
     return;
-  // QML may still be drawing the shelves of the load before.
-  for (Shelf *shelf : std::as_const(m_shelves))
-    shelf->deleteLater();
+  // The shelves of the load before go at the next one: QML drops the
+  // delegates drawing them later than one turn of the event loop, and a
+  // delegate whose shelf went first read it as null.
+  qDeleteAll(m_retired);
+  m_retired = m_shelves;
   if (m_lead)
-    m_lead->deleteLater();
+    m_retired.append(m_lead);
 
   QJsonArray rest = m_leadPage;
   m_hero = {};
