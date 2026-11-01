@@ -20,8 +20,8 @@ import (
 type linkView struct {
 	URL     string `json:"url"`
 	Running string `json:"running"`
-	// Certificate is the running server's pinned one, for the client's own
-	// requests there: the server's artwork, which needs no credential.
+	// Certificate is the running server's pinned one, which the client pins
+	// for that origin too.
 	Certificate string   `json:"certificate,omitempty"`
 	Saved       []string `json:"saved"`
 }

@@ -33,10 +33,6 @@ func (s *Server) artworkURL(r *http.Request, raw string, urls map[string]string)
 	if !webURL(raw) {
 		return ""
 	}
-	// The server's own cache, which the client reaches as this core does.
-	if s.remote != nil && s.remote.Artwork(raw) {
-		return raw
-	}
 	key := s.artworkKey(raw, urls)
 	if key == "" {
 		return raw
@@ -184,12 +180,7 @@ func (s *Server) artworkFile(ctx context.Context, key string) (*os.File, int, er
 // fetchArtwork downloads raw into the cache under key, and answers with the
 // status artworkFile passes on.
 func (s *Server) fetchArtwork(ctx context.Context, key, raw string) (int, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
-	if err != nil {
-		return http.StatusBadGateway, err
-	}
-	request.Header.Set("User-Agent", egress.UserAgent)
-	response, err := artworkClient.Do(request)
+	response, err := s.getArtwork(ctx, raw)
 	if err != nil {
 		return http.StatusBadGateway, err
 	}
@@ -236,6 +227,21 @@ func (s *Server) fetchArtwork(ctx context.Context, key, raw string) (int, error)
 		s.log.Warn("evicting artwork failed", "err", err)
 	}
 	return http.StatusOK, nil
+}
+
+// getArtwork asks for raw: the linked server's images over the link, kept
+// here like any other so a restart does not fetch them again, and everything
+// else from public addresses only.
+func (s *Server) getArtwork(ctx context.Context, raw string) (*http.Response, error) {
+	if s.remote != nil && s.remote.Artwork(raw) {
+		return s.remote.FetchArtwork(ctx, raw)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("User-Agent", egress.UserAgent)
+	return artworkClient.Do(request)
 }
 
 func (s *Server) serveArtwork(w http.ResponseWriter, r *http.Request, file *os.File) {

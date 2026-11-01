@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
+	"github.com/eeegoloauq/lumeo/core/internal/egress"
 )
 
 // ErrUnreachable is a request that got no answer from the server.
@@ -81,7 +82,10 @@ type Title struct {
 type Server struct {
 	link   Link
 	client *http.Client
-	proxy  *httputil.ReverseProxy
+	// artwork fetches the server's images: no credential, and an image's
+	// time limit rather than an answer's.
+	artwork *http.Client
+	proxy   *httputil.ReverseProxy
 	log    *slog.Logger
 
 	// The server's ids for the titles seen in its answers, both ways. Kept in
@@ -109,6 +113,7 @@ func New(link Link, log *slog.Logger) *Server {
 	s := &Server{
 		link:     link,
 		client:   &http.Client{Transport: transport, CheckRedirect: refuseRedirect},
+		artwork:  &http.Client{Transport: transport, CheckRedirect: refuseRedirect, Timeout: 20 * time.Second},
 		log:      log,
 		byServer: make(map[string]Title),
 		byIMDb:   make(map[string]string),
@@ -186,14 +191,46 @@ func refuseRedirect(*http.Request, []*http.Request) error { return http.ErrUseLa
 func (s *Server) URL() string { return s.link.URL }
 
 // Certificate is the PEM of the server's pinned certificate, empty when the
-// link trusts the system's authorities: the client loads the server's
-// artwork itself, and pins the same one.
+// link trusts the system's authorities.
 func (s *Server) Certificate() string { return s.link.Certificate }
 
-// Artwork says whether raw is an image address on the server: its artwork
-// route needs no credential, so the client loads it from there directly.
+// Artwork says whether raw is one of the server's images, as its artwork
+// route names them: a key and at most a fallback key. Only these are fetched
+// over the link, so nothing an addon names reaches the user's network that way.
 func (s *Server) Artwork(raw string) bool {
-	return strings.HasPrefix(raw, s.link.URL+"/api/v1/artwork/")
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme+"://"+u.Host != s.link.URL || u.User != nil || u.Fragment != "" || u.ForceQuery {
+		return false
+	}
+	key, ok := strings.CutPrefix(u.EscapedPath(), "/api/v1/artwork/")
+	if !ok || !artworkKey(key) {
+		return false
+	}
+	if u.RawQuery == "" {
+		return true
+	}
+	query, err := url.ParseQuery(u.RawQuery)
+	return err == nil && len(query) == 1 && len(query["or"]) == 1 && artworkKey(query.Get("or"))
+}
+
+func artworkKey(key string) bool {
+	return len(key) == 32 && strings.Trim(key, "0123456789abcdef") == ""
+}
+
+// FetchArtwork gets one of the server's images on the link's own address and
+// trust: the server may be on the user's network or pin its certificate,
+// which the public-address check on addon artwork would refuse. The route
+// needs no credential, so none is sent.
+func (s *Server) FetchArtwork(ctx context.Context, raw string) (*http.Response, error) {
+	if !s.Artwork(raw) {
+		return nil, errors.New("remote: not the server's artwork")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", egress.UserAgent)
+	return s.artwork.Do(req)
 }
 
 // Do sends one request with a JSON body, when body is not nil, and decodes

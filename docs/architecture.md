@@ -327,8 +327,14 @@ core. The server streams; this core passes the bytes on.
 - Its catalogue takes the server as its one metadata provider
   (`remote.Provider`): rows, pages, searches and details come from the
   server's own providers, and this core mints its own ids for them by IMDb id.
-  The server's artwork addresses are passed through unchanged, since the
-  artwork route needs no credential.
+  It is a relay (`catalog.Relay`): rows keep the server's provider ids, as
+  the server answers them, and a page names the server's provider it is of.
+  The server's artwork goes through this core's own artwork cache, so an
+  image is fetched from the server once, not again after a restart. Only
+  addresses of the server's artwork route (`remote.Server.Artwork`: a key and
+  at most an `?or=` fallback key, which the server resolves) are fetched over
+  the link, with its address and pinned certificate and no credential;
+  everything else an addon names stays on public addresses.
 - Item ids are translated at the boundary: a forwarded request carries the
   server's id, found by IMDb id with `/find`; an answer comes back with ours,
   through `/items/{id}` and our catalogue. Both directions are remembered in

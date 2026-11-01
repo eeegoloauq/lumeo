@@ -103,7 +103,8 @@ Downloads are stored in `<data>/downloads/<id>` and resume after a restart.
 A core can forward to a media server what the server owns: addons, metadata, sources, downloads,
 streams, storage and the subtitles of a download. History, scores, My list, searches and
 preferences stay with it ([architecture](architecture.md), A core linked to a server). The client
-talks to it as to any other core. Link it while it is stopped, with a pairing code from the
+talks to it as to any other core: `/catalogs` answers the server's rows as the server does, and
+artwork addresses are this core's, cached here. Link it while it is stopped, with a pairing code from the
 server's `lumeo-core pair`:
 
     LUMEO_DATA=./data go run ./cmd/lumeo link https://lumeo.example.com <code> [device name]

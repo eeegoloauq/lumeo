@@ -88,7 +88,11 @@ func openStore(t testing.TB) (*store.DB, string) {
 func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	t.Helper()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	images := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	images := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/missing.jpg" {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write([]byte("\xff\xd8\xff"))
 	}))
@@ -96,7 +100,8 @@ func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	item := severance()
 	item.ID = ""
 	item.Poster = images.URL + "/severance.jpg"
-	item.Episodes = []catalog.Episode{{Season: 1, Number: 1, Thumbnail: images.URL + "/s1e1.jpg"}, {Season: 1, Number: 2}}
+	item.Episodes = []catalog.Episode{{Season: 1, Number: 1, Thumbnail: images.URL + "/s1e1.jpg"},
+		{Season: 1, Number: 2, Thumbnail: images.URL + "/missing.jpg", ThumbnailFallback: images.URL + "/s1e2.jpg"}}
 	serverDB, serverDir := openStore(t)
 	for id, credential := range map[string]string{"laptop": laptopToken, "tv": tvToken} {
 		if err := serverDB.AddDevice(context.Background(), store.Device{ID: id, Name: id, CreatedAt: time.Now()}, credential); err != nil {
@@ -261,17 +266,49 @@ func TestALinkedCoreShowsTheServersTitles(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &item); err != nil {
 		t.Fatal(err)
 	}
-	artwork := l.server.URL + "/api/v1/artwork/"
-	if !strings.HasPrefix(item.Poster, artwork) || len(item.Episodes) != 2 || !strings.HasPrefix(item.Episodes[0].Thumbnail, artwork) {
-		t.Fatalf("item = %+v; want the server's artwork and episodes", item)
+	if len(item.Episodes) != 2 {
+		t.Fatalf("item = %+v; want the server's episodes", item)
 	}
-	resp, err := http.Get(item.Poster)
-	if err != nil {
-		t.Fatal(err)
+	images := []string{item.Poster, item.Episodes[0].Thumbnail, item.Episodes[1].Thumbnail}
+	for _, image := range images {
+		if !strings.HasPrefix(image, "http://example.com/api/v1/artwork/") {
+			t.Fatalf("artwork %q; want this core's cache", image)
+		}
 	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("the poster from the server: status %d", resp.StatusCode)
+	// Episode 2's still is missing, and its fallback comes instead.
+	fetch := func(h http.Handler) {
+		t.Helper()
+		for _, image := range images {
+			rec := requestJSON(t, h, http.MethodGet, strings.TrimPrefix(image, "http://example.com"), "")
+			if rec.Code != http.StatusOK || rec.Body.String() != "\xff\xd8\xff" {
+				t.Fatalf("%s: status %d: %q", image, rec.Code, rec.Body)
+			}
+		}
+	}
+	fetch(l.local)
+	fetch(l.local)
+	if asked := l.askedFor("/api/v1/artwork/"); asked != len(images) {
+		t.Fatalf("the server was asked for artwork %d times; want once per image", asked)
+	}
+	// A restart while the server is down still shows them.
+	l.server.Close()
+	l.core.remote = remote.New(remote.Link{URL: l.server.URL, Token: laptopToken}, l.log)
+	fetch(l.core.Handler())
+}
+
+// askedFor counts the requests the server had for paths under prefix since
+// it was last asked.
+func (l *linked) askedFor(prefix string) int {
+	count := 0
+	for {
+		select {
+		case request := <-l.requested:
+			if strings.HasPrefix(request, "GET "+prefix) {
+				count++
+			}
+		default:
+			return count
+		}
 	}
 }
 
