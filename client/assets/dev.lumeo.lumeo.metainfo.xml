@@ -39,6 +39,20 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.24" date="2026-11-01" type="development">
+      <description>
+        <ul>
+          <li>With a media server, Home shows all its rows again, not only Continue watching.</li>
+          <li xml:lang="ru">С медиасервером на главной снова все подборки, а не только «Продолжить просмотр».</li>
+          <li>Posters from a media server are kept on this computer and appear at once after a restart.</li>
+          <li xml:lang="ru">Постеры с медиасервера хранятся на этом компьютере и сразу появляются после перезапуска.</li>
+          <li>Home opens with what it showed last when the media server cannot be reached.</li>
+          <li xml:lang="ru">Если медиасервер недоступен, главная открывается с тем, что показывала в последний раз.</li>
+          <li>The library no longer loads its posters again each time you open it.</li>
+          <li xml:lang="ru">Библиотека больше не загружает постеры заново при каждом открытии.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.23" date="2026-11-01" type="development">
       <description>
         <ul>
