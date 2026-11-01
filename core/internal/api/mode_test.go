@@ -52,7 +52,7 @@ func cmpOr(a, b string) string {
 func TestAMediaServerRefusesPersonalDataFromDevices(t *testing.T) {
 	personal := []struct{ method, path string }{
 		{"GET", "/api/v1/progress/x"}, {"PUT", "/api/v1/progress/x"}, {"DELETE", "/api/v1/progress/x"},
-		{"GET", "/api/v1/continue"}, {"GET", "/api/v1/history"},
+		{"GET", "/api/v1/continue"}, {"GET", "/api/v1/history"}, {"GET", "/api/v1/finished"},
 		{"GET", "/api/v1/personal"}, {"POST", "/api/v1/personal"},
 		{"GET", "/api/v1/list"}, {"GET", "/api/v1/list/x"}, {"PUT", "/api/v1/list/x"}, {"DELETE", "/api/v1/list/x"},
 		{"GET", "/api/v1/new-episodes"}, {"GET", "/api/v1/coming-up"},

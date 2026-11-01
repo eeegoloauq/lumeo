@@ -145,6 +145,32 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 	return out, nil
 }
 
+// Finished is every title the viewer has seen all of, in no order: a film
+// watched, a series caught up with by the rule of Seen. Any title counts,
+// listed or not; one the catalogue has not kept is left out.
+func (s *Service) Finished(ctx context.Context) ([]string, error) {
+	watched, err := s.watched(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(watched))
+	for id := range watched {
+		ids = append(ids, id)
+	}
+	items, err := s.catalog.Cached(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
+	out := []string{}
+	for _, item := range items {
+		if seen := seenOf(item, watched[item.ID], now); seen.Released > 0 && seen.Watched == seen.Released {
+			out = append(out, item.ID)
+		}
+	}
+	return out, nil
+}
+
 // Shelved is a series on a library shelf, by one of its episodes: for New
 // episodes the viewer's next, out in the last fortnight, and for Coming up
 // the soonest not out yet.

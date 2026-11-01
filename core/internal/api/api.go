@@ -238,6 +238,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/continue", s.viewerData(s.handleContinue))
 	mux.HandleFunc("DELETE /api/v1/continue/{id}", s.viewerData(s.handleHideFromContinue))
 	mux.HandleFunc("GET /api/v1/history", s.viewerData(s.handleHistory))
+	mux.HandleFunc("GET /api/v1/finished", s.viewerData(s.handleFinished))
 	mux.HandleFunc("GET /api/v1/personal", s.viewerData(s.handleExportPersonal))
 	mux.HandleFunc("POST /api/v1/personal", s.viewerData(s.holdsChange(s.handleImportPersonal)))
 	mux.HandleFunc("GET /api/v1/list", s.viewerData(s.handleList))

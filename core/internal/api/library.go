@@ -36,6 +36,19 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"items": listed})
 }
 
+// handleFinished names the titles seen to the end, for the eye on a poster.
+func (s *Server) handleFinished(w http.ResponseWriter, r *http.Request) {
+	if !s.haveWatchlist(w) {
+		return
+	}
+	ids, err := s.watchlist.Finished(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": ids})
+}
+
 // listState is whether one title is on the list, which is what its page
 // needs to draw the button.
 type listState struct {

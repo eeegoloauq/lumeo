@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -112,6 +113,24 @@ func TestListRoutes(t *testing.T) {
 	decode[struct{}](t, h, http.MethodDelete, "/api/v1/list/"+id, "", http.StatusNoContent)
 	if got := decode[listStateBody](t, h, http.MethodGet, "/api/v1/list/"+id, "", http.StatusOK); got.InList {
 		t.Fatalf("still on the list: %+v", got)
+	}
+}
+
+// The eye on a poster: a title is finished once every aired episode is
+// watched, not after one of them.
+func TestFinishedRoute(t *testing.T) {
+	h, id := libraryServer(t)
+	type finished struct {
+		Items []string `json:"items"`
+	}
+	decode[progress.Entry](t, h, http.MethodPut, "/api/v1/progress/"+id,
+		`{"season":1,"episode":1,"watched":true}`, http.StatusOK)
+	if got := decode[finished](t, h, http.MethodGet, "/api/v1/finished", "", http.StatusOK); got.Items == nil || len(got.Items) != 0 {
+		t.Fatalf("one of two episodes: %+v, want an empty list", got)
+	}
+	decode[struct{}](t, h, http.MethodPost, "/api/v1/progress/"+id+"/watched-through", `{}`, http.StatusOK)
+	if got := decode[finished](t, h, http.MethodGet, "/api/v1/finished", "", http.StatusOK); !reflect.DeepEqual(got.Items, []string{id}) {
+		t.Fatalf("caught up: %+v", got)
 	}
 }
 

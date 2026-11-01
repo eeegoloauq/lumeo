@@ -2,6 +2,7 @@ package watchlist
 
 import (
 	"context"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -104,6 +105,41 @@ func TestListCountsWhatIsOutAndWatched(t *testing.T) {
 	}
 	if s := got[2].Seen; s != (Seen{}) {
 		t.Errorf("series with no episodes fetched = %+v, want nothing said", got[2])
+	}
+}
+
+func TestFinishedIsWhatWasSeenToTheEnd(t *testing.T) {
+	m := &memory{
+		items: map[string]catalog.MediaItem{
+			"caught up": {ID: "caught up", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 0, Number: 1, Released: day(-400)}, // a special, unwatched: still caught up
+				{Season: 1, Number: 1, Released: day(-30)},
+				{Season: 1, Number: 2, Released: day(7)}, // not out
+			}},
+			"part way": {ID: "part way", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
+				{Season: 1, Number: 1, Released: day(-30)},
+				{Season: 1, Number: 2, Released: day(-23)},
+			}},
+			"film":    {ID: "film", Kind: catalog.KindMovie},
+			"started": {ID: "started", Kind: catalog.KindMovie},
+			"bare":    {ID: "bare", Kind: catalog.KindSeries},
+		},
+		progress: []progress.Entry{
+			{ItemID: "caught up", Season: 1, Episode: 1, Watched: true},
+			{ItemID: "part way", Season: 1, Episode: 1, Watched: true},
+			{ItemID: "film", Watched: true, Position: 300}, // seen, and played again
+			{ItemID: "started", Position: 300},
+			{ItemID: "bare", Season: 1, Episode: 1, Watched: true},
+			{ItemID: "gone", Watched: true},
+		},
+	}
+	got, err := service(m).Finished(context.Background())
+	if err != nil {
+		t.Fatalf("finished: %v", err)
+	}
+	sort.Strings(got)
+	if want := []string{"caught up", "film"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("finished = %q, want %q", got, want)
 	}
 }
 
