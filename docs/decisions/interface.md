@@ -377,7 +377,10 @@ a tip. When a choice in a strip needs a word, the word goes in that
 segment's tooltip. Most rows have no hint, and a page of hints is unreadable:
 the eye cannot find a name among them.
 
-A row that does nothing is not shown. General has the language, and the
+A row that does nothing is not shown. On a media server, Downloads shows the
+device's two keep rules and leaves out the folder, the disk limit, the keep
+policy and the transfer limits: what downloads goes there, and those are the
+server owner's. General has the language, and the
 background: "Keep running when closed" and, under it, "Start with the system", both
 off by default and both this machine's (`client.json`). Login needs the
 background, so turning one on or the other off carries the other with it.

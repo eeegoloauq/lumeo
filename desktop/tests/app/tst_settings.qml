@@ -155,6 +155,35 @@ Item {
             verify(patches()[0].includes('"diskLimit":268435456000'), patches()[0])
         }
     
+        // On a media server this device's two keep rules are what keeps its
+        // downloads; its own core's folder, limits and keep policy hold
+        // nothing new, and are not shown.
+        function test_aLinkedCoreShowsTheKeepRulesOfThisDevice() {
+            const about = fakeCore.read("about.json")
+            about.linked = true
+            fakeCore.answer("GET", "/api/v1/about", 200, about)
+            shell.destroy()
+            shell = createTemporaryObject(shellComponent, window)
+            mouseClick(findChild(shell, "tab-settings"))
+            page = findChild(shell, "settings")
+            tryVerify(() => findChild(page, "serverKeepUnwatchedDays")?.visible === true, 5000, "the device's rules")
+            for (const hidden of ["diskLimit", "keep", "uploadLimit", "downloadLimit"])
+                verify(!findChild(page, hidden).visible, hidden)
+            verify(findChild(page, "serverKeepWatchedDays").visible)
+
+            mouseClick(findChild(page, "nav-downloads"))
+            tryVerify(() => !findChild(page, "going").running, 2000)
+            asked = fakeCore.requests.length
+            mouseClick(findChild(findChild(page, "serverKeepUnwatchedDays"), "segment--1"))
+            const field = findChild(window.Overlay.overlay, "number")
+            tryVerify(() => field?.activeFocus === true, 2000, "the question")
+            keyClick(Qt.Key_A, Qt.ControlModifier)
+            keyClick("3")
+            keyClick(Qt.Key_Return)
+            tryVerify(() => patches().length === 1, 2000)
+            verify(patches()[0].includes('"serverKeepUnwatchedDays":3'), patches()[0])
+        }
+
         // Reset asks first, and puts back this machine's choices as well as
         // the core's.
         function test_resetAsksAndPutsBackBothKinds() {

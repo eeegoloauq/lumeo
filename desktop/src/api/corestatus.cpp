@@ -31,6 +31,7 @@ void CoreStatus::load() {
     m_addr = reply.json()["addr"].toString();
     m_logPath = reply.json()["logPath"].toString();
     m_downloadDir = reply.json()["downloadDir"].toString();
+    m_linked = reply.json()["linked"].toBool();
     emit changed();
   });
 }

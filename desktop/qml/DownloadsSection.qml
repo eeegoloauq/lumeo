@@ -16,6 +16,9 @@ SettingsBlock {
 
     readonly property var current: Preferences.current
     readonly property bool known: current.keep !== undefined
+    // Downloads go to a media server, which keeps them by this device's two
+    // rules; this core's folder, limits and keep policy hold nothing new.
+    readonly property bool linked: coreStatus.linked
     readonly property real gib: 1073741824
     readonly property real mib: 1048576
     readonly property string keep: current.keep === "watched" ? "watched"
@@ -65,10 +68,10 @@ SettingsBlock {
     SettingsCard {
         StorageBar {
             storage: disk
-            limit: block.current.diskLimit ?? 0
+            limit: block.linked ? 0 : block.current.diskLimit ?? 0
         }
         SettingRow {
-            visible: block.known
+            visible: block.known && !block.linked
             label: qsTrId("settingsDiskLimit")
 
             PresetChoice {
@@ -89,7 +92,7 @@ SettingsBlock {
             }
         }
         SettingRow {
-            visible: block.known
+            visible: block.known && !block.linked
             label: qsTrId("settingsDeleteWatched")
 
             Segments {
@@ -123,6 +126,35 @@ SettingsBlock {
             }
         }
         SettingRow {
+            visible: block.known && block.linked
+            label: qsTrId("settingsDeleteWatched")
+
+            KeepRule {
+                key: "serverKeepWatchedDays"
+                presets: [
+                    { value: 0, label: qsTrId("settingsRightAway") },
+                    { value: 1, label: qsTrId("settingsAfterDays", 1) },
+                    { value: 7, label: qsTrId("settingsAfterDays", 7) },
+                ]
+                question: qsTrId("settingsDeleteWatchedAfter")
+                min: 0
+            }
+        }
+        SettingRow {
+            visible: block.known && block.linked
+            label: qsTrId("settingsDeleteUnwatched")
+
+            KeepRule {
+                key: "serverKeepUnwatchedDays"
+                presets: [
+                    { value: 7, label: qsTrId("settingsAfterDays", 7) },
+                    { value: 30, label: qsTrId("settingsAfterDays", 30) },
+                ]
+                question: qsTrId("settingsDeleteUnwatchedAfter")
+                min: 1
+            }
+        }
+        SettingRow {
             visible: block.known
             label: qsTrId("settingsDownloadNextEpisode")
 
@@ -139,8 +171,9 @@ SettingsBlock {
 
     SettingsCard {
         // The folder is on the core's machine: opened or changed only when
-        // that is this one.
+        // that is this one. A media server's is its owner's.
         SettingRow {
+            visible: !block.linked
             label: qsTrId("settingsVideos")
             hint: coreStatus.downloadDir
 
@@ -184,10 +217,10 @@ SettingsBlock {
         }
     }
 
-    Subheading { visible: block.known; text: qsTrId("settingsNetwork") }
+    Subheading { visible: block.known && !block.linked; text: qsTrId("settingsNetwork") }
 
     SettingsCard {
-        visible: block.known
+        visible: block.known && !block.linked
 
         SettingRow {
             label: qsTrId("settingsUploadLimit")
@@ -285,6 +318,19 @@ SettingsBlock {
         font.pixelSize: 15
         font.weight: Font.DemiBold
         Accessible.role: Accessible.Heading
+    }
+
+    // A keep rule of this device's on a media server, in days, among presets
+    // or any other asked for. The server caps it by its owner's maximum.
+    component KeepRule: PresetChoice {
+        required property string key
+        objectName: key
+        value: block.current[key] ?? 0
+        describe: days => qsTrId("settingsAfterDays", days)
+        unit: qsTrId("settingsDayUnit")
+        max: 365
+        initial: value
+        onChosen: days => block.setPolicy({ [key]: days })
     }
 
     // A rate in MB/s among presets, 0 for none, or any other asked for.

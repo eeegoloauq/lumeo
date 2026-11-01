@@ -117,8 +117,10 @@ without a client links with `lumeo-core link` ([core](core.md), Linked to a
 server). Forgetting the media server in General unlinks the core; revoke the
 device on the server to remove its access.
 
-A device keeps a file on the server by its own keep rules, set on its own
-core: a watched file one day, an unwatched one seven days after it was last
+A device keeps a file on the server by its own keep rules, set in Settings →
+Downloads, which on a media server shows them in place of the folder, the
+disk limit, the keep policy and the transfer limits, all the server owner's:
+a watched file one day, an unwatched one seven days after it was last
 started or played. The server applies them while the device is offline too,
 and no device keeps a file longer than the owner's maximum, thirty days unless
 set with the owner token on the server. The owner can also cap what each

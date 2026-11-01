@@ -725,6 +725,16 @@
         <source>Delete watched downloads after</source>
         <translation>Delete watched downloads after</translation>
     </message>
+    <message id="settingsDeleteUnwatched">
+        <source>Delete unwatched</source>
+        <extracomment>Settings, Downloads, on a media server: how long a file this device started or played, and has not watched, stays on the server.</extracomment>
+        <translation>Delete unwatched</translation>
+    </message>
+    <message id="settingsDeleteUnwatchedAfter">
+        <source>Delete unwatched downloads after</source>
+        <extracomment>Settings, Downloads, on a media server: the question asking for a number of days of its own for Delete unwatched.</extracomment>
+        <translation>Delete unwatched downloads after</translation>
+    </message>
     <message id="settingsDownloadNextEpisode">
         <source>Download next episode</source>
         <translation>Download next episode</translation>

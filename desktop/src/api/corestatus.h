@@ -7,7 +7,8 @@
 class Core;
 
 // Whether the core answers, and what it says about itself: where it listens,
-// its source providers, its log and its download folder.
+// its source providers, its log, its download folder, and whether it
+// forwards to a media server.
 class CoreStatus : public QObject, public QQmlParserStatus {
   Q_OBJECT
   QML_ELEMENT
@@ -23,6 +24,9 @@ class CoreStatus : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QString address READ address NOTIFY changed)
   Q_PROPERTY(QString logPath READ logPath NOTIFY changed)
   Q_PROPERTY(QString downloadDir READ downloadDir NOTIFY changed)
+  // Its downloads go to a media server, which keeps them by this device's
+  // keep rules; its own folder, limits and keep policy hold nothing new.
+  Q_PROPERTY(bool linked READ linked NOTIFY changed)
 
 public:
   explicit CoreStatus(QObject *parent = nullptr) : QObject(parent) {}
@@ -37,6 +41,7 @@ public:
   QString address() const;
   QString logPath() const { return m_logPath; }
   QString downloadDir() const { return m_downloadDir; }
+  bool linked() const { return m_linked; }
 
   Q_INVOKABLE void load();
 
@@ -52,4 +57,5 @@ private:
   QString m_addr;
   QString m_logPath;
   QString m_downloadDir;
+  bool m_linked = false;
 };
