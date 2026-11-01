@@ -13,6 +13,7 @@ import (
 
 	"github.com/eeegoloauq/lumeo/core/internal/config"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
+	"github.com/eeegoloauq/lumeo/core/internal/selfsigned"
 )
 
 // A media server is refused before anything is asked of the other server.
@@ -98,8 +99,11 @@ func TestACoreWithItsOwnCertificate(t *testing.T) {
 	cfg.PublicURL = "https://" + cfg.Addr
 	core := startCore(t, cfg)
 	defer core.stop(t)
+	// The commands run without the unit's environment, as sudo runs them:
+	// they find the certificate in the data directory.
+	admin := config.Config{Addr: cfg.Addr, DataDir: cfg.DataDir}
 	deadline := time.Now().Add(20 * time.Second)
-	for administer(cfg, []string{"health"}, io.Discard) != nil {
+	for administer(admin, []string{"health"}, io.Discard) != nil {
 		if time.Now().After(deadline) {
 			t.Fatal("core did not start")
 		}
@@ -113,7 +117,7 @@ func TestACoreWithItsOwnCertificate(t *testing.T) {
 		}
 	}
 	var out bytes.Buffer
-	if err := administer(cfg, []string{"pair"}, &out); err != nil {
+	if err := administer(admin, []string{"pair"}, &out); err != nil {
 		t.Fatal(err)
 	}
 	code := strings.TrimPrefix(strings.Split(out.String(), "\n")[0], "Pairing code: ")
@@ -147,5 +151,20 @@ func TestACoreWithItsOwnCertificate(t *testing.T) {
 	}
 	if paired.Proof != remote.ServerProof(code, shown) {
 		t.Fatal("the core did not prove the code over the certificate it showed")
+	}
+}
+
+// A certificate left from when the core served TLS does not stop the
+// commands reaching it once it serves plain HTTP again.
+func TestAdministrationReachesACoreThatNoLongerServesTLS(t *testing.T) {
+	cfg := testConfig(t, t.TempDir(), true)
+	if _, _, err := selfsigned.Load(cfg.TLSDir(), "127.0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	core := startCore(t, cfg)
+	core.waitListening(t)
+	defer core.stop(t)
+	if err := administer(cfg, []string{"health"}, io.Discard); err != nil {
+		t.Fatal(err)
 	}
 }
