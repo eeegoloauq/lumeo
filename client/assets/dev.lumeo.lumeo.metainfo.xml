@@ -39,6 +39,14 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.23" date="2026-11-01" type="development">
+      <description>
+        <ul>
+          <li>A stopped download no longer comes back for a moment.</li>
+          <li xml:lang="ru">Остановленная загрузка больше не появляется снова на мгновение.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.22" date="2026-11-01" type="development">
       <description>
         <ul>
@@ -54,8 +62,6 @@
           <li xml:lang="ru">Сервер может работать по HTTPS со своим сертификатом без обратного прокси; сопряжение проверяет, что он тот самый.</li>
           <li>The server core is published as a container image.</li>
           <li xml:lang="ru">Серверное ядро публикуется как образ контейнера.</li>
-          <li>A stopped download no longer comes back for a moment.</li>
-          <li xml:lang="ru">Остановленная загрузка больше не появляется снова на мгновение.</li>
         </ul>
       </description>
     </release>
