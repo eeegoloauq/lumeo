@@ -68,12 +68,12 @@ qt_add_qml_module(lumeo
     qml/BestMatch.qml
     qml/CaptionedTile.qml
     qml/DownloadButton.qml
-    qml/DownloadMark.qml
     qml/DownloadPanel.qml
     qml/DownloadsPanel.qml
     qml/DownloadsRing.qml
     qml/DiskBar.qml
     qml/ProgressRing.qml
+    qml/StatusMark.qml
     qml/EpisodeCard.qml
     qml/EpisodeStill.qml
     qml/EpisodesPanel.qml

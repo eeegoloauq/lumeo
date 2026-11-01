@@ -13,6 +13,8 @@ AbstractButton {
     required property var item
     // One of Downloads.marks, or undefined.
     property var mark
+    // Seen to the end: every poster says so, whatever shelf it is on.
+    property bool watched: Viewing.finished[item.id] ?? false
 
     readonly property bool lifted: hovered || visualFocus
 
@@ -141,10 +143,10 @@ AbstractButton {
             }
         }
 
-        DownloadMark {
+        StatusMark {
             anchors { top: parent.top; right: parent.right; margins: 8 }
-            visible: tile.mark !== undefined
-            mark: tile.mark ?? {}
+            watched: tile.watched
+            mark: tile.mark
         }
 
         // The keyboard's ring, in the accent, findable on any artwork.

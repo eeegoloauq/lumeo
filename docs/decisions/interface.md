@@ -66,10 +66,20 @@ How much of a title physically exists on your disk is a number only Lumeo can
 show: a stream has nothing to fill, and a library built from files you already
 have is always full. It was a fill bar under every poster until watching got a
 bar of its own, and two white bars on one poster read as two timelines. So the
-one bar along a picture's bottom edge is how much was watched, the player's
+one bar along a picture's bottom edge is how far the viewer is, the player's
 timeline in small, and what is on disk is a corner mark: the download glyph
-when all of it is here, a filling ring while it arrives. Posters and episode
-cards carry the same mark (`DownloadMark`).
+when all of it is here, a filling ring while it arrives.
+
+A title seen to the end (a film watched, a series caught up with, specials
+aside) has an eye in that corner, in one pill with the on-disk mark when
+both apply (`StatusMark`), so a picture never carries two badges. Both are
+white; the accent stays the arriving ring's. Every poster has it, on Home,
+in search and in My list, and so does an episode's card. A full bar said the
+same and read as a timeline at its end, and a finished title was otherwise
+the same poster as one never opened. Nothing is hidden from a shelf for
+being seen: a shelf is the catalogue's, and the eye is enough to pass it
+over. Which titles are finished is asked of the core in one request
+(`/api/v1/finished`) when the window comes back and after a mark.
 
 Type does two jobs. Plex Sans speaks, titles included: a title set in a display
 face reads as decoration next to the real title cards the artwork carries, and
@@ -279,8 +289,9 @@ hard to see. The ring is white, 2 px and outside the
 still, so it reads over any picture.
 
 A card answers "which episode is this" and nothing more: "17 · Title" (or
-"Episode 17" when the provider's title is only that), the watched bar (white,
-full once watched, as a check said less), the on-disk mark, and a date only when it means something. What it
+"Episode 17" when the provider's title is only that), how far into it the
+viewer is, the eye once watched and the on-disk mark in one pill, and a date
+only when it means something. What it
 is about is not on the page at all. Above the strip is one line, the
 selected episode's name and date. A synopsis there made the page two
 paragraphs, the title's overview and the episode's, and the episode's runs

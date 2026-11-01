@@ -669,8 +669,7 @@ ShellPage {
                                  ? Qt.TabFocus : Qt.NoFocus
                     stills: Preferences.current.episodeArtwork ?? "show"
                     watched: card.entry?.watched ?? false
-                    bar: !card.entry ? 0 : card.entry.position > 0 && card.entry.duration > 0
-                                      ? card.entry.position / card.entry.duration : card.entry.watched ? 1 : 0
+                    bar: card.entry?.position > 0 && card.entry.duration > 0 ? card.entry.position / card.entry.duration : 0
                     mark: Downloads.marks[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number]
                     frame: EpisodeFrames.known[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number] ?? ""
                     // With no provider to ask, only what is on disk plays.

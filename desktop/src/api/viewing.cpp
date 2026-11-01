@@ -2,6 +2,7 @@
 
 #include "core.h"
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlEngine>
 
@@ -73,11 +74,37 @@ void Viewing::commit() {
        "forget");
 }
 
+void Viewing::refresh() {
+  if (m_asking) {
+    m_askAgain = true;
+    return;
+  }
+  m_asking = true;
+  m_core->get("/api/v1/finished", {}, this, [this](const Core::Reply &reply) {
+    m_asking = false;
+    if (reply.ok()) {
+      QVariantMap finished;
+      for (const QJsonValue &id : reply.json()["items"].toArray())
+        finished.insert(id.toString(), true);
+      if (finished != m_finished) {
+        m_finished = finished;
+        emit finishedChanged();
+      }
+    }
+    if (m_askAgain) {
+      m_askAgain = false;
+      refresh();
+    }
+  });
+}
+
 void Viewing::send(const QByteArray &method, const QString &path, const QJsonValue &body,
                    const QString &itemId, const QString &what) {
   m_core->send(method, path, {}, body, this, [this, itemId, what](const Core::Reply &reply) {
-    if (reply.ok())
+    if (reply.ok()) {
       emit changed(itemId);
+      refresh();
+    }
     else
       emit refused(what);
   });

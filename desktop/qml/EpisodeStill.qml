@@ -13,7 +13,7 @@ Item {
     // How the still is shown: "show", "blur" until watched, or "hide".
     property string stills: "show"
     property bool watched
-    // The share watched, a full bar once watched; 0 for none.
+    // How far into it the viewer is; 0 for none.
     property real bar
     // Not out, or out of reach: drawn faint.
     property bool faint
@@ -56,6 +56,7 @@ Item {
         }
     }
 
-    // Watched is a full bar, not a check, read the same as a half one.
+    // How far the viewer is, the player's timeline in small; seen to the end
+    // is the card's eye, not a full bar.
     WatchBar { share: still.bar }
 }

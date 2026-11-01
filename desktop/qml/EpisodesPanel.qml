@@ -135,8 +135,12 @@ MenuPanel {
                     frame: EpisodeFrames.known[panel.playback.download.itemId + "/" + row.modelData.season
                                                + "/" + row.modelData.number] ?? ""
                     watched: row.watched?.watched ?? false
-                    bar: !row.watched ? 0 : row.watched.position > 0 ? row.watched.position / row.watched.duration
-                                                                      : row.watched.watched ? 1 : 0
+                    bar: row.watched?.position > 0 && row.watched.duration > 0 ? row.watched.position / row.watched.duration : 0
+
+                    StatusMark {
+                        anchors { top: parent.top; right: parent.right; margins: 6 }
+                        watched: row.watched?.watched ?? false
+                    }
                 }
 
                 Column {

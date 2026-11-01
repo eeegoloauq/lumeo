@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 class Core;
@@ -13,7 +14,8 @@ class QJSEngine;
 // episode, a title out of Continue watching or forgotten. Each says
 // changed() once the core has it, and every page showing the title reads it
 // again. Forgetting waits [undoTime] for undo() before the core is told, as
-// a line taken out of History does.
+// a line taken out of History does. It also keeps which titles are finished,
+// for the eye on every poster.
 class Viewing : public QObject {
   Q_OBJECT
   QML_ELEMENT
@@ -22,6 +24,10 @@ class Viewing : public QObject {
   Q_PROPERTY(QString forgetting READ forgetting NOTIFY forgettingChanged)
   // How long undo() is offered. Tests shorten it.
   Q_PROPERTY(int undoTime READ undoTime WRITE setUndoTime NOTIFY undoTimeChanged)
+  // The titles seen to the end, by id, each true: a film watched, a series
+  // caught up with. Read again after every change made here and on
+  // refresh(); what the last answer said until the next one comes.
+  Q_PROPERTY(QVariantMap finished READ finished NOTIFY finishedChanged)
 
 public:
   explicit Viewing(Core *core, QObject *parent = nullptr);
@@ -32,6 +38,11 @@ public:
   QString forgetting() const { return m_forgetting; }
   int undoTime() const { return m_undo.interval(); }
   void setUndoTime(int ms);
+  QVariantMap finished() const { return m_finished; }
+
+  // Asks the core again which titles are finished: the player marks as it
+  // plays, so the window coming back calls it.
+  Q_INVOKABLE void refresh();
 
   // A film (season and episode 0) or one episode, watched or not.
   Q_INVOKABLE void mark(const QString &itemId, int season, int episode, bool watched);
@@ -51,6 +62,7 @@ signals:
   void refused(const QString &what);
   void forgettingChanged();
   void undoTimeChanged();
+  void finishedChanged();
 
 private:
   void commit();
@@ -60,4 +72,9 @@ private:
   Core *m_core;
   QString m_forgetting;
   QTimer m_undo;
+  QVariantMap m_finished;
+  // A refresh asked while one is out goes again once it lands, so the last
+  // answer is never older than the last change.
+  bool m_asking = false;
+  bool m_askAgain = false;
 };

@@ -179,6 +179,10 @@ FocusScope {
         target: TitleActions
         function onAsked(target) { titleMenu.show(target) }
     }
+    // Which titles are finished, for the eye on every poster: the player
+    // marks as it plays, so the window coming back from it asks again.
+    Component.onCompleted: Viewing.refresh()
+    onVisibleChanged: if (visible) Viewing.refresh()
     Connections {
         target: Viewing
         function onChanged(itemId) { TitleActions.changed(itemId) }

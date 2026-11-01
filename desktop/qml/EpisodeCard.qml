@@ -14,7 +14,7 @@ AbstractButton {
     property bool selected
     // How the still is shown: "show", "blur" until watched, or "hide".
     property string stills: "show"
-    // The share watched, a full bar once watched; 0 for none.
+    // How far into it the viewer is; 0 for none. Seen to the end is the eye.
     property real bar
     property bool watched
     // One of Downloads.marks, or undefined.
@@ -76,10 +76,10 @@ AbstractButton {
             faint: card.upcoming || card.unreachable
             frame: card.frame
 
-            DownloadMark {
+            StatusMark {
                 anchors { top: parent.top; right: parent.right; margins: 8 }
-                visible: card.mark !== undefined
-                mark: card.mark ?? {}
+                watched: card.watched
+                mark: card.mark
             }
 
             // The mouse's way to start; the keyboard has Enter.

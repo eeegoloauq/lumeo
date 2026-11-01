@@ -70,10 +70,9 @@ AbstractButton {
                 sourceSize.width: Math.ceil(card.width * 1.1)
                 fillMode: Image.PreserveAspectCrop
             }
-            DownloadMark {
+            StatusMark {
                 anchors { top: parent.top; right: parent.right; margins: 8 }
-                visible: card.mark !== undefined
-                mark: card.mark ?? {}
+                mark: card.mark
             }
             WatchBar { share: card.watched }
             // The keyboard's ring, in the accent, findable on any artwork.

@@ -66,6 +66,7 @@ Item {
             menu()?.close()
             Viewing.undoTime = 5000
             fakeCore.answer("GET", "/api/v1/continue", 200, [])
+            fakeCore.answer("GET", "/api/v1/finished", 200, { items: [] })
         }
 
         // The card of the series in Continue watching.
@@ -138,6 +139,30 @@ Item {
             mouseClick(card, card.width / 2, 40, Qt.RightButton)
             mouseClick(row("menuForget"))
             tryVerify(() => requests().includes("DELETE /api/v1/progress/" + show.id), 2000, "forgotten")
+        }
+
+        // Marked watched from its menu, a film's poster says so with the eye,
+        // on whichever shelf it is.
+        function test_aPosterMarkedWatchedShowsTheEye() {
+            const strip = findChild(findChild(shell, "shelf-movie/top/"), "strip")
+            tryVerify(() => !!strip.itemAtIndex(0), 5000, "the films")
+            waitForRendering(shell)
+            const poster = () => strip.itemAtIndex(0)
+            const film = poster().item
+            fakeCore.answer("GET", "/api/v1/items/" + film.id, 200, film)
+            fakeCore.answer("GET", "/api/v1/progress/" + film.id, 200, {})
+            fakeCore.answer("GET", "/api/v1/list/" + film.id, 200, { inList: false })
+            fakeCore.answer("GET", "/api/v1/ratings/" + film.id, 200, { ratings: [] })
+            fakeCore.answer("PUT", "/api/v1/progress/" + film.id, 200, {})
+            const eye = findChild(poster(), "watchedMark")
+            verify(!eye.visible, "no eye before it is watched")
+
+            poster().forceActiveFocus(Qt.TabFocusReason)
+            keyClick(Qt.Key_Menu)
+            const watched = row("menuWatched")
+            fakeCore.answer("GET", "/api/v1/finished", 200, { items: [film.id] })
+            mouseClick(watched)
+            tryVerify(() => eye.visible, 2000, "the eye once the core has it")
         }
 
         // On an episode's card, the series is marked up to and including it.

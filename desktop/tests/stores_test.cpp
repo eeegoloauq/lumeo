@@ -175,6 +175,20 @@ private slots:
     QVERIFY(sent.contains("DELETE /api/v1/continue/tt1"));
   }
 
+  // The finished titles come as a map for a poster to look up, and a mark
+  // the core took reads them again: the eye follows the menu.
+  void aMarkReadsTheFinishedTitlesAgain() {
+    fake->answer("GET", "/api/v1/finished", 200, QJsonObject{{"items", QJsonArray{"tt1"}}});
+    fake->answer("PUT", "/api/v1/progress/tt2", 200, QJsonObject());
+    Viewing viewing(core.get());
+    viewing.refresh();
+    QTRY_COMPARE(viewing.finished(), QVariantMap({{"tt1", true}}));
+
+    fake->answer("GET", "/api/v1/finished", 200, QJsonObject{{"items", QJsonArray{"tt1", "tt2"}}});
+    viewing.mark("tt2", 0, 0, true);
+    QTRY_COMPARE(viewing.finished(), QVariantMap({{"tt1", true}, {"tt2", true}}));
+  }
+
   // A title forgotten waits for its undo before the core is told; a second
   // one forgets the first at once.
   void aTitleIsForgottenOnceItsUndoIsOver() {
