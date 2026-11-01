@@ -19,7 +19,8 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
   `desktop/tests/*_test.cpp`, the whole app over the fake core in `desktop/tests/app/`, and only
   what needs a real libmpv in `desktop/tests/player/`. Lowest layer that shows the behaviour,
   once; behaviour, not looks. Search for existing tests of the behaviour first.
-- `ctest` (under a minute) runs every time; `player-test.sh` (about two) when the player, `Main.qml`
+- `ctest` (under a minute) runs every time, and five times on one CPU (`CONTRIBUTING.md`, about
+  three) before pushing a change to the app, QML or anything asynchronous; `player-test.sh` (about two) when the player, `Main.qml`
   or `tests/player/` is touched. GitHub CI runs both on every client push to main and on the tag,
   and the release is published only when they pass.
 - No test waits out one of the app's own timers. A timeout it needs to see run out is a property

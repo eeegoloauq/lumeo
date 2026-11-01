@@ -54,6 +54,7 @@ Client, from `desktop/`:
 
     cmake --build --preset dev
     ctest --test-dir build/dev --output-on-failure    # units, app tests and qmllint, under a minute
+    taskset -c 1 ctest --test-dir build/dev --repeat until-fail:5    # on one CPU, about three
     tool/player-test.sh                               # the player on a headless Weston, about two
 
 Tests go in the lowest layer that can show the behaviour, once: units under QtTest in
@@ -62,6 +63,9 @@ needs a real libmpv in `desktop/tests/player/`. [docs/decisions/testing.md](docs
 says what goes where and what a test does not check. qmllint fails on any warning
 (`desktop/qml/.qmllint.ini`); a line whose types it cannot see takes `// qmllint disable <category>` and a
 comment saying why. A fix for a visible defect comes with a test.
+The run on one CPU is for a change to the app, QML or anything asynchronous: the CI runners,
+Windows most, are slower than a desktop, and a test that checks a moment rather than waiting for a
+state fails there first (a Linux system without `taskset` drops the prefix).
 `tool/player-test.sh` takes Qt Quick Test's options, `-input tests/player/tst_gear.qml` for one
 file. GitHub CI runs all of it on every push to `main` that touches the client and on every tag,
 and the release is published only when it passes. On a headless Weston without a GPU,
