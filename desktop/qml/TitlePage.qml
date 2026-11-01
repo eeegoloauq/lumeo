@@ -411,23 +411,17 @@ ShellPage {
                         onClicked: copies.download()
                     }
                     // What the viewer keeps and thinks of the title: quiet
-                    // marks beside the one action, not second ones.
+                    // marks beside the one action, not second ones; ⋯ has
+                    // the rest of the title's menu.
                     Row {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 8
 
                         TintButton {
-                            objectName: "trailerButton"
-                            visible: page.trailerUrls.length > 0
-                            glyph: "movie"
-                            tip: qsTrId("itemTrailer")
-                            onClicked: page.playTrailers(0)
-                        }
-                        TintButton {
                             id: listButton
                             objectName: "listButton"
                             enabled: mine.known
-                            glyph: mine.inList ? "check" : "add"
+                            glyph: mine.inList ? "bookmark_filled" : "bookmark"
                             tip: mine.inList ? qsTrId("libraryRemoveFromList") : qsTrId("libraryAddToList")
                             onClicked: mine.toggle()
                         }
@@ -439,20 +433,15 @@ ShellPage {
                             onRated: score => mine.rate(score)
                             onCleared: mine.clear()
                         }
-                        // Says it copied for a moment, on itself: a button that
-                        // looks the same afterwards gets pressed twice.
                         TintButton {
-                            id: share
-                            objectName: "shareButton"
-                            visible: about.link !== ""
-                            glyph: copied.running ? "check" : "ios_share"
-                            tip: copied.running ? qsTrId("itemLinkCopied") : qsTrId("itemShare")
-                            onClicked: {
-                                about.copyLink()
-                                copied.restart()
-                            }
-
-                            Timer { id: copied; interval: 2000 }
+                            id: moreButton
+                            objectName: "titleMore"
+                            glyph: "more_horiz"
+                            tip: qsTrId("itemMore")
+                            onClicked: TitleActions.ask({
+                                item: page.item, page: "title", source: moreButton, x: 0, y: moreButton.height + 6,
+                                trailer: page.trailerUrls.length > 0 ? () => page.playTrailers(0) : null,
+                            })
                         }
                     }
                     Text {

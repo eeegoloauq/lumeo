@@ -216,8 +216,10 @@ and every poster would carry them.
 
 A poster or a Continue watching card scores the title; an episode is scored
 from its card and its History line only, since the episode on a Continue
-watching card is half seen. On the title's own page the menu keeps to the
-episode or the season, its list, trailer and link being beside it. Marking a
+watching card is half seen. On the title's own page ⋯ beside Play opens the
+menu less what is beside it (Play, My list, the score, a film's download),
+and an episode's card or a season's tab keeps it to that episode or season.
+Marking a
 series unwatched waits five seconds for Undo, as a History line does; the
 other rows act at once, and every page showing the title reads it again when
 the core has the change.
@@ -289,8 +291,11 @@ The air date is there only when it means something — that the episode is not
 out yet, or that it landed in the last fortnight. On an episode from 2008 the
 date is trivia standing in a place where nothing needs to stand.
 
-Play has what can be done to the title beside it, in one row: a film's
-download, the list, the rating. Under them, quieter, is what Play will start
+Play has what is done to the title most beside it, in one row: a film's
+download, My list, the score, and ⋯ for the rest of the title's menu
+(trailer, watched, link, deleting a film on disk). Five round buttons of
+different kinds beside Play read as a toolbar, and the trailer and the link
+are not pressed on every visit. Under them, quieter, is what Play will start
 — on disk or a stream, and from which release — as a line that is a button
 only under the pointer. It used to be a filled chip in a second row with the
 list and rating, three pills of different kinds that read as a toolbar; the

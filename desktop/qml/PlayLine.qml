@@ -61,7 +61,7 @@ Row {
         const onDisk = source.local === "done"
         const what = [Words.sourceTitle(source), source.folder ?? ""].filter(part => part !== "").join(" · ")
         return {
-            icon: onDisk ? "check" : "play_circle",
+            icon: onDisk ? "download" : "play_circle",
             text: [onDisk ? qsTrId("downloadsOnDisk") : qsTrId("playerStream"), what]
                   .filter(part => part !== "").join(" · ")
         }

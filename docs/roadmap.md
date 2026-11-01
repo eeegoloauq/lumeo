@@ -7,8 +7,8 @@ before code.
 ## Quick actions
 
 Everything a title page can do, from any poster or card. The right-click menu
-is in; four steps are left, one commit each, with `decisions/` updated as each
-ships.
+and the title page's ⋯ are in; three steps are left, one commit each, with
+`decisions/` updated as each ships.
 
 One icon per meaning, everywhere it appears: an eye for watched, a crossed-out
 eye for unwatched, a bookmark for My list (outlined to add, filled when on
@@ -20,18 +20,13 @@ carry these icons, as macOS, Windows 11 and KDE menus do. The right-click
 menu shipped with them (decisions/interface.md); the steps left bring the
 rest of the interface to the same set.
 
-1. **The title page row** is Play, My list, the score and ⋯. ⋯ opens the
-   same menu without what is beside it: trailer, mark as watched, copy link,
-   and Delete download once a film is on disk. A film's Download button stays
-   as it is: a ring with the percentage while arriving, gone once all of it is
-   here, the line under Play then saying On disk.
-2. **Watched on every poster.** The bar along the bottom is only how far the
+1. **Watched on every poster.** The bar along the bottom is only how far the
    viewer is. A finished title has an eye in one pill in the top-right corner,
    beside the on-disk arrow when both apply, so a poster never carries two
    badges. Both white; the accent stays the arriving ring's. Home and search
    posters get it, and episode cards drop the full bar for the eye. Nothing is
    hidden from a shelf. Revises the bar rules in `decisions/interface.md`.
-3. **A filter on My list**: All, To watch (on the list, nothing played),
+2. **A filter on My list**: All, To watch (on the list, nothing played),
    Watching, Watched (a film finished, a series caught up with). To watch is
    the planned list, with no third tab. Films or series only is a second
    section of the Sort menu, kept by this machine as the order is. The grid
@@ -40,7 +35,7 @@ rest of the interface to the same set.
    shelves already are, and the view's own arrow keys in place of
    `LibraryPage`'s `move`/`focusTile`. Search keeps its `Flow`, since the
    best match spans cells. `reuseItems` only if a long grid stutters.
-4. **Quality for the screen.** "Highest quality" in Settings › Playback, by
+3. **Quality for the screen.** "Highest quality" in Settings › Playback, by
    default Up to this screen; 1080p, 4K and Any besides. It orders, it does
    not filter: under health and language, a copy at or under the ceiling goes
    ahead of a sharper one, so a seeded 4K copy still beats a 1080p one nobody

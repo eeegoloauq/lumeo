@@ -1412,10 +1412,10 @@
         <extracomment>Error opening a local file; reason is system or core text. (%1 name, %2 reason)</extracomment>
         <translation>Не удалось открыть %1: %2</translation>
     </message>
-    <message id="itemShare">
-        <source>Share</source>
-        <extracomment>Tooltip of the share button on a title page; it copies a link</extracomment>
-        <translation>Поделиться</translation>
+    <message id="itemMore">
+        <source>More</source>
+        <extracomment>Tooltip of the ⋯ button beside Play on a title page; it opens the title's menu</extracomment>
+        <translation>Ещё</translation>
     </message>
     <message id="itemLinkCopied">
         <source>Link copied</source>
@@ -3039,7 +3039,7 @@
     </message>
     <message id="itemTrailer">
         <source>Trailer</source>
-        <extracomment>Trailer button tooltip on a title's page, and the line under the title in the player while a trailer plays.</extracomment>
+        <extracomment>Title menu row that plays the trailer, and the line under the title in the player while a trailer plays.</extracomment>
         <translation>Трейлер</translation>
     </message>
     <message id="itemTrailerSoundOn">

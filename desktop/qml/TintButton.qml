@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import Lumeo
 
-// A round icon on a tint, beside Play: My list, share. Not in the accent,
+// A round icon on a tint, beside Play: My list, ⋯. Not in the accent,
 // which marks what will play; the words are the tooltip.
 AbstractButton {
     id: button

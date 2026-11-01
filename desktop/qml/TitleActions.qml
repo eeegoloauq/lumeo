@@ -8,8 +8,9 @@ QtObject {
     // {item, source, x, y} and, where they apply, episode ({season, number,
     // released}) for a card about one episode, season (a number) for a
     // season's tab, continuing for a card in Continue watching, page "title"
-    // for the title's own page, and play and download, functions doing those
-    // the way the page does.
+    // for the title's own page (with neither episode nor season: ⋯ beside
+    // Play), and play, download and trailer, functions doing those the way
+    // the page does.
     signal asked(var target)
     // The core has a change to [itemId]'s progress, list or score.
     signal changed(string itemId)

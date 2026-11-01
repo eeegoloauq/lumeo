@@ -6,8 +6,9 @@ import Lumeo
 
 // What the title page does, from any poster or card: one menu, opened where
 // the right button, the Menu key or Shift+F10 asked for it (TitleActions).
-// On the title's own page it holds what is about the episode or the season,
-// the rest being beside it (decisions/library.md, Quick actions).
+// On the title's own page, ⋯ beside Play holds what is not beside it, and an
+// episode's card or a season's tab what is about that episode or season
+// (decisions/interface.md, A title's menu).
 Menu {
     id: titleMenu
     objectName: "titleMenu"
@@ -19,6 +20,9 @@ Menu {
     readonly property bool series: item.kind === "series"
     readonly property bool onPage: target.page === "title"
     readonly property bool seasonTab: target.season !== undefined
+    // ⋯ beside Play on the title's own page: Play, My list, the score and a
+    // film's download are beside it.
+    readonly property bool header: onPage && !episode && !seasonTab
     readonly property bool upcoming: !!episode?.released && new Date(episode.released) > new Date()
 
     // The title and the viewer's marks on it, asked for each time the menu
@@ -171,7 +175,7 @@ Menu {
 
     Choice {
         objectName: "menuPlay"
-        visible: !titleMenu.seasonTab && !titleMenu.upcoming
+        visible: !titleMenu.seasonTab && !titleMenu.upcoming && !titleMenu.header
         glyph: "play_arrow"
         text: qsTrId("commonPlay")
         onTriggered: {
@@ -183,10 +187,15 @@ Menu {
     }
     Choice {
         objectName: "menuTrailer"
-        visible: !titleMenu.onPage && titleMenu.trailers.length > 0
+        // The page plays its own, less those found not to play here.
+        visible: titleMenu.header ? !!titleMenu.target.trailer : !titleMenu.onPage && titleMenu.trailers.length > 0
         glyph: "movie"
         text: qsTrId("itemTrailer")
         onTriggered: {
+            if (titleMenu.header) {
+                titleMenu.target.trailer()
+                return
+            }
             const item = titleMenu.item
             titleMenu.trailer({
                 urls: titleMenu.trailers,
@@ -268,7 +277,7 @@ Menu {
         objectName: "menuDownload"
         // Nothing of it yet; one arriving is the downloads panel's.
         visible: titleMenu.seasonTab ? !!titleMenu.target.download && (titleMenu.target.aired ?? 0) > 0
-                                : !!titleMenu.one && !titleMenu.upcoming && !titleMenu.download.id
+                                : !!titleMenu.one && !titleMenu.upcoming && !titleMenu.download.id && !titleMenu.header
         glyph: "download"
         text: titleMenu.seasonTab ? qsTrId("menuDownloadSeason") : qsTrId("commonDownload")
         onTriggered: {
@@ -288,7 +297,7 @@ Menu {
     }
     Choice {
         objectName: "menuLink"
-        visible: !titleMenu.onPage && titleMenu.ready && titleMenu.about.link !== ""
+        visible: (!titleMenu.onPage || titleMenu.header) && titleMenu.ready && titleMenu.about.link !== ""
         glyph: "link"
         text: qsTrId("menuCopyLink")
         onTriggered: {

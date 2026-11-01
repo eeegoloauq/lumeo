@@ -60,6 +60,23 @@ Item {
             return drawer.opened ? findChild(drawer.contentItem, name) : null
         }
 
+        // ⋯ beside Play, opened, once the title has answered.
+        function openMore() {
+            const more = findChild(shell, "titleMore")
+            verify(waitForPolish(more.parent))
+            mouseClick(more)
+            const menu = findChild(shell, "titleMenu")
+            tryVerify(() => menu.opened && menu.ready, 5000, "the title's menu open")
+            waitForRendering(menu.contentItem)
+            return menu
+        }
+
+        // [name]'s row in the open menu; null when it is not offered.
+        function menuRow(name) {
+            const found = findChild(findChild(shell, "titleMenu").contentItem, name)
+            return found.visible && found.height > 0 ? found : null
+        }
+
         function openDrawer() {
             const line = findChild(shell, "playLineChoose")
             verify(waitForPolish(line.parent))
@@ -112,14 +129,16 @@ Item {
                     trailers: ["https://www.youtube.com/watch?v=0000trailer", "https://www.youtube.com/watch?v=1111trailer"] })
             LocalSettings.trailerPreviews = false
             film()
-            const button = findChild(shell, "trailerButton")
-            verify(!button.visible, "no trailer without yt-dlp")
+            const menu = openMore()
+            verify(!menuRow("menuTrailer"), "no trailer without yt-dlp")
+            menu.close()
+            tryVerify(() => !menu.visible)
 
             MpvFacts.ytdl = true
             trailered.target = shell
             trailered.clear()
-            verify(waitForPolish(button.parent))
-            mouseClick(button)
+            openMore()
+            mouseClick(menuRow("menuTrailer"))
             compare(trailered.count, 1)
             const [trailer, name] = trailered.signalArguments[0]
             compare(trailer.urls, ["https://www.youtube.com/watch?v=0000trailer", "https://www.youtube.com/watch?v=1111trailer"])
@@ -309,7 +328,7 @@ Item {
             const list = findChild(shell, "listButton")
             tryVerify(() => list.enabled, 5000, "the core said")
             mouseClick(list)
-            compare(list.glyph, "check")
+            compare(list.glyph, "bookmark_filled")
             tryVerify(() => requests().some(r => r.startsWith("PUT /api/v1/list/")))
 
             const rating = findChild(shell, "ratingButton")
@@ -323,6 +342,31 @@ Item {
             mouseClick(findChild(scores.contentItem, "score-7"))
             compare(rating.score, 7)
             tryVerify(() => requests().some(r => r.startsWith("PUT /api/v1/ratings/") && r.includes('"rating":7')))
+        }
+
+        // ⋯ beside Play has what is not beside it, inside the window though
+        // the row sits at the foot of a film's banner, and what it does
+        // reaches the core.
+        function test_moreHoldsWhatIsNotBesidePlay() {
+            for (let i = 0; i < 3; ++i) {
+                const id = "tt" + (2000 + i)
+                fakeCore.answer("GET", "/api/v1/items/" + id, 200, {
+                    id: id, kind: "movie", title: "Film " + i, year: 1920 + i, externalIds: { imdb: id } })
+                fakeCore.answer("PUT", "/api/v1/progress/" + id, 200, {})
+            }
+            film()
+            const id = findChild(shell, "title").item.id
+            const menu = openMore()
+            const watched = menuRow("menuWatched")
+            verify(!!watched, "Mark as watched")
+            verify(!!menuRow("menuLink"), "Copy link")
+            for (const beside of ["menuPlay", "menuList", "menuRate", "menuDownload"])
+                verify(!menuRow(beside), beside + " is beside Play, not in ⋯")
+            const box = menu.background.mapToItem(window, 0, 0, menu.width, menu.height)
+            verify(box.y >= 0 && box.y + box.height <= window.height, "the menu is inside the window: " + JSON.stringify(box))
+            mouseClick(watched)
+            tryVerify(() => requests().includes("PUT /api/v1/progress/" + id + ' {"episode":0,"season":0,"watched":true}'),
+                      2000, "marked watched")
         }
 
         // None ships with the app: the empty list is the way to add one.
