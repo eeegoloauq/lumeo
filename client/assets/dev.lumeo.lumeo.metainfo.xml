@@ -42,6 +42,20 @@
     <release version="0.1.79~beta.24" date="2026-11-01" type="development">
       <description>
         <ul>
+          <li>Right-click any poster, card or season tab, or press the Menu key, for everything its title page does.</li>
+          <li xml:lang="ru">Правый клик по любому постеру, карточке или вкладке сезона, или клавиша меню, — всё, что умеет страница фильма.</li>
+          <li>Mark a series watched up to an episode, or take a title out of Continue watching.</li>
+          <li xml:lang="ru">Отметьте сериал просмотренным до нужной серии или уберите фильм из «Продолжить просмотр».</li>
+          <li>On a title's page, ⋯ beside Play holds the trailer, watched, the link and deleting a download.</li>
+          <li xml:lang="ru">На странице фильма кнопка ⋯ рядом с «Смотреть» содержит трейлер, отметку о просмотре, ссылку и удаление загрузки.</li>
+          <li>Posters and episodes you have finished show an eye.</li>
+          <li xml:lang="ru">На просмотренных постерах и сериях появляется глаз.</li>
+          <li>My list can show only what is to watch, being watched or watched, and only films or series.</li>
+          <li xml:lang="ru">«Мой список» можно сузить до запланированного, начатого или просмотренного, и только до фильмов или сериалов.</li>
+          <li>Highest quality in Settings › Playback: by default, copies sharper than your screen go after the others.</li>
+          <li xml:lang="ru">«Максимальное качество» в Настройках › Воспроизведение: по умолчанию копии чётче экрана идут после остальных.</li>
+          <li>Anime4K is not used on a video as tall as the screen, and the Picture menu says so.</li>
+          <li xml:lang="ru">Anime4K не применяется к видео высотой с экран, и меню «Изображение» об этом говорит.</li>
           <li>With a media server, Home shows all its rows again, not only Continue watching.</li>
           <li xml:lang="ru">С медиасервером на главной снова все подборки, а не только «Продолжить просмотр».</li>
           <li>Posters from a media server are kept on this computer and appear at once after a restart.</li>
