@@ -54,6 +54,8 @@
           <li xml:lang="ru">Сервер может работать по HTTPS со своим сертификатом без обратного прокси; сопряжение проверяет, что он тот самый.</li>
           <li>The server core is published as a container image.</li>
           <li xml:lang="ru">Серверное ядро публикуется как образ контейнера.</li>
+          <li>A stopped download no longer comes back for a moment.</li>
+          <li xml:lang="ru">Остановленная загрузка больше не появляется снова на мгновение.</li>
         </ul>
       </description>
     </release>
