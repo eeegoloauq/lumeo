@@ -278,6 +278,7 @@ func importTitle(ctx context.Context, tx *sql.Tx, t personal.Title, counts *pers
 				duration = excluded.duration,
 				watched = excluded.watched,
 				updated_at = excluded.updated_at,
+				hidden = 0,
 				subtitle_delay = excluded.subtitle_delay
 			WHERE excluded.updated_at > progress.updated_at`,
 			id, p.Season, p.Episode, p.Position, p.Duration, p.Watched, p.UpdatedAt.Unix(), p.SubtitleDelay)

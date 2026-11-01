@@ -41,6 +41,8 @@ type Store interface {
 	AllProgress(context.Context) ([]Entry, error)
 	History(ctx context.Context, limit, offset int) ([]Entry, error)
 	DeleteProgress(context.Context, string, *int, *int) error
+	HideFromContinue(context.Context, string) error
+	HiddenFromContinue(context.Context) (map[string]bool, error)
 	Choice(context.Context, string) (Choice, error)
 	SaveChoice(context.Context, string, Choice, time.Time) error
 }
@@ -289,6 +291,12 @@ func (s *Service) Delete(ctx context.Context, itemID string, season, episode *in
 	return s.store.DeleteProgress(ctx, itemID, season, episode)
 }
 
+// HideFromContinue takes a title out of Continue watching, keeping where it
+// was left. It comes back the next time any of it is played or marked.
+func (s *Service) HideFromContinue(ctx context.Context, itemID string) error {
+	return s.store.HideFromContinue(ctx, itemID)
+}
+
 type ContinueItem struct {
 	Item      catalog.MediaItem `json:"item"`
 	Next      Entry             `json:"next"`
@@ -303,9 +311,16 @@ func (s *Service) Continue(ctx context.Context, limit int) ([]ContinueItem, erro
 	if s.catalog == nil || len(entries) == 0 {
 		return []ContinueItem{}, nil
 	}
+	hidden, err := s.store.HiddenFromContinue(ctx)
+	if err != nil {
+		return nil, err
+	}
 	grouped := make(map[string][]Entry)
 	var ids []string
 	for _, entry := range entries {
+		if hidden[entry.ItemID] {
+			continue
+		}
 		if _, ok := grouped[entry.ItemID]; !ok {
 			ids = append(ids, entry.ItemID)
 		}

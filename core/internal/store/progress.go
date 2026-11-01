@@ -21,6 +21,7 @@ func (d *DB) UpsertProgress(ctx context.Context, itemID string, entry progress.E
 			duration = excluded.duration,
 			watched = CASE WHEN ? THEN excluded.watched ELSE max(progress.watched, excluded.watched) END,
 			updated_at = excluded.updated_at,
+			hidden = 0,
 			subtitle_delay = CASE WHEN ? IS NULL THEN progress.subtitle_delay ELSE excluded.subtitle_delay END`,
 		itemID, entry.Season, entry.Episode, entry.Position, entry.Duration, entry.Watched, entry.UpdatedAt.Unix(), entry.SubtitleDelay, override, entry.SubtitleDelay)
 	if err != nil {
@@ -86,6 +87,36 @@ func (d *DB) DeleteProgress(ctx context.Context, itemID string, season, episode 
 		return fmt.Errorf("delete progress for %q: %w", itemID, err)
 	}
 	return nil
+}
+
+// HideFromContinue marks every entry of [itemID] hidden from Continue
+// watching, until the next write to one of them.
+func (d *DB) HideFromContinue(ctx context.Context, itemID string) error {
+	if _, err := d.db.ExecContext(ctx, "UPDATE progress SET hidden = 1 WHERE item_id = ?", itemID); err != nil {
+		return fmt.Errorf("hide %q from continue watching: %w", itemID, err)
+	}
+	return nil
+}
+
+// HiddenFromContinue is the titles whose every entry is hidden.
+func (d *DB) HiddenFromContinue(ctx context.Context) (map[string]bool, error) {
+	rows, err := d.db.QueryContext(ctx, "SELECT item_id FROM progress GROUP BY item_id HAVING min(hidden) = 1")
+	if err != nil {
+		return nil, fmt.Errorf("read hidden titles: %w", err)
+	}
+	defer rows.Close()
+	hidden := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("read hidden titles: %w", err)
+		}
+		hidden[id] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read hidden titles: %w", err)
+	}
+	return hidden, nil
 }
 
 func scanProgressRows(rows *sql.Rows) ([]progress.Entry, error) {

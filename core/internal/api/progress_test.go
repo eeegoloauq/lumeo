@@ -166,6 +166,46 @@ func TestProgressWatchedLatchRewatchAndExplicitReset(t *testing.T) {
 	}
 }
 
+// A title taken out of Continue watching keeps where it was left, and the
+// next play of any of it brings it back.
+func TestHideFromContinueUntilNextPlay(t *testing.T) {
+	h := progressServer(t)
+	continuing := func() int {
+		t.Helper()
+		var rows []progress.ContinueItem
+		rec := requestJSON(t, h, http.MethodGet, "/api/v1/continue", "")
+		if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &rows) != nil {
+			t.Fatalf("continue: status %d: %s", rec.Code, rec.Body)
+		}
+		return len(rows)
+	}
+	put := func(body string) {
+		t.Helper()
+		if rec := requestJSON(t, h, http.MethodPut, "/api/v1/progress/series", body); rec.Code != http.StatusOK {
+			t.Fatalf("put %s: status %d: %s", body, rec.Code, rec.Body)
+		}
+	}
+
+	put(`{"season":1,"episode":1,"position":40,"duration":100}`)
+	if rec := requestJSON(t, h, http.MethodDelete, "/api/v1/continue/series", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("hide: status %d: %s", rec.Code, rec.Body)
+	}
+	if n := continuing(); n != 0 {
+		t.Fatalf("hidden title still in continue watching: %d rows", n)
+	}
+	rec := requestJSON(t, h, http.MethodGet, "/api/v1/progress/series", "")
+	var watching progress.Watching
+	if json.Unmarshal(rec.Body.Bytes(), &watching) != nil || watching.Next == nil || watching.Next.Position != 40 {
+		t.Fatalf("hiding lost the position: %s", rec.Body)
+	}
+
+	// Played again, on another episode than the one hidden.
+	put(`{"season":1,"episode":2,"position":5,"duration":100}`)
+	if n := continuing(); n != 1 {
+		t.Fatalf("played again, continue watching has %d rows", n)
+	}
+}
+
 func TestProgressRoutesWithoutServiceSaySo(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	h := New(Deps{}, log).Handler()

@@ -23,6 +23,10 @@ func (m *memoryStore) History(context.Context, int, int) ([]Entry, error) {
 func (m *memoryStore) DeleteProgress(context.Context, string, *int, *int) error {
 	return nil
 }
+func (m *memoryStore) HideFromContinue(context.Context, string) error { panic("not used") }
+func (m *memoryStore) HiddenFromContinue(context.Context) (map[string]bool, error) {
+	return nil, nil
+}
 
 func (m *memoryStore) Choice(context.Context, string) (Choice, error) { return Choice{}, nil }
 func (m *memoryStore) SaveChoice(context.Context, string, Choice, time.Time) error {

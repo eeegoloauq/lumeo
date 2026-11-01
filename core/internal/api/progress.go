@@ -147,6 +147,19 @@ func (s *Server) handleDeleteProgress(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// handleHideFromContinue takes a title out of Continue watching until it is
+// next played.
+func (s *Server) handleHideFromContinue(w http.ResponseWriter, r *http.Request) {
+	if !s.haveProgress(w) {
+		return
+	}
+	if err := s.progress.HideFromContinue(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) handleContinue(w http.ResponseWriter, r *http.Request) {
 	if !s.haveProgress(w) {
 		return

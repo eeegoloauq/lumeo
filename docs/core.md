@@ -54,6 +54,7 @@ Every example needs the token as a header; with the core run as above, from `cor
          "localhost:7666/api/v1/progress/<id>"
     curl "localhost:7666/api/v1/progress/<id>"              # entries, what to play next, and an unaired one after
     curl "localhost:7666/api/v1/continue"                   # titles part-way through, latest first
+    curl -X DELETE "localhost:7666/api/v1/continue/<id>"    # out of that row until it is next played
     curl "localhost:7666/api/v1/searches"                   # what was searched for, latest first
 
 Item ids are Lumeo's own, created on first sight and mapped to imdb/tmdb/tvdb ids in SQLite.
