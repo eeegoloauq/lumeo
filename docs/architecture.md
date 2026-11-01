@@ -370,6 +370,13 @@ core. The server streams; this core passes the bytes on.
   the server's disk by joining files others started. The Keeper keeps every lasting holder's languages, or the
   owner's for a download nobody held. The manager keeps holds apart from
   rows, so a row written back later never takes a newer hold with it.
+- Preferences split by owner. The viewer's are this core's. The keep rules
+  are this device's, sent with its holds. The download folder, transfer
+  limits, keep policy, disk limit and the caps on devices are the server
+  owner's: a media server tells a device none of its folders (`/about`,
+  `/storage`), and this core's `/about` says `linked`, so Settings shows the
+  device's keep rules in their place. This core's own folder, limits and
+  keep policy are not shown either, since nothing new is downloaded here.
 - A server that does not answer leaves what is here working. `/sources` lists
   the copies on this machine and names the server as the provider that
   failed, and the download list is this core's. A refused credential

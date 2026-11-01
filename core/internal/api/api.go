@@ -89,10 +89,14 @@ type About struct {
 	Version string `json:"version"`
 	// Addr is the address the core listens on.
 	Addr    string `json:"addr"`
-	DataDir string `json:"dataDir"`
+	DataDir string `json:"dataDir,omitempty"`
 	// DownloadDir is where new downloads go; a core with downloads answers
 	// with theirs, which the preferences can move while it runs.
-	DownloadDir string `json:"downloadDir"`
+	DownloadDir string `json:"downloadDir,omitempty"`
+	// Linked is a core forwarding to a media server, where its downloads go
+	// and which keeps them by this device's keep rules: its own folder,
+	// limits and keep policy hold nothing new.
+	Linked bool `json:"linked,omitempty"`
 	// LogPath is the file the core's log goes to, when it is one; a log
 	// that goes to the journal or a terminal has no path to show.
 	LogPath string `json:"logPath,omitempty"`
@@ -322,10 +326,15 @@ func (s *Server) requireToken(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) handleAbout(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleAbout(w http.ResponseWriter, r *http.Request) {
 	about := s.about
+	about.Linked = s.remote != nil
 	if s.downloads != nil {
 		about.DownloadDir = s.downloads.Dir()
+	}
+	// The folders of a media server are its owner's, on the owner's machine.
+	if !s.viewerHere(r) {
+		about.DataDir, about.DownloadDir = "", ""
 	}
 	writeJSON(w, http.StatusOK, about)
 }

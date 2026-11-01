@@ -142,7 +142,9 @@ The rules are optional and keep what the hold had when left out. A hold lasts wh
 not run out: a watched file from the mark, an unwatched one from the device's last start or play
 or the download finishing, while bytes still arrive too. The server applies them whether or not
 the device is online, capped by the owner's `deviceMaxKeepDays` (30 unless set), and frees a
-download once no hold on it lasts. A device sees its own hold as `hold` in the download list.
+download once no hold on it lasts. A device sees its own hold as `hold` in the download list, and is not told the server's folders
+(`/about`, `/storage`): they are its owner's. A linked core's `/about` says `"linked": true`, for a
+client to show the device's keep rules in place of its own folder, limits and keep policy.
 
 A device deleting a download, or clearing a title from storage, lets go of its own hold: the
 download leaves that device's lists, stays for any device whose hold lasts, and goes, file and

@@ -31,7 +31,9 @@ type storageTitle struct {
 }
 
 type storageResponse struct {
-	Dir    string         `json:"dir"`
+	// Dir is where new downloads go, left out for a device of a media
+	// server: the folder is its owner's.
+	Dir    string         `json:"dir,omitempty"`
 	Disk   *library.Disk  `json:"disk,omitempty"`
 	Used   int64          `json:"used"`
 	Cache  int64          `json:"cache"`
@@ -73,6 +75,9 @@ func (s *Server) handleStorage(w http.ResponseWriter, r *http.Request) {
 	response.Cache = size
 	if disk, err := library.DiskUsage(response.Dir); err == nil {
 		response.Disk = &disk
+	}
+	if !s.viewerHere(r) {
+		response.Dir = ""
 	}
 	own, used := library.Usage(rows, s.downloads.Dirs)
 	response.Used = used

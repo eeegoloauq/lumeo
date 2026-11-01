@@ -232,6 +232,33 @@ func TestADeviceIsHeldToTheOwnersLimit(t *testing.T) {
 	}
 }
 
+// The folders of a media server are its owner's: a device is not told them.
+// A linked core says it is one, for the client to show the device's keep
+// rules rather than settings that hold nothing new.
+func TestAMediaServerKeepsItsFoldersFromDevices(t *testing.T) {
+	l := linkedCores(t, nil, laptopToken)
+	server := *l.served.Load()
+	for _, path := range []string{"/api/v1/about", "/api/v1/storage"} {
+		owner := deviceRequest(server, http.MethodGet, path, "server-token", "")
+		device := deviceRequest(server, http.MethodGet, path, laptopToken, "")
+		if owner.Code != http.StatusOK || device.Code != http.StatusOK {
+			t.Fatalf("%s: owner %d, device %d", path, owner.Code, device.Code)
+		}
+		if !strings.Contains(owner.Body.String(), `ir":"/`) {
+			t.Errorf("%s: the owner is not told the folder: %s", path, owner.Body)
+		}
+		if strings.Contains(device.Body.String(), `ir":`) {
+			t.Errorf("%s: a device is told a folder: %s", path, device.Body)
+		}
+	}
+	if rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/about", ""); !strings.Contains(rec.Body.String(), `"linked":true`) {
+		t.Errorf("a linked core's about: %s", rec.Body)
+	}
+	if w := deviceRequest(server, http.MethodGet, "/api/v1/about", "server-token", ""); strings.Contains(w.Body.String(), `"linked"`) {
+		t.Errorf("the server says it is linked: %s", w.Body)
+	}
+}
+
 // What a device of a media server is answered reads nothing of the owner's
 // data: its core ranks the copies and keeps the choice itself.
 func TestAMediaServerAnswersADeviceWithoutItsOwnersChoice(t *testing.T) {
