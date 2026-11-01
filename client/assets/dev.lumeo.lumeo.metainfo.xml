@@ -39,6 +39,24 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.22" date="2026-11-01" type="development">
+      <description>
+        <ul>
+          <li>Every server you connect to is kept: choose one in Settings › General without a new pairing code.</li>
+          <li xml:lang="ru">Каждый сервер, к которому вы подключались, сохраняется: выберите его в Настройках › Общие без нового кода.</li>
+          <li>A media server keeps the files, while your history, ratings and My list stay on this computer.</li>
+          <li xml:lang="ru">Медиасервер хранит файлы, а ваша история, оценки и «Мой список» остаются на этом компьютере.</li>
+          <li>On a media server, set in Settings › Downloads how long it keeps what you watched and what you did not.</li>
+          <li xml:lang="ru">На медиасервере в Настройках › Загрузки задаётся, сколько он хранит просмотренное и непросмотренное.</li>
+          <li>Export your history, ratings and My list to a file and import them on another core, in Settings › General.</li>
+          <li xml:lang="ru">Экспорт истории, оценок и «Моего списка» в файл и импорт на другом ядре в Настройках › Общие.</li>
+          <li>A server can serve HTTPS with its own certificate, without a reverse proxy; pairing proves it is the right one.</li>
+          <li xml:lang="ru">Сервер может работать по HTTPS со своим сертификатом без обратного прокси; сопряжение проверяет, что он тот самый.</li>
+          <li>The server core is published as a container image.</li>
+          <li xml:lang="ru">Серверное ядро публикуется как образ контейнера.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.21" date="2026-11-01" type="development">
       <description>
         <ul>
