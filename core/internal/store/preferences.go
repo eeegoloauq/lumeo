@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -39,7 +40,17 @@ func (d *DB) SetPreferences(ctx context.Context, changes map[string]json.RawMess
 		return fmt.Errorf("begin preference update: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := setPreferences(ctx, tx, changes); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit preference update: %w", err)
+	}
+	return nil
+}
 
+// setPreferences stores changes inside tx; a nil value deletes the key.
+func setPreferences(ctx context.Context, tx *sql.Tx, changes map[string]json.RawMessage) error {
 	now := time.Now().Unix()
 	for key, value := range changes {
 		if len(value) == 0 {
@@ -53,9 +64,6 @@ func (d *DB) SetPreferences(ctx context.Context, changes map[string]json.RawMess
 			ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`, key, string(value), now); err != nil {
 			return fmt.Errorf("write preference %q: %w", key, err)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit preference update: %w", err)
 	}
 	return nil
 }

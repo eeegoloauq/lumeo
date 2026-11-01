@@ -23,6 +23,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/config"
 	"github.com/eeegoloauq/lumeo/core/internal/library"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
+	"github.com/eeegoloauq/lumeo/core/internal/personal"
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
@@ -272,6 +273,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Ratings:     scores,
 		Addons:      installed,
 		Searches:    searches.New(db),
+		Personal:    personal.New(db, prefs),
 		About:       about,
 		Updates:     update.New(version),
 		Token:       secret,

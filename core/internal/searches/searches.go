@@ -48,7 +48,7 @@ func (s *Service) Recent(ctx context.Context) ([]string, error) {
 // Record remembers a search somebody went through with: the word they
 // submitted, or the one whose answer they opened. Not every keystroke.
 func (s *Service) Record(ctx context.Context, query string) error {
-	query, err := normalize(query)
+	query, err := Normalize(query)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (s *Service) Record(ctx context.Context, query string) error {
 }
 
 func (s *Service) Forget(ctx context.Context, query string) error {
-	query, err := normalize(query)
+	query, err := Normalize(query)
 	if err != nil {
 		return err
 	}
@@ -67,8 +67,8 @@ func (s *Service) Clear(ctx context.Context) error {
 	return s.store.ClearSearches(ctx)
 }
 
-// normalize is the query as it is kept: its words, one space between them.
-func normalize(query string) (string, error) {
+// Normalize is the query as it is kept: its words, one space between them.
+func Normalize(query string) (string, error) {
 	query = strings.Join(strings.Fields(query), " ")
 	if query == "" || utf8.RuneCountInString(query) > maxLength {
 		return "", ErrInvalid

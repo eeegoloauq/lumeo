@@ -57,6 +57,19 @@ Every example needs the token as a header; with the core run as above, from `cor
 Item ids are Lumeo's own, created on first sight and mapped to imdb/tmdb/tvdb ids in SQLite.
 `/api/v1/sources` also accepts `imdb=tt...`.
 
+The viewer's own data moves between cores as one file: watch progress, scores, My list, picked
+audio and subtitle tracks, searches and the personal preferences (languages, subtitle look, accent,
+player timings). Downloads, addons and the machine's preferences (download folder, keep, limits,
+updates) stay. Titles are named by IMDb id; progress on a local file no title matched stays behind.
+
+    curl "localhost:7666/api/v1/personal" -o lumeo.json
+    curl -X POST -H 'content-type: application/json' --data-binary @lumeo.json \
+         "localhost:7666/api/v1/personal"     # what it changed, by kind
+
+An import merges: of two entries for the same episode or score the later one wins, an entry on My
+list keeps its date, and nothing is removed. A second import of the same file changes nothing.
+One invalid entry refuses the whole file, and nothing is written.
+
 Downloads take the source object from `/api/v1/sources` unchanged:
 
     curl -X POST localhost:7666/api/v1/downloads -d '{"itemId":"<id>","season":2,"episode":3,"source":{...}}'

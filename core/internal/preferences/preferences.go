@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -218,14 +219,15 @@ func (s *Service) Reset(ctx context.Context) (Preferences, error) {
 	for key := range stored {
 		changes[key] = nil
 	}
-	return s.commit(ctx, changes)
-}
-
-// commit stores changes and tells the subscribers. The caller holds mu.
-func (s *Service) commit(ctx context.Context, changes map[string]json.RawMessage) (Preferences, error) {
 	if err := s.store.SetPreferences(ctx, changes); err != nil {
 		return Preferences{}, err
 	}
+	return s.notify(ctx)
+}
+
+// notify tells the subscribers the document as it is after a change. The
+// caller holds mu.
+func (s *Service) notify(ctx context.Context) (Preferences, error) {
 	prefs, err := s.Get(ctx)
 	if err != nil {
 		return Preferences{}, err
@@ -262,13 +264,35 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 	if err := json.Unmarshal(body, &document); err != nil || document == nil {
 		return Preferences{}, invalidf("request body must be a JSON object")
 	}
+	changes, err := validate(document)
+	if err != nil {
+		return Preferences{}, err
+	}
+	if raw, ok := document["downloadDir"]; ok && string(raw) != "null" {
+		var err error
+		if changes["downloadDir"], err = directory("downloadDir", raw); err != nil {
+			return Preferences{}, err
+		}
+	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.store.SetPreferences(ctx, changes); err != nil {
+		return Preferences{}, err
+	}
+	return s.notify(ctx)
+}
+
+// validate checks and normalises every key of document but downloadDir,
+// which Patch checks last: checking it makes the folder, which a document
+// refused for another key must not leave behind. A null is the reset, for
+// every key alike, and comes back as a nil value.
+func validate(document map[string]json.RawMessage) (map[string]json.RawMessage, error) {
 	changes := make(map[string]json.RawMessage, len(document))
 	for key, raw := range document {
-		// null is the reset, for every key alike.
 		if string(raw) == "null" {
 			if !known(key) {
-				return Preferences{}, invalidf("unknown preference %q", key)
+				return nil, invalidf("unknown preference %q", key)
 			}
 			changes[key] = nil
 			continue
@@ -312,8 +336,6 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 		case "seekStep":
 			changes[key], err = integer(key, raw, 1, 60)
 		case "downloadDir":
-			// Checked last, below: it makes the folder, which a document
-			// refused for another key must not leave behind.
 			continue
 		case "uploadLimit", "downloadLimit":
 			changes[key], err = integer(key, raw, 0, maxRate)
@@ -321,19 +343,72 @@ func (s *Service) Patch(ctx context.Context, body []byte) (Preferences, error) {
 			err = invalidf("unknown preference %q", key)
 		}
 		if err != nil {
-			return Preferences{}, err
+			return nil, err
 		}
 	}
-	if raw, ok := document["downloadDir"]; ok && string(raw) != "null" {
-		var err error
-		if changes["downloadDir"], err = directory("downloadDir", raw); err != nil {
-			return Preferences{}, err
-		}
-	}
+	return changes, nil
+}
 
+// personalKeys are the viewer's own: which languages and how subtitles look,
+// the accent, the player's timings. The others belong to the machine the core
+// runs on (where it downloads, what it keeps and sends, whether it updates)
+// and stay with that core when a viewer's data moves to another.
+var personalKeys = []string{
+	"subtitleLanguages", "audioLanguages", "subtitleMode", "subtitlesWithAudio", "subtitleScale",
+	"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
+	"episodeArtwork", "accent", "askCopy", "nextCountdown", "nextNotice", "seekStep",
+}
+
+// Personal reports whether key is one of the viewer's own preferences.
+func Personal(key string) bool {
+	return slices.Contains(personalKeys, key)
+}
+
+// StoredPersonal returns the personal preferences that are set. A key left at
+// its default is not among them, so it takes the default of whichever core
+// reads it next; nor is a stored value this core would refuse, which Get
+// skips too.
+func (s *Service) StoredPersonal(ctx context.Context) (map[string]json.RawMessage, error) {
+	stored, err := s.store.Preferences(ctx)
+	if err != nil {
+		return nil, err
+	}
+	personal := make(map[string]json.RawMessage)
+	for key, value := range stored {
+		if !Personal(key) {
+			continue
+		}
+		if valid, err := validate(map[string]json.RawMessage{key: value}); err == nil {
+			personal[key] = valid[key]
+		}
+	}
+	return personal, nil
+}
+
+// ValidatePersonal checks document as Patch would and returns the values to
+// store. It takes personal keys only, each with a value, and stores nothing.
+func ValidatePersonal(document map[string]json.RawMessage) (map[string]json.RawMessage, error) {
+	for key, raw := range document {
+		if !Personal(key) {
+			return nil, invalidf("%q is not a personal preference", key)
+		}
+		if string(raw) == "null" {
+			return nil, invalidf("%s must have a value", key)
+		}
+	}
+	return validate(document)
+}
+
+// Write runs write, which stores preference changes together with whatever
+// else it commits, in turn with Patch and Reset, and then tells the
+// subscribers as they do.
+func (s *Service) Write(ctx context.Context, write func(context.Context) error) (Preferences, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.commit(ctx, changes)
+	if err := write(ctx); err != nil {
+		return Preferences{}, err
+	}
+	return s.notify(ctx)
 }
 
 func known(key string) bool {

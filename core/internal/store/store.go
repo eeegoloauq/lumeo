@@ -129,77 +129,82 @@ func (d *DB) UpsertItems(ctx context.Context, namespace string, items []catalog.
 		return nil, fmt.Errorf("begin item upsert: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-
 	for i, incoming := range items {
-		externalID := incoming.ExternalIDs[namespace]
-		if externalID == "" {
+		if incoming.ExternalIDs[namespace] == "" {
 			continue
 		}
-
-		itemID, found, err := findItemID(ctx, tx, namespace, externalID)
-		if err != nil {
+		if result[i], err = upsertItem(ctx, tx, namespace, incoming, detailed); err != nil {
 			return nil, err
 		}
-
-		var stored catalog.MediaItem
-		var storedDetailed bool
-		if found {
-			stored, storedDetailed, err = itemInTx(ctx, tx, itemID)
-		} else {
-			itemID, err = newItemID()
-		}
-		if err != nil {
-			return nil, err
-		}
-		// A row is one answer whole, so a field the source drops is gone and
-		// a new field needs nothing here. A catalog row lacks what only Meta
-		// has, the episodes and trailers, so it leaves Meta's answer be.
-		merged := incoming
-		if storedDetailed && !detailed {
-			merged = stored
-		}
-		merged.ID = itemID
-		merged.ExternalIDs = mergeMaps(stored.ExternalIDs, incoming.ExternalIDs)
-
-		payload, err := json.Marshal(merged)
-		if err != nil {
-			return nil, fmt.Errorf("encode item %q: %w", itemID, err)
-		}
-		now := time.Now().Unix()
-		if found {
-			_, err = tx.ExecContext(ctx, `
-				UPDATE items
-				SET kind = ?, title = ?, year = ?, payload = ?,
-				    detailed = CASE WHEN detailed = 1 OR ? THEN 1 ELSE 0 END,
-				    updated_at = CASE WHEN detailed = 0 OR ? THEN ? ELSE updated_at END
-				WHERE id = ?`, merged.Kind, merged.Title, merged.Year, payload, detailed, detailed, now, itemID)
-		} else {
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO items(id, kind, title, year, payload, detailed, updated_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?)`, itemID, merged.Kind, merged.Title, merged.Year, payload, detailed, now)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("write item %q: %w", itemID, err)
-		}
-
-		for externalNamespace, id := range merged.ExternalIDs {
-			if id == "" {
-				continue
-			}
-			if _, err := tx.ExecContext(ctx, `
-				INSERT INTO external_ids(namespace, external_id, item_id)
-				VALUES (?, ?, ?)
-				ON CONFLICT(namespace, external_id) DO NOTHING`, externalNamespace, id, itemID); err != nil {
-				return nil, fmt.Errorf("write external id %s:%s: %w", externalNamespace, id, err)
-			}
-		}
-		result[i] = merged
 	}
-
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit item upsert: %w", err)
 	}
 	return result, nil
+}
+
+// upsertItem writes one item inside tx, matched on its id in namespace, and
+// returns it with our id.
+func upsertItem(ctx context.Context, tx *sql.Tx, namespace string, incoming catalog.MediaItem, detailed bool) (catalog.MediaItem, error) {
+	externalID := incoming.ExternalIDs[namespace]
+	itemID, found, err := findItemID(ctx, tx, namespace, externalID)
+	if err != nil {
+		return catalog.MediaItem{}, err
+	}
+
+	var stored catalog.MediaItem
+	var storedDetailed bool
+	if found {
+		stored, storedDetailed, err = itemInTx(ctx, tx, itemID)
+	} else {
+		itemID, err = newItemID()
+	}
+	if err != nil {
+		return catalog.MediaItem{}, err
+	}
+	// A row is one answer whole, so a field the source drops is gone and
+	// a new field needs nothing here. A catalog row lacks what only Meta
+	// has, the episodes and trailers, so it leaves Meta's answer be.
+	merged := incoming
+	if storedDetailed && !detailed {
+		merged = stored
+	}
+	merged.ID = itemID
+	merged.ExternalIDs = mergeMaps(stored.ExternalIDs, incoming.ExternalIDs)
+
+	payload, err := json.Marshal(merged)
+	if err != nil {
+		return catalog.MediaItem{}, fmt.Errorf("encode item %q: %w", itemID, err)
+	}
+	now := time.Now().Unix()
+	if found {
+		_, err = tx.ExecContext(ctx, `
+			UPDATE items
+			SET kind = ?, title = ?, year = ?, payload = ?,
+			    detailed = CASE WHEN detailed = 1 OR ? THEN 1 ELSE 0 END,
+			    updated_at = CASE WHEN detailed = 0 OR ? THEN ? ELSE updated_at END
+			WHERE id = ?`, merged.Kind, merged.Title, merged.Year, payload, detailed, detailed, now, itemID)
+	} else {
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO items(id, kind, title, year, payload, detailed, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`, itemID, merged.Kind, merged.Title, merged.Year, payload, detailed, now)
+	}
+	if err != nil {
+		return catalog.MediaItem{}, fmt.Errorf("write item %q: %w", itemID, err)
+	}
+
+	for externalNamespace, id := range merged.ExternalIDs {
+		if id == "" {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO external_ids(namespace, external_id, item_id)
+			VALUES (?, ?, ?)
+			ON CONFLICT(namespace, external_id) DO NOTHING`, externalNamespace, id, itemID); err != nil {
+			return catalog.MediaItem{}, fmt.Errorf("write external id %s:%s: %w", externalNamespace, id, err)
+		}
+	}
+	return merged, nil
 }
 
 func (d *DB) Item(ctx context.Context, id string) (catalog.MediaItem, catalog.ItemState, error) {

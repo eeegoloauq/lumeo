@@ -23,6 +23,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/flight"
 	"github.com/eeegoloauq/lumeo/core/internal/library"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
+	"github.com/eeegoloauq/lumeo/core/internal/personal"
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/ratings"
@@ -48,6 +49,7 @@ type Server struct {
 	ratings   *ratings.Service
 	addons    *addons.Service
 	searches  *searches.Service
+	personal  *personal.Service
 	about     About
 	updates   *update.Checker
 	token     string
@@ -106,6 +108,7 @@ type Deps struct {
 	Ratings     *ratings.Service
 	Addons      *addons.Service
 	Searches    *searches.Service
+	Personal    *personal.Service
 	About       About
 	Updates     *update.Checker
 	// Token is what every request but artwork has to present, as
@@ -138,6 +141,7 @@ func New(deps Deps, log *slog.Logger) *Server {
 		ratings:   deps.Ratings,
 		addons:    deps.Addons,
 		searches:  deps.Searches,
+		personal:  deps.Personal,
 		about:     deps.About,
 		updates:   deps.Updates,
 		token:     deps.Token,
@@ -196,6 +200,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/progress/{id}", s.handleDeleteProgress)
 	mux.HandleFunc("GET /api/v1/continue", s.handleContinue)
 	mux.HandleFunc("GET /api/v1/history", s.handleHistory)
+	mux.HandleFunc("GET /api/v1/personal", s.handleExportPersonal)
+	mux.HandleFunc("POST /api/v1/personal", s.handleImportPersonal)
 	mux.HandleFunc("GET /api/v1/list", s.handleList)
 	mux.HandleFunc("GET /api/v1/list/{id}", s.handleListEntry)
 	mux.HandleFunc("PUT /api/v1/list/{id}", s.handleAddToList)

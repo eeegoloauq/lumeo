@@ -55,6 +55,8 @@
     internal/searches  what the viewer searched for, the last ten, once per
                        word: recorded when a search is submitted or one of
                        its answers opened, never per keystroke
+    internal/personal  the viewer's own data as one file, titles named by
+                       IMDb id, for moving it to another core
     internal/token     the API token in the data directory
     internal/release   release-name parser (the structure addons do not give us)
     internal/library   the keep policy: frees watched downloads when Keep or

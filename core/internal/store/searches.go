@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -29,13 +30,21 @@ func (d *DB) RecordSearch(ctx context.Context, query string, at time.Time, keep 
 		strings.ToLower(query), query, at.UnixMilli()); err != nil {
 		return fmt.Errorf("record search: %w", err)
 	}
+	if err := trimSearches(ctx, tx, keep); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// trimSearches forgets all but the latest keep.
+func trimSearches(ctx context.Context, tx *sql.Tx, keep int) error {
 	if _, err := tx.ExecContext(ctx, `
 		DELETE FROM searches WHERE key NOT IN (
 			SELECT key FROM searches ORDER BY searched_at DESC, rowid DESC LIMIT ?
 		)`, keep); err != nil {
 		return fmt.Errorf("trim searches: %w", err)
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (d *DB) Searches(ctx context.Context) ([]string, error) {
