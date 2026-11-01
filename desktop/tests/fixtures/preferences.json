@@ -23,5 +23,8 @@
   "keepDays": 30,
   "downloadDir": "",
   "uploadLimit": 0,
-  "downloadLimit": 0
+  "downloadLimit": 0,
+  "deviceMaxKeepDays": 30,
+  "serverKeepWatchedDays": 1,
+  "serverKeepUnwatchedDays": 7
 }

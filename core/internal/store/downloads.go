@@ -159,13 +159,13 @@ func (d *DB) SaveHolds(ctx context.Context, id string, holds []acquire.Hold) err
 		if err != nil {
 			return err
 		}
-		var watchedAt int64
-		if !hold.WatchedAt.IsZero() {
-			watchedAt = hold.WatchedAt.Unix()
-		}
-		if _, err := tx.ExecContext(ctx,
-			"INSERT INTO holds(download_id, device_id, watched_at, subtitle_languages) VALUES (?, ?, ?, ?)",
-			id, hold.Device, watchedAt, string(languages)); err != nil {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO holds(
+				download_id, device_id, watched_at, subtitle_languages,
+				keep_watched_days, keep_unwatched_days, active_at, released_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, hold.Device, unixOrZero(hold.WatchedAt), string(languages),
+			hold.KeepWatchedDays, hold.KeepUnwatchedDays, unixOrZero(hold.ActiveAt), unixOrZero(hold.ReleasedAt)); err != nil {
 			return fmt.Errorf("save holds of %q: %w", id, err)
 		}
 	}
@@ -176,7 +176,8 @@ func (d *DB) SaveHolds(ctx context.Context, id string, holds []acquire.Hold) err
 // by download.
 func (d *DB) holds(ctx context.Context, id string) (map[string][]acquire.Hold, error) {
 	rows, err := d.db.QueryContext(ctx, `
-		SELECT download_id, device_id, watched_at, subtitle_languages
+		SELECT download_id, device_id, watched_at, subtitle_languages,
+		       keep_watched_days, keep_unwatched_days, active_at, released_at
 		FROM holds
 		WHERE ? = '' OR download_id = ?
 		ORDER BY download_id, device_id`, id, id)
@@ -188,20 +189,34 @@ func (d *DB) holds(ctx context.Context, id string) (map[string][]acquire.Hold, e
 	for rows.Next() {
 		var download, languages string
 		var hold acquire.Hold
-		var watchedAt int64
-		if err := rows.Scan(&download, &hold.Device, &watchedAt, &languages); err != nil {
+		var watchedAt, activeAt, releasedAt int64
+		if err := rows.Scan(&download, &hold.Device, &watchedAt, &languages,
+			&hold.KeepWatchedDays, &hold.KeepUnwatchedDays, &activeAt, &releasedAt); err != nil {
 			return nil, fmt.Errorf("read holds: %w", err)
 		}
 		if err := json.Unmarshal([]byte(languages), &hold.SubtitleLanguages); err != nil {
 			return nil, fmt.Errorf("read holds of %q: %w", download, err)
 		}
-		if watchedAt != 0 {
-			hold.WatchedAt = time.Unix(watchedAt, 0).UTC()
-		}
+		hold.WatchedAt, hold.ActiveAt, hold.ReleasedAt = timeOrZero(watchedAt), timeOrZero(activeAt), timeOrZero(releasedAt)
 		out[download] = append(out[download], hold)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("read holds: %w", err)
 	}
 	return out, nil
+}
+
+// unixOrZero and timeOrZero keep a zero time as 0 in a column.
+func unixOrZero(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.Unix()
+}
+
+func timeOrZero(unix int64) time.Time {
+	if unix == 0 {
+		return time.Time{}
+	}
+	return time.Unix(unix, 0).UTC()
 }

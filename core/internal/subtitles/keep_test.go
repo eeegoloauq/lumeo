@@ -154,8 +154,9 @@ func TestKeeperTriesAgainWhenNoProviderAnswers(t *testing.T) {
 }
 
 // A download devices hold on a media server keeps what each of them wants,
-// not what the server's own viewer does; a device changing its languages
-// gets the new one on the next pass.
+// not what the server's own viewer does, and nothing for a device that let
+// go of it; a device changing its languages gets the new one on the next
+// pass.
 func TestKeeperKeepsTheLanguagesOfTheDevicesHoldingADownload(t *testing.T) {
 	files := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "1\n00:00:01,000 --> 00:00:02,000\n"+r.URL.Path+"\n")
@@ -168,7 +169,11 @@ func TestKeeperKeepsTheLanguagesOfTheDevicesHoldingADownload(t *testing.T) {
 	}}}
 	keeper, row := testKeeper(t, p, "fr")
 	downloads := keeper.downloads.(*keepDownloads)
-	downloads.row.Holds = []acquire.Hold{{Device: "laptop", SubtitleLanguages: []string{"ru"}}, {Device: "tv", SubtitleLanguages: []string{}}}
+	downloads.row.Holds = []acquire.Hold{
+		{Device: "laptop", SubtitleLanguages: []string{"ru"}},
+		{Device: "tv", SubtitleLanguages: []string{}},
+		{Device: "phone", SubtitleLanguages: []string{"fr"}, ReleasedAt: time.Unix(1_700_000_000, 0)},
+	}
 
 	languages := func() []string {
 		var out []string

@@ -129,10 +129,18 @@ on its next answer: the linked core forwards nothing more and answers 502 saying
 
 A media server answers a device's request for personal data (progress, history, My list,
 scores, choices, searches, preferences, the export) with 403. The owner's token, which stays on
-the server's machine, keeps a full core there. Each device holds the downloads it started or
-played, saying whether its viewer watched the episode and which subtitle languages to keep:
+the server's machine, keeps a full core there. Starting or playing a download makes a device's
+hold on it; the device then says whether its viewer watched the episode, which subtitle languages
+to keep, and its keep rules in days (`serverKeepWatchedDays` and `serverKeepUnwatchedDays` in its
+own core's preferences, 1 and 7 unless set):
 
     curl -X PUT -H "Authorization: Bearer <device credential>" -H 'content-type: application/json' \
-         -d '{"watched":true,"subtitleLanguages":["ru","en"]}' "https://lumeo.example.com/api/v1/downloads/<id>/hold"
+         -d '{"watched":true,"subtitleLanguages":["ru","en"],"keepWatchedDays":1,"keepUnwatchedDays":7}' \
+         "https://lumeo.example.com/api/v1/downloads/<id>/hold"
 
-A device sees its own hold as `hold` in the download list. Revoking a device releases its holds.
+The rules are optional and keep what the hold had when left out. A hold lasts while its rule has
+not run out: a watched file from the mark, an unwatched one from the device's last start or play
+or the download finishing, while bytes still arrive too. The server applies them whether or not
+the device is online, capped by the owner's `deviceMaxKeepDays` (30 unless set), and frees a
+download once no hold on it lasts. A device sees its own hold as `hold` in the download list.
+Revoking a device releases its holds.

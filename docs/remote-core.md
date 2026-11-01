@@ -117,6 +117,16 @@ without a client links with `lumeo-core link` ([core](core.md), Linked to a
 server). Forgetting the media server in General unlinks the core; revoke the
 device on the server to remove its access.
 
+A device keeps a file on the server by its own keep rules, set on its own
+core: a watched file one day, an unwatched one seven days after it was last
+started or played. The server applies them while the device is offline too,
+and no device keeps a file longer than the owner's maximum, thirty days unless
+set with the owner token on the server:
+
+    curl -X PATCH -H "Authorization: Bearer $(sudo cat /var/lib/lumeo/api-token)" \
+         -H 'content-type: application/json' -d '{"deviceMaxKeepDays":14}' \
+         localhost:7666/api/v1/preferences
+
 Changing the mode of a server with data is a migration: export each viewer's
 personal data first, and import it on their device. A client connected to the
 server directly notices the change on its next answer and hands its
@@ -128,8 +138,9 @@ The existing [keep policy](decisions/downloads.md) applies: the default retains
 watched files for thirty days, with a disk limit. Until watched frees them after
 the settling period. Active streams are protected. Unwatched and prefetched
 episodes are not automatically evicted by the limit; admission checks refuse
-downloads that would exhaust available disk. Torrent upload limits are separate
-from HTTP delivery.
+downloads that would exhaust available disk. On a media server a file its
+devices hold goes by their keep rules instead, watched or not, once no hold
+on it lasts. Torrent upload limits are separate from HTTP delivery.
 
 Check `systemctl is-active lumeo-core` and an authenticated `GET /healthz` through
 public HTTPS. Verify that an unauthenticated call returns 401. Before considering

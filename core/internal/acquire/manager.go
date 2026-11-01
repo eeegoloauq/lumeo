@@ -339,32 +339,63 @@ func (m *Manager) SetPaused(ctx context.Context, id string, paused bool) (Downlo
 	return current, nil
 }
 
-// SetHold records what a device says of a download: whether its viewer
-// watched the episode, the mark keeping the time it was first made, and the
-// subtitle languages it wants kept with the file.
-func (m *Manager) SetHold(ctx context.Context, id, device string, watched bool, languages []string) (Hold, error) {
+// activeGrain is how close two activities of a device on a download are
+// kept as one: a player reconnects on every seek, and the clock they restart
+// counts in days.
+const activeGrain = time.Minute
+
+// Hold applies what a device says or does about a download to its hold, and
+// returns the hold. A device's first word makes it, with the default keep
+// rules until it sends its own. A watched mark keeps the time it was first
+// made.
+func (m *Manager) Hold(ctx context.Context, id, device string, change HoldChange) (Hold, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, ok := m.rows[id]; !ok {
 		return Hold{}, ErrNotFound
 	}
-	hold := Hold{Device: device, SubtitleLanguages: slices.Clone(languages)}
+	now := m.now()
+	hold := Hold{
+		Device: device, SubtitleLanguages: []string{}, ActiveAt: now,
+		KeepWatchedDays: DefaultKeepWatchedDays, KeepUnwatchedDays: DefaultKeepUnwatchedDays,
+	}
 	holds := make([]Hold, 0, len(m.held[id])+1)
+	known := false
 	for _, h := range m.held[id] {
 		if h.Device == device {
-			hold.WatchedAt = h.WatchedAt
+			hold, known = h, true
 			continue
 		}
 		holds = append(holds, h)
 	}
+	before := hold
 	switch {
-	case !watched:
+	case change.Watched == nil:
+	case !*change.Watched:
 		hold.WatchedAt = time.Time{}
 	case hold.WatchedAt.IsZero():
-		hold.WatchedAt = m.now()
+		hold.WatchedAt = now
 	}
-	if hold.SubtitleLanguages == nil {
-		hold.SubtitleLanguages = []string{}
+	if change.SubtitleLanguages != nil {
+		hold.SubtitleLanguages = slices.Clone(change.SubtitleLanguages)
+	}
+	if change.KeepWatchedDays != nil {
+		hold.KeepWatchedDays = *change.KeepWatchedDays
+	}
+	if change.KeepUnwatchedDays != nil {
+		hold.KeepUnwatchedDays = *change.KeepUnwatchedDays
+	}
+	if change.Active {
+		hold.ReleasedAt = time.Time{}
+		if now.Sub(hold.ActiveAt) >= activeGrain {
+			hold.ActiveAt = now
+		}
+	}
+	if change.Release && hold.ReleasedAt.IsZero() {
+		hold.ReleasedAt = now
+	}
+	if known && sameHold(before, hold) {
+		return hold, nil
 	}
 	holds = append(holds, hold)
 	if err := m.store.SaveHolds(ctx, id, holds); err != nil {
@@ -374,15 +405,24 @@ func (m *Manager) SetHold(ctx context.Context, id, device string, watched bool, 
 	return hold, nil
 }
 
-// ReleaseDevice takes a device's holds off every download: it was revoked.
+func sameHold(a, b Hold) bool {
+	return a.WatchedAt.Equal(b.WatchedAt) && slices.Equal(a.SubtitleLanguages, b.SubtitleLanguages) &&
+		a.KeepWatchedDays == b.KeepWatchedDays && a.KeepUnwatchedDays == b.KeepUnwatchedDays &&
+		a.ActiveAt.Equal(b.ActiveAt) && a.ReleasedAt.Equal(b.ReleasedAt)
+}
+
+// ReleaseDevice lets go of every download a device holds: it was revoked.
 func (m *Manager) ReleaseDevice(ctx context.Context, device string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	now := m.now()
 	for id, holds := range m.held {
-		kept := slices.DeleteFunc(slices.Clone(holds), func(h Hold) bool { return h.Device == device })
-		if len(kept) == len(holds) {
+		i := slices.IndexFunc(holds, func(h Hold) bool { return h.Device == device && h.ReleasedAt.IsZero() })
+		if i < 0 {
 			continue
 		}
+		kept := slices.Clone(holds)
+		kept[i].ReleasedAt = now
 		if err := m.store.SaveHolds(ctx, id, kept); err != nil {
 			return err
 		}

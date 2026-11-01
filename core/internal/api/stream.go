@@ -63,6 +63,8 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	if s.library != nil {
 		s.library.Opened(id)
 	}
+	// Playing a download is holding it, whoever started it.
+	s.touchHold(r, id, acquire.HoldChange{})
 
 	name := filepath.Base(file.Path())
 	// Set the type ourselves: left to sniff, ServeContent reads the first 512

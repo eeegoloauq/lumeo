@@ -95,15 +95,49 @@ type Download struct {
 
 // Hold is a device's interest in a download on a media server, whose
 // devices keep their viewers' progress themselves: whether its viewer
-// watched the episode, which the keep policy needs to free the file, and the
-// subtitle languages it wants kept with it. Each device says only its own,
-// so one device's word never overrides another's.
+// watched the episode, the subtitle languages it wants kept with the file,
+// and how long the device wants the file kept. Each device says only its
+// own, so one device's word never overrides another's. The file stays while
+// any hold on it lasts (library.Lasts).
 type Hold struct {
 	Device string `json:"-"`
 	// WatchedAt is when the device said its viewer watched the episode, zero
 	// while they have not.
 	WatchedAt         time.Time `json:"watchedAt,omitzero"`
 	SubtitleLanguages []string  `json:"subtitleLanguages"`
+	// KeepWatchedDays and KeepUnwatchedDays are the device's keep rules: how
+	// long the file stays once its viewer watched it, and how long after the
+	// last activity on it while they have not.
+	KeepWatchedDays   int `json:"keepWatchedDays"`
+	KeepUnwatchedDays int `json:"keepUnwatchedDays"`
+	// ActiveAt is the device's last activity on the download: starting it,
+	// or a stream of it opening.
+	ActiveAt time.Time `json:"activeAt"`
+	// ReleasedAt is when the device let go of the download, by deleting it
+	// or being revoked; zero while it holds it. A released hold stays on
+	// record, so the file goes once no hold lasts rather than looking like
+	// one nobody ever held.
+	ReleasedAt time.Time `json:"releasedAt,omitzero"`
+}
+
+// The keep rules of a hold whose device sent none.
+const (
+	DefaultKeepWatchedDays   = 1
+	DefaultKeepUnwatchedDays = 7
+)
+
+// HoldChange is what a device says or does about a download it holds. A nil
+// field leaves what the hold had.
+type HoldChange struct {
+	Watched           *bool
+	SubtitleLanguages []string
+	KeepWatchedDays   *int
+	KeepUnwatchedDays *int
+	// Active is the device starting the download or playing it: its
+	// unwatched clock starts again, and a hold it released is taken back.
+	Active bool
+	// Release lets go of the download.
+	Release bool
 }
 
 // ExtrasDir is where files that go with the download but are not its bytes,

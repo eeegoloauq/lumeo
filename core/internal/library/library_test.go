@@ -212,19 +212,65 @@ func TestUntilWatchedFreesWhatIsWatched(t *testing.T) {
 	}
 }
 
-// On a media server each device holding a download says whether its viewer
-// watched it, their progress being kept on the device. The file goes once
-// everyone with a say has watched it, counted from the last of them, settle
-// time included: one device's word is not another's.
-func TestADownloadIsWatchedWhenEveryoneHoldingItWatchedIt(t *testing.T) {
-	s, downloads := library(t, preferences.Preferences{Keep: "watched"})
-	watched := func(ago time.Duration) acquire.Hold { return acquire.Hold{WatchedAt: now.Add(-ago)} }
+// A device's hold lasts by its keep rules, capped by the owner's maximum: a
+// watched one from the mark or a later play, the settle time at least; an
+// unwatched one from the device's last start or play, or the download's
+// finishing, and for as long as bytes arrive. A released hold lasts no more.
+func TestAHoldLastsByItsDevicesKeepRules(t *testing.T) {
+	ago := func(d time.Duration) time.Time { return now.Add(-d) }
+	hold := func(watched, active time.Duration) acquire.Hold {
+		h := acquire.Hold{KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: ago(active)}
+		if watched >= 0 {
+			h.WatchedAt = ago(watched)
+		}
+		return h
+	}
+	const unwatched = -1
+	done := acquire.Download{State: acquire.StateDone, UpdatedAt: ago(30 * day)}
+	for _, tc := range []struct {
+		name    string
+		hold    acquire.Hold
+		row     acquire.Download
+		maxDays int
+		want    bool
+	}{
+		{"watched within its day", hold(20*time.Hour, 3*day), done, 30, true},
+		{"watched past its day", hold(25*time.Hour, 3*day), done, 30, false},
+		{"watched, played again since", hold(2*day, 2*time.Hour), done, 30, true},
+		{"watched with no days, settling", func() acquire.Hold { h := hold(time.Minute, day); h.KeepWatchedDays = 0; return h }(), done, 30, true},
+		{"watched with no days, settled", func() acquire.Hold { h := hold(settle, day); h.KeepWatchedDays = 0; return h }(), done, 30, false},
+		{"unwatched, played six days ago", hold(unwatched, 6*day), done, 30, true},
+		{"unwatched, played eight days ago", hold(unwatched, 8*day), done, 30, false},
+		{"unwatched, finished since it was started", hold(unwatched, 8*day), acquire.Download{State: acquire.StateDone, UpdatedAt: ago(2 * day)}, 30, true},
+		{"unwatched, still arriving", hold(unwatched, 30*day), acquire.Download{State: acquire.StateActive, UpdatedAt: ago(30 * day)}, 30, true},
+		{"unwatched, stalled for weeks", hold(unwatched, 30*day), acquire.Download{State: acquire.StateActive, UpdatedAt: ago(30 * day), WaitingSince: ago(29 * day)}, 30, false},
+		{"unwatched, paused for weeks", hold(unwatched, 30*day), acquire.Download{State: acquire.StatePaused, UpdatedAt: ago(30 * day)}, 30, false},
+		{"a year asked, the owner's month given", func() acquire.Hold { h := hold(unwatched, 31*day); h.KeepUnwatchedDays = 365; return h }(), done, 30, false},
+		{"a year asked, within the owner's month", func() acquire.Hold { h := hold(unwatched, 29*day); h.KeepUnwatchedDays = 365; return h }(), done, 30, true},
+		{"released", func() acquire.Hold { h := hold(unwatched, time.Hour); h.ReleasedAt = ago(time.Minute); return h }(), done, 30, false},
+	} {
+		if got := Lasts(tc.hold, tc.row, now, tc.maxDays); got != tc.want {
+			t.Errorf("%s: lasts = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// On a media server a download its devices hold goes once none of their
+// holds lasts, watched or not and whatever Keep says, so nothing a device
+// holds stays forever. One that a hold still keeps stays. The viewer here,
+// when they have an entry, still has a say: their unfinished episode stays,
+// and one they watched is theirs again, under Keep, once no hold lasts.
+func TestAHeldDownloadGoesOnceNoHoldLasts(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever", DeviceMaxKeepDays: 30})
+	lapsed := acquire.Hold{KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: now.Add(-8 * day)}
+	lasting := acquire.Hold{KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: now.Add(-time.Hour)}
+	released := lasting
+	released.ReleasedAt = now.Add(-time.Minute)
 	held := map[string][]acquire.Hold{
-		"both":        {watched(3 * time.Hour), watched(2 * time.Hour)},
-		"one-of-two":  {watched(3 * time.Hour), {}},
-		"just-now":    {watched(3 * time.Hour), watched(time.Minute)},
-		"nobody-yet":  {{}},
-		"one-watched": {watched(3 * time.Hour)},
+		"all-lapsed":     {lapsed, lapsed},
+		"one-lasting":    {lapsed, lasting},
+		"released":       {released},
+		"released-other": {released, lasting},
 	}
 	for id, holds := range held {
 		dir := filepath.Join(downloads.dir, id)
@@ -233,26 +279,57 @@ func TestADownloadIsWatchedWhenEveryoneHoldingItWatchedIt(t *testing.T) {
 		}
 		downloads.rows = append(downloads.rows, acquire.Download{
 			ID: id, ItemID: "film-" + id, Locator: sources.Locator{Scheme: "torrent"}, Dir: dir,
-			State: acquire.StateDone, Holds: holds,
+			State: acquire.StateDone, UpdatedAt: now.Add(-10 * day), Holds: holds,
 		})
 	}
-	// The viewer here has a say too: e1 they watched, e5 they are part way.
+	// e1 the viewer here watched, e5 they are part way.
 	for i := range downloads.rows {
-		switch downloads.rows[i].ID {
-		case "e1":
-			downloads.rows[i].Holds = []acquire.Hold{{}}
-		case "e5":
-			downloads.rows[i].Holds = []acquire.Hold{watched(3 * time.Hour)}
+		if id := downloads.rows[i].ID; id == "e1" || id == "e5" {
+			downloads.rows[i].Holds = []acquire.Hold{lapsed}
 		}
 	}
 	removed := clean(t, s, downloads)
 	for id, want := range map[string]bool{
-		"both": true, "one-watched": true,
-		"one-of-two": false, "just-now": false, "nobody-yet": false, "e1": false, "e5": false,
+		"all-lapsed": true, "released": true,
+		"one-lasting": false, "released-other": false, "e1": false, "e5": false,
 	} {
 		if slices.Contains(removed, id) != want {
 			t.Errorf("%s freed = %v, want %v (freed %v)", id, !want, want, removed)
 		}
+	}
+
+	s, downloads = library(t, preferences.Preferences{Keep: "days", KeepDays: 30, DeviceMaxKeepDays: 30})
+	for i := range downloads.rows {
+		if id := downloads.rows[i].ID; id == "e1" || id == "e2" {
+			downloads.rows[i].Holds = []acquire.Hold{lapsed}
+		}
+	}
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e1"}) {
+		t.Fatalf("freed %v; want e1 alone, watched here 40 days ago", removed)
+	}
+}
+
+// Over the ceiling a held download goes like any other once everyone whose
+// hold lasts has watched it, counted from the last of them; one a lasting
+// hold has not watched stays.
+func TestCeilingFreesAHeldDownloadEveryoneWatched(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever", DiskLimit: 1, DeviceMaxKeepDays: 30})
+	watched := func(ago time.Duration) acquire.Hold {
+		return acquire.Hold{WatchedAt: now.Add(-ago), KeepWatchedDays: 7, KeepUnwatchedDays: 7, ActiveAt: now.Add(-day)}
+	}
+	unwatched := acquire.Hold{KeepWatchedDays: 7, KeepUnwatchedDays: 7, ActiveAt: now.Add(-time.Hour)}
+	for i := range downloads.rows {
+		switch downloads.rows[i].ID {
+		case "e1":
+			downloads.rows[i].Holds = []acquire.Hold{watched(3 * time.Hour), watched(2 * time.Hour)}
+		case "e2":
+			downloads.rows[i].Holds = []acquire.Hold{watched(3 * time.Hour), unwatched}
+		case "e3":
+			downloads.rows[i].Holds = []acquire.Hold{watched(time.Minute)}
+		}
+	}
+	if removed := clean(t, s, downloads); !slices.Equal(removed, []string{"e1"}) {
+		t.Fatalf("freed %v; want e1 alone: e2 a lasting hold has not watched, e3 is settling", removed)
 	}
 }
 

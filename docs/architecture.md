@@ -338,20 +338,31 @@ core. The server streams; this core passes the bytes on.
   only it knows to each copy: whether it is on its disk (`local`) and whether
   it fits there (`fits`). Folders are the server's and this machine's, the
   current one by the choice kept here.
-- The server's keep policy frees only what was watched, and keeps the
-  subtitles its viewers want, but both are recorded on the devices. Each
-  device holds the server's downloads it started or has progress on
-  (`acquire.Hold`, the `holds` table): whether its viewer watched the
-  episode, and the subtitle languages to keep. Each device writes only its
-  own (`PUT /downloads/{id}/hold`), so one device not having watched an
-  episode never takes back another's mark. `KeepHolds` compares them with
-  what is here after every change of progress, preferences or choice and
-  every ten minutes. `library.finished` frees a download once everyone with
-  a say watched it, the server's own viewer included when they have an entry,
-  from the latest mark; a rewatch under way clears a mark. The Keeper keeps
-  every holder's languages, or the owner's for a download nobody holds. The
-  manager keeps holds apart from rows, so a row written back later never
-  takes a newer hold with it.
+- The server's keep policy frees what its devices are done with, and keeps
+  the subtitles its viewers want, but both are recorded on the devices. A
+  device holds the server's downloads it started or played (`acquire.Hold`,
+  the `holds` table), and the server makes the hold then, since it knows the
+  device by its credential: a viewer's progress alone holds nothing, so a
+  hold a device let go of is not taken back by it. Each device writes only
+  its own (`PUT /downloads/{id}/hold`): whether its viewer watched the
+  episode, the subtitle languages to keep, and its keep rules, so one device
+  not having watched an episode never takes back another's mark.
+  `KeepHolds` compares them with what is here after every change of
+  progress, preferences or choice and every ten minutes.
+- A hold lasts by its device's rules, capped by the owner's
+  `deviceMaxKeepDays` (`library.Lasts`): a watched one from the mark, an
+  unwatched one from the device's last start or play, or the download
+  finishing, and while bytes arrive. The server applies the clocks whether
+  or not the device is online, so nothing a device holds stays forever. A
+  released hold (revoked device) stays on record, so a download whose holds
+  have all ended is freed rather than taken for one nobody held, which only
+  the owner's viewer decides. `library.finished` frees a held download once
+  no hold lasts, watched or not, unless the server's own viewer has an entry:
+  one they are part way through stays, one they watched goes by their Keep.
+  Over the disk limit, one every lasting holder watched goes as any watched
+  download does. The Keeper keeps every lasting holder's languages, or the
+  owner's for a download nobody held. The manager keeps holds apart from
+  rows, so a row written back later never takes a newer hold with it.
 - A server that does not answer leaves what is here working. `/sources` lists
   the copies on this machine and names the server as the provider that
   failed, and the download list is this core's. A refused credential

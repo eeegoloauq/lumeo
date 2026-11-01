@@ -95,7 +95,10 @@ func TestOnlyADeviceOfAMediaServerHoldsADownload(t *testing.T) {
 	if w := deviceRequest(server, "PUT", path, "server-token", `{"watched":true,"subtitleLanguages":[]}`); w.Code != http.StatusForbidden {
 		t.Errorf("the owner held a download: %d %s", w.Code, w.Body)
 	}
-	for _, body := range []string{`{"subtitleLanguages":[]}`, `{"watched":true}`, `{"watched":true,"subtitleLanguages":["not a language"]}`} {
+	for _, body := range []string{
+		`{"subtitleLanguages":[]}`, `{"watched":true}`, `{"watched":true,"subtitleLanguages":["not a language"]}`,
+		`{"watched":true,"subtitleLanguages":[],"keepUnwatchedDays":0}`, `{"watched":true,"subtitleLanguages":[],"keepWatchedDays":366}`,
+	} {
 		if w := deviceRequest(server, "PUT", path, laptopToken, body); w.Code != http.StatusBadRequest {
 			t.Errorf("%s: %d %s", body, w.Code, w.Body)
 		}
@@ -103,7 +106,7 @@ func TestOnlyADeviceOfAMediaServerHoldsADownload(t *testing.T) {
 	if w := deviceRequest(server, "PUT", "/api/v1/downloads/missing/hold", laptopToken, `{"watched":true,"subtitleLanguages":[]}`); w.Code != http.StatusNotFound {
 		t.Errorf("hold on a missing download: %d", w.Code)
 	}
-	if w := deviceRequest(server, "GET", "/api/v1/downloads/"+d.ID, laptopToken, ""); !strings.Contains(w.Body.String(), `"hold":{"subtitleLanguages":["ru"]}`) {
+	if w := deviceRequest(server, "GET", "/api/v1/downloads/"+d.ID, laptopToken, ""); !strings.Contains(w.Body.String(), `"hold":{"subtitleLanguages":["ru"],"keepWatchedDays":1,"keepUnwatchedDays":7,`) {
 		t.Errorf("a device does not see its hold: %s", w.Body)
 	}
 	if w := deviceRequest(server, "GET", "/api/v1/downloads/"+d.ID, tvToken, ""); strings.Contains(w.Body.String(), `"hold"`) {

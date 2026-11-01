@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"reflect"
@@ -262,8 +263,14 @@ func TestHoldsRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	holds := []acquire.Hold{
-		{Device: "laptop", WatchedAt: time.Unix(1_700_000_500, 0).UTC(), SubtitleLanguages: []string{"ru", "en"}},
-		{Device: "tv", SubtitleLanguages: []string{}},
+		{
+			Device: "laptop", WatchedAt: time.Unix(1_700_000_500, 0).UTC(), SubtitleLanguages: []string{"ru", "en"},
+			KeepWatchedDays: 2, KeepUnwatchedDays: 10, ActiveAt: time.Unix(1_700_000_100, 0).UTC(),
+		},
+		{
+			Device: "tv", SubtitleLanguages: []string{}, KeepWatchedDays: 0, KeepUnwatchedDays: 7,
+			ActiveAt: time.Unix(1_700_000_200, 0).UTC(), ReleasedAt: time.Unix(1_700_000_300, 0).UTC(),
+		},
 	}
 	if err := db.SaveHolds(ctx, "dl", holds); err != nil {
 		t.Fatal(err)
@@ -285,5 +292,60 @@ func TestHoldsRoundTrip(t *testing.T) {
 	var left int
 	if err := db.db.QueryRow("SELECT count(*) FROM holds").Scan(&left); err != nil || left != 0 {
 		t.Fatalf("holds left after the download: %d, %v", left, err)
+	}
+}
+
+// A hold from before keep rules gets the default rules and starts its
+// unwatched clock at the upgrade: counting it from zero would free every
+// unwatched file a device holds on the first pass.
+func TestHoldsFromBeforeKeepRulesStartTheirClocksAtTheUpgrade(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "catalog.db")
+	old, err := sql.Open("sqlite", "file:"+path+"?_pragma=foreign_keys(on)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := fs.ReadDir(migrationFiles, "migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+	applied := 0
+	for _, entry := range entries {
+		if entry.Name() >= "0022" {
+			break
+		}
+		body, err := migrationFiles.ReadFile("migrations/" + entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := old.Exec(string(body)); err != nil {
+			t.Fatalf("%s: %v", entry.Name(), err)
+		}
+		applied++
+	}
+	for _, stmt := range []string{
+		`INSERT INTO downloads(id, item_id, name, scheme, locator, dir, state, created_at, updated_at)
+		 VALUES ('dl', 'item', 'Film', 'torrent', '{}', '', 'done', 0, 0)`,
+		`INSERT INTO holds(download_id, device_id, watched_at, subtitle_languages) VALUES ('dl', 'tv', 0, '["en"]')`,
+		fmt.Sprintf("PRAGMA user_version = %d", applied),
+	} {
+		if _, err := old.Exec(stmt); err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	if err := old.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	before := time.Now().Add(-time.Second)
+	db := openTestDB(t, path)
+	defer db.Close()
+	got, _, err := db.Download(context.Background(), "dl")
+	if err != nil || len(got.Holds) != 1 {
+		t.Fatalf("download = %+v, %v", got, err)
+	}
+	hold := got.Holds[0]
+	if hold.KeepWatchedDays != acquire.DefaultKeepWatchedDays || hold.KeepUnwatchedDays != acquire.DefaultKeepUnwatchedDays ||
+		hold.ActiveAt.Before(before) || !hold.ReleasedAt.IsZero() {
+		t.Fatalf("hold = %+v; want the default rules, active since the upgrade, not released", hold)
 	}
 }

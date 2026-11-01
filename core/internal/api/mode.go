@@ -64,16 +64,31 @@ func (s *Server) stampMode(next http.Handler) http.Handler {
 	})
 }
 
+// keepRules are a device's keep rules for a download it holds on a media
+// server, in days; either left out keeps what the hold had.
+type keepRules struct {
+	KeepWatchedDays   *int `json:"keepWatchedDays,omitempty"`
+	KeepUnwatchedDays *int `json:"keepUnwatchedDays,omitempty"`
+}
+
+const errKeepRules = "keepWatchedDays must be between 0 and 365, keepUnwatchedDays between 1 and 365"
+
+func (k keepRules) valid() bool {
+	within := func(days *int, low int) bool { return days == nil || *days >= low && *days <= 365 }
+	return within(k.KeepWatchedDays, 0) && within(k.KeepUnwatchedDays, 1)
+}
+
 // holdBody is what a device says of a download it holds.
 type holdBody struct {
 	Watched           *bool    `json:"watched"`
 	SubtitleLanguages []string `json:"subtitleLanguages"`
+	keepRules
 }
 
 // handlePutHold records a device's hold on a download of this media server:
 // whether its viewer watched the episode, which the keep policy needs to free
-// the file, and the subtitle languages to keep with it. Each device says only
-// its own.
+// the file, the subtitle languages to keep with it, and the device's keep
+// rules. Each device says only its own.
 func (s *Server) handlePutHold(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
 		return
@@ -94,7 +109,14 @@ func (s *Server) handlePutHold(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errLanguages)
 		return
 	}
-	hold, err := s.downloads.SetHold(r.Context(), r.PathValue("id"), deviceOf(r), *body.Watched, body.SubtitleLanguages)
+	if !body.valid() {
+		writeError(w, http.StatusBadRequest, errKeepRules)
+		return
+	}
+	hold, err := s.downloads.Hold(r.Context(), r.PathValue("id"), deviceOf(r), acquire.HoldChange{
+		Watched: body.Watched, SubtitleLanguages: body.SubtitleLanguages,
+		KeepWatchedDays: body.KeepWatchedDays, KeepUnwatchedDays: body.KeepUnwatchedDays,
+	})
 	switch {
 	case errors.Is(err, acquire.ErrNotFound):
 		writeError(w, http.StatusNotFound, "unknown download")
@@ -103,10 +125,27 @@ func (s *Server) handlePutHold(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if *body.Watched && s.library != nil {
+	// A watched mark or a shorter rule can end the last hold on a file.
+	if s.library != nil {
 		s.library.Kick()
 	}
 	writeJSON(w, http.StatusOK, hold)
+}
+
+// touchHold records a device of this media server starting or playing a
+// download: it holds it from now on, and its unwatched clock starts again.
+func (s *Server) touchHold(r *http.Request, id string, change acquire.HoldChange) (acquire.Hold, bool) {
+	if s.viewerHere(r) || s.downloads == nil {
+		return acquire.Hold{}, false
+	}
+	change.Active = true
+	hold, err := s.downloads.Hold(r.Context(), id, deviceOf(r), change)
+	if err != nil {
+		// Its core holds it again on its next pass.
+		s.log.Warn("recording a device's hold failed", "download", id, "err", err)
+		return acquire.Hold{}, false
+	}
+	return hold, true
 }
 
 // heldDownload is a download as a device sees it: with its own hold, which its core

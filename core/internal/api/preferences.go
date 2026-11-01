@@ -50,7 +50,7 @@ func (s *Server) handlePatchPreferences(w http.ResponseWriter, r *http.Request) 
 	}
 	var changed map[string]json.RawMessage
 	if json.Unmarshal(body, &changed) == nil &&
-		(changed["keep"] != nil || changed["keepDays"] != nil || changed["diskLimit"] != nil) {
+		(changed["keep"] != nil || changed["keepDays"] != nil || changed["diskLimit"] != nil || changed["deviceMaxKeepDays"] != nil) {
 		s.clean()
 	}
 	writeJSON(w, http.StatusOK, prefs)

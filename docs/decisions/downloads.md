@@ -152,10 +152,7 @@ or the limit behind every copy that does, ahead of health, so Play picks one
 that fits whenever there is one.
 
 Watched is the progress entry's latch with no position: a rewatch under way
-is not finished. On a media server, whose devices keep their progress, each
-device holding a download says whether its viewer watched it, and the
-download is watched once every holder and the server's own viewer, when they
-have an entry, have: one person's finishing a series is not another's. The days count from when it was finished. A download
+is not finished. The days count from when it was finished. A download
 that is playing, or stopped playing or was finished less than ten minutes
 ago, is left for the next pass (the finishing time is the progress row's, so
 a core started again right after still waits it out): a player reconnects on every seek, and the credits of an
@@ -178,6 +175,23 @@ is, on the source list, which puts the copies already started first; a
 second list of copies in the player would only repeat it. A finished copy stays: it cost the whole download and plays at once.
 Which copy played last is kept in memory, so after a restart the half copy
 stays until one of them plays again.
+
+A media server is the exception to "never unfinished". Its disk is shared by
+people whose progress it never sees, on devices that may never come back: a
+laptop sold or a film abandoned would keep a file there for good, and the
+owner could not tell which. So each device holds the downloads it started or
+played, with two keep rules of its own: a watched file stays a day after its
+viewer finished it, an unwatched one seven days after the device last started
+or played it, unless the device sets other numbers. The server runs both
+clocks whether or not the device is online, and the owner caps them
+(`deviceMaxKeepDays`, thirty days), so nothing stays without someone having
+touched it within that time. A file stays while any hold on it lasts, and
+goes once none does, whatever the owner's Keep says: one person's finishing a
+series is not another's, and one device's rules are not another's. The
+owner's own viewer keeps the say they have on a full core: a file they are
+part way through stays, and one they watched goes by their Keep. Over the
+disk limit, a file every device still holding it has watched goes as any
+watched file does.
 
 Prefetch is the policy's one addition rather than removal: once the episode
 playing is on disk, the next one starts downloading, so a series goes on

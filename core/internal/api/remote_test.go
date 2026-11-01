@@ -152,13 +152,16 @@ func (l *linked) link(credential string) {
 	l.t.Cleanup(func() { l.ours.Close() })
 	l.watch = progress.New(db, cat)
 	l.core = New(Deps{
-		Catalog:     cat,
-		Downloads:   l.ours,
-		Progress:    l.watch,
-		Preferences: preferences.New(db, preferences.Preferences{SubtitleLanguages: []string{"ru"}}),
-		Artwork:     db,
-		CacheDir:    dir,
-		Remote:      link,
+		Catalog:   cat,
+		Downloads: l.ours,
+		Progress:  l.watch,
+		Preferences: preferences.New(db, preferences.Preferences{
+			SubtitleLanguages:     []string{"ru"},
+			ServerKeepWatchedDays: acquire.DefaultKeepWatchedDays, ServerKeepUnwatchedDays: acquire.DefaultKeepUnwatchedDays,
+		}),
+		Artwork:  db,
+		CacheDir: dir,
+		Remote:   link,
 	}, l.log)
 	l.t.Cleanup(l.core.Close)
 	l.local = l.core.Handler()
@@ -368,12 +371,16 @@ func TestALinkedCoreRanksTheServersCopiesByItsOwnChoice(t *testing.T) {
 
 // The server frees only what was watched, and keeps the subtitles wanted;
 // the progress and preferences are kept on each device, so each device's
-// core tells the server through its own hold. One device's word never
+// core tells the server through its own hold, which the server makes when
+// the device starts or plays the download. One device's word never
 // overrides another's: the laptop not having watched an episode does not
 // take back the TV's mark. None of the viewer's own data goes to the server.
 func TestEachDeviceHoldsTheServersDownloadsItself(t *testing.T) {
 	laptop := linkedCores(t, nil, laptopToken)
 	laptop.open()
+	if rec := requestJSON(t, laptop.local, http.MethodPatch, "/api/v1/preferences", `{"serverKeepUnwatchedDays":10}`); rec.Code != http.StatusOK {
+		t.Fatalf("preferences: status %d: %s", rec.Code, rec.Body)
+	}
 	d := laptop.start(torrentSource("Severance.S01E01.1080p", "aaa", 30, "group"))
 	tv := laptop.another(tvToken)
 	holds := func() map[string]acquire.Hold {
@@ -404,34 +411,39 @@ func TestEachDeviceHoldsTheServersDownloadsItself(t *testing.T) {
 		<-laptop.requested
 	}
 
-	// Started on the laptop: its hold, with its languages. The TV never
-	// played it, so it holds nothing.
+	// Started on the laptop: its hold, with its languages and rules. The TV
+	// never played it, so its viewer's progress holds nothing.
+	put(tv, `{"season":1,"episode":1,"watched":true}`)
 	sync(tv)
-	if got := holds(); len(got) != 1 || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"ru"}) {
-		t.Fatalf("after the start: %+v; want the laptop's alone", got)
+	got := holds()
+	if len(got) != 1 || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"ru"}) ||
+		got["laptop"].KeepWatchedDays != 1 || got["laptop"].KeepUnwatchedDays != 10 {
+		t.Fatalf("after the start: %+v; want the laptop's alone, with its rules", got)
 	}
 
-	put(tv, `{"season":1,"episode":1,"watched":true}`)
+	// Playing it on the TV holds it there.
+	if rec := requestJSON(t, tv.local, http.MethodGet, "/api/v1/downloads/"+d.ID+"/stream", ""); rec.Code != http.StatusOK {
+		t.Fatalf("stream on the TV: status %d: %s", rec.Code, rec.Body)
+	}
 	put(laptop, `{"season":1,"episode":1,"position":600,"duration":3000}`)
 	sync(tv)
 	sync(laptop)
-	sync(tv)
-	got := holds()
+	got = holds()
 	if got["tv"].WatchedAt.IsZero() || !got["laptop"].WatchedAt.IsZero() {
 		t.Fatalf("holds = %+v; want the TV's watched and the laptop's not", got)
 	}
 
 	// A rewatch on the TV takes its mark back; a change of the laptop's
-	// languages reaches its hold.
+	// languages or keep rules reaches its hold.
 	put(tv, `{"season":1,"episode":1,"position":600,"duration":3000}`)
-	if rec := requestJSON(t, laptop.local, http.MethodPatch, "/api/v1/preferences", `{"subtitleLanguages":["de","en"]}`); rec.Code != http.StatusOK {
+	if rec := requestJSON(t, laptop.local, http.MethodPatch, "/api/v1/preferences", `{"subtitleLanguages":["de","en"],"serverKeepWatchedDays":3}`); rec.Code != http.StatusOK {
 		t.Fatalf("preferences: status %d: %s", rec.Code, rec.Body)
 	}
 	sync(tv)
 	sync(laptop)
 	got = holds()
-	if !got["tv"].WatchedAt.IsZero() || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"de", "en"}) {
-		t.Fatalf("holds = %+v; want the TV's mark gone and the laptop on German and English", got)
+	if !got["tv"].WatchedAt.IsZero() || !slices.Equal(got["laptop"].SubtitleLanguages, []string{"de", "en"}) || got["laptop"].KeepWatchedDays != 3 {
+		t.Fatalf("holds = %+v; want the TV's mark gone and the laptop on German and English, three days", got)
 	}
 
 	requestJSON(t, laptop.local, http.MethodPut, "/api/v1/list/"+laptop.itemID, "")
@@ -446,12 +458,13 @@ func TestEachDeviceHoldsTheServersDownloadsItself(t *testing.T) {
 		}
 	}
 
-	// Revoking the TV releases its hold.
+	// Revoking the TV releases its hold, which stays on record until the
+	// download goes, and the TV's core does not take it back.
 	revoke := httptest.NewRequest(http.MethodDelete, "/api/v1/devices/tv", nil)
 	revoke.Header.Set("Authorization", "Bearer server-token")
 	rec := httptest.NewRecorder()
 	(*laptop.served.Load()).ServeHTTP(rec, revoke)
-	if _, held := holds()["tv"]; rec.Code != http.StatusNoContent || held {
+	if hold, held := holds()["tv"]; rec.Code != http.StatusNoContent || !held || hold.ReleasedAt.IsZero() {
 		t.Fatalf("revoking the TV: status %d, holds %+v", rec.Code, holds())
 	}
 }

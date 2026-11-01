@@ -177,6 +177,11 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		NextCountdown:       5,
 		NextNotice:          0,
 		SeekStep:            5,
+		// The owner's ceiling on what devices of a media server keep, and a
+		// device's own rules there: nothing a device holds stays forever.
+		DeviceMaxKeepDays:       30,
+		ServerKeepWatchedDays:   acquire.DefaultKeepWatchedDays,
+		ServerKeepUnwatchedDays: acquire.DefaultKeepUnwatchedDays,
 	})
 	// Read before the torrent client starts, so a download resumed at boot is
 	// held to the limits from its first block.

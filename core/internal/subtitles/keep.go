@@ -238,13 +238,17 @@ func (k *Keeper) keep(ctx context.Context, d acquire.Download) (bool, error) {
 }
 
 // wanted is the languages kept for d: every holding device's, each device's
-// order kept, or, with none holding it, this core's viewer's.
+// order kept, or, with none ever holding it, this core's viewer's. A device
+// that let go of it wants nothing more.
 func (k *Keeper) wanted(ctx context.Context, d acquire.Download) []string {
 	if len(d.Holds) == 0 {
 		return k.languages(ctx, d.ItemID)
 	}
 	var out []string
 	for _, hold := range d.Holds {
+		if !hold.ReleasedAt.IsZero() {
+			continue
+		}
 		for _, lang := range hold.SubtitleLanguages {
 			if !slices.Contains(out, lang) {
 				out = append(out, lang)

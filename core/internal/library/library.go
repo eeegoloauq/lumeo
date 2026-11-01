@@ -178,7 +178,9 @@ func (s *Service) Start(start func() (acquire.Download, error)) (acquire.Downloa
 // oldest watched first, every finished download the keep policy has expired,
 // then more of them while the downloads take more than the ceiling. A
 // download nobody finished is never freed by the policy, so one larger than
-// the ceiling stays until it is watched.
+// the ceiling stays until it is watched. On a media server, a download its
+// devices hold goes by their keep rules instead: once none of its holds
+// lasts, watched or not.
 func (s *Service) Clean(ctx context.Context) error {
 	s.dropReplaced(ctx)
 	prefs, err := s.prefs.Get(ctx)
@@ -200,25 +202,26 @@ func (s *Service) Clean(ctx context.Context) error {
 		}
 		s.mu.Unlock()
 	}
-	if prefs.Keep == "forever" && prefs.DiskLimit == 0 {
-		return nil
-	}
 	rows := s.downloads.List(ctx)
-	candidates, err := s.finished(ctx, rows)
+	candidates, err := s.finished(ctx, rows, prefs, now)
 	if err != nil {
 		return err
 	}
-	own, used := Usage(rows, s.downloads.Dirs)
+	var own map[string]int64
+	var used int64
+	if prefs.DiskLimit > 0 {
+		own, used = Usage(rows, s.downloads.Dirs)
+	}
 
 	for _, c := range candidates {
 		// The settle time again, from the progress row: a core started again
 		// has no memory of the stream, and an episode finished just before
 		// the app was closed would otherwise go on the very first pass.
-		if now.Sub(c.watched) < settle {
+		if !c.lapsed && now.Sub(c.watched) < settle {
 			continue
 		}
-		expired := prefs.Keep == "watched" ||
-			prefs.Keep == "days" && now.Sub(c.watched) >= time.Duration(prefs.KeepDays)*day
+		expired := c.lapsed || !c.held && (prefs.Keep == "watched" ||
+			prefs.Keep == "days" && now.Sub(c.watched) >= time.Duration(prefs.KeepDays)*day)
 		over := prefs.DiskLimit > 0 && used > prefs.DiskLimit
 		if !expired && !over {
 			continue
@@ -230,7 +233,11 @@ func (s *Service) Clean(ctx context.Context) error {
 		}
 		if freed {
 			used -= own[c.row.ID]
-			s.log.Info("freed a watched download", "download", c.row.ID, "name", c.row.Name, "expired", expired, "over", over)
+			if c.lapsed {
+				s.log.Info("freed a download no device holds any more", "download", c.row.ID, "name", c.row.Name)
+			} else {
+				s.log.Info("freed a watched download", "download", c.row.ID, "name", c.row.Name, "expired", expired, "over", over)
+			}
 		}
 	}
 	return nil
@@ -328,7 +335,7 @@ func (s *Service) Room(ctx context.Context) (disk, limit int64, err error) {
 	if prefs.DiskLimit == 0 {
 		return disk, math.MaxInt64, nil
 	}
-	candidates, err := s.finished(ctx, rows)
+	candidates, err := s.finished(ctx, rows, prefs, s.now())
 	if err != nil {
 		return 0, 0, err
 	}
@@ -379,15 +386,21 @@ func defaultLimit(free uint64, used int64) int64 {
 type candidate struct {
 	row     acquire.Download
 	watched time.Time
+	// held is a download devices of a media server hold, which goes by their
+	// keep rules rather than by Keep; lapsed, one none of whose holds lasts
+	// any more, which goes whatever Keep says.
+	held, lapsed bool
 }
 
 // finished is what of rows the policy may free, the longest watched first. A
 // download is watched once everyone with a say in it has watched it: the
 // viewer whose progress is kept here, when they have an entry for the
-// episode, and every device holding it on a media server, whose viewer's
-// progress is kept on the device. It counts from the latest of them. A
-// watched entry with a position is a rewatch under way.
-func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]candidate, error) {
+// episode, and every device whose hold on it lasts on a media server, whose
+// viewer's progress is kept on the device. It counts from the latest of them.
+// A watched entry with a position is a rewatch under way. A held download no
+// hold lasts on is the viewer's here when they watched it, and lapsed when
+// they have no say.
+func (s *Service) finished(ctx context.Context, rows []acquire.Download, prefs preferences.Preferences, now time.Time) ([]candidate, error) {
 	entries, err := s.progress.AllProgress(ctx)
 	if err != nil {
 		return nil, err
@@ -406,23 +419,72 @@ func (s *Service) finished(ctx context.Context, rows []acquire.Download) ([]cand
 			continue
 		}
 		mine, said := own[episodeOf(row)]
-		watched, at := !said || mine.watched, mine.at
+		if said && !mine.watched {
+			continue
+		}
+		if len(row.Holds) == 0 {
+			if said {
+				candidates = append(candidates, candidate{row: row, watched: mine.at})
+			}
+			continue
+		}
+		lasting, watched, at := false, true, mine.at
 		for _, hold := range row.Holds {
-			said = true
+			if !Lasts(hold, row, now, prefs.DeviceMaxKeepDays) {
+				continue
+			}
+			lasting = true
 			if hold.WatchedAt.IsZero() {
 				watched = false
 				break
 			}
-			if hold.WatchedAt.After(at) {
-				at = hold.WatchedAt
-			}
+			at = later(at, hold.WatchedAt)
 		}
-		if said && watched {
-			candidates = append(candidates, candidate{row, at})
+		switch {
+		case !lasting && said:
+			candidates = append(candidates, candidate{row: row, watched: mine.at})
+		case !lasting:
+			candidates = append(candidates, candidate{row: row, held: true, lapsed: true})
+		case watched:
+			candidates = append(candidates, candidate{row: row, watched: at, held: true})
 		}
 	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].watched.Before(candidates[j].watched) })
 	return candidates, nil
+}
+
+// Lasts says whether a device's hold keeps its download at now: the device
+// has not let go of it, and its keep rule, capped by the owner's maxDays (0
+// for no cap), has not run out. A watched hold counts from the mark or the
+// device's last activity, whichever is later, and lasts the settle time at
+// least. An unwatched one counts from the device's last activity or the
+// download's last change, finishing included, and lasts while the download
+// is getting bytes. Nothing else keeps a hold, the device being online
+// included, so nothing a device holds stays forever.
+func Lasts(hold acquire.Hold, row acquire.Download, now time.Time, maxDays int) bool {
+	if !hold.ReleasedAt.IsZero() {
+		return false
+	}
+	keep := func(days int) time.Duration {
+		if maxDays > 0 {
+			days = min(days, maxDays)
+		}
+		return time.Duration(days) * day
+	}
+	if !hold.WatchedAt.IsZero() {
+		return now.Sub(later(hold.WatchedAt, hold.ActiveAt)) < max(keep(hold.KeepWatchedDays), settle)
+	}
+	if row.State == acquire.StateActive && row.WaitingSince.IsZero() {
+		return true
+	}
+	return now.Sub(later(hold.ActiveAt, row.UpdatedAt)) < keep(hold.KeepUnwatchedDays)
+}
+
+func later(a, b time.Time) time.Time {
+	if b.After(a) {
+		return b
+	}
+	return a
 }
 
 func (s *Service) free(ctx context.Context, row acquire.Download, now time.Time) (bool, error) {

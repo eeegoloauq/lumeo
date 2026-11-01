@@ -364,6 +364,7 @@ func (s *Server) remoteStartDownload(w http.ResponseWriter, r *http.Request) {
 		theirs.ItemID = serverID
 	}
 	theirs.SubtitleLanguages = SubtitleLanguages(r.Context(), s.progress, s.prefs, req.ItemID)
+	theirs.keepRules = s.serverKeepRules(r.Context())
 	var d acquire.Download
 	if err := s.remote.Do(r.Context(), http.MethodPost, "/api/v1/downloads", nil, theirs, &d); err != nil {
 		s.writeRemoteError(w, r, err)
@@ -530,13 +531,14 @@ func (s *Server) remoteFolders(w http.ResponseWriter, r *http.Request) {
 }
 
 // KeepHolds tells the server what it needs to know of this core's viewer for
-// each of its downloads the viewer has to do with: whether they watched the
-// episode, since the server's keep policy frees only what was watched, and
-// the subtitle languages to keep with the file. That is a download this core
-// started there or one of an episode with progress here. It compares the two
-// on every change of progress, preferences or choice and every few minutes,
-// so what changed while the server was away is sent once it is back. It
-// returns when ctx ends, and at once on a core without a server.
+// each of its downloads this device holds: whether they watched the episode,
+// which decides which of this device's keep rules keeps the file, the rules
+// themselves, and the subtitle languages to keep with it. The server
+// makes the hold when this device starts or plays a download, and ends it
+// when the device deletes it. This compares them with what is here on every
+// change of progress, preferences or choice and every few minutes, so what
+// changed while the server was away is sent once it is back. It returns when
+// ctx ends, and at once on a core without a server.
 func (s *Server) KeepHolds(ctx context.Context) {
 	if s.remote == nil || s.progress == nil {
 		return
@@ -574,6 +576,19 @@ func (s *Server) holdsChange(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// serverKeepRules are this device's keep rules for what it holds on the
+// server, or none to send when its preferences cannot be read.
+func (s *Server) serverKeepRules(ctx context.Context) keepRules {
+	if s.prefs == nil {
+		return keepRules{}
+	}
+	p, err := s.prefs.Get(ctx)
+	if err != nil {
+		return keepRules{}
+	}
+	return keepRules{KeepWatchedDays: &p.ServerKeepWatchedDays, KeepUnwatchedDays: &p.ServerKeepUnwatchedDays}
+}
+
 func (s *Server) syncHolds(ctx context.Context) error {
 	var answer struct {
 		Downloads []heldDownload `json:"downloads"`
@@ -595,20 +610,21 @@ func (s *Server) syncHolds(ctx context.Context) error {
 	for _, e := range entries {
 		watched[episode{e.ItemID, e.Season, e.Episode}] = e.Watched && e.Position == 0
 	}
+	rules := s.serverKeepRules(ctx)
+	sameRule := func(want *int, have int) bool { return want == nil || *want == have }
 	ids := s.newLocalIDs()
 	languages := make(map[string][]string)
 	for _, row := range answer.Downloads {
-		if row.ItemID == "" {
+		// Another device's download, or one this device let go of: holding
+		// it again is starting or playing it.
+		if row.Hold == nil || !row.Hold.ReleasedAt.IsZero() || row.ItemID == "" {
 			continue
 		}
 		local := ids.of(ctx, row.ItemID)
 		if local == "" {
 			continue
 		}
-		done, seen := watched[episode{local, row.Season, row.Episode}]
-		if row.Hold == nil && !seen {
-			continue // another device's download this viewer never played
-		}
+		done := watched[episode{local, row.Season, row.Episode}]
 		langs, ok := languages[local]
 		if !ok {
 			langs = SubtitleLanguages(ctx, s.progress, s.prefs, local)
@@ -617,10 +633,11 @@ func (s *Server) syncHolds(ctx context.Context) error {
 			}
 			languages[local] = langs
 		}
-		if row.Hold != nil && done == !row.Hold.WatchedAt.IsZero() && slices.Equal(row.Hold.SubtitleLanguages, langs) {
+		if done == !row.Hold.WatchedAt.IsZero() && slices.Equal(row.Hold.SubtitleLanguages, langs) &&
+			sameRule(rules.KeepWatchedDays, row.Hold.KeepWatchedDays) && sameRule(rules.KeepUnwatchedDays, row.Hold.KeepUnwatchedDays) {
 			continue
 		}
-		body := holdBody{Watched: &done, SubtitleLanguages: langs}
+		body := holdBody{Watched: &done, SubtitleLanguages: langs, keepRules: rules}
 		if err := s.remote.Do(ctx, http.MethodPut, "/api/v1/downloads/"+url.PathEscape(row.ID)+"/hold", nil, body, nil); err != nil {
 			return err
 		}

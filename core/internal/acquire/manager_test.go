@@ -1028,29 +1028,34 @@ func TestBadPiecesAreLogged(t *testing.T) {
 
 // Each device's hold is its own: setting one leaves the others, a watched
 // mark keeps the time it was first made, and a restart, which writes the row
-// back, keeps them all. Revoking a device releases its holds.
+// back, keeps them all. A device's first word makes its hold with the
+// default rules. Revoking a device releases its holds and keeps them on
+// record; starting or playing the download again takes it back.
 func TestHoldsArePerDevice(t *testing.T) {
 	ctx := context.Background()
 	m, st, _ := testManager(t, &fakeBackend{scheme: "torrent"})
-	clock := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	start := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	clock := start
 	m.now = func() time.Time { return clock }
 	d, err := m.Start(ctx, torrentRequest())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.SetHold(ctx, d.ID, "laptop", true, []string{"ru"}); err != nil {
+	watched, unwatched, two := true, false, 2
+	if _, err := m.Hold(ctx, d.ID, "laptop", HoldChange{Watched: &watched, SubtitleLanguages: []string{"ru"}, KeepWatchedDays: &two}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.SetHold(ctx, d.ID, "tv", false, []string{"en"}); err != nil {
+	if _, err := m.Hold(ctx, d.ID, "tv", HoldChange{Watched: &unwatched, SubtitleLanguages: []string{"en"}}); err != nil {
 		t.Fatal(err)
 	}
 	clock = clock.Add(time.Hour)
-	if _, err := m.SetHold(ctx, d.ID, "laptop", true, []string{"ru", "en"}); err != nil {
+	if _, err := m.Hold(ctx, d.ID, "laptop", HoldChange{Watched: &watched, SubtitleLanguages: []string{"ru", "en"}}); err != nil {
 		t.Fatal(err)
 	}
 	m.fail(ctx, m.row(d.ID), errors.New("tracker gone"))
 
 	again := NewManager(t.TempDir(), []Backend{&fakeBackend{scheme: "torrent"}}, st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	again.now = func() time.Time { return clock }
 	if err := again.Resume(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -1059,8 +1064,8 @@ func TestHoldsArePerDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []Hold{
-		{Device: "tv", SubtitleLanguages: []string{"en"}},
-		{Device: "laptop", WatchedAt: clock.Add(-time.Hour), SubtitleLanguages: []string{"ru", "en"}},
+		{Device: "tv", SubtitleLanguages: []string{"en"}, KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: start},
+		{Device: "laptop", WatchedAt: start, SubtitleLanguages: []string{"ru", "en"}, KeepWatchedDays: 2, KeepUnwatchedDays: 7, ActiveAt: start},
 	}
 	if !reflect.DeepEqual(got.Holds, want) {
 		t.Fatalf("holds = %+v, want %+v", got.Holds, want)
@@ -1069,10 +1074,74 @@ func TestHoldsArePerDevice(t *testing.T) {
 	if err := again.ReleaseDevice(ctx, "laptop"); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := again.Get(ctx, d.ID); len(got.Holds) != 1 || got.Holds[0].Device != "tv" {
-		t.Fatalf("after revoking the laptop: %+v", got.Holds)
+	laptop := func() Hold {
+		t.Helper()
+		got, _ := again.Get(ctx, d.ID)
+		for _, h := range got.Holds {
+			if h.Device == "laptop" {
+				return h
+			}
+		}
+		t.Fatalf("the laptop's hold is gone: %+v", got.Holds)
+		return Hold{}
 	}
-	if _, err := again.SetHold(ctx, "missing", "tv", false, nil); !errors.Is(err, ErrNotFound) {
+	if h := laptop(); !h.ReleasedAt.Equal(clock) {
+		t.Fatalf("after revoking the laptop: %+v; want it released and on record", h)
+	}
+	// Saying what it watched does not take a download back; playing it does.
+	if _, err := again.Hold(ctx, d.ID, "laptop", HoldChange{Watched: &unwatched}); err != nil {
+		t.Fatal(err)
+	}
+	if h := laptop(); h.ReleasedAt.IsZero() {
+		t.Fatalf("a word on the hold took it back: %+v", h)
+	}
+	clock = clock.Add(time.Hour)
+	if _, err := again.Hold(ctx, d.ID, "laptop", HoldChange{Active: true}); err != nil {
+		t.Fatal(err)
+	}
+	if h := laptop(); !h.ReleasedAt.IsZero() || !h.ActiveAt.Equal(clock) {
+		t.Fatalf("after playing again: %+v; want it held, active now", h)
+	}
+	if _, err := again.Hold(ctx, "missing", "tv", HoldChange{}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("hold on a missing download: %v", err)
 	}
+}
+
+// A player reconnects on every seek; the activity it makes is written once a
+// minute at most.
+func TestPlayingKeepsAHoldActiveWithoutAWritePerSeek(t *testing.T) {
+	ctx := context.Background()
+	m, _, _ := testManager(t, &fakeBackend{scheme: "torrent"})
+	clock := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	m.now = func() time.Time { return clock }
+	d, err := m.Start(ctx, torrentRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	counting := &countingHolds{Store: m.store}
+	m.store = counting
+	for range 3 {
+		if _, err := m.Hold(ctx, d.ID, "tv", HoldChange{Active: true}); err != nil {
+			t.Fatal(err)
+		}
+		clock = clock.Add(10 * time.Second)
+	}
+	clock = clock.Add(time.Minute)
+	hold, err := m.Hold(ctx, d.ID, "tv", HoldChange{Active: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if counting.saves != 2 || !hold.ActiveAt.Equal(clock) {
+		t.Fatalf("%d writes, active at %v; want 2, %v", counting.saves, hold.ActiveAt, clock)
+	}
+}
+
+type countingHolds struct {
+	Store
+	saves int
+}
+
+func (c *countingHolds) SaveHolds(ctx context.Context, id string, holds []Hold) error {
+	c.saves++
+	return c.Store.SaveHolds(ctx, id, holds)
 }

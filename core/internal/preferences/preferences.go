@@ -94,6 +94,16 @@ type Preferences struct {
 	// bytes per second; 0 is no cap.
 	UploadLimit   int64 `json:"uploadLimit"`
 	DownloadLimit int64 `json:"downloadLimit"`
+	// DeviceMaxKeepDays is a media server's owner's ceiling on the keep rules
+	// of its devices: no device keeps a file longer than this after its last
+	// activity on it.
+	DeviceMaxKeepDays int `json:"deviceMaxKeepDays"`
+	// ServerKeepWatchedDays and ServerKeepUnwatchedDays are this device's keep
+	// rules for the downloads it holds on a media server: how long one stays
+	// once watched, and how long after it was last started or played while
+	// it is not. The server applies them, capped by its DeviceMaxKeepDays.
+	ServerKeepWatchedDays   int `json:"serverKeepWatchedDays"`
+	ServerKeepUnwatchedDays int `json:"serverKeepUnwatchedDays"`
 }
 
 // The modes SubtitleMode accepts, in the order a client should offer them.
@@ -193,6 +203,9 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "downloadDir", &effective.DownloadDir)
 	overlay(stored, "uploadLimit", &effective.UploadLimit)
 	overlay(stored, "downloadLimit", &effective.DownloadLimit)
+	overlay(stored, "deviceMaxKeepDays", &effective.DeviceMaxKeepDays)
+	overlay(stored, "serverKeepWatchedDays", &effective.ServerKeepWatchedDays)
+	overlay(stored, "serverKeepUnwatchedDays", &effective.ServerKeepUnwatchedDays)
 	return effective, nil
 }
 
@@ -339,6 +352,11 @@ func validate(document map[string]json.RawMessage) (map[string]json.RawMessage, 
 			continue
 		case "uploadLimit", "downloadLimit":
 			changes[key], err = integer(key, raw, 0, maxRate)
+		case "deviceMaxKeepDays", "serverKeepUnwatchedDays":
+			changes[key], err = integer(key, raw, 1, 365)
+		case "serverKeepWatchedDays":
+			// 0 frees a watched file once it settles.
+			changes[key], err = integer(key, raw, 0, 365)
 		default:
 			err = invalidf("unknown preference %q", key)
 		}
@@ -417,7 +435,7 @@ func known(key string) bool {
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
 		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "checkUpdates",
 		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
-		"uploadLimit", "downloadLimit":
+		"uploadLimit", "downloadLimit", "deviceMaxKeepDays", "serverKeepWatchedDays", "serverKeepUnwatchedDays":
 		return true
 	}
 	return false

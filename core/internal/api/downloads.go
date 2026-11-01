@@ -24,9 +24,11 @@ type startDownloadRequest struct {
 	// Prefetch is a download nobody asked for yet: the next episode, started
 	// only when it fits inside the free disk and the disk limit.
 	Prefetch bool `json:"prefetch"`
-	// SubtitleLanguages are the ones a device of a media server wants kept
-	// with the file, its viewer's preferences being kept on the device.
+	// SubtitleLanguages and the keep rules are a device of a media server's
+	// for its hold on the file, its viewer's preferences being kept on the
+	// device.
 	SubtitleLanguages []string `json:"subtitleLanguages,omitempty"`
+	keepRules
 }
 
 func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +45,10 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	}
 	if !validLanguages(req.SubtitleLanguages) {
 		writeError(w, http.StatusBadRequest, errLanguages)
+		return
+	}
+	if !req.valid() {
+		writeError(w, http.StatusBadRequest, errKeepRules)
 		return
 	}
 	s.startDownload(w, r, req)
@@ -98,11 +104,12 @@ func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req start
 	} else {
 		// A device starting a copy is about to watch it, so not watched; the
 		// pick is remembered on the device.
-		// Its core holds it again on its next pass if this fails.
-		hold, err := s.downloads.SetHold(r.Context(), d.ID, deviceOf(r), false, req.SubtitleLanguages)
-		if err != nil {
-			s.log.Warn("recording a device's hold failed", "download", d.ID, "err", err)
-		} else {
+		unwatched := false
+		hold, ok := s.touchHold(r, d.ID, acquire.HoldChange{
+			Watched: &unwatched, SubtitleLanguages: req.SubtitleLanguages,
+			KeepWatchedDays: req.KeepWatchedDays, KeepUnwatchedDays: req.KeepUnwatchedDays,
+		})
+		if ok {
 			d.Holds = append(slices.DeleteFunc(d.Holds, func(h acquire.Hold) bool { return h.Device == hold.Device }), hold)
 		}
 	}
