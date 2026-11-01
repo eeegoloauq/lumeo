@@ -2,6 +2,12 @@ module github.com/eeegoloauq/lumeo/core
 
 go 1.27.2
 
+// Some networks, Russia's among them, drop a TLS handshake that offers a
+// post-quantum key exchange, whose larger ClientHello spans two packets:
+// addons behind Cloudflare then answered nothing. Off for every client in
+// the binary, the torrent engine's trackers included.
+godebug tlsmlkem=0
+
 require (
 	github.com/anacrolix/torrent v1.61.0
 	golang.org/x/sys v0.48.0
