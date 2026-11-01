@@ -2,6 +2,7 @@
 
 #include "folders.h"
 #include "mpvfacts.h"
+#include "mpvtls.h"
 #include "subtitlestyle.h"
 
 #include <QDir>
@@ -340,6 +341,7 @@ MpvItem::MpvItem(QQuickItem *parent)
   };
   for (const auto &[name, value] : options)
     mpv_set_option_string(mpv, name, value);
+  verifyTls(mpv);
   // Plain text where a streaming release's styled dialogue sits
   // (decisions/subtitles.md).
   mpv_set_option_string(mpv, "sub-font-size", QByteArray::number(SubtitleStyle::fontSize).constData());

@@ -1,4 +1,5 @@
 #include "framegrabber.h"
+#include "mpvtls.h"
 
 #include <QThreadPool>
 #include <mpv/client.h>
@@ -43,6 +44,7 @@ FrameGrabber::FrameGrabber(const QString &url, const QStringList &headers, QObje
   };
   for (const auto &[name, value] : options)
     mpv_set_option_string(mpv, name, value);
+  verifyTls(mpv);
   // A string list, which mpv splits at commas; a header has none.
   if (!headers.isEmpty())
     mpv_set_option_string(mpv, "http-header-fields", headers.join(',').toUtf8().constData());

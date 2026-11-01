@@ -1,6 +1,10 @@
 #include "mpvitem.h"
+#include "mpvtls.h"
 #include "playback.h"
 
+#include <QSslCertificate>
+#include <QSslConfiguration>
+#include <QTemporaryDir>
 #include <QtTest>
 
 namespace {
@@ -27,6 +31,17 @@ class MpvTest : public QObject {
   Q_OBJECT
 
 private slots:
+  // What a Windows mpv verifies the core's certificate against.
+  void mpvTrustsTheCertificatesQtTrusts() {
+    const QList<QSslCertificate> system = QSslConfiguration::systemCaCertificates();
+    if (system.isEmpty())
+      QSKIP("no system certificates here");
+    QTemporaryDir directory;
+    const QString path = directory.filePath("cache/trusted-certificates.pem");
+    QCOMPARE(trustedCertificates(path), path);
+    QCOMPARE(QSslCertificate::fromPath(path), system);
+  }
+
   void keysNamedByMpv() {
     QCOMPARE(name(Qt::Key_Space, " "), "SPACE");
     QCOMPARE(name(Qt::Key_Right, ""), "RIGHT");

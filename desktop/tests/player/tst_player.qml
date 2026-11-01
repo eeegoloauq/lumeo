@@ -236,6 +236,16 @@ Item {
             compare(lavf.reconnect, "1")
         }
 
+        // The token goes with every request to the core, so mpv checks the
+        // certificate of an HTTPS core rather than trusting any.
+        function test_theCoresCertificateIsChecked() {
+            playing()
+            let checked = null
+            player.mpv.get("tls-verify", value => checked = value)
+            tryVerify(() => checked !== null, 5000)
+            verify(checked === true)
+        }
+
         function test_mpvQuittingClosesThePlayer() {
             playing()
             player.mpv.command(["quit"])
