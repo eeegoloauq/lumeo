@@ -26,4 +26,6 @@ public:
   // dialog comes as a copy for every Qt style, five of them in the bundle.
   Q_INVOKABLE void pickFolder(const QString &title, const QString &start, const QJSValue &done) const;
   Q_INVOKABLE void pickFile(const QString &title, const QJSValue &done) const;
+  // The dialog for a file to write, offering [name] in the documents folder.
+  Q_INVOKABLE void pickSaveFile(const QString &title, const QString &name, const QJSValue &done) const;
 };

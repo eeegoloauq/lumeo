@@ -11,6 +11,7 @@
 #include <QtQml/qqmlregistration.h>
 #include <functional>
 #include <memory>
+#include <optional>
 
 // The only way the client talks to the core. A core on this machine and one
 // elsewhere are the same code with a different address and token
@@ -66,6 +67,10 @@ public:
   // [context] is gone by then. [body] undefined: none.
   void send(const QByteArray &method, const QString &path, const QUrlQuery &query,
             const QJsonValue &body, QObject *context, Answer answer);
+  // The same with a body that is JSON already, sent as it is: a file the
+  // core reads whole, which it checks and the client only carries.
+  void send(const QByteArray &method, const QString &path, const QUrlQuery &query,
+            const QByteArray &json, QObject *context, Answer answer);
   void get(const QString &path, const QUrlQuery &query, QObject *context, Answer answer) {
     send("GET", path, query, QJsonValue::Undefined, context, std::move(answer));
   }
@@ -79,6 +84,8 @@ public:
 
 private:
   struct Attempt;
+  void start(const QByteArray &method, const QString &path, const QUrlQuery &query,
+             const std::optional<QByteArray> &body, QObject *context, Answer answer);
   void attempt(const std::shared_ptr<Attempt> &pending);
   QByteArray token();
   bool reloadToken(const QByteArray &sent);

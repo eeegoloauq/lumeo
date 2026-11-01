@@ -3,16 +3,20 @@
 #include "folders.h"
 
 #include <QClipboard>
+#include <QDir>
 #include <QFileDialog>
 #include <QGuiApplication>
+#include <QStandardPaths>
 #include <QSysInfo>
 #include <QWindow>
 
 namespace {
 
-void ask(QFileDialog::FileMode mode, const QString &title, const QString &start, QJSValue done) {
+void ask(QFileDialog::FileMode mode, const QString &title, const QString &start, QJSValue done,
+         QFileDialog::AcceptMode accept = QFileDialog::AcceptOpen) {
   auto *dialog = new QFileDialog(nullptr, title, start);
   dialog->setFileMode(mode);
+  dialog->setAcceptMode(accept);
   dialog->setAttribute(Qt::WA_DeleteOnClose);
   // Over the window it was asked from: the dialog has no parent widget, and
   // the system's dialog takes its parent from the transient parent, set on
@@ -40,4 +44,9 @@ void Desktop::pickFolder(const QString &title, const QString &start, const QJSVa
 
 void Desktop::pickFile(const QString &title, const QJSValue &done) const {
   ask(QFileDialog::ExistingFile, title, QString(), done);
+}
+
+void Desktop::pickSaveFile(const QString &title, const QString &name, const QJSValue &done) const {
+  const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+  ask(QFileDialog::AnyFile, title, QDir(documents).filePath(name), done, QFileDialog::AcceptSave);
 }

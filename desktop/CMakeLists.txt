@@ -198,6 +198,7 @@ qt_add_qml_module(lumeo
     src/api/preferences.h src/api/preferences.cpp
     src/api/languages.h src/api/languages.cpp
     src/api/storage.h src/api/storage.cpp
+    src/api/personaldata.h src/api/personaldata.cpp
     src/api/corestatus.h src/api/corestatus.cpp
     src/api/opening.h src/api/opening.cpp
     src/api/releases.h src/api/releases.cpp

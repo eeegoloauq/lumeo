@@ -3142,5 +3142,59 @@
         <extracomment>Opening a client file while connected to a remote server.</extracomment>
         <translation>Локальные файлы можно открыть только через локальное ядро.</translation>
     </message>
+    <message id="personalData">
+        <source>Personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Личные данные</translation>
+    </message>
+    <message id="personalHint">
+        <source>An import adds to what is here and removes nothing.</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Импорт добавляет к тому, что уже есть, и ничего не удаляет.</translation>
+    </message>
+    <message id="personalExport">
+        <source>Export</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Экспорт</translation>
+    </message>
+    <message id="personalImport">
+        <source>Import</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Импорт</translation>
+    </message>
+    <message id="personalExportTitle">
+        <source>Save personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Сохранить личные данные</translation>
+    </message>
+    <message id="personalImportTitle">
+        <source>Open personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Открыть личные данные</translation>
+    </message>
+    <message id="personalSaved">
+        <source>Saved</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Сохранено</translation>
+    </message>
+    <message id="personalImported" numerus="yes">
+        <source>%n entries imported</source>
+        <extracomment>Personal data export and import in Settings, General. (%n count)</extracomment>
+        <translation>
+            <numerusform>Импортирована %n запись</numerusform>
+            <numerusform>Импортированы %n записи</numerusform>
+            <numerusform>Импортировано %n записей</numerusform>
+        </translation>
+    </message>
+    <message id="personalNothingNew">
+        <source>Nothing new to import</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Ничего нового</translation>
+    </message>
+    <message id="personalTooLarge">
+        <source>This file is too large to be personal data.</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Файл слишком большой для личных данных.</translation>
+    </message>
 </context>
 </TS>

@@ -2,10 +2,14 @@
 #include "core.h"
 #include "downloads.h"
 #include "fakecore.h"
+#include "personaldata.h"
 #include "preferences.h"
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
+#include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 namespace {
@@ -198,6 +202,96 @@ private slots:
     store.remove(id);
     QTRY_COMPARE(store.current().size(), addons.size() - 1);
     QVERIFY(store.error().isEmpty());
+  }
+  void anExportSavesWhatTheCoreWrote() {
+    const QJsonObject written{{"format", "lumeo-personal"}, {"version", 1}, {"titles", QJsonArray()}};
+    fake->answer("GET", "/api/v1/personal", 200, written);
+    Preferences preferences(core.get());
+    PersonalData data(core.get(), &preferences);
+    QSignalSpy exported(&data, &PersonalData::exported);
+    QTemporaryDir dir;
+    const QString path = dir.filePath("lumeo.json");
+    data.exportTo(path);
+    QTRY_COMPARE(exported.size(), 1);
+    QFile saved(path);
+    QVERIFY(saved.open(QIODevice::ReadOnly));
+    QCOMPARE(QJsonDocument::fromJson(saved.readAll()).object(), written);
+    QVERIFY(!data.busy());
+    QVERIFY(data.error().isEmpty());
+  }
+
+  void anExportTheCoreRefusesLeavesNoFile() {
+    fake->answer("GET", "/api/v1/personal", 500, QJsonObject{{"error", "disk I/O error"}});
+    Preferences preferences(core.get());
+    PersonalData data(core.get(), &preferences);
+    QTemporaryDir dir;
+    const QString path = dir.filePath("lumeo.json");
+    data.exportTo(path);
+    QTRY_COMPARE(data.error(), "disk I/O error");
+    QVERIFY(!data.busy());
+    QVERIFY(!QFile::exists(path));
+  }
+
+  // The core checks the file; the client carries it as it is, and says how
+  // much it changed. Preferences it changed are read again, being held here.
+  void anImportSendsTheFileAsItIsAndSaysHowMuchChanged() {
+    fake->answer("POST", "/api/v1/personal", 200, FakeCore::fixture("personal-counts.json"));
+    fake->answer("GET", "/api/v1/preferences", 200, FakeCore::fixture("preferences.json"));
+    Preferences preferences(core.get());
+    PersonalData data(core.get(), &preferences);
+    QSignalSpy imported(&data, &PersonalData::imported);
+    QTemporaryDir dir;
+    const QString path = dir.filePath("lumeo.json");
+    const QByteArray file = R"({"format": "lumeo-personal", "version": 1, "titles": []})";
+    {
+      QFile out(path);
+      QVERIFY(out.open(QIODevice::WriteOnly));
+      out.write(file);
+    }
+    data.importFrom(path);
+    QTRY_COMPARE(imported.size(), 1);
+    QCOMPARE(fake->requests().first(), "POST /api/v1/personal " + QString::fromUtf8(file));
+    const QJsonObject counts = FakeCore::fixture("personal-counts.json").toObject();
+    int entries = 0;
+    for (auto it = counts.begin(); it != counts.end(); ++it)
+      entries += it.key() == "titles" ? 0 : it.value().toInt();
+    QCOMPARE(imported.first().first().toInt(), entries);
+    QTRY_VERIFY(fake->requests().contains("GET /api/v1/preferences"));
+  }
+
+  void anImportTheCoreRefusesSaysWhy() {
+    fake->answer("POST", "/api/v1/personal", 400, QJsonObject{{"error", "tt1: rating must be between 1 and 10"}});
+    Preferences preferences(core.get());
+    PersonalData data(core.get(), &preferences);
+    QSignalSpy imported(&data, &PersonalData::imported);
+    QTemporaryDir dir;
+    const QString path = dir.filePath("lumeo.json");
+    {
+      QFile out(path);
+      QVERIFY(out.open(QIODevice::WriteOnly));
+      out.write("{}");
+    }
+    data.importFrom(path);
+    QTRY_COMPARE(data.error(), "tt1: rating must be between 1 and 10");
+    QVERIFY(!data.busy());
+    QCOMPARE(imported.size(), 0);
+  }
+
+  void aFileTooLargeForPersonalDataIsNotSent() {
+    Preferences preferences(core.get());
+    PersonalData data(core.get(), &preferences);
+    QTemporaryDir dir;
+    const QString path = dir.filePath("film.mkv");
+    {
+      QFile out(path);
+      QVERIFY(out.open(QIODevice::WriteOnly));
+      QVERIFY(out.resize(PersonalData::largest + 1));
+    }
+    data.importFrom(path);
+    QCOMPARE(data.error(), qtTrId("personalTooLarge"));
+    QVERIFY(!data.busy());
+    // Refused before anything is sent, so nothing can still be on its way.
+    QVERIFY(fake->requests().isEmpty());
   }
 };
 

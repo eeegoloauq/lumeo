@@ -98,5 +98,49 @@ SettingsBlock {
         ErrorRow { message: CoreConnection.error }
     }
 
+    // What is the viewer's own, carried to another core as a file.
+    SettingsCard {
+        id: personalCard
+
+        // What the last export or import did; cleared as the next starts.
+        property string outcome
+
+        SettingRow {
+            label: qsTrId("personalData")
+            hint: qsTrId("personalHint")
+            Row {
+                spacing: 8
+                RowButton {
+                    objectName: "exportPersonal"
+                    text: qsTrId("personalExport")
+                    enabled: !personal.busy
+                    onClicked: Desktop.pickSaveFile(qsTrId("personalExportTitle"),
+                                                    "lumeo-" + Qt.formatDate(new Date(), "yyyy-MM-dd") + ".json",
+                                                    path => { personalCard.outcome = ""; personal.exportTo(path) })
+                }
+                RowButton {
+                    objectName: "importPersonal"
+                    text: qsTrId("personalImport")
+                    enabled: !personal.busy
+                    onClicked: Desktop.pickFile(qsTrId("personalImportTitle"),
+                                                path => { personalCard.outcome = ""; personal.importFrom(path) })
+                }
+            }
+        }
+        SettingRow {
+            objectName: "personalOutcome"
+            visible: personalCard.outcome !== ""
+            label: personalCard.outcome
+        }
+        ErrorRow { message: personal.error }
+
+        PersonalData {
+            id: personal
+            onExported: personalCard.outcome = qsTrId("personalSaved")
+            onImported: written => personalCard.outcome = written > 0 ? qsTrId("personalImported", written)
+                                                              : qsTrId("personalNothingNew")
+        }
+    }
+
     ConnectionDialog { id: pairing }
 }

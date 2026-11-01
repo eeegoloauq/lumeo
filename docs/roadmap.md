@@ -18,10 +18,6 @@ The server has a confined systemd unit and console administration.
 - A confined container, unprivileged, writing to the data directory only.
 - Multiple saved remote cores and switching without restarting. Every store,
   in-flight request and playback session must remain scoped to its core.
-- Export and import of personal data in the client: two actions in
-  Settings over `/api/v1/personal`, a file dialog each, and what the import
-  changed. It moves a person's data between a local core and a server, and
-  comes before the media-only mode, whose mode change depends on it.
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 
@@ -64,7 +60,7 @@ default for a person who wants a server to hold everything.
   including while that file plays. This revises "share while in use" in
   decisions/downloads.md and applies to both modes.
 - Changing the mode of a server with data is a migration through the export
-  and import above.
+  and import of personal data (Settings → General).
 
 ## Library and storage
 

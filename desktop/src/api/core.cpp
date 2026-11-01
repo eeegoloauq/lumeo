@@ -91,14 +91,30 @@ struct Core::Attempt {
 
 void Core::send(const QByteArray &method, const QString &path, const QUrlQuery &query,
                 const QJsonValue &body, QObject *context, Answer answer) {
+  if (body.isUndefined()) {
+    start(method, path, query, std::nullopt, context, std::move(answer));
+    return;
+  }
+  start(method, path, query,
+        body.isArray() ? QJsonDocument(body.toArray()).toJson(QJsonDocument::Compact)
+                       : QJsonDocument(body.toObject()).toJson(QJsonDocument::Compact),
+        context, std::move(answer));
+}
+
+void Core::send(const QByteArray &method, const QString &path, const QUrlQuery &query,
+                const QByteArray &json, QObject *context, Answer answer) {
+  start(method, path, query, json, context, std::move(answer));
+}
+
+void Core::start(const QByteArray &method, const QString &path, const QUrlQuery &query,
+                 const std::optional<QByteArray> &body, QObject *context, Answer answer) {
   auto pending = std::make_shared<Attempt>();
   pending->method = method;
   pending->url = url(path);
   pending->url.setQuery(query);
-  if (!body.isUndefined()) {
+  if (body) {
     pending->hasBody = true;
-    pending->body = body.isArray() ? QJsonDocument(body.toArray()).toJson(QJsonDocument::Compact)
-                                   : QJsonDocument(body.toObject()).toJson(QJsonDocument::Compact);
+    pending->body = *body;
   }
   pending->context = context;
   pending->answer = std::move(answer);

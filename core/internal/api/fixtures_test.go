@@ -12,6 +12,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/addons"
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/config"
+	"github.com/eeegoloauq/lumeo/core/internal/personal"
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
@@ -33,6 +34,7 @@ func TestClientFixturesMatchResponses(t *testing.T) {
 		{"download.json", &acquire.Download{}},
 		{"about.json", &About{}},
 		{"update.json", &update.Release{}},
+		{"personal-counts.json", &personal.Counts{}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			path := filepath.Join("..", "..", "..", "desktop", "tests", "fixtures", tc.file)

@@ -3108,5 +3108,58 @@
         <extracomment>Opening a client file while connected to a remote server.</extracomment>
         <translation>Local files can only be opened with the local core.</translation>
     </message>
+    <message id="personalData">
+        <source>Personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Personal data</translation>
+    </message>
+    <message id="personalHint">
+        <source>An import adds to what is here and removes nothing.</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>An import adds to what is here and removes nothing.</translation>
+    </message>
+    <message id="personalExport">
+        <source>Export</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Export</translation>
+    </message>
+    <message id="personalImport">
+        <source>Import</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Import</translation>
+    </message>
+    <message id="personalExportTitle">
+        <source>Save personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Save personal data</translation>
+    </message>
+    <message id="personalImportTitle">
+        <source>Open personal data</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Open personal data</translation>
+    </message>
+    <message id="personalSaved">
+        <source>Saved</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Saved</translation>
+    </message>
+    <message id="personalImported" numerus="yes">
+        <source>%n entries imported</source>
+        <extracomment>Personal data export and import in Settings, General. (%n count)</extracomment>
+        <translation>
+            <numerusform>%n entries imported</numerusform>
+            <numerusform>%n entries imported</numerusform>
+        </translation>
+    </message>
+    <message id="personalNothingNew">
+        <source>Nothing new to import</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>Nothing new to import</translation>
+    </message>
+    <message id="personalTooLarge">
+        <source>This file is too large to be personal data.</source>
+        <extracomment>Personal data export and import in Settings, General.</extracomment>
+        <translation>This file is too large to be personal data.</translation>
+    </message>
 </context>
 </TS>

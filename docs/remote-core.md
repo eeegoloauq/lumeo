@@ -92,6 +92,11 @@ device, restarts included. An already open stream may finish. Forgetting a
 connection only erases its local key; revoke it on the server to remove access.
 Previously learned artwork URLs remain usable as unguessable bearer addresses.
 
+History, scores, My list and personal preferences do not merge when switching
+cores. To carry them, use Settings → General → Personal data: Export while
+connected to one core, Import while connected to the other. An import adds to
+what is there, keeps the later of two entries and removes nothing.
+
 Administrative commands read the existing owner token locally and contact the
 running core without an HTTP proxy or redirects; they never open a second
 database. Paired devices cannot issue codes, list devices or revoke access.
