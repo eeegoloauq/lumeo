@@ -134,16 +134,18 @@ In Settings → General → Connect to server, enter the HTTPS address, device n
 and code. Redirects are refused, and so is any certificate error other than a
 core's own certificate ([above](#without-a-reverse-proxy)). The server issues a
 separate device credential and stores only its SHA-256 hash. The client stores
-its credential in `core.json` beside `client.json`, with owner-only permissions;
+its credential in `core.json` beside `client.json`, with owner-only permissions,
+beside those of the servers paired with before;
 the pairing code is not saved. On Windows this is the user's AppData directory,
 whose account ACL remains the security boundary.
 
 A media server ([below](#media-server)) is not saved there: its credential
 goes to the app's own core, which forwards to the server, and General shows
-the server as a media server. Restart with the offered button. Playback closes and saves its position to the
-old core before switching. A remote connection suppresses startup of the bundled
-local core. General also offers returning to the local core and forgetting the
-remote connection. One remote can be remembered in this version. `LUMEO_CORE`
+the server as a media server. General lists this computer and every saved
+server, each with Use and Forget, so going back to a server needs no new code.
+The choice applies on restart, with the offered button: playback closes and
+saves its position to the old core before switching. A remote connection
+suppresses startup of the bundled local core. `LUMEO_CORE`
 remains a development override: connection controls are hidden and saved keys
 are never sent to the overridden address.
 
@@ -174,8 +176,9 @@ the server, and the server refuses them from devices. A desktop client pairs
 as above and follows the mode the server answers with: the credential goes to
 its own core, which keeps it, and the client talks only to that core. A core
 without a client links with `lumeo-core link` ([core](core.md), Linked to a
-server). Forgetting the media server in General unlinks the core; revoke the
-device on the server to remove its access.
+server). The core keeps every media server it was linked to and forwards to
+the one chosen. Forgetting a media server in General unlinks the core from it;
+revoke the device on the server to remove its access.
 
 A device keeps a file on the server by its own keep rules, set in Settings →
 Downloads, which on a media server shows them in place of the folder, the

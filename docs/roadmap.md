@@ -8,14 +8,17 @@ before code.
 
 A server is reached over HTTPS, through a reverse proxy or with the core's
 own certificate, with one-time pairing and revocable device credentials
-([setup](remote-core.md)). The client remembers
-one remote core alongside its local mode; switching applies on restart so
+([setup](remote-core.md)). The client keeps every server it paired with,
+full or media, beside its local mode; switching applies on restart so
 in-flight requests and final playback progress stay with their original core.
 The server has a confined systemd unit or container image and console
 administration.
 
-- Multiple saved remote cores and switching without restarting. Every store,
-  in-flight request and playback session must remain scoped to its core.
+Switching without a restart is not planned: it would trade a restart of a
+few seconds, for a choice made rarely, for every store, request and playback
+proving it stays with its core. A media server's link is read when the local
+core starts, so that core would restart anyway. Reconsider when someone
+switches often enough to mind.
 
 Later: a management web UI, HTTP and WebDAV sources, phone and TV clients.
 

@@ -280,8 +280,9 @@ is replaced on the next issue. The core stores the device's token hash in
 SQLite. The pair answer says the server's mode: the desktop keeps a full
 server's token in a private `core.json` in its configuration directory, and
 hands a media server's to the local core (A core linked to a server). It
-applies only to that saved origin; switching cores requires restarting the
-app. Console `devices` and `revoke` commands
+applies only to that saved origin. Every server paired with stays saved, so
+switching back needs no new code; switching cores requires restarting the
+app, which keeps every store, request and playback with the core it began on. Console `devices` and `revoke` commands
 use the owner token locally; device tokens cannot administer enrollment.
 The reverse proxy deployment uses `LUMEO_PUBLIC_URL` for external artwork
 addresses instead of trusting forwarded headers. See [remote-core.md](remote-core.md).
@@ -293,8 +294,8 @@ poster URL and reaches only a client that listed the title.
 
 ## A core linked to a server
 
-A core with `<data>/server.json` (written by `lumeo-core link`) forwards to
-that server what the server owns, and the client talks to it as to any other
+A core with a link chosen in `<data>/server.json` (written by `lumeo-core link`)
+forwards to that server what the server owns, and the client talks to it as to any other
 core. The server streams; this core passes the bytes on.
 
 - The server is a media server (`LUMEO_MODE=media`): it keeps none of its
@@ -307,7 +308,9 @@ core. The server streams; this core passes the bytes on.
 - The client links its own core. It pairs with the server itself and reads
   the mode from the answer; a media server's credential goes to the local
   core (`PUT /api/v1/link`, owner token only), which checks it with the
-  server and keeps it in `server.json`. The client keeps no copy and talks
+  server and keeps it in `server.json` beside the media servers linked
+  before, choosing it. The client keeps their addresses alone, to list them
+  while it uses a full server and the local core is not running, and talks
   only to the local core. A full server it already uses directly whose
   answers start saying `media` is handed over the same way, with the
   credential in use. The link is read at start: routes pick local or
@@ -315,7 +318,7 @@ core. The server streams; this core passes the bytes on.
   when it is built, so linking while running would make each of them
   switchable for a change made once per device. The app restarts with its
   core instead, as for any change of core; `GET /api/v1/link` says the
-  server saved and the one in use, and they differ until then. A media
+  server chosen and the one in use, and they differ until then. A media
   server is never linked itself.
 - What a media server answers a device reads nothing of its owner's data:
   no choice in `/sources` or `/folders`, no languages in the ranking or a

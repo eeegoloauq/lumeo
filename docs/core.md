@@ -114,12 +114,16 @@ credential the server issued; the owner token sets and reads the link over the A
 
     curl -X PUT -H 'content-type: application/json' \
          -d '{"url":"https://lumeo.example.com","token":"<device credential>"}' localhost:7666/api/v1/link
-    curl localhost:7666/api/v1/link          # {"url": saved, "running": in use until the next start}
-    curl -X DELETE localhost:7666/api/v1/link
+    curl localhost:7666/api/v1/link          # {"url": used from the next start, "running": in use now, "saved": [...]}
+    curl -X PATCH -d '{"url":"https://other.example.com"}' localhost:7666/api/v1/link   # "" for none
+    curl -X DELETE 'localhost:7666/api/v1/link?url=https://other.example.com'          # no url: the one in use
 
 `PUT` keeps the link once the server took the credential and said it is a media server: 409 for
 any other, 422 for a credential it refused. A core that is a media server itself links to nothing.
-The link is `server.json` in the data directory, owner-only, read at start. The address is the
+The core keeps every server it was linked to, with its credential, and forwards to one or none:
+`PUT` and `link` add a server and choose it, `PATCH` chooses a saved one (404 for another),
+`DELETE` and `unlink` forget one. The links are `server.json` in the data directory, owner-only,
+read at start; a file from before several were kept holds the one in use. The address is the
 server's `LUMEO_PUBLIC_URL`; plain HTTP is accepted only on loopback. Unlinking keeps the device
 on the server until it is revoked there.
 
