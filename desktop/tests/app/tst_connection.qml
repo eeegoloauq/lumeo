@@ -33,10 +33,13 @@ Item {
             const thisComputer = findChild(shell, "useThisComputer")
             tryVerify(() => thisComputer?.visible === true)
             verify(!findChild(shell, "restartCore").visible)
+            // The rows came with the core's answer: placed, then clicked.
+            waitForPolish(shell.Window.window)
             mouseClick(thisComputer)
             tryVerify(() => asked("PATCH /api/v1/link"))
             tryVerify(() => findChild(shell, "restartCore").visible)
             verify(!thisComputer.visible)
+            waitForPolish(shell.Window.window)
             mouseClick(findChild(shell, "forgetCore"))
             tryVerify(() => asked("DELETE /api/v1/link?url="))
             tryVerify(() => findChild(shell, "forgetCore") === null)
