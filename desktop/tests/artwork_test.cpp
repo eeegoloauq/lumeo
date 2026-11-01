@@ -26,7 +26,10 @@ Fetched fetch(Artwork &provider, const QUrl &url, const QSize &size = {}) {
   std::unique_ptr<QQuickImageResponse> response(
       provider.requestImageResponse(QUrl::toPercentEncoding(url.toString()), size));
   QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
-  if (!finished.wait(5000))
+  // The app sets no time limit on a request, so a slow runner fails this only
+  // past one a person would notice. Seen 2026-11-01 on Windows CI: the first
+  // request of a cold process took longer than 5 s.
+  if (!finished.wait(25000))
     return {QImage(), "no answer"};
   std::unique_ptr<QQuickTextureFactory> texture(response->textureFactory());
   return {texture ? texture->image() : QImage(), response->errorString()};
