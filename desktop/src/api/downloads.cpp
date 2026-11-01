@@ -99,11 +99,13 @@ void Downloads::stop(const QString &id) {
       break;
     }
   // So would one asked or answered while the stop is on its way, which the
-  // core can answer before it has removed it. A refusal shows on the next poll.
+  // core can answer before it has removed it; what was left unread is asked
+  // again once the core has answered, a refusal included.
   m_core->send("DELETE", "/api/v1/downloads/" + Core::segment(id), QUrlQuery{{"data", "true"}},
                QJsonValue::Undefined, this, [this](const Core::Reply &) {
                  --m_stopping;
                  ++m_adopted;
+                 refresh();
                });
 }
 

@@ -120,7 +120,12 @@ private slots:
     QTRY_COMPARE(fake->requests().count("GET /api/v1/downloads"), 2);
     QTest::qWait(50);
     QVERIFY(store.all().isEmpty());
+    // What was left unread meanwhile is read once the stop is done, not at
+    // the next poll.
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{download("e")}}});
     fake->release();
+    QTRY_COMPARE(ids(store), QStringList{"e active"});
   }
 
   // Seen 2026-09-30: a ring nearly full sat on a series whose episode was on
