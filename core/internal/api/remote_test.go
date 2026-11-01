@@ -115,17 +115,17 @@ func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	l := &linked{t: t, theirs: theirs, serverWatch: serverWatch, log: log, served: &atomic.Pointer[http.Handler]{},
 		requested: make(chan string, 100)}
 	l.serverDeps = Deps{
-		Sources:   func() []sources.Provider { return []sources.Provider{found} },
-		Catalog:   serverCatalog,
-		Downloads: theirs,
-		Progress:  serverWatch,
+		Sources:     func() []sources.Provider { return []sources.Provider{found} },
+		Catalog:     serverCatalog,
+		Downloads:   theirs,
+		Progress:    serverWatch,
 		Library:     serverLibrary,
 		Preferences: serverPrefs,
 		Artwork:     serverDB,
-		Devices:   serverDB,
-		CacheDir:  serverDir,
-		Token:     "server-token",
-		Mode:      remote.ModeMedia,
+		Devices:     serverDB,
+		CacheDir:    serverDir,
+		Token:       "server-token",
+		Mode:        remote.ModeMedia,
 	}
 	l.serve(l.serverDeps)
 	l.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
