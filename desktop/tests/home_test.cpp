@@ -171,8 +171,9 @@ private slots:
     QTRY_COMPARE(fake->requests().size(), 2);
     QVERIFY(!going.empty());
     fake->answer("GET", "/api/v1/catalog", 200, items(QJsonArray{film("b")}));
-    going.more();
-    QTRY_COMPARE(ids(&going), (QStringList{"a", "b"}));
+    // Scrolls until the next page comes: one made before the failed page is
+    // back is passed over, as it is while any page loads.
+    QTRY_VERIFY((going.more(), ids(&going) == QStringList{"a", "b"}));
   }
 };
 

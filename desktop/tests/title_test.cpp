@@ -220,7 +220,11 @@ private slots:
     c->link("/home/someone/Videos");
     QTRY_COMPARE(refused.size(), 1);
     QCOMPARE(refused.first().at(1).toInt(), 422);
-    QVERIFY(fake->requests().last().contains(R"({"path":"/home/someone/Videos"})"));
+    // Downloads asks for its list meanwhile, on a connection of its own, so
+    // the folder's request is not always the last to arrive.
+    const QStringList linked = fake->requests().filter("POST /api/v1/items/tt1/folders");
+    QCOMPARE(linked.size(), 1);
+    QVERIFY(linked.first().contains(R"({"path":"/home/someone/Videos"})"));
   }
 
   // One episode at a time, those already downloading passed over: a
