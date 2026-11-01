@@ -91,14 +91,20 @@ void Downloads::setPaused(const QString &id, bool paused) {
 void Downloads::stop(const QString &id) {
   // A poll already asked would put it back.
   ++m_adopted;
+  ++m_stopping;
   for (qsizetype i = 0; i < m_downloads.size(); ++i)
     if (m_downloads.at(i)["id"] == id) {
       m_downloads.removeAt(i);
       update();
       break;
     }
+  // So would one asked or answered while the stop is on its way, which the
+  // core can answer before it has removed it. A refusal shows on the next poll.
   m_core->send("DELETE", "/api/v1/downloads/" + Core::segment(id), QUrlQuery{{"data", "true"}},
-               QJsonValue::Undefined, this, [](const Core::Reply &) {});
+               QJsonValue::Undefined, this, [this](const Core::Reply &) {
+                 --m_stopping;
+                 ++m_adopted;
+               });
 }
 
 void Downloads::refresh() {
@@ -106,7 +112,7 @@ void Downloads::refresh() {
   m_core->get("/api/v1/downloads", {}, this, [this, asked](const Core::Reply &reply) {
     // A failed poll keeps the last known state; the screens say the core is
     // gone, since their own requests fail too.
-    if (reply.ok() && asked == m_adopted) {
+    if (reply.ok() && asked == m_adopted && m_stopping == 0) {
       const QJsonArray fresh = reply.json()["downloads"].toArray();
       // Most polls find the same numbers, and every change redraws the
       // posters on screen.

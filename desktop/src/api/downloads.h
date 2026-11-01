@@ -86,4 +86,6 @@ private:
   // Moves with every answer put in the list: a poll asked before it answers
   // without it, and must not put the old state back.
   int m_adopted = 0;
+  // Stops sent and not yet answered.
+  int m_stopping = 0;
 };

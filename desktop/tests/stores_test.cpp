@@ -106,6 +106,23 @@ private slots:
     QCOMPARE(ids(store), QStringList{"d active"});
   }
 
+  // Seen 2026-11-01 on Windows CI: a poll asked after Stop and answered
+  // before the core removed the download put its row back.
+  void aStoppedDownloadStaysGoneWhileTheStopIsOnItsWay() {
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{download("d")}}});
+    fake->hold("DELETE", "/api/v1/downloads/d");
+    Downloads store(core.get());
+    QTRY_COMPARE(store.all().size(), 1);
+    store.stop("d");
+    QVERIFY(store.all().isEmpty());
+    store.refresh();
+    QTRY_COMPARE(fake->requests().count("GET /api/v1/downloads"), 2);
+    QTest::qWait(50);
+    QVERIFY(store.all().isEmpty());
+    fake->release();
+  }
+
   // Seen 2026-09-30: a ring nearly full sat on a series whose episode was on
   // disk, summed with a copy left paused half way.
   void aPosterMarksWhatIsArrivingElseWhatIsOnDisk() {

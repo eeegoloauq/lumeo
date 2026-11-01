@@ -16,6 +16,7 @@ Item {
 
         property var shell
         property int asked
+        property var listed
         readonly property string show: "tt0903747"
         readonly property string film: "tt0063350"
 
@@ -45,7 +46,7 @@ Item {
             fakeCore.answer("GET", "/api/v1/storage", 200, { used: 200e9, disk: { total: 1000e9, free: 300e9 }, cache: 0, titles: [] })
             fakeCore.answer("PATCH", "/api/v1/downloads/arriving", 200, download("arriving", { state: "paused", pausedByUser: true }))
             fakeCore.answer("DELETE", "/api/v1/downloads/paused", 204)
-            serve([
+            listed = [
                 episode("s1e10", "done", 1, 10), episode("s1e9", "done", 1, 9), episode("s2e1", "done", 2, 1),
                 download("film", { state: "done", itemId: film, release: { resolution: "1080p", hdr: ["DV"] } }),
                 download("arriving", { itemId: "tt0110912" }),
@@ -55,7 +56,8 @@ Item {
                 download("old", { state: "done", itemId: film, updatedAt: new Date(Date.now() - 2 * 86400e3).toISOString() }),
                 download("stopped", { state: "paused" }),
                 download("local", { state: "done", locator: { scheme: "file" } }),
-            ])
+            ]
+            serve(listed)
             shell = createTemporaryObject(shellComponent, window)
             watched.target = shell
             watched.clear()
@@ -111,6 +113,8 @@ Item {
             tryVerify(() => requests().includes('PATCH /api/v1/downloads/arriving {"paused":true}'))
             verify(!findChild(row("3:" + show), "pause").visible, "nothing flows there to pause")
 
+            // As the core lists them once it is stopped; no poll is asked here.
+            fakeCore.answer("GET", "/api/v1/downloads", 200, { downloads: listed.filter(d => d.id !== "paused") })
             mouseClick(findChild(row("3:" + show), "stop"))
             tryVerify(() => requests().includes("DELETE /api/v1/downloads/paused?data=true"))
             verify(!shown("3:" + show), "gone at once")
