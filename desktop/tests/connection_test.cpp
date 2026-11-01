@@ -149,10 +149,15 @@ private slots:
           {"device", QJsonObject{{"id", "laptop"}}}}, QHttpServerResponse::StatusCode::Created);
     });
     server.route("/stolen", [&] { stolen = true; return QHttpServerResponse("unexpected"); });
-    const QString address = QString("https://localhost:%1").arg(listener->serverPort());
+    // The address it listens on, by number: Windows resolves localhost to ::1
+    // first and takes seconds to give up on a port nobody listens to there.
+    const QString address = QString("https://127.0.0.1:%1").arg(listener->serverPort());
+    // Longer than the request's own transfer timeout, so a slow runner's
+    // handshake fails the test only when it would fail the app too.
+    constexpr int answered = 25000;
     CoreConnection untrusted(temporary.filePath("untrusted/core.json"));
     untrusted.pair(address, "one-time-code", "Laptop");
-    QTRY_VERIFY_WITH_TIMEOUT(!untrusted.busy(), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(!untrusted.busy(), answered);
     QVERIFY(!untrusted.error().isEmpty());
     QVERIFY(!untrusted.restartNeeded());
     QVERIFY(received.isEmpty());
@@ -160,7 +165,7 @@ private slots:
     const QString path = temporary.filePath("tls/core.json");
     CoreConnection connection(path);
     connection.pair(address, "one-time-code", "Laptop");
-    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
     QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
     QCOMPARE(received.value("code").toString(), QString("one-time-code"));
     QCOMPARE(received.value("name").toString(), QString("Laptop"));
@@ -171,7 +176,7 @@ private slots:
     QVERIFY(connection.restartNeeded());
     redirect = true;
     connection.pair(address, "another-code", "Laptop");
-    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
     QVERIFY(!connection.error().isEmpty());
     QVERIFY(!stolen);
     QCOMPARE(CoreConnection::read(path), stored);
