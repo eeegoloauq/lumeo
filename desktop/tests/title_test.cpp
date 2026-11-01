@@ -5,6 +5,7 @@
 #include "title.h"
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QSignalSpy>
 #include <QtTest>
@@ -315,6 +316,28 @@ private slots:
     QTRY_COMPARE(refused.size(), 1);
     QCOMPARE(refused.first().first().toString(), "rate");
     QCOMPARE(mine.score(), 7);
+  }
+
+  // An episode's card and its line in History score the episode, not the
+  // series it belongs to.
+  void anEpisodeIsScoredOnItsOwn() {
+    fake->answer("GET", "/api/v1/list/tt1", 200, QJsonObject{{"inList", true}});
+    fake->answer("GET", "/api/v1/ratings/tt1", 200,
+                 QJsonObject{{"ratings", QJsonArray{QJsonObject{{"season", 0}, {"episode", 0}, {"rating", 7}},
+                                                    QJsonObject{{"season", 1}, {"episode", 2}, {"rating", 4}}}}});
+    fake->answer("PUT", "/api/v1/ratings/tt1", 200, QJsonObject{{"rating", 9}});
+    fake->answer("DELETE", "/api/v1/ratings/tt1", 204);
+    Mine mine(core.get(), "tt1", nullptr, 1, 2);
+    QTRY_VERIFY(mine.known());
+    QCOMPARE(mine.score(), 4);
+    mine.rate(9);
+    QTRY_VERIFY(!fake->requests().filter("PUT /api/v1/ratings/tt1").isEmpty());
+    const QJsonObject sent =
+        QJsonDocument::fromJson(fake->requests().filter("PUT /api/v1/ratings/tt1").first().section(' ', 2).toUtf8())
+            .object();
+    QCOMPARE(sent, (QJsonObject{{"season", 1}, {"episode", 2}, {"rating", 9}}));
+    mine.clear();
+    QTRY_VERIFY(!fake->requests().filter("DELETE /api/v1/ratings/tt1?season=1&episode=2").isEmpty());
   }
 
   // The core puts a title scored before it was ever played on My list.

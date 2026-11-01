@@ -91,6 +91,7 @@ ShellPage {
               .trim()
         mark: Downloads.marks[modelData.id]
         onClicked: page.open(modelData)
+        onMenu: at => TitleActions.ask({item: modelData, source: button, x: at.x, y: at.y})
         button.Keys.onLeftPressed: page.move(slot.index + 1, -1, 0)
         button.Keys.onRightPressed: page.move(slot.index + 1, 1, 0)
         button.Keys.onUpPressed: page.move(slot.index + 1, 0, -1)
@@ -283,9 +284,11 @@ ShellPage {
                     active: page.found && page.results.length > 0
 
                     sourceComponent: BestMatch {
+                        id: bestMatch
                         objectName: "best"
                         item: page.results[0]
                         onClicked: page.open(item)
+                        onMenu: at => TitleActions.ask({item: item, source: bestMatch, x: at.x, y: at.y})
                         Keys.onLeftPressed: page.move(0, -1, 0)
                         Keys.onRightPressed: page.move(0, 1, 0)
                         Keys.onUpPressed: page.move(0, 0, -1)

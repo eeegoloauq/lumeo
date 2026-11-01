@@ -24,6 +24,17 @@ AbstractButton {
     z: lifted ? 1 : 0
     Accessible.name: item.title
 
+    // The right button where it was pressed, or the Menu key or Shift+F10 at
+    // its middle: the title menu (TitleActions).
+    signal menu(point at)
+    TapHandler { acceptedButtons: Qt.RightButton; onTapped: point => tile.menu(point.position) }
+    Keys.onMenuPressed: menu(Qt.point(width / 2, height / 2))
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier) {
+            menu(Qt.point(width / 2, height / 2))
+            event.accepted = true
+        }
+    }
     Keys.onReturnPressed: clicked()
     Keys.onEnterPressed: clicked()
     HoverHandler { cursorShape: Qt.PointingHandCursor }

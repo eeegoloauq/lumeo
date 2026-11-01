@@ -6,8 +6,9 @@ before code.
 
 ## Quick actions
 
-Everything a title page can do, from any poster or card, in five steps. One
-commit each, with `decisions/` updated as each ships.
+Everything a title page can do, from any poster or card. The right-click menu
+is in; four steps are left, one commit each, with `decisions/` updated as each
+ships.
 
 One icon per meaning, everywhere it appears: an eye for watched, a crossed-out
 eye for unwatched, a bookmark for My list (outlined to add, filled when on
@@ -15,43 +16,22 @@ it), a star for the viewer's score, the download arrow for downloading and
 on disk, a bin for deleting a download (the only red row), a link for copying
 the share link, a film for the trailer, a cross for removing from Continue
 watching. ✓ stops meaning "in My list", where it read as "watched". Menus
-carry these icons, as macOS, Windows 11 and KDE menus do. `desktop/icons/`
-needs `visibility`, `visibility_off`, `bookmark` (outlined and filled),
-`link`, `delete` and `more_horiz` from the same Material Symbols set.
+carry these icons, as macOS, Windows 11 and KDE menus do. The right-click
+menu shipped with them (decisions/interface.md); the steps left bring the
+rest of the interface to the same set.
 
-1. **A right-click menu** on every poster, Continue watching card, episode
-   card and season tab, on Home, My list, History and search alike, and on the
-   Menu key and Shift+F10 for the keyboard. One menu, opened where the press
-   was, so posters gain nothing. It offers what the title page does: play,
-   trailer, My list, mark watched or unwatched, rate, download or delete the
-   download, copy link.
-   - A poster or a Continue watching card rates the title, and the row says
-     so ("Rate series…"). An episode is rated from its card and from History
-     only: a score marks what it scores watched, and the episode on a Continue
-     watching card is half seen.
-   - Continue watching adds "Remove from Continue watching": the title is
-     hidden from the row and keeps its position, and comes back on its next
-     play. A flag in the core.
-   - An episode card adds "Mark watched up to here": every episode before it,
-     earlier seasons included, specials left as they are.
-   - "Mark series as unwatched" forgets every episode's progress, taking the
-     series out of History and Continue watching, with five seconds for Undo
-     as History has. Score and My list stay.
-   - No buttons on posters under the pointer: they cover the artwork of a
-     dense shelf, the keyboard cannot reach them, and every poster would carry
-     them.
-2. **The title page row** is Play, My list, the score and ⋯. ⋯ opens the
+1. **The title page row** is Play, My list, the score and ⋯. ⋯ opens the
    same menu without what is beside it: trailer, mark as watched, copy link,
    and Delete download once a film is on disk. A film's Download button stays
    as it is: a ring with the percentage while arriving, gone once all of it is
    here, the line under Play then saying On disk.
-3. **Watched on every poster.** The bar along the bottom is only how far the
+2. **Watched on every poster.** The bar along the bottom is only how far the
    viewer is. A finished title has an eye in one pill in the top-right corner,
    beside the on-disk arrow when both apply, so a poster never carries two
    badges. Both white; the accent stays the arriving ring's. Home and search
    posters get it, and episode cards drop the full bar for the eye. Nothing is
    hidden from a shelf. Revises the bar rules in `decisions/interface.md`.
-4. **A filter on My list**: All, To watch (on the list, nothing played),
+3. **A filter on My list**: All, To watch (on the list, nothing played),
    Watching, Watched (a film finished, a series caught up with). To watch is
    the planned list, with no third tab. Films or series only is a second
    section of the Sort menu, kept by this machine as the order is. The grid
@@ -60,7 +40,7 @@ needs `visibility`, `visibility_off`, `bookmark` (outlined and filled),
    shelves already are, and the view's own arrow keys in place of
    `LibraryPage`'s `move`/`focusTile`. Search keeps its `Flow`, since the
    best match spans cells. `reuseItems` only if a long grid stutters.
-5. **Quality for the screen.** "Highest quality" in Settings › Playback, by
+4. **Quality for the screen.** "Highest quality" in Settings › Playback, by
    default Up to this screen; 1080p, 4K and Any besides. It orders, it does
    not filter: under health and language, a copy at or under the ceiling goes
    ahead of a sharper one, so a seeded 4K copy still beats a 1080p one nobody

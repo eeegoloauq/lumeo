@@ -84,6 +84,21 @@ ShellPage {
         order: LocalSettings.listSort
     }
 
+    // A title changed from its menu, here or on another page: the list and
+    // the history are read again.
+    Connections {
+        target: TitleActions
+        function onChanged() {
+            list.load()
+            if (!page.history.started)
+                return
+            const old = page.history
+            page.history = historyModel.createObject(page) as History
+            old.destroy()
+            page.history.more()
+        }
+    }
+
     property History history: historyModel.createObject(page) as History
     Component {
         id: historyModel
@@ -305,6 +320,7 @@ ShellPage {
                         score: modelData.rating ?? 0
                         mark: Downloads.marks[modelData.item.id]
                         onClicked: page.open(modelData.item, null)
+                        onMenu: at => TitleActions.ask({item: modelData.item, source: button, x: at.x, y: at.y})
                         button.Keys.onLeftPressed: page.move(index, -1)
                         button.Keys.onRightPressed: page.move(index, 1)
                         button.Keys.onUpPressed: page.move(index, -page.columns)
@@ -417,6 +433,22 @@ ShellPage {
                 hoverEnabled: true
                 Accessible.name: title.text
                 onClicked: page.open(slot.item, slot.series ? { season: slot.entry.season, episode: slot.entry.episode } : null)
+                // The title menu, about what the line is: the episode for a
+                // series, which is scored from here.
+                function menu(at) {
+                    TitleActions.ask({
+                        item: slot.item, history: true, source: row, x: at.x, y: at.y,
+                        episode: !slot.series ? null : slot.episode ?? {season: slot.entry.season, number: slot.entry.episode},
+                    })
+                }
+                TapHandler { acceptedButtons: Qt.RightButton; onTapped: point => row.menu(point.position) }
+                Keys.onMenuPressed: menu(Qt.point(width / 2, height / 2))
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier) {
+                        menu(Qt.point(width / 2, height / 2))
+                        event.accepted = true
+                    }
+                }
                 Keys.onUpPressed: lines.step(slot.index - 1)
                 Keys.onDownPressed: lines.step(slot.index + 1)
                 Keys.onReturnPressed: clicked()
@@ -600,6 +632,8 @@ ShellPage {
                 line: shelf.caption(modelData)
                 mark: Downloads.marks[modelData.item.id + "/" + modelData.episode.season + "/" + modelData.episode.number]
                 onClicked: shelf.chosen(modelData.item, { season: modelData.episode.season, episode: modelData.episode.number })
+                onMenu: at => TitleActions.ask({item: modelData.item, episode: modelData.episode, source: button,
+                                                x: at.x, y: at.y})
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
                 button.Keys.onUpPressed: shelf.up()
                 button.Keys.onDownPressed: shelf.down()

@@ -69,6 +69,12 @@ ShellPage {
 
     Home { id: home }
 
+    // Continue watching after a title's menu changed it.
+    Connections {
+        target: TitleActions
+        function onChanged() { home.refreshProgress() }
+    }
+
     Loading {
         anchors.centerIn: parent
         waiting: home.status === Home.Loading

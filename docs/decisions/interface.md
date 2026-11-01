@@ -203,6 +203,30 @@ on what waits, not on what arrives: a row with bytes flowing is paused first,
 so a download that is going well is never thrown away by one click beside the
 pause button.
 
+## A title's menu, from any poster or card
+
+Everything a title page does is one right-click away on every poster,
+Continue watching card, episode card, season tab and History line, and on
+the Menu key and Shift+F10 for the keyboard. It is one menu (`TitleMenu`),
+held by the shell and opened where the press was; a card asks for it through
+`TitleActions` and says what it is about, an episode, a season or a card in
+Continue watching. Buttons on the posters under the pointer were the other
+way: they cover the artwork of a dense shelf, the keyboard cannot reach them,
+and every poster would carry them.
+
+A poster or a Continue watching card scores the title; an episode is scored
+from its card and its History line only, since the episode on a Continue
+watching card is half seen. On the title's own page the menu keeps to the
+episode or the season, its list, trailer and link being beside it. Marking a
+series unwatched waits five seconds for Undo, as a History line does; the
+other rows act at once, and every page showing the title reads it again when
+the core has the change.
+
+One icon per meaning: an eye for watched, a crossed-out eye for unwatched, a
+bookmark for My list, a star for the score, the download arrow, a bin for
+deleting a download (the only red row), a link for the share link, a film for
+the trailer, a cross for leaving Continue watching.
+
 ## Back is an arrow before the wordmark
 
 The wordmark is Home from anywhere, so a page with a way back has an arrow of

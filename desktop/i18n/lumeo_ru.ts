@@ -3226,5 +3226,95 @@
         <extracomment>Personal data export and import in Settings, General.</extracomment>
         <translation>Файл слишком большой для личных данных.</translation>
     </message>
+    <message id="menuRemoveFromList">
+        <source>Remove from My list</source>
+        <extracomment>Title menu row, for a title on My list.</extracomment>
+        <translation>Убрать из «Моего списка»</translation>
+    </message>
+    <message id="menuMarkWatched">
+        <source>Mark as watched</source>
+        <extracomment>Title menu row, for a film or an episode.</extracomment>
+        <translation>Отметить просмотренным</translation>
+    </message>
+    <message id="menuMarkUnwatched">
+        <source>Mark as unwatched</source>
+        <extracomment>Title menu row, for a film or an episode watched.</extracomment>
+        <translation>Отметить непросмотренным</translation>
+    </message>
+    <message id="menuMarkSeriesWatched">
+        <source>Mark series as watched</source>
+        <extracomment>Title menu row: every aired episode of a series, specials aside.</extracomment>
+        <translation>Отметить сериал просмотренным</translation>
+    </message>
+    <message id="menuMarkWatchedUpTo">
+        <source>Mark watched up to here</source>
+        <extracomment>Title menu row on an episode card or a season tab: it and every episode before it.</extracomment>
+        <translation>Отметить просмотренным до этого места</translation>
+    </message>
+    <message id="menuMarkSeriesUnwatched">
+        <source>Mark series as unwatched</source>
+        <extracomment>Title menu row: forgets every episode's progress.</extracomment>
+        <translation>Отметить сериал непросмотренным</translation>
+    </message>
+    <message id="menuMarkedUnwatched">
+        <source>Marked as unwatched</source>
+        <extracomment>Toast after a series is marked unwatched, beside Undo.</extracomment>
+        <translation>Отмечено непросмотренным</translation>
+    </message>
+    <message id="menuRemoveFromContinue">
+        <source>Remove from Continue watching</source>
+        <extracomment>Title menu row on a Continue watching card.</extracomment>
+        <translation>Убрать из «Продолжить просмотр»</translation>
+    </message>
+    <message id="menuRateFilm">
+        <source>Rate film…</source>
+        <extracomment>Title menu row; opens the score from 1 to 10.</extracomment>
+        <translation>Оценить фильм…</translation>
+    </message>
+    <message id="menuRateSeries">
+        <source>Rate series…</source>
+        <extracomment>Title menu row; opens the score from 1 to 10.</extracomment>
+        <translation>Оценить сериал…</translation>
+    </message>
+    <message id="menuRateEpisode">
+        <source>Rate episode…</source>
+        <extracomment>Title menu row on an episode; opens the score from 1 to 10.</extracomment>
+        <translation>Оценить серию…</translation>
+    </message>
+    <message id="menuDownloadSeason">
+        <source>Download season</source>
+        <extracomment>Title menu row on a season tab.</extracomment>
+        <translation>Скачать сезон</translation>
+    </message>
+    <message id="menuDeleteDownload">
+        <source>Delete download</source>
+        <extracomment>Title menu row, in red: deletes the file on disk.</extracomment>
+        <translation>Удалить загрузку</translation>
+    </message>
+    <message id="menuCopyLink">
+        <source>Copy link</source>
+        <extracomment>Title menu row: copies the title's share link.</extracomment>
+        <translation>Копировать ссылку</translation>
+    </message>
+    <message id="menuDownloadFailed">
+        <source>The download did not start: %1</source>
+        <extracomment>Toast. %1 the reason, as the core or the source gave it.</extracomment>
+        <translation>Загрузка не началась: %1</translation>
+    </message>
+    <message id="menuNotMarked">
+        <source>The mark was not saved</source>
+        <extracomment>Toast when the core refused to mark something watched or unwatched.</extracomment>
+        <translation>Отметка не сохранилась</translation>
+    </message>
+    <message id="menuNotHidden">
+        <source>It was not removed from Continue watching</source>
+        <extracomment>Toast when the core refused to hide a title from Continue watching.</extracomment>
+        <translation>Не удалось убрать из «Продолжить просмотр»</translation>
+    </message>
+    <message id="menuNotForgotten">
+        <source>The series was not marked as unwatched</source>
+        <extracomment>Toast when the core refused to forget a series' progress.</extracomment>
+        <translation>Не удалось отметить сериал непросмотренным</translation>
+    </message>
 </context>
 </TS>

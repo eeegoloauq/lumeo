@@ -158,7 +158,41 @@ FocusScope {
         onDown: (stack.currentItem as SearchPage)?.enter()
     }
 
-    Toast { id: toast }
+    // Also a series marked unwatched, with the way back while the core has
+    // not been told.
+    Toast {
+        id: toast
+        held: Viewing.forgetting !== ""
+        text: held ? qsTrId("menuMarkedUnwatched") : said
+        action: held ? qsTrId("commonUndo") : ""
+        onActed: Viewing.undo()
+    }
+
+    // The menu every poster and card opens (TitleActions).
+    TitleMenu {
+        id: titleMenu
+        onPlay: (item, at) => shell.open(item, true, at)
+        onTrailer: (trailer, name) => shell.trailer(trailer, name)
+        onSay: text => toast.say(text)
+    }
+    Connections {
+        target: TitleActions
+        function onAsked(target) { titleMenu.show(target) }
+    }
+    Connections {
+        target: Viewing
+        function onChanged(itemId) { TitleActions.changed(itemId) }
+        function onRefused(what) {
+            toast.say(what === "hide" ? qsTrId("menuNotHidden")
+                    : what === "forget" ? qsTrId("menuNotForgotten") : qsTrId("menuNotMarked"))
+        }
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Undo]
+        enabled: shell.visible && Viewing.forgetting !== ""
+        onActivated: Viewing.undo()
+    }
 
     // Window shortcuts: they answer wherever the keyboard is.
     Shortcut { sequences: ["Esc", "Alt+Left", "Back"]; enabled: shell.visible && !downloadsPanel.opened; onActivated: shell.back() }

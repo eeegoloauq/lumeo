@@ -15,16 +15,21 @@ class Mine : public QObject, public QQmlParserStatus {
   QML_ELEMENT
   Q_INTERFACES(QQmlParserStatus)
   Q_PROPERTY(QString itemId MEMBER m_itemId NOTIFY changed)
+  // The episode scored, when the score is one episode's rather than the
+  // title's; set before the component completes.
+  Q_PROPERTY(int season MEMBER m_season NOTIFY changed)
+  Q_PROPERTY(int episode MEMBER m_episode NOTIFY changed)
   // The core has said; until then the buttons stay off, since a core that
   // cannot say whether the title is on the list cannot be told to change it.
   Q_PROPERTY(bool known READ known NOTIFY changed)
   Q_PROPERTY(bool inList READ inList NOTIFY changed)
-  // 1 to 10, 0 when not scored.
+  // The title's or the episode's, 1 to 10; 0 when not scored.
   Q_PROPERTY(int score READ score NOTIFY changed)
 
 public:
   explicit Mine(QObject *parent = nullptr) : QObject(parent) {}
-  Mine(Core *core, const QString &itemId, QObject *parent = nullptr);
+  Mine(Core *core, const QString &itemId, QObject *parent = nullptr, int season = 0,
+       int episode = 0);
 
   void classBegin() override {}
   void componentComplete() override;
@@ -44,6 +49,9 @@ signals:
   void changed();
   // What did not take: "add", "remove", "rate" or "clear".
   void refused(const QString &what);
+  // The core has every change made so far: a page showing the list or the
+  // score can read it again.
+  void stored();
 
 private:
   void load();
@@ -52,6 +60,8 @@ private:
 
   Core *m_core = nullptr;
   QString m_itemId;
+  int m_season = 0;
+  int m_episode = 0;
   bool m_known = false;
   bool m_inList = false;
   // What the core last said about My list, which m_inList runs ahead of.

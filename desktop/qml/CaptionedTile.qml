@@ -18,6 +18,8 @@ FocusScope {
     readonly property alias button: tile
 
     signal clicked()
+    // The title menu asked for at [at], in the poster.
+    signal menu(point at)
 
     implicitWidth: 160
     height: posterHeight + 46
@@ -33,6 +35,7 @@ FocusScope {
         item: slot.item
         mark: slot.mark
         onClicked: slot.clicked()
+        onMenu: at => slot.menu(at)
     }
     Column {
         y: slot.posterHeight + 8

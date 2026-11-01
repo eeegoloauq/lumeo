@@ -27,6 +27,19 @@ is a rewatch under way: it resumes, shows its own bar and is what Continue
 watching opens. Under five per cent it is not one: a watched episode opened by
 mistake and closed stays finished.
 
+A title taken out of Continue watching keeps every entry and is marked
+hidden on each of them; the next write to any entry clears its mark, so the
+title comes back on its next play without the client saying so. The marks sit
+on the entries rather than in a table of hidden titles with a time, because a
+play in the same second as the hiding would compare equal and stay hidden.
+
+Marking a series watched up to an episode (`watched-through`) marks every
+aired story episode up to and including it, in one transaction, and leaves the
+specials alone. An episode already watched keeps its day in the history; the
+one named is marked again whatever it was, so that it is the latest entry and
+the series goes on after it. Entries marked in one moment tie on their time,
+and of those the one furthest on is where watching stands.
+
 ## The library: My list and History, not a third tab for what is on disk
 
 The first design had three places: My list, On disk and History. On disk went. A

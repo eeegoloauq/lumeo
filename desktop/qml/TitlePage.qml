@@ -190,6 +190,12 @@ ShellPage {
     // watched, the page opens where watching now goes on.
     onVisibleChanged: if (visible) about.refreshProgress()
 
+    // Changed from a menu, on this page or over another.
+    Connections {
+        target: TitleActions
+        function onChanged(itemId) { if (itemId === page.item.id) about.refreshProgress() }
+    }
+
     Title {
         id: about
         itemId: page.item.id
@@ -515,6 +521,28 @@ ShellPage {
                             onClicked: page.seasonPicked = modelData
                             HoverHandler { cursorShape: Qt.PointingHandCursor }
 
+                            // The title menu about the season: marked up to
+                            // its last aired episode, or downloaded.
+                            function menu(at) {
+                                const out = page.episodes.filter(e => e.season === tab.modelData && !page.upcoming(e))
+                                TitleActions.ask({
+                                    item: page.item, season: tab.modelData, page: "title", source: tab, x: at.x, y: at.y,
+                                    aired: out.length > 0 ? Math.max(...out.map(e => e.number)) : 0,
+                                    download: () => {
+                                        block.trouble = ""
+                                        about.downloadSeason(out)
+                                    },
+                                })
+                            }
+                            TapHandler { acceptedButtons: Qt.RightButton; onTapped: point => tab.menu(point.position) }
+                            Keys.onMenuPressed: menu(Qt.point(width / 2, height / 2))
+                            Keys.onPressed: event => {
+                                if (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier) {
+                                    menu(Qt.point(width / 2, height / 2))
+                                    event.accepted = true
+                                }
+                            }
+
                             background: Rectangle {
                                 radius: Tokens.radiusControl
                                 color: tab.lit ? Tokens.raised : tab.hovered ? Tokens.hover : "transparent"
@@ -660,6 +688,10 @@ ShellPage {
                     unreachable: copies.unreachable && !card.onDisk
                     onChosen: page.picked = card.modelData
                     onPlayed: page.playEpisode(card.modelData)
+                    onMenu: at => TitleActions.ask({
+                        item: page.item, episode: card.modelData, page: "title", source: card, x: at.x, y: at.y,
+                        play: () => page.playEpisode(card.modelData),
+                    })
                     onStep: by => page.step(card.index, by)
                 }
             }

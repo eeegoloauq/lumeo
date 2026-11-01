@@ -80,10 +80,12 @@ Column {
         Component {
             id: posterTile
             PosterTile {
+                id: poster
                 required property int index
                 required item
                 mark: Downloads.marks[item.id]
                 onClicked: row.chosen(item)
+                onMenu: at => TitleActions.ask({item: item, source: poster, x: at.x, y: at.y})
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
             }
         }
@@ -91,6 +93,7 @@ Column {
         Component {
             id: resumeCard
             ResumeCard {
+                id: resume
                 required property int index
                 required item
                 required season
@@ -99,6 +102,10 @@ Column {
                 required remaining
                 mark: Downloads.marks[item.id + "/" + season + "/" + episode]
                 onClicked: row.chosen(item)
+                onMenu: at => TitleActions.ask({
+                    item: item, continuing: true, source: resume, x: at.x, y: at.y,
+                    episode: episode > 0 ? {season: season, number: episode} : null,
+                })
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
             }
         }

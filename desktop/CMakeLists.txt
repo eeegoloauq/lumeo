@@ -34,7 +34,7 @@ lumeo_tokens(${CMAKE_CURRENT_SOURCE_DIR}/../design/tokens.json
   ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml PROPERTIES
   QT_RESOURCE_ALIAS Tokens.qml QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(qml/Theme.qml qml/Words.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/Words.qml qml/TitleActions.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 # Plex Sans speaks and Unbounded is the wordmark (decisions/interface.md),
 # loaded from :/qt/qml/Lumeo/fonts.
@@ -144,6 +144,8 @@ qt_add_qml_module(lumeo
     qml/ShortcutsSection.qml
     qml/SourcesSection.qml
     qml/Words.qml
+    qml/TitleActions.qml
+    qml/TitleMenu.qml
     qml/RatingScale.qml
     qml/format.js
     ${CMAKE_CURRENT_BINARY_DIR}/Tokens.qml
@@ -155,10 +157,13 @@ qt_add_qml_module(lumeo
     icons/add.svg
     icons/arrow_back.svg
     icons/arrow_drop_down.svg
+    icons/bookmark.svg
+    icons/bookmark_filled.svg
     icons/check.svg
     icons/chevron_left.svg
     icons/chevron_right.svg
     icons/close.svg
+    icons/delete.svg
     icons/closed_caption.svg
     icons/closed_caption_outlined.svg
     icons/download.svg
@@ -167,6 +172,7 @@ qt_add_qml_module(lumeo
     icons/fullscreen.svg
     icons/fullscreen_exit.svg
     icons/ios_share.svg
+    icons/link.svg
     icons/movie.svg
     icons/pause.svg
     icons/play_arrow.svg
@@ -181,6 +187,8 @@ qt_add_qml_module(lumeo
     icons/star.svg
     icons/star_border.svg
     icons/tune.svg
+    icons/visibility.svg
+    icons/visibility_off.svg
     icons/volume_down.svg
     icons/volume_off.svg
     icons/volume_up.svg
@@ -192,6 +200,7 @@ qt_add_qml_module(lumeo
     src/api/home.h src/api/home.cpp
     src/api/title.h src/api/title.cpp
     src/api/mine.h src/api/mine.cpp
+    src/api/viewing.h src/api/viewing.cpp
     src/api/search.h src/api/search.cpp
     src/api/library.h src/api/library.cpp
     src/api/addons.h src/api/addons.cpp

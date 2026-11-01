@@ -44,6 +44,17 @@ AbstractButton {
     // first card whenever its model changes is not, and chose episode 1 of
     // every season opened with the keyboard in the strip.
     onActiveFocusChanged: if (activeFocus && focusReason !== Qt.OtherFocusReason && !upcoming) chosen()
+    // The right button where it was pressed, or the Menu key or Shift+F10 at
+    // its middle: the title menu (TitleActions).
+    signal menu(point at)
+    TapHandler { acceptedButtons: Qt.RightButton; onTapped: point => card.menu(point.position) }
+    Keys.onMenuPressed: menu(Qt.point(width / 2, height / 2))
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier) {
+            menu(Qt.point(width / 2, height / 2))
+            event.accepted = true
+        }
+    }
     Keys.onLeftPressed: step(-1)
     Keys.onRightPressed: step(1)
     Keys.onReturnPressed: if (!upcoming) played()

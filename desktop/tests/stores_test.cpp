@@ -4,6 +4,7 @@
 #include "fakecore.h"
 #include "personaldata.h"
 #include "preferences.h"
+#include "viewing.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -151,6 +152,58 @@ private slots:
     store.refresh();
     QTRY_COMPARE(store.marks()["tt1"], QVariantMap({{"fraction", 0.5}}));
     QCOMPARE(store.marks()["tt1/1/1"], QVariantMap({{"done", true}}));
+  }
+
+  // Each mark is one request, and changed() names the title once the core
+  // has it, which is when a page reads it again.
+  void marksReachTheCoreAndSayWhichTitleChanged() {
+    fake->answer("PUT", "/api/v1/progress/tt1", 200, QJsonObject());
+    fake->answer("POST", "/api/v1/progress/tt1/watched-through", 200, QJsonObject());
+    fake->answer("DELETE", "/api/v1/continue/tt1", 204);
+    Viewing viewing(core.get());
+    QSignalSpy changed(&viewing, &Viewing::changed);
+    viewing.mark("tt1", 1, 2, false);
+    viewing.markThrough("tt1", 2, 3);
+    viewing.markThrough("tt1");
+    viewing.hide("tt1");
+    QTRY_COMPARE(changed.size(), 4);
+    QCOMPARE(changed.first().first().toString(), "tt1");
+    const QStringList sent = fake->requests();
+    QVERIFY(sent.contains(R"(PUT /api/v1/progress/tt1 {"episode":2,"season":1,"watched":false})"));
+    QVERIFY(sent.contains(R"(POST /api/v1/progress/tt1/watched-through {"episode":3,"season":2})"));
+    QVERIFY(sent.contains(R"(POST /api/v1/progress/tt1/watched-through {})"));
+    QVERIFY(sent.contains("DELETE /api/v1/continue/tt1"));
+  }
+
+  // A title forgotten waits for its undo before the core is told; a second
+  // one forgets the first at once.
+  void aTitleIsForgottenOnceItsUndoIsOver() {
+    fake->answer("DELETE", "/api/v1/progress/tt1", 204);
+    fake->answer("DELETE", "/api/v1/progress/tt2", 500);
+    Viewing viewing(core.get());
+    viewing.setUndoTime(60000);
+    QSignalSpy changed(&viewing, &Viewing::changed);
+    QSignalSpy refused(&viewing, &Viewing::refused);
+
+    viewing.forget("tt1");
+    QCOMPARE(viewing.forgetting(), "tt1");
+    viewing.undo();
+    QCOMPARE(viewing.forgetting(), QString());
+    viewing.forget("tt1");
+    QTest::qWait(50);
+    QVERIFY(fake->requests().filter("DELETE").isEmpty());
+
+    viewing.forget("tt2");
+    QCOMPARE(viewing.forgetting(), "tt2");
+    QTRY_COMPARE(changed.size(), 1);
+    QCOMPARE(changed.first().first().toString(), "tt1");
+
+    viewing.undo();
+    viewing.setUndoTime(10);
+    viewing.forget("tt2");
+    QTRY_COMPARE(refused.size(), 1);
+    QCOMPARE(refused.first().first().toString(), "forget");
+    QCOMPARE(fake->requests().filter("DELETE /api/v1/progress/tt2").size(), 1);
   }
 
   void aResetAsksTheCoreAndKeepsTheDocumentItAnswersWith() {

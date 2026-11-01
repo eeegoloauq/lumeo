@@ -3191,5 +3191,95 @@
         <extracomment>Personal data export and import in Settings, General.</extracomment>
         <translation>This file is too large to be personal data.</translation>
     </message>
+    <message id="menuRemoveFromList">
+        <source>Remove from My list</source>
+        <extracomment>Title menu row, for a title on My list.</extracomment>
+        <translation>Remove from My list</translation>
+    </message>
+    <message id="menuMarkWatched">
+        <source>Mark as watched</source>
+        <extracomment>Title menu row, for a film or an episode.</extracomment>
+        <translation>Mark as watched</translation>
+    </message>
+    <message id="menuMarkUnwatched">
+        <source>Mark as unwatched</source>
+        <extracomment>Title menu row, for a film or an episode watched.</extracomment>
+        <translation>Mark as unwatched</translation>
+    </message>
+    <message id="menuMarkSeriesWatched">
+        <source>Mark series as watched</source>
+        <extracomment>Title menu row: every aired episode of a series, specials aside.</extracomment>
+        <translation>Mark series as watched</translation>
+    </message>
+    <message id="menuMarkWatchedUpTo">
+        <source>Mark watched up to here</source>
+        <extracomment>Title menu row on an episode card or a season tab: it and every episode before it.</extracomment>
+        <translation>Mark watched up to here</translation>
+    </message>
+    <message id="menuMarkSeriesUnwatched">
+        <source>Mark series as unwatched</source>
+        <extracomment>Title menu row: forgets every episode's progress.</extracomment>
+        <translation>Mark series as unwatched</translation>
+    </message>
+    <message id="menuMarkedUnwatched">
+        <source>Marked as unwatched</source>
+        <extracomment>Toast after a series is marked unwatched, beside Undo.</extracomment>
+        <translation>Marked as unwatched</translation>
+    </message>
+    <message id="menuRemoveFromContinue">
+        <source>Remove from Continue watching</source>
+        <extracomment>Title menu row on a Continue watching card.</extracomment>
+        <translation>Remove from Continue watching</translation>
+    </message>
+    <message id="menuRateFilm">
+        <source>Rate film…</source>
+        <extracomment>Title menu row; opens the score from 1 to 10.</extracomment>
+        <translation>Rate film…</translation>
+    </message>
+    <message id="menuRateSeries">
+        <source>Rate series…</source>
+        <extracomment>Title menu row; opens the score from 1 to 10.</extracomment>
+        <translation>Rate series…</translation>
+    </message>
+    <message id="menuRateEpisode">
+        <source>Rate episode…</source>
+        <extracomment>Title menu row on an episode; opens the score from 1 to 10.</extracomment>
+        <translation>Rate episode…</translation>
+    </message>
+    <message id="menuDownloadSeason">
+        <source>Download season</source>
+        <extracomment>Title menu row on a season tab.</extracomment>
+        <translation>Download season</translation>
+    </message>
+    <message id="menuDeleteDownload">
+        <source>Delete download</source>
+        <extracomment>Title menu row, in red: deletes the file on disk.</extracomment>
+        <translation>Delete download</translation>
+    </message>
+    <message id="menuCopyLink">
+        <source>Copy link</source>
+        <extracomment>Title menu row: copies the title's share link.</extracomment>
+        <translation>Copy link</translation>
+    </message>
+    <message id="menuDownloadFailed">
+        <source>The download did not start: %1</source>
+        <extracomment>Toast. %1 the reason, as the core or the source gave it.</extracomment>
+        <translation>The download did not start: %1</translation>
+    </message>
+    <message id="menuNotMarked">
+        <source>The mark was not saved</source>
+        <extracomment>Toast when the core refused to mark something watched or unwatched.</extracomment>
+        <translation>The mark was not saved</translation>
+    </message>
+    <message id="menuNotHidden">
+        <source>It was not removed from Continue watching</source>
+        <extracomment>Toast when the core refused to hide a title from Continue watching.</extracomment>
+        <translation>It was not removed from Continue watching</translation>
+    </message>
+    <message id="menuNotForgotten">
+        <source>The series was not marked as unwatched</source>
+        <extracomment>Toast when the core refused to forget a series' progress.</extracomment>
+        <translation>The series was not marked as unwatched</translation>
+    </message>
 </context>
 </TS>

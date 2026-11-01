@@ -62,7 +62,7 @@ public:
   // Asks for progress again, which a film watched since has moved, and says
   // moved() when it has.
   Q_INVOKABLE void refreshProgress();
-  // Downloads, for each of [episodes] ({season, number}) without a download
+  // Downloads, for each of [episodes] ({season, number}; a film's is 0 and 0) without a download
   // yet, the copy Play would start. One at a time: a provider asked for
   // seventeen lists at once answers 403. An episode nobody has a copy of is
   // passed over.
