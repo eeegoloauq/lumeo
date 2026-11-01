@@ -39,9 +39,14 @@ app. This revises "No browser playback" in decisions/foundations.md.
   `progress.updated_at` moves with a rewatch.
 - A folder of films the user already has, scanned as a library of its own on
   the home screen.
-- A series' episodes as a vertical list under the banner (still, length,
-  synopsis for watched and next only). Mockup first: canvas "Series page ·
-  release picker", page "Others' layouts".
+- A series' episodes as a vertical list on a scrolling page. The banner
+  holds the title and playback actions; below it, metadata and the series
+  synopsis sit beside cast and genres, followed by season tabs and a season
+  download action. Each row has an episode number, a 16:9 still with watched
+  progress and an on-disk mark, then title, rating and runtime. Episode
+  synopses take up to two lines, for watched episodes and the next one only.
+  This is an alternative to the current horizontal cards; review the layout
+  before implementation.
 - Freeing a pack episode costs ~250 ms (copying the two boundary pieces) and
   holds `startMu`, so a Play at that moment waits. Left as is until someone
   notices; the fix then is punching holes in place (`fallocate`,
