@@ -3068,15 +3068,20 @@
         <extracomment>Remote core connection settings and pairing.</extracomment>
         <translation>Connecting…</translation>
     </message>
-    <message id="connectionUseLocal">
-        <source>Use local core</source>
-        <extracomment>Remote core connection settings and pairing.</extracomment>
-        <translation>Use local core</translation>
+    <message id="connectionThisComputer">
+        <source>This computer</source>
+        <extracomment>Remote core connection settings: the row for this computer's own core among the saved servers.</extracomment>
+        <translation>This computer</translation>
     </message>
-    <message id="connectionUseRemote">
-        <source>Use server</source>
-        <extracomment>Remote core connection settings and pairing.</extracomment>
-        <translation>Use server</translation>
+    <message id="connectionUse">
+        <source>Use</source>
+        <extracomment>Remote core connection settings: button that makes a saved server, or this computer, the one used from the next start.</extracomment>
+        <translation>Use</translation>
+    </message>
+    <message id="connectionSelected">
+        <source>Selected</source>
+        <extracomment>Remote core connection settings: under the server, or this computer, used from the next start.</extracomment>
+        <translation>Selected</translation>
     </message>
     <message id="connectionForget">
         <source>Forget</source>

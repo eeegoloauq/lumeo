@@ -14,22 +14,32 @@ Item {
         name: "Connection"
         when: windowShown
 
+        readonly property string media: "https://media.example.com"
+
         // Read by CoreConnection when Settings first asks for it.
         function initTestCase() {
-            fakeCore.answer("GET", "/api/v1/link", 200, { url: "https://media.example.com", running: "https://media.example.com" })
-            fakeCore.answer("DELETE", "/api/v1/link", 200, { url: "", running: "https://media.example.com" })
+            fakeCore.answer("GET", "/api/v1/link", 200, { url: media, running: media, saved: [media] })
+            fakeCore.answer("PATCH", "/api/v1/link", 200, { url: "", running: media, saved: [media] })
+            fakeCore.answer("DELETE", "/api/v1/link", 200, { url: "", running: media, saved: [] })
         }
 
-        function test_aMediaServerIsForgottenThroughThisMachinesCore() {
+        function asked(request) {
+            return fakeCore.requests.some(line => line.startsWith(request))
+        }
+
+        function test_aSavedMediaServerIsChosenAndForgottenThroughThisMachinesCore() {
             const shell = createTemporaryObject(shellComponent, window)
             mouseClick(findChild(shell, "tab-settings"))
-            const unlink = findChild(shell, "unlinkCore")
-            tryVerify(() => unlink?.visible === true)
+            const thisComputer = findChild(shell, "useThisComputer")
+            tryVerify(() => thisComputer?.visible === true)
             verify(!findChild(shell, "restartCore").visible)
-            mouseClick(unlink)
-            tryVerify(() => fakeCore.requests.indexOf("DELETE /api/v1/link") >= 0)
+            mouseClick(thisComputer)
+            tryVerify(() => asked("PATCH /api/v1/link"))
             tryVerify(() => findChild(shell, "restartCore").visible)
-            verify(!unlink.visible)
+            verify(!thisComputer.visible)
+            mouseClick(findChild(shell, "forgetCore"))
+            tryVerify(() => asked("DELETE /api/v1/link?url="))
+            tryVerify(() => findChild(shell, "forgetCore") === null)
         }
 
         function test_connectionIsReachableWithoutAWorkingCore() {

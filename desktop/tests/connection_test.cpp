@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QHttpServer>
 #include <QHttpServerResponse>
@@ -31,9 +32,14 @@ class ConnectionTest : public QObject {
     QVERIFY(file.write(QJsonDocument(object).toJson()) > 0);
   }
 
-  QJsonObject saved() const {
-    return {{"address", "https://lumeo.example.com"}, {"token", "ABCDEFGHIJKLMNOPQRSTUVW234"},
-            {"deviceId", "laptop"}, {"enabled", true}};
+  static QJsonObject server(const QString &address = "https://lumeo.example.com",
+                            const QString &token = "ABCDEFGHIJKLMNOPQRSTUVW234") {
+    return {{"address", address}, {"token", token}, {"deviceId", "laptop"}};
+  }
+
+  // One full server, in use.
+  static QJsonObject saved() {
+    return {{"servers", QJsonArray{server()}}, {"use", "https://lumeo.example.com"}};
   }
 
   // Longer than the request's own transfer timeout, so a slow runner's
@@ -100,8 +106,13 @@ class ConnectionTest : public QObject {
   // This machine's core, faked, keeping a link it is handed.
   static void keepsLinks(FakeCore &local, int status = 200) {
     local.on("PUT", "/api/v1/link", [status](const QJsonValue &body) {
-      return std::pair{status, QJsonValue(QJsonObject{{"url", body["url"]}, {"running", ""}})};
+      return std::pair{status, QJsonValue(QJsonObject{{"url", body["url"]}, {"running", ""},
+                                                      {"saved", QJsonArray{body["url"]}}})};
     });
+  }
+
+  static QJsonObject linkBody(const QString &request) {
+    return QJsonDocument::fromJson(request.section(' ', 2, -1).toUtf8()).object();
   }
 
 private slots:
@@ -132,28 +143,48 @@ private slots:
     QCOMPARE(CoreConnection::origin(" https://lumeo.example.com/ "), QUrl("https://lumeo.example.com"));
   }
 
+  // Every full server paired with stays saved with its own credential, and
+  // choosing one changes only the next launch.
   void switchingKeepsCredentialsPrivateAndOnlyChangesTheNextLaunch() {
     const QString path = temporary.filePath("switch/core.json");
-    write(path, saved());
+    const QString other = "https://other.example.com";
+    QJsonObject two = saved();
+    two["servers"] = QJsonArray{server(), server(other, "ZYXWVUTSRQPONMLKJIHGFEDCBA")};
+    write(path, two);
     CoreConnection connection(path);
-    QVERIFY(connection.remote());
+    QCOMPARE(connection.selected(), QString("https://lumeo.example.com"));
+    QCOMPARE(connection.servers().size(), 2);
     QVERIFY(!connection.restartNeeded());
-    connection.useLocal();
-    QVERIFY(!connection.remote());
+    connection.use(other);
+    QCOMPARE(connection.selected(), other);
     QVERIFY(connection.restartNeeded());
-    const auto stored = CoreConnection::read(path);
-    QCOMPARE(stored.value("token"), saved().value("token"));
+    QCOMPARE(CoreConnection::inUse(CoreConnection::read(path)), server(other, "ZYXWVUTSRQPONMLKJIHGFEDCBA"));
 #ifndef Q_OS_WIN
     const auto permissions = QFile::permissions(path);
     QVERIFY(!(permissions & (QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther | QFile::WriteOther)));
 #endif
-    connection.useRemote();
-    QVERIFY(connection.remote());
+    connection.use("https://lumeo.example.com");
     QVERIFY(!connection.restartNeeded());
-    connection.forget();
+    connection.forget(other);
+    QCOMPARE(CoreConnection::read(path), saved());
+    QVERIFY(!connection.restartNeeded());
+    connection.forget("https://lumeo.example.com");
     QVERIFY(CoreConnection::read(path).isEmpty());
-    QVERIFY(connection.address().isEmpty());
+    QVERIFY(connection.selected().isEmpty());
     QVERIFY(connection.restartNeeded());
+  }
+
+  // core.json from before several servers were saved held one, used when
+  // it was enabled.
+  void aConnectionFromBeforeSeveralIsAListOfItsOne() {
+    const QString path = temporary.filePath("one/core.json");
+    QJsonObject one = server();
+    one["enabled"] = true;
+    write(path, one);
+    QCOMPARE(CoreConnection::read(path), saved());
+    one["enabled"] = false;
+    write(path, one);
+    QCOMPARE(CoreConnection::read(path), (QJsonObject{{"servers", QJsonArray{server()}}}));
   }
 
   void theSavedCredentialNeverFollowsAnEnvironmentOverride() {
@@ -185,11 +216,16 @@ private slots:
   }
 
   void aFailedSaveKeepsThePreviousConnection() {
-    const QString path = temporary.filePath("is-a-directory");
-    QVERIFY(QDir().mkpath(path));
+    const QString path = temporary.filePath("unwritable/core.json");
+    QJsonObject two = saved();
+    two["servers"] = QJsonArray{server(), server("https://other.example.com")};
+    write(path, two);
     CoreConnection connection(path);
-    connection.useLocal();
+    QVERIFY(QFile::remove(path));
+    QVERIFY(QDir().mkpath(path));
+    connection.use("https://other.example.com");
     QVERIFY(!connection.error().isEmpty());
+    QCOMPARE(connection.selected(), QString("https://lumeo.example.com"));
     QVERIFY(!connection.restartNeeded());
   }
 
@@ -233,9 +269,9 @@ private slots:
     QCOMPARE(received.value("code").toString(), QString("one-time-code"));
     QCOMPARE(received.value("name").toString(), QString("Laptop"));
     const auto stored = CoreConnection::read(path);
-    QCOMPARE(stored.value("token").toString(), QString("ABCDEFGHIJKLMNOPQRSTUVW234"));
-    QVERIFY(!stored.contains("code"));
-    QVERIFY(connection.remote());
+    QCOMPARE(CoreConnection::inUse(stored).value("token").toString(), QString("ABCDEFGHIJKLMNOPQRSTUVW234"));
+    QVERIFY(!CoreConnection::inUse(stored).contains("code"));
+    QCOMPARE(connection.selected(), address);
     QVERIFY(connection.restartNeeded());
     redirect = true;
     connection.pair(address, "another-code", "Laptop");
@@ -260,7 +296,7 @@ private slots:
     QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
     QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
     QCOMPARE(received, (QJsonObject{{"proof", deviceProof}, {"name", "Laptop"}}));
-    const QJsonObject stored = CoreConnection::read(path);
+    const QJsonObject stored = CoreConnection::inUse(CoreConnection::read(path));
     QCOMPARE(QSslCertificate(stored.value("certificate").toString().toLatin1()), certificate);
     QCOMPARE(stored.value("token").toString(), QString("ABCDEFGHIJKLMNOPQRSTUVW234"));
 
@@ -311,13 +347,13 @@ private slots:
     connection.pair(address, pairingCode, "Laptop");
     QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
     QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
-    const QJsonObject handed = QJsonDocument::fromJson(local.requests().last().section(' ', 2, -1).toUtf8()).object();
+    const QJsonObject handed = linkBody(local.requests().last());
     QCOMPARE(QSslCertificate(handed.value("certificate").toString().toLatin1()), certificate);
   }
 
   // A media server keeps none of the viewer's data, so the client does not
   // talk to it: the credential goes to this machine's core, and core.json
-  // never holds it. A server remembered before is kept, not used.
+  // keeps its address alone. A server saved before is kept, not used.
   void pairingWithAMediaServerHandsTheCredentialToThisMachinesCore() {
     QHttpServer server;
     const QString address = serveTLS(server);
@@ -336,7 +372,7 @@ private slots:
     refused.pair(address, "one-time-code", "Laptop");
     QTRY_VERIFY_WITH_TIMEOUT(!refused.busy(), answered);
     QVERIFY(!refused.error().isEmpty());
-    QVERIFY(refused.server().isEmpty());
+    QCOMPARE(refused.selected(), QString("https://lumeo.example.com"));
     QCOMPARE(CoreConnection::read(path), saved());
 
     keepsLinks(local);
@@ -346,15 +382,12 @@ private slots:
     QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
     QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
     QCOMPARE(paired.count(), 1);
-    const QJsonObject handed = QJsonDocument::fromJson(
-        local.requests().last().section(' ', 2, -1).toUtf8()).object();
-    QCOMPARE(handed, (QJsonObject{{"url", address}, {"token", "ABCDEFGHIJKLMNOPQRSTUVW234"}}));
-    QCOMPARE(connection.server(), address);
-    QVERIFY(!connection.remote());
+    QCOMPARE(linkBody(local.requests().last()), (QJsonObject{{"url", address}, {"token", "ABCDEFGHIJKLMNOPQRSTUVW234"}}));
+    QCOMPARE(connection.selected(), address);
     QVERIFY(connection.restartNeeded());
-    QJsonObject kept = saved();
-    kept["enabled"] = false;
-    QCOMPARE(CoreConnection::read(path), kept);
+    QCOMPARE(CoreConnection::read(path),
+             (QJsonObject{{"servers", QJsonArray{ConnectionTest::server()}}, {"media", QJsonArray{address}}}));
+    QCOMPARE(connection.servers().size(), 2);
   }
 
   // A full server used directly that turns into a media server hands over
@@ -379,12 +412,13 @@ private slots:
     QTRY_COMPARE(answers, 1);
     server.mode = "media";
     app.get("/api/v1/catalogs", {}, &context, [&](const Core::Reply &) { ++answers; });
-    QTRY_VERIFY(!connection.server().isEmpty());
-    QVERIFY(!connection.busy());
-    QCOMPARE(local.requests().size(), 1);
-    QCOMPARE(QJsonDocument::fromJson(local.requests().first().section(' ', 2, -1).toUtf8()).object(),
+    QTRY_COMPARE(local.requests().size(), 1);
+    QTRY_VERIFY(!connection.busy());
+    QCOMPARE(connection.selected(), QString("https://lumeo.example.com"));
+    QCOMPARE(linkBody(local.requests().first()),
              (QJsonObject{{"url", "https://lumeo.example.com"}, {"token", "ABCDEFGHIJKLMNOPQRSTUVW234"}}));
-    QVERIFY(CoreConnection::read(path).isEmpty());
+    QCOMPARE(CoreConnection::read(path),
+             (QJsonObject{{"servers", QJsonArray{}}, {"media", QJsonArray{"https://lumeo.example.com"}}}));
     QVERIFY(connection.restartNeeded());
   }
 
@@ -395,15 +429,84 @@ private slots:
     QVERIFY(local.listen());
     Core core(local.address(), {});
     const QString media = "https://media.example.com";
-    local.answer("GET", "/api/v1/link", 200, QJsonObject{{"url", media}, {"running", media}});
-    local.answer("DELETE", "/api/v1/link", 200, QJsonObject{{"url", ""}, {"running", media}});
+    local.answer("GET", "/api/v1/link", 200, QJsonObject{{"url", media}, {"running", media}, {"saved", QJsonArray{media}}});
+    local.answer("DELETE", "/api/v1/link", 200, QJsonObject{{"url", ""}, {"running", media}, {"saved", QJsonArray{}}});
     CoreConnection connection(temporary.filePath("link/core.json"), nullptr, &core);
     connection.readLink();
-    QTRY_COMPARE(connection.server(), media);
+    QTRY_COMPARE(connection.selected(), media);
+    QCOMPARE(connection.servers(), (QVariantList{QVariantMap{{"address", media}, {"media", true}}}));
     QVERIFY(!connection.restartNeeded());
-    connection.unlink();
-    QTRY_VERIFY(connection.server().isEmpty());
+    connection.forget(media, true);
+    QTRY_VERIFY(connection.selected().isEmpty());
     QVERIFY(!connection.busy());
+    const QUrl forgotten(local.requests().last().section(' ', 1, 1));
+    QCOMPARE(QUrlQuery(forgotten).queryItemValue("url", QUrl::FullyDecoded), media);
+    QVERIFY(connection.servers().isEmpty());
+    QVERIFY(connection.restartNeeded());
+  }
+
+  // Every media server this machine's core keeps is chosen through it,
+  // beside the full servers saved here, and none of them needs a new code.
+  void savedServersOfBothKindsAreChosenWithoutPairingAgain() {
+    FakeCore local;
+    QVERIFY(local.listen());
+    Core core(local.address(), {});
+    const QString first = "https://first.example.com", second = "https://second.example.com";
+    const QString full = "https://lumeo.example.com";
+    local.answer("GET", "/api/v1/link", 200, QJsonObject{{"url", first}, {"running", first}, {"saved", QJsonArray{first, second}}});
+    local.on("PATCH", "/api/v1/link", [&](const QJsonValue &body) {
+      return std::pair{200, QJsonValue(QJsonObject{{"url", body["url"]}, {"running", first}, {"saved", QJsonArray{first, second}}})};
+    });
+    const QString path = temporary.filePath("both/core.json");
+    write(path, QJsonObject{{"servers", QJsonArray{server()}}});
+    CoreConnection connection(path, nullptr, &core);
+    connection.readLink();
+    QTRY_COMPARE(connection.selected(), first);
+    QCOMPARE(connection.servers().size(), 3);
+    QVERIFY(!connection.restartNeeded());
+
+    connection.use(second, true);
+    QTRY_COMPARE(connection.selected(), second);
+    QCOMPARE(linkBody(local.requests().last()), (QJsonObject{{"url", second}}));
+    QVERIFY(connection.restartNeeded());
+    const int asked = local.requests().size();
+    connection.use(full);
+    QCOMPARE(connection.selected(), full);
+    QCOMPARE(CoreConnection::read(path).value("use").toString(), full);
+    QCOMPARE(local.requests().size(), asked);
+    connection.use(first, true);
+    QTRY_COMPARE(connection.selected(), first);
+    QVERIFY(!CoreConnection::read(path).contains("use"));
+    QVERIFY(!connection.restartNeeded());
+    connection.use("");
+    QTRY_VERIFY(connection.selected().isEmpty());
+    QCOMPARE(linkBody(local.requests().last()), (QJsonObject{{"url", ""}}));
+    QVERIFY(connection.restartNeeded());
+  }
+
+  // While the app uses a full server this machine's core is not running, so
+  // the media servers it keeps are listed from core.json, and choosing one
+  // is asked of that core once it is.
+  void aMediaServerIsChosenWhileTheAppUsesAFullServer() {
+    FakeCore local;
+    QVERIFY(local.listen());
+    Core core(local.address(), {});
+    const QString media = "https://media.example.com";
+    local.on("PATCH", "/api/v1/link", [&](const QJsonValue &body) {
+      return std::pair{200, QJsonValue(QJsonObject{{"url", body["url"]}, {"running", ""}, {"saved", QJsonArray{media}}})};
+    });
+    const QString path = temporary.filePath("from-full/core.json");
+    QJsonObject both = saved();
+    both["media"] = QJsonArray{media};
+    write(path, both);
+    CoreConnection connection(path, nullptr, &core);
+    connection.readLink();
+    QCOMPARE(connection.servers().size(), 2);
+    QVERIFY(local.requests().isEmpty());
+    connection.use(media, true);
+    QTRY_COMPARE(connection.selected(), media);
+    QCOMPARE(linkBody(local.requests().last()), (QJsonObject{{"url", media}}));
+    QVERIFY(CoreConnection::inUse(CoreConnection::read(path)).isEmpty());
     QVERIFY(connection.restartNeeded());
   }
 };

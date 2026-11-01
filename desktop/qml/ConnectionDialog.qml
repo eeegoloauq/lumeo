@@ -29,7 +29,7 @@ Dialog {
     }
 
     onAboutToShow: {
-        address.text = CoreConnection.address
+        address.clear()
         code.clear()
         address.forceActiveFocus()
     }

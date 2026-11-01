@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls.Basic
 import Lumeo
@@ -69,33 +71,45 @@ SettingsBlock {
                 onClicked: pairing.open()
             }
         }
+        // This computer and every saved server; the one used from the next
+        // start says so and has no Use button.
         SettingRow {
-            visible: CoreConnection.address !== ""
-            label: CoreConnection.address
-            Row {
-                spacing: 8
-                RowButton {
-                    objectName: "switchCore"
-                    text: CoreConnection.remote ? qsTrId("connectionUseLocal") : qsTrId("connectionUseRemote")
-                    onClicked: CoreConnection.remote ? CoreConnection.useLocal() : CoreConnection.useRemote()
-                }
-                RowButton {
-                    objectName: "forgetCore"
-                    text: qsTrId("connectionForget")
-                    onClicked: CoreConnection.forget()
-                }
+            visible: CoreConnection.servers.length > 0
+            label: qsTrId("connectionThisComputer")
+            hint: CoreConnection.selected === "" ? qsTrId("connectionSelected") : ""
+            RowButton {
+                objectName: "useThisComputer"
+                visible: CoreConnection.selected !== ""
+                text: qsTrId("connectionUse")
+                enabled: !CoreConnection.busy
+                onClicked: CoreConnection.use("")
             }
         }
-        // A media server, reached through this machine's core.
-        SettingRow {
-            visible: CoreConnection.server !== ""
-            label: CoreConnection.server
-            hint: qsTrId("connectionMediaHint")
-            RowButton {
-                objectName: "unlinkCore"
-                text: qsTrId("connectionForget")
-                enabled: !CoreConnection.busy
-                onClicked: CoreConnection.unlink()
+        Repeater {
+            model: CoreConnection.servers
+            SettingRow {
+                id: server
+                required property var modelData
+                readonly property bool selected: modelData.address === CoreConnection.selected && modelData.media === CoreConnection.selectedMedia
+                label: modelData.address
+                hint: [selected ? qsTrId("connectionSelected") : "",
+                       modelData.media ? qsTrId("connectionMediaHint") : ""].filter(line => line !== "").join("\n")
+                Row {
+                    spacing: 8
+                    RowButton {
+                        objectName: "useCore"
+                        visible: !server.selected
+                        text: qsTrId("connectionUse")
+                        enabled: !CoreConnection.busy
+                        onClicked: CoreConnection.use(server.modelData.address, server.modelData.media)
+                    }
+                    RowButton {
+                        objectName: "forgetCore"
+                        text: qsTrId("connectionForget")
+                        enabled: !CoreConnection.busy
+                        onClicked: CoreConnection.forget(server.modelData.address, server.modelData.media)
+                    }
+                }
             }
         }
         SettingRow {

@@ -28,8 +28,8 @@ QUrl Core::configuredAddress() {
   const QString address = qEnvironmentVariable("LUMEO_CORE");
   if (!address.isEmpty())
     return QUrl(address);
-  const QJsonObject saved = CoreConnection::read(CoreConnection::file());
-  return saved.value("enabled").toBool() ? QUrl(saved.value("address").toString()) : local;
+  const QJsonObject server = CoreConnection::inUse(CoreConnection::read(CoreConnection::file()));
+  return server.isEmpty() ? local : QUrl(server.value("address").toString());
 }
 
 // The local core's secret goes to the local core only.
@@ -38,11 +38,12 @@ Core::Core(QObject *parent)
   const QString overridden = qEnvironmentVariable("LUMEO_CORE");
   // Read address and credential from one snapshot, even if another process
   // replaces the saved connection while this client is starting.
-  const QJsonObject saved = overridden.isEmpty() ? CoreConnection::read(CoreConnection::file())
-                                                : QJsonObject{};
+  const QJsonObject saved = overridden.isEmpty()
+                                ? CoreConnection::inUse(CoreConnection::read(CoreConnection::file()))
+                                : QJsonObject{};
   m_address = !overridden.isEmpty() ? QUrl(overridden)
-              : saved.value("enabled").toBool() ? QUrl(saved.value("address").toString())
-                                                 : local;
+              : !saved.isEmpty()    ? QUrl(saved.value("address").toString())
+                                    : local;
   if (m_address == local) {
     m_tokenPath = dataDir() + "/api-token";
   } else if (overridden.isEmpty()) {

@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkReply>
 #include <QQmlEngine>
@@ -58,12 +59,86 @@ QJsonObject CoreConnection::read(const QString &path) {
   QFile source(path);
   if (!source.open(QIODevice::ReadOnly))
     return {};
-  const QJsonObject saved = QJsonDocument::fromJson(source.readAll()).object();
-  if (origin(saved.value("address").toString()).isEmpty() || !validToken(saved.value("token").toString()))
+  return valid(QJsonDocument::fromJson(source.readAll()).object());
+}
+
+QJsonObject CoreConnection::valid(QJsonObject file) {
+  // One server, as kept before several were: used when it was enabled.
+  if (!file.contains("servers") && file.contains("address")) {
+    QJsonObject one = file;
+    one.remove("enabled");
+    file = {{"servers", QJsonArray{one}},
+            {"use", file.value("enabled").toBool() ? file.value("address").toString() : QString()}};
+  }
+  QJsonArray servers;
+  QStringList full;
+  for (const QJsonValue &value : file.value("servers").toArray()) {
+    QJsonObject server = value.toObject();
+    const QString address = origin(server.value("address").toString()).toString();
+    if (address.isEmpty() || full.contains(address) || !validToken(server.value("token").toString()))
+      continue;
+    if (server.contains("certificate") && QSslCertificate(server.value("certificate").toString().toLatin1()).isNull())
+      continue;
+    server["address"] = address;
+    full << address;
+    servers.append(server);
+  }
+  QJsonArray media;
+  for (const QJsonValue &value : file.value("media").toArray()) {
+    const QString address = origin(value.toString()).toString();
+    if (!address.isEmpty() && !media.contains(address))
+      media.append(address);
+  }
+  if (servers.isEmpty() && media.isEmpty())
     return {};
-  if (saved.contains("certificate") && QSslCertificate(saved.value("certificate").toString().toLatin1()).isNull())
-    return {};
+  QJsonObject saved{{"servers", servers}};
+  const QString use = origin(file.value("use").toString()).toString();
+  if (full.contains(use))
+    saved["use"] = use;
+  if (!media.isEmpty())
+    saved["media"] = media;
   return saved;
+}
+
+QJsonObject CoreConnection::inUse(const QJsonObject &saved) {
+  const QString use = saved.value("use").toString();
+  for (const QJsonValue &server : saved.value("servers").toArray()) {
+    if (!use.isEmpty() && server["address"].toString() == use)
+      return server.toObject();
+  }
+  return {};
+}
+
+QVariantList CoreConnection::servers() const {
+  QVariantList list;
+  for (const QJsonValue &server : m_saved.value("servers").toArray())
+    list << QVariantMap{{"address", server["address"].toString()}, {"media", false}};
+  for (const QJsonValue &address : m_saved.value("media").toArray())
+    list << QVariantMap{{"address", address.toString()}, {"media", true}};
+  return list;
+}
+
+QString CoreConnection::selected() const {
+  const QString use = m_saved.value("use").toString();
+  return use.isEmpty() ? m_link : use;
+}
+
+// A full server re-paired is a new credential, so a restart too. While the
+// app uses this machine's core, that core's link applies on its next start.
+bool CoreConnection::restartNeeded() const {
+  return inUse(m_started) != inUse(m_saved) || (!usingServer() && m_link != m_running);
+}
+
+bool CoreConnection::isFull(const QString &address) const {
+  for (const QJsonValue &server : m_saved.value("servers").toArray()) {
+    if (server["address"].toString() == address)
+      return true;
+  }
+  return false;
+}
+
+bool CoreConnection::isMedia(const QString &address) const {
+  return m_saved.value("media").toArray().contains(address);
 }
 
 void CoreConnection::save(const QJsonObject &connection) {
@@ -72,14 +147,15 @@ void CoreConnection::save(const QJsonObject &connection) {
     emit changed();
     return;
   }
+  const QJsonObject kept = valid(connection);
   QSaveFile destination(m_path);
-  const QByteArray bytes = QJsonDocument(connection).toJson(QJsonDocument::Compact);
+  const QByteArray bytes = QJsonDocument(kept).toJson(QJsonDocument::Compact);
   if (!destination.open(QIODevice::WriteOnly) ||
       !destination.setPermissions(QFile::ReadOwner | QFile::WriteOwner) ||
       destination.write(bytes) != bytes.size() || !destination.commit()) {
     m_error = qtTrId("connectionSaveFailed");
   } else {
-    m_saved = connection;
+    m_saved = kept;
     m_error.clear();
   }
   emit changed();
@@ -183,10 +259,20 @@ void CoreConnection::sendPair(const QUrl &base, QJsonObject body, const QString 
       handOver(base, token, certificate);
       return;
     }
-    QJsonObject connection{{"address", base.toString()}, {"token", token}, {"deviceId", id}, {"enabled", true}};
+    QJsonObject server{{"address", base.toString()}, {"token", token}, {"deviceId", id}};
     if (!certificate.isEmpty())
-      connection["certificate"] = certificate;
-    save(connection);
+      server["certificate"] = certificate;
+    // In place of an earlier credential for the same server.
+    QJsonArray servers;
+    for (const QJsonValue &kept : m_saved.value("servers").toArray()) {
+      if (kept["address"].toString() != server["address"].toString())
+        servers.append(kept);
+    }
+    servers.append(server);
+    QJsonObject saved = m_saved;
+    saved["servers"] = servers;
+    saved["use"] = server["address"];
+    save(saved);
     if (m_error.isEmpty())
       emit paired();
   });
@@ -209,40 +295,56 @@ void CoreConnection::showLink(const QJsonObject &link) {
   // The server's artwork is loaded from it directly, over the certificate
   // this machine's core pinned.
   Pins::add(QUrl(m_running), QSslCertificate(link.value("certificate").toString().toLatin1()));
+  // The addresses alone, to list them while that core is not running.
+  const QJsonArray media = link.value("saved").toArray();
+  if (link.contains("saved") && media != m_saved.value("media").toArray()) {
+    QJsonObject saved = m_saved;
+    saved["media"] = media;
+    save(saved);
+    return;
+  }
   emit changed();
+}
+
+void CoreConnection::changeLink(const QByteArray &method, const QUrlQuery &query, const QJsonValue &body,
+                                const QString &failure, std::function<void()> done) {
+  m_busy = true;
+  m_error.clear();
+  emit changed();
+  if (usingServer())
+    Instance::startOwnCore();
+  localCore()->send(method, "/api/v1/link", query, body, this, [this, failure, done](const Core::Reply &reply) {
+    m_busy = false;
+    if (!reply.ok()) {
+      qWarning("changing the link of this machine's core failed: %s", qPrintable(reply.message()));
+      m_error = failure;
+      emit changed();
+      return;
+    }
+    showLink(reply.json().toObject());
+    if (m_error.isEmpty() && done)
+      done();
+  });
 }
 
 // The credential becomes this machine's core's, which checks it with the
 // server before keeping it, and the client no longer keeps it: a direct
 // connection to a media server would find none of the viewer's data there.
 void CoreConnection::handOver(const QUrl &server, const QString &token, const QString &certificate) {
-  m_busy = true;
-  m_error.clear();
-  emit changed();
-  if (usingServer())
-    Instance::startOwnCore();
   QJsonObject body{{"url", server.toString()}, {"token", token}};
   if (!certificate.isEmpty())
     body["certificate"] = certificate;
-  localCore()->send("PUT", "/api/v1/link", {}, body, this, [this, server](const Core::Reply &reply) {
-    m_busy = false;
-    if (!reply.ok()) {
-      qWarning("handing the media server to this machine's core failed: %s", qPrintable(reply.message()));
-      m_error = qtTrId("connectionLinkFailed");
-      emit changed();
-      return;
-    }
-    m_link = reply.json()["url"].toString();
-    m_running = reply.json()["running"].toString();
+  changeLink("PUT", {}, body, qtTrId("connectionLinkFailed"), [this, server] {
+    // A full server that became this one is not used directly any more.
     QJsonObject saved = m_saved;
-    if (origin(saved.value("address").toString()) == server)
-      saved = {};
-    else if (!saved.isEmpty())
-      saved["enabled"] = false;
-    if (saved != m_saved)
-      save(saved);
-    else
-      emit changed();
+    QJsonArray servers;
+    for (const QJsonValue &kept : saved.value("servers").toArray()) {
+      if (origin(kept["address"].toString()) != server)
+        servers.append(kept);
+    }
+    saved["servers"] = servers;
+    saved.remove("use");
+    save(saved);
     if (m_error.isEmpty())
       emit paired();
   });
@@ -254,44 +356,46 @@ void CoreConnection::follow() {
   if (m_followed || overridden() || !usingServer() || m_app->mode() != "media")
     return;
   m_followed = true;
-  handOver(origin(m_started.value("address").toString()), m_started.value("token").toString(),
-           m_started.value("certificate").toString());
+  const QJsonObject server = inUse(m_started);
+  handOver(origin(server.value("address").toString()), server.value("token").toString(),
+           server.value("certificate").toString());
 }
 
-void CoreConnection::unlink() {
+void CoreConnection::use(const QString &address, bool media) {
   if (m_busy || overridden())
     return;
-  m_busy = true;
-  m_error.clear();
-  emit changed();
-  localCore()->send("DELETE", "/api/v1/link", {}, QJsonValue::Undefined, this, [this](const Core::Reply &reply) {
-    m_busy = false;
-    if (reply.ok()) {
-      showLink(reply.json().toObject());
-      return;
-    }
-    m_error = qtTrId("connectionSaveFailed");
-    emit changed();
+  if (!media && isFull(address)) {
+    QJsonObject saved = m_saved;
+    saved["use"] = address;
+    save(saved);
+    return;
+  }
+  if (!address.isEmpty() && (!media || !isMedia(address)))
+    return;
+  // This machine's core, forwarding to the media server or to none.
+  changeLink("PATCH", {}, QJsonObject{{"url", address}}, qtTrId("connectionSaveFailed"), [this] {
+    QJsonObject saved = m_saved;
+    saved.remove("use");
+    if (saved != m_saved)
+      save(saved);
   });
 }
 
-void CoreConnection::useLocal() {
+void CoreConnection::forget(const QString &address, bool media) {
   if (m_busy || overridden())
     return;
-  QJsonObject saved = m_saved;
-  saved["enabled"] = false;
-  save(saved);
-}
-
-void CoreConnection::useRemote() {
-  if (m_busy || overridden() || address().isEmpty())
+  if (media) {
+    changeLink("DELETE", QUrlQuery{{"url", address}}, QJsonValue::Undefined, qtTrId("connectionSaveFailed"), {});
     return;
+  }
   QJsonObject saved = m_saved;
-  saved["enabled"] = true;
+  QJsonArray servers;
+  for (const QJsonValue &kept : saved.value("servers").toArray()) {
+    if (kept["address"].toString() != address)
+      servers.append(kept);
+  }
+  saved["servers"] = servers;
+  if (saved.value("use").toString() == address)
+    saved.remove("use");
   save(saved);
-}
-
-void CoreConnection::forget() {
-  if (!m_busy && !overridden())
-    save({});
 }
