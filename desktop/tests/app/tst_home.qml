@@ -80,7 +80,11 @@ Item {
 
         function test_theArrowsWalkTheHeroAndTheShelvesAndEnterOpensATitle() {
             const focused = () => shell.Window.activeFocusItem
-            const holds = name => findChild(findChild(shell, name), "strip").activeFocus
+            const strip = name => findChild(findChild(shell, name), "strip")
+            const holds = name => strip(name).activeFocus
+            // A shelf whose first page has not come yet is passed over.
+            tryVerify(() => strip("shelf-movie/top/").count > 0 && strip("shelf-series/top/").count > 0,
+                      5000, "both shelves filled")
             keyClick(Qt.Key_Down)
             verify(findChild(shell, "play").activeFocus, "Play first")
             keyClick(Qt.Key_Down)

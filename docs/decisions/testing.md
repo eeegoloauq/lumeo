@@ -44,6 +44,10 @@ What Qt Quick Test asks of a test, learned the hard way:
 - `tryVerify` wants a function returning a boolean; `tryCompare` a property.
 - `waitForRendering` times out when no frame is pending: wait for a
   positioner with `waitForPolish`, or for a popup's `opened`.
+- What the core's answer brings is placed on the next polish: until then a
+  positioner's children overlap and a click lands on another, so
+  `waitForPolish` before clicking it. A key that walks to a shelf waits for
+  the shelf's first page, or the walk passes it over.
 - A popup's content is not a child of the page: find it under
   `popup.contentItem`.
 - Offscreen, `grabImage` draws neither a `MultiEffect` layer nor an animated

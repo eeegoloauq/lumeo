@@ -203,6 +203,10 @@ Item {
             openSeries({ entries: [{ season: 1, episode: 3, position: 0, duration: 2900, watched: true,
                                      updatedAt: "2026-09-01T00:00:00Z" }] }, { season: 2, episode: 1 })
             compare(findChild(shell, "titlePlay").text, "Play S2 E1")
+            // The tabs come with the episodes and are placed on the next
+            // polish; until then they overlap, and the click lands on another.
+            tryVerify(() => findChild(shell, "season-1") !== null, 5000, "the season tabs")
+            waitForPolish(shell.Window.window)
             mouseClick(findChild(shell, "season-1"))
             compare(findChild(shell, "titlePlay").text, "Play S1 E4")
         }

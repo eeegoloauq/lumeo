@@ -30,7 +30,8 @@ find_package(Qt6 REQUIRED COMPONENTS QuickTest)
 qt_add_executable(app_test app/main.cpp)
 target_link_libraries(app_test PRIVATE lumeo lumeoplugin fakecore Qt6::QuickTest)
 target_compile_definitions(app_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/app")
-add_test(NAME app COMMAND app_test)
+add_test(NAME app COMMAND app_test
+  -o ${CMAKE_CURRENT_BINARY_DIR}/app-results.txt,txt -o -,txt)
 # No GPU and no display needed; the player tests have their own run.
 set_tests_properties(app PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 

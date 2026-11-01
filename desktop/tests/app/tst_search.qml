@@ -106,6 +106,8 @@ Item {
         function test_theKindsFilterTheTitles() {
             type("night")
             tryVerify(() => best()?.visible === true, 5000, "the best match")
+            // The kinds appear with the results and are placed on the next polish.
+            waitForPolish(shell.Window.window)
             mouseClick(findChild(shell, "kind-series"))
             tryCompare(best(), "item", gallery)
             compare(findChild(shell, "result-" + living.id), null)
