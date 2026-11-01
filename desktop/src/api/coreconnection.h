@@ -3,6 +3,7 @@
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QObject>
+#include <QSslCertificate>
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
@@ -70,7 +71,8 @@ private:
   bool usingServer() const { return m_started.value("enabled").toBool(); }
   Core *localCore();
   void showLink(const QJsonObject &link);
-  void handOver(const QUrl &server, const QString &token);
+  void sendPair(const QUrl &base, QJsonObject body, const QString &code, const QSslCertificate &shown);
+  void handOver(const QUrl &server, const QString &token, const QString &certificate);
   void follow();
   QString m_path;
   Core *m_app = nullptr;

@@ -3137,6 +3137,11 @@
         <extracomment>Remote core connection settings and pairing.</extracomment>
         <translation>Введите HTTPS-адрес сервера, название устройства и код подключения.</translation>
     </message>
+    <message id="connectionWrongAddress">
+        <source>The server's certificate is for another address.</source>
+        <extracomment>Remote core connection settings and pairing: the address entered is not the one the server's own certificate names.</extracomment>
+        <translation>Сертификат сервера выдан на другой адрес.</translation>
+    </message>
     <message id="connectionCodeExpired">
         <source>The pairing code is invalid or expired.</source>
         <extracomment>Remote core connection settings and pairing.</extracomment>

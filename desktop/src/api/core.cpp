@@ -1,5 +1,6 @@
 #include "core.h"
 #include "coreconnection.h"
+#include "pins.h"
 
 #include <QDir>
 #include <QJsonArray>
@@ -47,6 +48,7 @@ Core::Core(QObject *parent)
   } else if (overridden.isEmpty()) {
     m_token = saved.value("token").toString().toUtf8();
     m_tokenRead = true;
+    Pins::add(m_address, QSslCertificate(saved.value("certificate").toString().toLatin1()));
   }
 }
 
@@ -133,6 +135,7 @@ void Core::attempt(const std::shared_ptr<Attempt> &pending) {
   if (pending->hasBody)
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   QNetworkReply *reply = m_network.sendCustomRequest(request, pending->method, pending->body);
+  Pins::guard(reply);
   connect(reply, &QNetworkReply::finished, this, [this, reply, pending, sent] {
     reply->deleteLater();
     // A server switched to media mode says so on every answer, and the

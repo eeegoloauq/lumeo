@@ -256,6 +256,20 @@ Item {
         // about them asked of the core or kept, nor the core's reconnects;
         // one that will not open is dropped for the next, and the page told;
         // their Play leaves them for the title's own.
+        // A core serving its own certificate, pinned at pairing, streams to
+        // mpv, which verifies it against that certificate beside the
+        // system's: no authority vouches for it, and mpv checks names too.
+        function test_aCoreWithItsOwnCertificateStreamsOverItsPin() {
+            player = createTemporaryObject(playerComponent, root, {
+                downloadId: "", name: "Nosferatu",
+                trailer: { urls: [ownCore.address + "/trailer"], play: "Play", played: () => {}, failed: () => {} } })
+            tryVerify(() => player.mpv.hasPicture, 10000, "a picture over the pinned certificate")
+            let verify = null
+            player.mpv.get("tls-verify", value => verify = value)
+            tryVerify(() => verify !== null, 5000)
+            compare(verify, true)
+        }
+
         function test_trailersPlayTheirLinksAndLeaveForTheTitle() {
             let played = 0
             const failed = []

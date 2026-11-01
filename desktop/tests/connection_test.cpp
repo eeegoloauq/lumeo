@@ -2,6 +2,7 @@
 #include "coreconnection.h"
 #include "fakecore.h"
 #include "folders.h"
+#include "pins.h"
 
 #include <QDir>
 #include <QFile>
@@ -47,10 +48,11 @@ class ConnectionTest : public QObject {
   // does not trust until trust(); its address, by number: Windows resolves
   // localhost to ::1 first and takes seconds to give up on a port nobody
   // listens to there.
-  QString serveTLS(QHttpServer &server) {
+  QString serveTLS(QHttpServer &server) { return serveTLS(server, certificate, key); }
+  QString serveTLS(QHttpServer &server, const QSslCertificate &identity, const QSslKey &secret) {
     QSslConfiguration serverTLS = original;
-    serverTLS.setLocalCertificate(certificate);
-    serverTLS.setPrivateKey(key);
+    serverTLS.setLocalCertificate(identity);
+    serverTLS.setPrivateKey(secret);
     serverTLS.setPeerVerifyMode(QSslSocket::VerifyNone);
     auto *listener = new QSslServer(&server);
     listener->setSslConfiguration(serverTLS);
@@ -65,10 +67,34 @@ class ConnectionTest : public QObject {
     QSslConfiguration::setDefaultConfiguration(trusted);
   }
 
-  // A paired device as a server answers it, in [mode].
-  static QHttpServerResponse pairedAnswer(const QString &mode) {
-    return QHttpServerResponse(QJsonObject{{"token", "ABCDEFGHIJKLMNOPQRSTUVW234"},
-        {"device", QJsonObject{{"id", "laptop"}}}, {"mode", mode}}, QHttpServerResponse::StatusCode::Created);
+  // A paired device as a server answers it, in [mode], with [proof] of the
+  // code when the device sent one.
+  static QHttpServerResponse pairedAnswer(const QString &mode, const QString &proof = {}) {
+    QJsonObject answer{{"token", "ABCDEFGHIJKLMNOPQRSTUVW234"}, {"device", QJsonObject{{"id", "laptop"}}}, {"mode", mode}};
+    if (!proof.isEmpty())
+      answer["proof"] = proof;
+    return QHttpServerResponse(answer, QHttpServerResponse::StatusCode::Created);
+  }
+
+  // The proofs of pairingCode over the test's certificate, as the core
+  // works them out (core/internal/remote/proof.go): the same numbers on
+  // both sides, or no device pairs with a core's own certificate.
+  static constexpr const char *pairingCode = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  static constexpr const char *deviceProof = "5a8a166afdc7fd54a903320fb4362c6015731eecbad674e1ce72b148433fbce1";
+  static constexpr const char *serverProof = "3ab5f6be8cff376ec7cfe5eb563db0dfbfd558f5ccfb135c3be9e6798996adf5";
+
+  // A core with its own certificate, the test's: it pairs a device that
+  // proves the code over it, answering in [mode] with its own proof, and
+  // keeps what it was sent in [received].
+  QString ownCertificateCore(QHttpServer &server, QJsonObject &received, const QString &mode = "full") {
+    server.route("/api/v1/pair", QHttpServerRequest::Method::Post, [&received, mode](const QHttpServerRequest &request) {
+      received = QJsonDocument::fromJson(request.body()).object();
+      if (received.value("proof").toString() != deviceProof)
+        return QHttpServerResponse(QHttpServerResponse::StatusCode::Unauthorized);
+      return pairedAnswer(mode, serverProof);
+    });
+    server.route("/healthz", [] { return QHttpServerResponse(QHttpServerResponse::StatusCode::Unauthorized); });
+    return serveTLS(server);
   }
 
   // This machine's core, faked, keeping a link it is handed.
@@ -190,9 +216,14 @@ private slots:
     CoreConnection untrusted(temporary.filePath("untrusted/core.json"));
     untrusted.pair(address, "one-time-code", "Laptop");
     QTRY_VERIFY_WITH_TIMEOUT(!untrusted.busy(), answered);
+    // A certificate no authority vouches for gets a proof, never the code,
+    // and a server that cannot prove the code back is not kept.
     QVERIFY(!untrusted.error().isEmpty());
     QVERIFY(!untrusted.restartNeeded());
-    QVERIFY(received.isEmpty());
+    QVERIFY(!received.contains("code"));
+    QVERIFY(received.contains("proof"));
+    QVERIFY(CoreConnection::read(temporary.filePath("untrusted/core.json")).isEmpty());
+    received = {};
     trust();
     const QString path = temporary.filePath("tls/core.json");
     CoreConnection connection(path);
@@ -212,6 +243,76 @@ private slots:
     QVERIFY(!connection.error().isEmpty());
     QVERIFY(!stolen);
     QCOMPARE(CoreConnection::read(path), stored);
+  }
+
+  // A core serving its own certificate is paired by proving the code over
+  // that certificate, which is pinned: the code never leaves this machine,
+  // and from then on the core is reached over that certificate alone.
+  void pairingWithACoresOwnCertificatePinsIt() {
+    QHttpServer server;
+    QJsonObject received;
+    const QString address = ownCertificateCore(server, received);
+    QVERIFY(!address.isEmpty());
+    server.route("/api/v1/catalogs", [] { return QHttpServerResponse(QJsonObject{}); });
+    const QString path = temporary.filePath("own/core.json");
+    CoreConnection connection(path);
+    connection.pair(address, pairingCode, "Laptop");
+    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
+    QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
+    QCOMPARE(received, (QJsonObject{{"proof", deviceProof}, {"name", "Laptop"}}));
+    const QJsonObject stored = CoreConnection::read(path);
+    QCOMPARE(QSslCertificate(stored.value("certificate").toString().toLatin1()), certificate);
+    QCOMPARE(stored.value("token").toString(), QString("ABCDEFGHIJKLMNOPQRSTUVW234"));
+
+    Core unpinned(QUrl(address), {});
+    QObject context;
+    std::optional<bool> reached;
+    unpinned.get("/api/v1/catalogs", {}, &context, [&](const Core::Reply &reply) { reached = reply.ok(); });
+    QTRY_VERIFY_WITH_TIMEOUT(reached.has_value(), answered);
+    QVERIFY(!*reached);
+    Pins::add(QUrl(address), certificate);
+    Core pinned(QUrl(address), {});
+    reached.reset();
+    pinned.get("/api/v1/catalogs", {}, &context, [&](const Core::Reply &reply) { reached = reply.ok(); });
+    QTRY_VERIFY_WITH_TIMEOUT(reached.has_value(), answered);
+    QVERIFY(*reached);
+  }
+
+  // The player checks the certificate's name too, so one for another name is
+  // turned down before anything is sent, with a reason.
+  void pairingRefusesACertificateForAnotherAddress() {
+    QFile identity(QFINDTESTDATA("fixtures/lumeo-lan.pem"));
+    QVERIFY(identity.open(QIODevice::ReadOnly));
+    const QByteArray pem = identity.readAll();
+    QHttpServer server;
+    int asked = 0;
+    server.route("/<arg>", [&asked](const QString &) { ++asked; return QHttpServerResponse(QJsonObject{}); });
+    const QString address = serveTLS(server, QSslCertificate(pem), QSslKey(pem, QSsl::Ec));
+    QVERIFY(!address.isEmpty());
+    CoreConnection connection(temporary.filePath("name/core.json"));
+    connection.pair(address, pairingCode, "Laptop");
+    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
+    QCOMPARE(connection.error(), qtTrId("connectionWrongAddress"));
+    QCOMPARE(asked, 0);
+  }
+
+  // A media server with its own certificate is handed to this machine's core
+  // with the certificate, which that core pins.
+  void aMediaServersOwnCertificateGoesWithItsCredential() {
+    QHttpServer server;
+    QJsonObject received;
+    const QString address = ownCertificateCore(server, received, "media");
+    QVERIFY(!address.isEmpty());
+    FakeCore local;
+    QVERIFY(local.listen());
+    keepsLinks(local);
+    Core core(local.address(), {});
+    CoreConnection connection(temporary.filePath("own-media/core.json"), nullptr, &core);
+    connection.pair(address, pairingCode, "Laptop");
+    QTRY_VERIFY_WITH_TIMEOUT(!connection.busy(), answered);
+    QVERIFY2(connection.error().isEmpty(), qPrintable(connection.error()));
+    const QJsonObject handed = QJsonDocument::fromJson(local.requests().last().section(' ', 2, -1).toUtf8()).object();
+    QCOMPARE(QSslCertificate(handed.value("certificate").toString().toLatin1()), certificate);
   }
 
   // A media server keeps none of the viewer's data, so the client does not

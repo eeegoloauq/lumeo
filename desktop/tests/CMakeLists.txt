@@ -19,6 +19,7 @@ foreach(name artwork connection core facts home l10n library mpv next opening re
 endforeach()
 
 target_compile_definitions(connection_test PRIVATE LUMEO_TEST_TLS="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/localhost.pem")
+target_compile_definitions(mpv_test PRIVATE LUMEO_TEST_TLS="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/localhost.pem")
 
 # Pictures are decoded under a QGuiApplication, which needs a platform.
 set_tests_properties(artwork PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
@@ -38,7 +39,8 @@ set_tests_properties(app PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 # Player tests: a real libmpv on headless Weston, through tool/player-test.sh.
 qt_add_executable(player_test player/main.cpp)
 target_link_libraries(player_test PRIVATE lumeo lumeoplugin fakecore Qt6::QuickTest)
-target_compile_definitions(player_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/player")
+target_compile_definitions(player_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/player"
+  LUMEO_TEST_TLS="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/localhost.pem")
 
 # qmllint as a test, so every ctest run has it; qml/.qmllint.ini makes a
 # warning fail it.

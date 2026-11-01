@@ -3,6 +3,7 @@
 #include "core.h"
 #include "folders.h"
 #include "instance.h"
+#include "pins.h"
 
 #include <QDir>
 #include <QFile>
@@ -12,6 +13,8 @@
 #include <QQmlEngine>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QSslConfiguration>
+#include <memory>
 
 namespace {
 bool validToken(const QString &token) {
@@ -58,6 +61,8 @@ QJsonObject CoreConnection::read(const QString &path) {
   const QJsonObject saved = QJsonDocument::fromJson(source.readAll()).object();
   if (origin(saved.value("address").toString()).isEmpty() || !validToken(saved.value("token").toString()))
     return {};
+  if (saved.contains("certificate") && QSslCertificate(saved.value("certificate").toString().toLatin1()).isNull())
+    return {};
   return saved;
 }
 
@@ -80,6 +85,11 @@ void CoreConnection::save(const QJsonObject &connection) {
   emit changed();
 }
 
+// A server whose certificate an authority vouches for is sent the code. One
+// that serves its own certificate is sent a proof of the code over the
+// certificate it showed, and pinned once it proves the code back
+// (core/internal/remote/proof.go). The probe that tells them apart sends
+// nothing past a certificate it cannot verify.
 void CoreConnection::pair(const QString &address, const QString &code, const QString &name) {
   if (m_busy || overridden())
     return;
@@ -89,34 +99,94 @@ void CoreConnection::pair(const QString &address, const QString &code, const QSt
     emit changed();
     return;
   }
+  QNetworkRequest probe(base.resolved(QUrl("/healthz")));
+  probe.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  probe.setTransferTimeout(20000);
+  m_busy = true;
+  m_error.clear();
+  emit changed();
+  QNetworkReply *reply = m_network.get(probe);
+  auto shown = std::make_shared<QSslCertificate>();
+  auto refused = std::make_shared<QList<QSslError>>();
+  connect(reply, &QNetworkReply::sslErrors, this, [reply, shown, refused](const QList<QSslError> &errors) {
+    *shown = reply->sslConfiguration().peerCertificate();
+    *refused = errors;
+  });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, base, shown, refused, code, name] {
+    reply->deleteLater();
+    const QJsonObject device{{"name", name.trimmed()}};
+    if (refused->isEmpty()) {
+      if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 0) {
+        m_busy = false;
+        m_error = qtTrId("connectionFailed");
+        emit changed();
+        return;
+      }
+      QJsonObject body = device;
+      body["code"] = code.trimmed();
+      sendPair(base, body, code.trimmed(), QSslCertificate());
+      return;
+    }
+    // The player checks the name as well: a certificate for another one
+    // would pair and then play nothing.
+    if (!Pins::names(*shown, base.host())) {
+      m_busy = false;
+      m_error = qtTrId("connectionWrongAddress");
+      emit changed();
+      return;
+    }
+    // Only a certificate no authority vouches for; an expired one, or one
+    // refused for anything else, is not a core's own.
+    static const QList<QSslError::SslError> unvouched{
+        QSslError::SelfSignedCertificate, QSslError::CertificateUntrusted,
+        QSslError::UnableToGetLocalIssuerCertificate, QSslError::UnableToVerifyFirstCertificate};
+    for (const QSslError &error : *refused) {
+      if (!unvouched.contains(error.error())) {
+        m_busy = false;
+        m_error = qtTrId("connectionFailed");
+        emit changed();
+        return;
+      }
+    }
+    QJsonObject body = device;
+    body["proof"] = Pins::deviceProof(code.trimmed(), *shown);
+    sendPair(base, body, code.trimmed(), *shown);
+  });
+}
+
+void CoreConnection::sendPair(const QUrl &base, QJsonObject body, const QString &code, const QSslCertificate &shown) {
   QNetworkRequest request(base.resolved(QUrl("/api/v1/pair")));
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
   request.setTransferTimeout(20000);
-  m_busy = true;
-  m_error.clear();
-  emit changed();
-  const QByteArray body = QJsonDocument(QJsonObject{{"code", code.trimmed()}, {"name", name.trimmed()}})
-                             .toJson(QJsonDocument::Compact);
-  QNetworkReply *reply = m_network.post(request, body);
-  connect(reply, &QNetworkReply::finished, this, [this, reply, base] {
+  QNetworkReply *reply = m_network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+  if (!shown.isNull())
+    Pins::trust(reply, shown);
+  connect(reply, &QNetworkReply::finished, this, [this, reply, base, code, shown] {
     reply->deleteLater();
     m_busy = false;
     const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const QJsonObject result = QJsonDocument::fromJson(reply->readAll()).object();
     const QString token = result.value("token").toString();
     const QString id = result.value("device").toObject().value("id").toString();
+    // Only a holder of the code proves it: anything else did not issue it,
+    // and its certificate is not kept.
+    const bool proven = shown.isNull() || result.value("proof").toString() == Pins::serverProof(code, shown);
     if (reply->error() != QNetworkReply::NoError || status != 201 || !validToken(token) ||
-        id.isEmpty()) {
+        id.isEmpty() || !proven) {
       m_error = status == 401 ? qtTrId("connectionCodeExpired") : qtTrId("connectionFailed");
       emit changed();
       return;
     }
+    const QString certificate = shown.isNull() ? QString() : QString::fromLatin1(shown.toPem());
     if (result.value("mode").toString() == "media") {
-      handOver(base, token);
+      handOver(base, token, certificate);
       return;
     }
-    save({{"address", base.toString()}, {"token", token}, {"deviceId", id}, {"enabled", true}});
+    QJsonObject connection{{"address", base.toString()}, {"token", token}, {"deviceId", id}, {"enabled", true}};
+    if (!certificate.isEmpty())
+      connection["certificate"] = certificate;
+    save(connection);
     if (m_error.isEmpty())
       emit paired();
   });
@@ -136,19 +206,24 @@ void CoreConnection::readLink() {
 void CoreConnection::showLink(const QJsonObject &link) {
   m_link = link.value("url").toString();
   m_running = link.value("running").toString();
+  // The server's artwork is loaded from it directly, over the certificate
+  // this machine's core pinned.
+  Pins::add(QUrl(m_running), QSslCertificate(link.value("certificate").toString().toLatin1()));
   emit changed();
 }
 
 // The credential becomes this machine's core's, which checks it with the
 // server before keeping it, and the client no longer keeps it: a direct
 // connection to a media server would find none of the viewer's data there.
-void CoreConnection::handOver(const QUrl &server, const QString &token) {
+void CoreConnection::handOver(const QUrl &server, const QString &token, const QString &certificate) {
   m_busy = true;
   m_error.clear();
   emit changed();
   if (usingServer())
     Instance::startOwnCore();
-  const QJsonObject body{{"url", server.toString()}, {"token", token}};
+  QJsonObject body{{"url", server.toString()}, {"token", token}};
+  if (!certificate.isEmpty())
+    body["certificate"] = certificate;
   localCore()->send("PUT", "/api/v1/link", {}, body, this, [this, server](const Core::Reply &reply) {
     m_busy = false;
     if (!reply.ok()) {
@@ -179,7 +254,8 @@ void CoreConnection::follow() {
   if (m_followed || overridden() || !usingServer() || m_app->mode() != "media")
     return;
   m_followed = true;
-  handOver(origin(m_started.value("address").toString()), m_started.value("token").toString());
+  handOver(origin(m_started.value("address").toString()), m_started.value("token").toString(),
+           m_started.value("certificate").toString());
 }
 
 void CoreConnection::unlink() {

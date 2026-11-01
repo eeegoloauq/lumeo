@@ -3103,6 +3103,11 @@
         <extracomment>Remote core connection settings and pairing.</extracomment>
         <translation>Enter an HTTPS server address, device name and pairing code.</translation>
     </message>
+    <message id="connectionWrongAddress">
+        <source>The server's certificate is for another address.</source>
+        <extracomment>Remote core connection settings and pairing: the address entered is not the one the server's own certificate names.</extracomment>
+        <translation>The server's certificate is for another address.</translation>
+    </message>
     <message id="connectionCodeExpired">
         <source>The pairing code is invalid or expired.</source>
         <extracomment>Remote core connection settings and pairing.</extracomment>

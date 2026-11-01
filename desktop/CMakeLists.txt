@@ -186,6 +186,7 @@ qt_add_qml_module(lumeo
   SOURCES
     src/api/core.h src/api/core.cpp
     src/api/coreconnection.h src/api/coreconnection.cpp
+    src/api/pins.h src/api/pins.cpp
     src/api/artwork.h src/api/artwork.cpp
     src/api/home.h src/api/home.cpp
     src/api/title.h src/api/title.cpp

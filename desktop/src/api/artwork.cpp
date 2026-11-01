@@ -1,4 +1,5 @@
 #include "artwork.h"
+#include "pins.h"
 
 #include <QBuffer>
 #include <QCoreApplication>
@@ -55,6 +56,7 @@ public:
       return;
     }
     m_reply = m_network->get(QNetworkRequest(m_url));
+    Pins::guard(m_reply);
     connect(m_reply, &QNetworkReply::finished, this, &Response::fetched);
   }
 

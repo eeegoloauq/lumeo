@@ -2,6 +2,7 @@
 #include "fonts.h"
 #include "language.h"
 #include "mpvitem.h"
+#include "pins.h"
 
 #include <QDir>
 #include <QFile>
@@ -11,6 +12,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickWindow>
+#include <QSslCertificate>
 #include <QSurfaceFormat>
 #include <QTemporaryDir>
 #include <QtQml/QQmlExtensionPlugin>
@@ -35,6 +37,8 @@ class Setup : public QObject {
   Q_OBJECT
 
   std::unique_ptr<FakeCore> fake;
+  // A core serving its own certificate, pinned as pairing pins it.
+  std::unique_ptr<FakeCore> own;
   QTemporaryDir config;
   Disk disk;
 
@@ -75,11 +79,19 @@ public slots:
     }
     // A trailer: a link from outside the core, as YouTube's is.
     QFile trailer(qEnvironmentVariable("LUMEO_TEST_CLIP"));
-    if (trailer.open(QIODevice::ReadOnly))
-      fake->file("/trailer", trailer.readAll(), "video/x-matroska");
+    const QByteArray trailerClip = trailer.open(QIODevice::ReadOnly) ? trailer.readAll() : QByteArray();
+    fake->file("/trailer", trailerClip, "video/x-matroska");
     QFile upright(qEnvironmentVariable("LUMEO_TEST_UPRIGHT"));
     if (upright.open(QIODevice::ReadOnly))
       fake->file("/trailer-upright", upright.readAll(), "video/x-matroska");
+    own = std::make_unique<FakeCore>();
+    if (!own->listenTLS(LUMEO_TEST_TLS))
+      qFatal("the fake core with its own certificate could not listen");
+    own->file("/trailer", trailerClip, "video/x-matroska");
+    QFile identity(LUMEO_TEST_TLS);
+    if (!identity.open(QIODevice::ReadOnly))
+      qFatal("no test certificate");
+    Pins::add(own->address(), QSslCertificate(identity.readAll()));
     // A subtitle as the core serves one from the database, converted.
     fake->file("/api/v1/subtitles/ru", "1\n00:00:00,000 --> 00:00:20,000\nRussian\n", "text/plain");
     installTranslations(QLocale(QLocale::English));
@@ -88,6 +100,7 @@ public slots:
 
   void qmlEngineAvailable(QQmlEngine *engine) {
     engine->rootContext()->setContextProperty("fakeCore", fake.get());
+    engine->rootContext()->setContextProperty("ownCore", own.get());
     engine->rootContext()->setContextProperty("screenshots", config.filePath("shots"));
     engine->rootContext()->setContextProperty("disk", &disk);
   }

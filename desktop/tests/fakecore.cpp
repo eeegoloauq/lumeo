@@ -7,6 +7,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <QSslCertificate>
+#include <QSslConfiguration>
+#include <QSslKey>
+#include <QSslServer>
 
 namespace {
 
@@ -110,8 +114,27 @@ bool FakeCore::listen(quint16 port) {
   return m_tcp->listen(QHostAddress::LocalHost, port) && m_server.bind(m_tcp);
 }
 
+bool FakeCore::listenTLS(const QString &identity) {
+  QFile file(identity);
+  if (!file.open(QIODevice::ReadOnly))
+    return false;
+  const QByteArray pem = file.readAll();
+  QSslKey key(pem, QSsl::Rsa);
+  if (key.isNull())
+    key = QSslKey(pem, QSsl::Ec);
+  QSslConfiguration tls = QSslConfiguration::defaultConfiguration();
+  tls.setLocalCertificate(QSslCertificate(pem));
+  tls.setPrivateKey(key);
+  tls.setPeerVerifyMode(QSslSocket::VerifyNone);
+  auto *server = new QSslServer(this);
+  server->setSslConfiguration(tls);
+  m_tcp = server;
+  m_tls = true;
+  return m_tcp->listen(QHostAddress::LocalHost) && m_server.bind(m_tcp);
+}
+
 QUrl FakeCore::address() const {
-  return QUrl(QString("http://127.0.0.1:%1").arg(m_tcp ? m_tcp->serverPort() : 0));
+  return QUrl(QString("%1://127.0.0.1:%2").arg(m_tls ? "https" : "http").arg(m_tcp ? m_tcp->serverPort() : 0));
 }
 
 void FakeCore::answer(const QString &method, const QString &path, int status,

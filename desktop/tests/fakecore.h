@@ -26,6 +26,9 @@ public:
 
   // Listens on [port], any free one when 0.
   bool listen(quint16 port = 0);
+  // Listens on any free port over TLS, as a core serving its own
+  // certificate: [identity] is a PEM file with the certificate and its key.
+  bool listenTLS(const QString &identity);
   QUrl address() const;
 
   // Every request so far, as "METHOD /path?query body".
@@ -73,6 +76,7 @@ private:
 
   QHttpServer m_server;
   QTcpServer *m_tcp = nullptr;
+  bool m_tls = false;
   QStringList m_requests;
   QHash<QString, Answer> m_handlers;
   QHash<QString, std::pair<QByteArray, QByteArray>> m_files;

@@ -42,6 +42,17 @@ private slots:
     QCOMPARE(QSslCertificate::fromPath(path), system);
   }
 
+  // A core's own certificate, pinned at pairing, goes beside the system's:
+  // its streams verify, and so does a trailer from anywhere else.
+  void mpvTrustsAPinnedCertificateBesideTheSystems() {
+    const QList<QSslCertificate> pinned = QSslCertificate::fromPath(LUMEO_TEST_TLS);
+    QCOMPARE(pinned.size(), 1);
+    QTemporaryDir directory;
+    const QString path = directory.filePath("cache/trusted-certificates.pem");
+    QCOMPARE(trustedCertificates(path, pinned), path);
+    QCOMPARE(QSslCertificate::fromPath(path), QSslConfiguration::systemCaCertificates() + pinned);
+  }
+
   void keysNamedByMpv() {
     QCOMPARE(name(Qt::Key_Space, " "), "SPACE");
     QCOMPARE(name(Qt::Key_Right, ""), "RIGHT");
