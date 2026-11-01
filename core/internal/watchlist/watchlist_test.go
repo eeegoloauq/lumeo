@@ -76,17 +76,19 @@ func TestListCountsWhatIsOutAndWatched(t *testing.T) {
 				{Season: 1, Number: 4, Released: day(0)}, // out today
 				{Season: 1, Number: 5, Released: day(7)}, // not out
 			}},
-			"film":  {ID: "film", Kind: catalog.KindMovie},
-			"bare":  {ID: "bare", Kind: catalog.KindSeries},
-			"other": {ID: "other", Kind: catalog.KindMovie},
+			"film":      {ID: "film", Kind: catalog.KindMovie},
+			"bare":      {ID: "bare", Kind: catalog.KindSeries},
+			"other":     {ID: "other", Kind: catalog.KindMovie},
+			"unwatched": {ID: "unwatched", Kind: catalog.KindMovie},
 		},
-		list: []Entry{{ItemID: "series"}, {ItemID: "film"}, {ItemID: "bare"}, {ItemID: "gone"}},
+		list: []Entry{{ItemID: "series"}, {ItemID: "film"}, {ItemID: "bare"}, {ItemID: "unwatched"}, {ItemID: "gone"}},
 		progress: []progress.Entry{
 			{ItemID: "series", Season: 0, Episode: 1, Watched: true},
 			{ItemID: "series", Season: 1, Episode: 1, Watched: true},
 			{ItemID: "series", Season: 1, Episode: 2, Position: 100},
 			{ItemID: "film", Watched: true},
 			{ItemID: "other", Watched: true},
+			{ItemID: "unwatched"}, // marked unwatched: kept at 0, not played
 		},
 		ratings: map[string][]ratings.Rating{"film": {{Score: 9}}, "series": {{Season: 1, Episode: 1, Score: 4}}},
 	}
@@ -94,17 +96,20 @@ func TestListCountsWhatIsOutAndWatched(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if len(got) != 3 {
-		t.Fatalf("list = %+v, want the three titles the catalogue knows", got)
+	if len(got) != 4 {
+		t.Fatalf("list = %+v, want the four titles the catalogue knows", got)
 	}
-	if s := got[0].Seen; s != (Seen{Watched: 1, Released: 4}) || got[0].Rating != 0 || got[0].Item.Episodes != nil {
+	if s := got[0].Seen; s != (Seen{Watched: 1, Released: 4, Played: true}) || got[0].Rating != 0 || got[0].Item.Episodes != nil {
 		t.Errorf("series = %+v", got[0])
 	}
-	if s := got[1].Seen; s != (Seen{Watched: 1, Released: 1}) || got[1].Rating != 9 {
+	if s := got[1].Seen; s != (Seen{Watched: 1, Released: 1, Played: true}) || got[1].Rating != 9 {
 		t.Errorf("film = %+v", got[1])
 	}
 	if s := got[2].Seen; s != (Seen{}) {
 		t.Errorf("series with no episodes fetched = %+v, want nothing said", got[2])
+	}
+	if s := got[3].Seen; s != (Seen{Released: 1}) {
+		t.Errorf("film marked unwatched = %+v, want it not played", got[3])
 	}
 }
 

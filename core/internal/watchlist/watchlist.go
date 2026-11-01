@@ -84,10 +84,13 @@ func (s *Service) Has(ctx context.Context, itemID string) (Entry, bool, error) {
 }
 
 // Seen is how far the viewer is into a title: of the episodes out, how many
-// are watched. A film is one episode.
+// are watched. A film is one episode. Played is whether anything of it was,
+// to the end or part way, specials included: what My list's To watch leaves
+// out.
 type Seen struct {
-	Watched  int `json:"watched"`
-	Released int `json:"released"`
+	Watched  int  `json:"watched"`
+	Released int  `json:"released"`
+	Played   bool `json:"played"`
 }
 
 // Listed is one title on the list, with what a tile says about it.
@@ -118,7 +121,7 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 	for _, item := range items {
 		byID[item.ID] = item
 	}
-	watched, err := s.watched(ctx)
+	watched, played, err := s.progressByTitle(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +137,7 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 			continue
 		}
 		seen := seenOf(item, watched[e.ItemID], now)
+		seen.Played = played[e.ItemID]
 		item.Episodes = nil
 		out = append(out, Listed{
 			Item:    item,
@@ -149,7 +153,7 @@ func (s *Service) List(ctx context.Context) ([]Listed, error) {
 // watched, a series caught up with by the rule of Seen. Any title counts,
 // listed or not; one the catalogue has not kept is left out.
 func (s *Service) Finished(ctx context.Context) ([]string, error) {
-	watched, err := s.watched(ctx)
+	watched, _, err := s.progressByTitle(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -325,23 +329,29 @@ func later(a, b catalog.Episode) bool {
 	return a.Number > b.Number
 }
 
-// watched is every watched entry, by title.
-func (s *Service) watched(ctx context.Context) (map[string]map[[2]int]bool, error) {
+// progressByTitle is every watched entry, by title, and which titles were
+// played at all: watched, or left part way. One marked unwatched keeps an
+// entry at 0, which is not playing it.
+func (s *Service) progressByTitle(ctx context.Context) (watched map[string]map[[2]int]bool, played map[string]bool, err error) {
 	all, err := s.progress.AllProgress(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := make(map[string]map[[2]int]bool)
+	watched = make(map[string]map[[2]int]bool)
+	played = make(map[string]bool)
 	for _, p := range all {
+		if p.Watched || p.Position > 0 {
+			played[p.ItemID] = true
+		}
 		if !p.Watched {
 			continue
 		}
-		if out[p.ItemID] == nil {
-			out[p.ItemID] = make(map[[2]int]bool)
+		if watched[p.ItemID] == nil {
+			watched[p.ItemID] = make(map[[2]int]bool)
 		}
-		out[p.ItemID][[2]int{p.Season, p.Episode}] = true
+		watched[p.ItemID][[2]int{p.Season, p.Episode}] = true
 	}
-	return out, nil
+	return watched, played, nil
 }
 
 // seenOf counts the episodes out and the watched ones among them. Specials

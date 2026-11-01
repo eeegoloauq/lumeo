@@ -106,7 +106,7 @@ func TestListRoutes(t *testing.T) {
 		t.Fatalf("list = %+v", list)
 	}
 	got := list.Items[0]
-	if got.Item.ID != id || got.Rating != 8 || got.Seen != (watchlist.Seen{Watched: 1, Released: 2}) || len(got.Item.Episodes) != 0 {
+	if got.Item.ID != id || got.Rating != 8 || got.Seen != (watchlist.Seen{Watched: 1, Released: 2, Played: true}) || len(got.Item.Episodes) != 0 {
 		t.Fatalf("listed = %+v", got)
 	}
 
