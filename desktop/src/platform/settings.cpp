@@ -81,6 +81,18 @@ void LocalSettings::setListSort(const QString &order) {
     set("listSort", order);
 }
 
+static const QStringList listKinds = {"", "movie", "series"};
+
+QString LocalSettings::listKind() const {
+  const QString kind = m_values.value("listKind").toString();
+  return listKinds.contains(kind) ? kind : listKinds.first();
+}
+
+void LocalSettings::setListKind(const QString &kind) {
+  if (listKinds.contains(kind))
+    set("listKind", kind);
+}
+
 QString LocalSettings::lastSeenVersion() const {
   if (!m_existed && !m_values.contains("lastSeenVersion"))
     return {};

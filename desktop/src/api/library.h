@@ -12,9 +12,9 @@
 
 class Core;
 
-// My list as the page shows it: the titles in the order chosen, and the
-// followed series with new episodes and with episodes coming up as shelves
-// over them (decisions/library.md).
+// My list as the page shows it: the titles of the stage and kind chosen in
+// the order chosen, and the followed series with new episodes and with
+// episodes coming up as shelves over them (decisions/library.md).
 class MyList : public QObject, public QQmlParserStatus {
   Q_OBJECT
   QML_ELEMENT
@@ -24,8 +24,17 @@ class MyList : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QString error READ error NOTIFY changed)
   // One of LocalSettings' list orders.
   Q_PROPERTY(QString order READ order WRITE setOrder NOTIFY changed)
-  // The titles in [order], each the core's listed title.
+  // How far the viewer is into what is shown: "all", "toWatch" (nothing of
+  // it played), "watching" or "watched" (a film watched, a series caught up
+  // with).
+  Q_PROPERTY(QString stage READ stage WRITE setStage NOTIFY changed)
+  // "" for both kinds, "movie" or "series".
+  Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY changed)
+  // The titles of [stage] and [kind] in [order], each the core's listed title.
   Q_PROPERTY(QVariantList titles READ titles NOTIFY changed)
+  // How many are on the list whatever is shown: an empty list and an empty
+  // stage say different things.
+  Q_PROPERTY(int total READ total NOTIFY changed)
   // A shelf over the list, not the list: a core that cannot work them out
   // still shows what is on it.
   Q_PROPERTY(QVariantList fresh READ fresh NOTIFY changed)
@@ -46,7 +55,14 @@ public:
   QString error() const { return m_error; }
   QString order() const { return m_order; }
   void setOrder(const QString &order);
-  QVariantList titles() const { return sorted(m_titles, m_order).toVariantList(); }
+  QString stage() const { return m_stage; }
+  void setStage(const QString &stage);
+  QString kind() const { return m_kind; }
+  void setKind(const QString &kind);
+  QVariantList titles() const {
+    return sorted(filtered(m_titles, m_stage, m_kind), m_order).toVariantList();
+  }
+  int total() const { return int(m_titles.size()); }
   QVariantList fresh() const { return m_fresh.toVariantList(); }
   QVariantList comingUp() const { return m_comingUp.toVariantList(); }
 
@@ -58,6 +74,10 @@ public:
   // alphabetised; what has no year or no score goes to the end of an order
   // by year or score.
   static QJsonArray sorted(const QJsonArray &titles, const QString &order);
+  // The titles of [stage] and [kind], as the properties name them.
+  static QJsonArray filtered(const QJsonArray &titles, const QString &stage, const QString &kind);
+  // A listed title's stage: "toWatch", "watching" or "watched".
+  static QString stageOf(const QJsonObject &listed);
 
 signals:
   void changed();
@@ -67,6 +87,8 @@ private:
   Status m_status = Loading;
   QString m_error;
   QString m_order = "added";
+  QString m_stage = "all";
+  QString m_kind;
   QJsonArray m_titles;
   QJsonArray m_fresh;
   QJsonArray m_comingUp;

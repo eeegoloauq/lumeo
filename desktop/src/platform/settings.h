@@ -37,6 +37,9 @@ class LocalSettings : public QObject {
   // looking at the list on this screen, so not the core's
   // (decisions/library.md).
   Q_PROPERTY(QString listSort READ listSort WRITE setListSort NOTIFY changed)
+  // Which kinds My list shows: "" for both, "movie" or "series"; kept as
+  // the order is.
+  Q_PROPERTY(QString listKind READ listKind WRITE setListKind NOTIFY changed)
   // Closing the window leaves the app running, and the app starts at login
   // without one. Login needs the background, so either carries the other
   // (decisions/interface.md).
@@ -70,6 +73,8 @@ public:
   QVariantList languages() const { return m_languages; }
   QString listSort() const;
   void setListSort(const QString &order);
+  QString listKind() const;
+  void setListKind(const QString &kind);
   bool keepsTold() const { return m_values.value("keepsTold").toBool(); }
   void setKeepsTold(bool told) { set("keepsTold", told); }
   // The version whose notes were last shown: null on a first run, which has

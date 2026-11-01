@@ -53,7 +53,17 @@ not here.
 My list is a grid, like the search results: one list to look through, as long
 as it is, in the order chosen (recently added, title without its article,
 year, the viewer's score). The order is kept by this machine, not the core: it
-is a way of looking at the list on one screen, as a remembered tab is. The first
+is a way of looking at the list on one screen, as a remembered tab is. Over
+the grid are its stages: All, To watch (nothing of it played), Watching and
+Watched (a film watched, a series caught up with; one with a new episode out
+is Watching again). To watch is the planned list, so a third place for one
+would hold the same titles. A stage is what this evening is for and stays
+with the page; films or series only is the Sort menu's second section and is
+kept by this machine as the order is. Played is the core's to say (`seen.played`
+on the list): a film left half way has nothing watched and is not To watch,
+and one marked unwatched is again. The grid is a `GridView` with the places,
+the shelves and the stages as its header, so a poster is made as it comes
+into view, as on Home's shelves, and the arrows are the view's own. The first
 progress on a title adds it: what someone started is what
 they come back for, and the button is then mostly the way out. Only the first:
 a title taken out stays out while it is being finished. Adding

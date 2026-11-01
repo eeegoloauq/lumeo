@@ -234,10 +234,13 @@ series unwatched waits five seconds for Undo, as a History line does; the
 other rows act at once, and every page showing the title reads it again when
 the core has the change.
 
-One icon per meaning: an eye for watched, a crossed-out eye for unwatched, a
-bookmark for My list, a star for the score, the download arrow, a bin for
-deleting a download (the only red row), a link for the share link, a film for
-the trailer, a cross for leaving Continue watching.
+One icon per meaning, menus included, as macOS, Windows 11 and KDE menus
+carry them: an eye for watched, a crossed-out eye for unwatched, a bookmark
+for My list (outlined to add, filled when on it), a star for the score, the
+download arrow for downloading and on disk, a bin for deleting a download
+(the only red row), a link for the share link, a film for the trailer, a
+cross for leaving Continue watching. A check only marks the choice in use in
+a list of choices; as "in My list" it read as "watched".
 
 ## Back is an arrow before the wordmark
 

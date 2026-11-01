@@ -41,7 +41,7 @@ Item {
 
         function init() {
             fakeCore.answer("GET", "/api/v1/list", 200, { items: [
-                { item: show, addedAt: at(1), rating: 7, seen: { watched: 2, released: 10 } },
+                { item: show, addedAt: at(1), rating: 7, seen: { watched: 2, released: 10, played: true } },
                 { item: film, addedAt: at(2), seen: { watched: 0, released: 1 } },
             ] })
             fakeCore.answer("GET", "/api/v1/new-episodes", 200, { items: [
@@ -66,6 +66,11 @@ Item {
 
         function cleanup() {
             LocalSettings.listSort = "added"
+            LocalSettings.listKind = ""
+        }
+
+        function titles() {
+            return findChild(shell, "library").titles.map(t => t.item.title)
         }
 
         function history() {
@@ -75,6 +80,10 @@ Item {
 
         function test_myListSaysHowFarAndComesBackFromATitleReadAgain() {
             tryVerify(() => !!findChild(shell, "listed-" + film.id), 5000, "the list")
+            // The shelves came with the list and grew the grid's header: the
+            // page stays at its top rather than where the grid was.
+            const grid = findChild(shell, "myList")
+            tryVerify(() => grid.contentY === grid.originY, 2000, "at the top: " + grid.contentY + " " + grid.originY)
             const listed = findChild(shell, "listed-" + show.id)
             compare(listed.line, "2 of 10 seen")
             compare(listed.score, 7)
@@ -83,9 +92,10 @@ Item {
             compare(findChild(shell, "fresh-" + show.id).line, "S1 E3 · Today")
             compare(findChild(shell, "comingUp-" + show.id).line, "S2 E1 · Tomorrow")
 
-            // The shelves above laid out first, or they push the tile away
-            // between the press and the release.
-            verify(waitForPolish(listed.parent.parent))
+            // Under the shelves it is below the window: pressed there, the
+            // press lands nowhere.
+            grid.positionViewAtIndex(0, GridView.Contain)
+            verify(listed.mapToItem(window, 0, 0).y + listed.height <= window.height, "the title in the window")
             mouseClick(listed)
             tryCompare(shell, "page", "title")
             fakeCore.answer("GET", "/api/v1/list", 200, { items: [] })
@@ -121,6 +131,59 @@ Item {
             mouseClick(findChild(orders.contentItem, "order-title"))
             compare(LocalSettings.listSort, "title")
             compare(findChild(shell, "library").titles.map(t => t.item.title), ["Breaking Bad", "Nosferatu"])
+        }
+
+        // A stage narrows the grid for now; a kind is kept on this machine,
+        // as the order is.
+        function test_aStageAndAKindNarrowTheList() {
+            tryVerify(() => !!findChild(shell, "listed-" + film.id), 5000, "the list")
+            mouseClick(findChild(shell, "stage-toWatch"))
+            compare(titles(), ["Nosferatu"])
+            mouseClick(findChild(shell, "stage-watched"))
+            compare(titles(), [])
+            verify(findChild(shell, "stageEmpty").visible, "says the stage is empty")
+            mouseClick(findChild(shell, "stage-all"))
+
+            mouseClick(findChild(shell, "sort"))
+            const orders = findChild(shell, "orders")
+            tryVerify(() => orders.opened)
+            mouseClick(findChild(orders.contentItem, "kind-series"))
+            compare(LocalSettings.listKind, "series")
+            compare(titles(), ["Breaking Bad"])
+        }
+
+        // The grid's own arrows walk it a title and a row at a time, and up
+        // from its first row is the shelf over it.
+        function test_theArrowsWalkTheGrid() {
+            const many = []
+            for (let i = 0; i < 9; ++i)
+                many.push({ item: { id: "tt90" + i, kind: "movie", title: "Film " + i, year: 2000 + i },
+                            addedAt: at(i), seen: { watched: 0, released: 1 } })
+            fakeCore.answer("GET", "/api/v1/list", 200, { items: many })
+            const library = findChild(shell, "library")
+            mouseClick(findChild(shell, "tab-home"))
+            tryCompare(shell, "page", "home")
+            mouseClick(findChild(shell, "tab-library"))
+            tryVerify(() => library.titles.length === 9, 5000, "the nine titles")
+            const grid = findChild(shell, "myList")
+            const columns = library.columns
+            verify(columns > 1 && columns < 9, columns + " columns")
+
+            const coming = findChild(shell, "comingUp")
+            tryVerify(() => coming.visible, 5000, "Coming up")
+            coming.focusCard(0)
+            keyClick(Qt.Key_Down)
+            const on = () => grid.currentItem?.button.activeFocus ? grid.currentIndex : -1
+            tryCompare(grid, "currentIndex", 0)
+            verify(on() === 0, "the first title has the keyboard")
+            keyClick(Qt.Key_Right)
+            tryVerify(() => on() === 1, 2000, "a title on")
+            keyClick(Qt.Key_Down)
+            tryVerify(() => on() === 1 + columns, 2000, "a row down")
+            keyClick(Qt.Key_Up)
+            tryVerify(() => on() === 1, 2000, "a row up")
+            keyClick(Qt.Key_Up)
+            tryVerify(() => findChild(shell, "comingUp-" + show.id)?.button.activeFocus ?? false, 2000, "the shelf over the grid")
         }
 
         function test_theHistoryIsByDayTheLatestFirst() {

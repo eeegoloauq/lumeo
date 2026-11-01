@@ -7,29 +7,10 @@ before code.
 ## Quick actions
 
 Everything a title page can do, from any poster or card. The right-click menu,
-the title page's ⋯ and the eye on every poster are in; two steps are left,
-one commit each, with `decisions/` updated as each ships.
+the title page's ⋯, the eye on every poster and My list's stages are in; one
+step is left, with `decisions/` updated as it ships.
 
-One icon per meaning, everywhere it appears: an eye for watched, a crossed-out
-eye for unwatched, a bookmark for My list (outlined to add, filled when on
-it), a star for the viewer's score, the download arrow for downloading and
-on disk, a bin for deleting a download (the only red row), a link for copying
-the share link, a film for the trailer, a cross for removing from Continue
-watching. ✓ stops meaning "in My list", where it read as "watched". Menus
-carry these icons, as macOS, Windows 11 and KDE menus do. The right-click
-menu shipped with them (decisions/interface.md); the steps left bring the
-rest of the interface to the same set.
-
-1. **A filter on My list**: All, To watch (on the list, nothing played),
-   Watching, Watched (a film finished, a series caught up with). To watch is
-   the planned list, with no third tab. Films or series only is a second
-   section of the Sort menu, kept by this machine as the order is. The grid
-   becomes a `GridView` in the same change, with New episodes and Coming up
-   as its header: posters made as they come into view, as Home's `ListView`
-   shelves already are, and the view's own arrow keys in place of
-   `LibraryPage`'s `move`/`focusTile`. Search keeps its `Flow`, since the
-   best match spans cells. `reuseItems` only if a long grid stutters.
-2. **Quality for the screen.** "Highest quality" in Settings › Playback, by
+1. **Quality for the screen.** "Highest quality" in Settings › Playback, by
    default Up to this screen; 1080p, 4K and Any besides. It orders, it does
    not filter: under health and language, a copy at or under the ceiling goes
    ahead of a sharper one, so a seeded 4K copy still beats a 1080p one nobody

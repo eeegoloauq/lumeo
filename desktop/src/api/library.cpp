@@ -20,6 +20,20 @@ void MyList::setOrder(const QString &order) {
   emit changed();
 }
 
+void MyList::setStage(const QString &stage) {
+  if (stage == m_stage)
+    return;
+  m_stage = stage;
+  emit changed();
+}
+
+void MyList::setKind(const QString &kind) {
+  if (kind == m_kind)
+    return;
+  m_kind = kind;
+  emit changed();
+}
+
 void MyList::load() {
   const int asking = ++m_loading;
   // The shelves are asked at once and shown with the list, so the page does
@@ -74,6 +88,27 @@ static QString sortTitle(const QString &title) {
     if (lower.startsWith(article) && lower.size() > article.size())
       return lower.mid(article.size());
   return lower;
+}
+
+QString MyList::stageOf(const QJsonObject &listed) {
+  const QJsonObject seen = listed["seen"].toObject();
+  const int released = seen["released"].toInt();
+  if (released > 0 && seen["watched"].toInt() >= released)
+    return "watched";
+  return seen["played"].toBool() ? "watching" : "toWatch";
+}
+
+QJsonArray MyList::filtered(const QJsonArray &titles, const QString &stage, const QString &kind) {
+  QJsonArray out;
+  for (const QJsonValue &t : titles) {
+    const QJsonObject listed = t.toObject();
+    if (!kind.isEmpty() && listed["item"]["kind"].toString() != kind)
+      continue;
+    if (stage != "all" && stageOf(listed) != stage)
+      continue;
+    out.append(listed);
+  }
+  return out;
 }
 
 QJsonArray MyList::sorted(const QJsonArray &titles, const QString &order) {

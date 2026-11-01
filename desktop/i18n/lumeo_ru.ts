@@ -1675,6 +1675,51 @@
         <extracomment>Current sorting choice on My list button. (%1 name)</extracomment>
         <translation>Сортировка: %1</translation>
     </message>
+    <message id="librarySortKind">
+        <source>Sort: %1 · %2</source>
+        <extracomment>Sort button on My list when one kind is shown. (%1 order name, %2 kind name: Films or Series)</extracomment>
+        <translation>Сортировка: %1 · %2</translation>
+    </message>
+    <message id="libraryKindBoth">
+        <source>Films and series</source>
+        <extracomment>Sort menu row on My list: both kinds shown.</extracomment>
+        <translation>Фильмы и сериалы</translation>
+    </message>
+    <message id="libraryKindFilms">
+        <source>Films</source>
+        <extracomment>Sort menu row on My list: only films shown; also on the Sort button.</extracomment>
+        <translation>Фильмы</translation>
+    </message>
+    <message id="libraryKindSeries">
+        <source>Series</source>
+        <extracomment>Sort menu row on My list: only series shown; also on the Sort button.</extracomment>
+        <translation>Сериалы</translation>
+    </message>
+    <message id="libraryStageAll">
+        <source>All</source>
+        <extracomment>Filter over My list's grid: every title.</extracomment>
+        <translation>Все</translation>
+    </message>
+    <message id="libraryStageToWatch">
+        <source>To watch</source>
+        <extracomment>Filter over My list's grid: titles nothing of which was played.</extracomment>
+        <translation>Посмотреть</translation>
+    </message>
+    <message id="libraryStageWatching">
+        <source>Watching</source>
+        <extracomment>Filter over My list's grid: titles started and not finished.</extracomment>
+        <translation>Смотрю</translation>
+    </message>
+    <message id="libraryStageWatched">
+        <source>Watched</source>
+        <extracomment>Filter over My list's grid: films watched and series caught up with.</extracomment>
+        <translation>Просмотрено</translation>
+    </message>
+    <message id="libraryStageEmpty">
+        <source>Nothing here</source>
+        <extracomment>My list under a filter that leaves no title.</extracomment>
+        <translation>Здесь пусто</translation>
+    </message>
     <message id="downloadsReadyToWatch">
         <source>Ready to watch</source>
         <extracomment>Download panel section or row status.</extracomment>

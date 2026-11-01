@@ -35,29 +35,27 @@ ShellPage {
         rating: qsTrId("librarySortRating"),
     })
 
-    function focusTile(index) {
-        const tile = tiles.itemAt(index) as CaptionedTile
-        if (!tile)
+    // How far into the list the grid shows: "all", "toWatch", "watching" or
+    // "watched". A way of looking for the evening, so this page's only.
+    property string stage: "all"
+
+    readonly property var kinds: ({
+        "": qsTrId("libraryKindBoth"),
+        movie: qsTrId("libraryKindFilms"),
+        series: qsTrId("libraryKindSeries"),
+    })
+
+    // The keyboard onto the grid's first title, from the shelves over it.
+    function focusGrid() {
+        if (grid.count === 0)
             return false
+        grid.currentIndex = 0
+        const tile = grid.currentItem as CaptionedTile
         tile.button.forceActiveFocus(Qt.TabFocusReason)
-        const top = tile.mapToItem(column, 0, 0).y
-        if (top - 90 < flick.contentY)
-            flick.contentY = Math.max(0, top - 90)
-        else if (top + tile.height + 24 > flick.contentY + flick.height)
-            flick.contentY = top + tile.height + 24 - flick.height
         return true
     }
 
-    // The arrows walk the grid as it is drawn; up from its first row is the
-    // shelf over it, when there is one.
-    function move(index, by) {
-        const to = index + by
-        if (to < 0 && Math.abs(by) > 1)
-            return (comingUp.visible ? comingUp : fresh.visible ? fresh : null)?.focusCard(0) ?? false
-        return to >= 0 && to < titles.length && focusTile(to)
-    }
-
-    scrolled: section === "list" ? flick.contentY > 12 : lines.contentY - lines.originY > 12
+    scrolled: section === "list" ? grid.contentY - grid.originY > 12 : lines.contentY - lines.originY > 12
 
     // History is read the first time it is shown: most visits to the
     // library never open it.
@@ -73,7 +71,8 @@ ShellPage {
     // going with its page did.
     StackView.onRemoved: {
         section = "list"
-        flick.contentY = 0
+        stage = "all"
+        grid.positionViewAtBeginning()
         const old = page.history
         page.history = historyModel.createObject(page) as History
         old.destroy()
@@ -82,6 +81,8 @@ ShellPage {
     MyList {
         id: list
         order: LocalSettings.listSort
+        kind: LocalSettings.listKind
+        stage: page.stage
     }
 
     // A title changed from its menu, here or on another page: the list and
@@ -160,7 +161,8 @@ ShellPage {
                 spacing: 2
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: qsTrId("librarySort").arg(page.orders[LocalSettings.listSort])
+                    text: LocalSettings.listKind === "" ? qsTrId("librarySort").arg(page.orders[LocalSettings.listSort])
+                      : qsTrId("librarySortKind").arg(page.orders[LocalSettings.listSort]).arg(page.kinds[LocalSettings.listKind])
                     color: Tokens.dim
                     font.family: Tokens.fontSans
                     font.pixelSize: Tokens.textCard
@@ -184,36 +186,56 @@ ShellPage {
 
                 Repeater {
                     model: ["added", "title", "year", "rating"]
-                    MenuItem {
-                        id: order
+                    Choice {
                         required property string modelData
                         objectName: "order-" + modelData
                         text: page.orders[modelData]
+                        chosen: LocalSettings.listSort === modelData
                         onTriggered: LocalSettings.listSort = modelData
-                        implicitHeight: 36
-                        leftPadding: 10
-                        background: Rectangle {
-                            radius: Tokens.radiusControl
-                            color: order.highlighted ? Tokens.hover : "transparent"
-                        }
-                        contentItem: Row {
-                            spacing: 10
-                            Item {
-                                width: 18
-                                height: 18
-                                anchors.verticalCenter: parent.verticalCenter
-                                Glyph { visible: LocalSettings.listSort === order.modelData; glyph: "check" }
-                            }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: order.text
-                                color: Tokens.text
-                                font.family: Tokens.fontSans
-                                font.pixelSize: Tokens.textCard
-                            }
-                        }
                     }
                 }
+                // Which kinds are shown, kept on this machine as the order is.
+                MenuSeparator {
+                    contentItem: Rectangle { implicitHeight: 1; color: Tokens.line }
+                }
+                Repeater {
+                    model: ["", "movie", "series"]
+                    Choice {
+                        required property string modelData
+                        objectName: "kind-" + (modelData || "both")
+                        text: page.kinds[modelData]
+                        chosen: LocalSettings.listKind === modelData
+                        onTriggered: LocalSettings.listKind = modelData
+                    }
+                }
+            }
+        }
+    }
+
+    // A row of the sort menu, checked when it is the one in use.
+    component Choice: MenuItem {
+        id: choice
+        property bool chosen
+        implicitHeight: 36
+        leftPadding: 10
+        background: Rectangle {
+            radius: Tokens.radiusControl
+            color: choice.highlighted ? Tokens.hover : "transparent"
+        }
+        contentItem: Row {
+            spacing: 10
+            Item {
+                width: 18
+                height: 18
+                anchors.verticalCenter: parent.verticalCenter
+                Glyph { visible: choice.chosen; glyph: "check" }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: choice.text
+                color: Tokens.text
+                font.family: Tokens.fontSans
+                font.pixelSize: Tokens.textCard
             }
         }
     }
@@ -228,20 +250,84 @@ ShellPage {
         lineHeight: Tokens.textShelf * 1.25
     }
 
-    Flickable {
-        id: flick
+    // The titles as posters, made as they come into view; the places, the
+    // shelves of followed series and the stages are its header and scroll
+    // with it. The arrows are the grid's own, up from its first row to the
+    // shelf over it.
+    GridView {
+        id: grid
         objectName: "myList"
         anchors.fill: parent
         visible: page.section === "list"
-        contentHeight: column.height
+        // The margins hold exactly the page's columns: a column is a cell
+        // and the gap after it, and the last gap hangs into the right one.
+        leftMargin: Tokens.gutter
+        rightMargin: Tokens.gutter - page.gap
+        bottomMargin: 56
+        cellWidth: page.cell + page.gap
+        cellHeight: Math.round(page.cell * 1.5) + 46 + page.gap
         boundsBehavior: Flickable.StopAtBounds
+        model: list.status === MyList.Ready ? page.titles : []
+        // No title is current until the keyboard comes: the view scrolls to
+        // its current one, which sent the page past its shelves on arrival.
+        currentIndex: -1
+        onModelChanged: if (!activeFocus) currentIndex = -1
+        // A page at its top stays there as its header grows: the view keeps
+        // its place instead, which left the shelves that come with the list
+        // scrolled under the bar.
+        property bool atTop: true
+        onContentYChanged: atTop = contentY <= originY + 1
+        onOriginYChanged: if (atTop) contentY = originY
+        Keys.priority: Keys.AfterItem
+        Keys.onUpPressed: event => {
+            event.accepted = (head.comingUp.visible ? head.comingUp : head.fresh.visible ? head.fresh : null)?.focusCard(0) ?? false
+        }
+        // The keyboard's tile in the ring, and clear of the bar floating
+        // over the page's top. The view hands its current item the focus
+        // without saying it was the keyboard's, which the ring waits for.
+        onCurrentIndexChanged: Qt.callLater(() => {
+            const tile = currentItem as CaptionedTile
+            if (!tile || !activeFocus)
+                return
+            tile.button.focusReason = Qt.TabFocusReason
+            if (tile.y - 90 < contentY)
+                contentY = Math.max(originY, tile.y - 90)
+        })
 
-        WheelScroll { flickable: flick }
+        WheelScroll { flickable: grid }
+
+        readonly property ListHeader head: headerItem as ListHeader
+        header: ListHeader {}
+
+        delegate: CaptionedTile {
+            required property int index
+            required property var modelData
+            objectName: "listed-" + modelData.item.id
+            width: page.cell
+            item: modelData.item
+            line: Words.listedCaption(modelData)
+            score: modelData.rating ?? 0
+            mark: Downloads.marks[modelData.item.id]
+            onClicked: page.open(modelData.item, null)
+            onMenu: at => TitleActions.ask({item: modelData.item, source: button, x: at.x, y: at.y})
+            // Tab or the pointer can land on any title: the arrows go on
+            // from there.
+            onActiveFocusChanged: if (activeFocus) grid.currentIndex = index
+        }
+    }
+
+    component ListHeader: Item {
+        readonly property alias fresh: fresh
+        readonly property alias comingUp: comingUp
+
+        width: page.inner
+        height: column.height
 
         Column {
             id: column
-            width: flick.width
-            bottomPadding: 56
+            x: -grid.leftMargin
+            width: page.width
+            bottomPadding: 4
 
             Places {}
 
@@ -271,7 +357,7 @@ ShellPage {
                 gap: page.gap
                 onChosen: (item, at) => page.open(item, at)
                 caption: found => Words.newEpisodeCaption(found)
-                onDown: (comingUp.visible ? comingUp : null)?.focusCard(0) ?? page.focusTile(0)
+                onDown: (comingUp.visible ? comingUp : null)?.focusCard(0) ?? page.focusGrid()
             }
 
             SeriesShelf {
@@ -284,11 +370,11 @@ ShellPage {
                 onChosen: (item, at) => page.open(item, at)
                 caption: found => Words.comingUpCaption(found)
                 onUp: if (fresh.visible) fresh.focusCard(0)
-                onDown: page.focusTile(0)
+                onDown: page.focusGrid()
             }
 
             Heading {
-                visible: (fresh.visible || comingUp.visible) && page.titles.length > 0
+                visible: (fresh.visible || comingUp.visible) && list.total > 0
                 text: qsTrId("libraryMyList")
                 bottomPadding: 14
             }
@@ -296,37 +382,44 @@ ShellPage {
             Trouble {
                 objectName: "listEmpty"
                 x: Tokens.gutter
-                visible: list.status === MyList.Ready && page.titles.length === 0
+                visible: list.status === MyList.Ready && list.total === 0
                 title: qsTrId("libraryListEmpty")
                 hint: qsTrId("libraryListEmptyHint")
             }
 
-            Flow {
+            // How far into the list: To watch is the planned list, nothing
+            // of it played.
+            Row {
                 x: Tokens.gutter
-                width: page.inner
-                spacing: page.gap
+                visible: list.status === MyList.Ready && list.total > 0
+                spacing: 8
+                bottomPadding: 20
 
                 Repeater {
-                    id: tiles
-                    model: list.status === MyList.Ready ? page.titles : []
-
-                    CaptionedTile {
-                        required property int index
+                    model: [
+                        { stage: "all", label: qsTrId("libraryStageAll") },
+                        { stage: "toWatch", label: qsTrId("libraryStageToWatch") },
+                        { stage: "watching", label: qsTrId("libraryStageWatching") },
+                        { stage: "watched", label: qsTrId("libraryStageWatched") },
+                    ]
+                    PillTab {
                         required property var modelData
-                        objectName: "listed-" + modelData.item.id
-                        width: page.cell
-                        item: modelData.item
-                        line: Words.listedCaption(modelData)
-                        score: modelData.rating ?? 0
-                        mark: Downloads.marks[modelData.item.id]
-                        onClicked: page.open(modelData.item, null)
-                        onMenu: at => TitleActions.ask({item: modelData.item, source: button, x: at.x, y: at.y})
-                        button.Keys.onLeftPressed: page.move(index, -1)
-                        button.Keys.onRightPressed: page.move(index, 1)
-                        button.Keys.onUpPressed: page.move(index, -page.columns)
-                        button.Keys.onDownPressed: page.move(index, page.columns)
+                        objectName: "stage-" + modelData.stage
+                        text: modelData.label
+                        lit: page.stage === modelData.stage
+                        onClicked: page.stage = modelData.stage
                     }
                 }
+            }
+
+            Text {
+                objectName: "stageEmpty"
+                x: Tokens.gutter
+                visible: list.status === MyList.Ready && list.total > 0 && page.titles.length === 0
+                text: qsTrId("libraryStageEmpty")
+                color: Tokens.muted
+                font.family: Tokens.fontSans
+                font.pixelSize: Tokens.textCard
             }
         }
     }

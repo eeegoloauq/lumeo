@@ -61,6 +61,38 @@ private slots:
     QCOMPARE(order("rating"), (QStringList{"Arrival", "The Bear", "Andor", "Dune"}));
   }
 
+  // To watch is nothing played; Watched a film watched or a series caught
+  // up with; Watching anything between, a finished series with a new episode
+  // out among them. The kind narrows each.
+  void myListIsNarrowedToAStageAndAKind() {
+    auto title = [](const QString &name, const QString &kind, int watched, int released, bool played) {
+      return QJsonObject{
+          {"item", QJsonObject{{"title", name}, {"kind", kind}}},
+          {"seen", QJsonObject{{"watched", watched}, {"released", released}, {"played", played}}},
+      };
+    };
+    const QJsonArray titles{
+        title("Planned", "movie", 0, 1, false),
+        title("Half way", "movie", 0, 1, true),
+        title("Seen", "movie", 1, 1, true),
+        title("Caught up", "series", 8, 8, true),
+        title("New one out", "series", 8, 9, true),
+        title("Not started", "series", 0, 9, false),
+    };
+    auto names = [&](const QString &stage, const QString &kind) {
+      QStringList out;
+      for (const QJsonValue &t : MyList::filtered(titles, stage, kind))
+        out.append(t["item"]["title"].toString());
+      return out;
+    };
+    QCOMPARE(names("all", ""), (QStringList{"Planned", "Half way", "Seen", "Caught up", "New one out", "Not started"}));
+    QCOMPARE(names("toWatch", ""), (QStringList{"Planned", "Not started"}));
+    QCOMPARE(names("watching", ""), (QStringList{"Half way", "New one out"}));
+    QCOMPARE(names("watched", ""), (QStringList{"Seen", "Caught up"}));
+    QCOMPARE(names("all", "series"), (QStringList{"Caught up", "New one out", "Not started"}));
+    QCOMPARE(names("toWatch", "movie"), (QStringList{"Planned"}));
+  }
+
   // The core is told only once the undo has run out, and the next page
   // starts one line earlier, since the core's history is a line shorter.
   void aLineTakenOutComesBackOnUndoAndIsForgottenWhenItRunsOut() {
