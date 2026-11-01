@@ -94,6 +94,25 @@ Item {
             tryVerify(() => findChild(shell, "listEmpty")?.visible === true, 5000, "the list read again")
         }
 
+        // Left for home and come back to, the library is the one left: its
+        // list and posters show at once, and the list is read again behind
+        // them. Everything else starts over, as on a library opened anew.
+        function test_theLibraryComesBackWithItsListShownAtOnce() {
+            tryVerify(() => !!findChild(shell, "listed-" + film.id), 5000, "the list")
+            history()
+            const page = findChild(shell, "library")
+            mouseClick(findChild(shell, "tab-home"))
+            tryCompare(shell, "page", "home")
+            verify(!page.visible, "the library hidden under home")
+            fakeCore.answer("GET", "/api/v1/list", 200, { items: [] })
+            mouseClick(findChild(shell, "tab-library"))
+            compare(shell.page, "library")
+            verify(findChild(shell, "library") === page, "the library left")
+            compare(page.section, "list")
+            verify(findChild(shell, "listed-" + film.id)?.visible, "the list at once")
+            tryVerify(() => findChild(shell, "listEmpty")?.visible === true, 5000, "the list read again")
+        }
+
         function test_theOrderChosenIsKeptOnThisMachine() {
             tryVerify(() => !!findChild(shell, "listed-" + film.id), 5000, "the list")
             mouseClick(findChild(shell, "sort"))

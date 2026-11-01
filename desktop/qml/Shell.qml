@@ -27,7 +27,20 @@ FocusScope {
         if (at)
             stack.pop(at)
         else
-            stack.push(pages[name])
+            stack.push(name === "library" ? library() : pages[name])
+    }
+
+    // The library is made once and kept, as home is: made anew, it read its
+    // list and asked for every poster again on each visit, and showed as a
+    // page filling in. The rest of it starts over when it leaves the stack.
+    // Made in the stack at its size, it is laid out at once as a page the
+    // stack makes is, and the stack hides it, as one it did not make, when it
+    // leaves.
+    property LibraryPage kept: null
+    function library(): LibraryPage {
+        if (!kept)
+            kept = libraryPage.createObject(stack, {width: stack.width, height: stack.height}) as LibraryPage
+        return kept
     }
 
     // Settings at its Downloads, where the disk the downloads take is managed.
@@ -72,7 +85,6 @@ FocusScope {
     }
 
     readonly property var pages: ({
-        library: libraryPage,
         settings: settingsPage,
         search: searchPage,
     })

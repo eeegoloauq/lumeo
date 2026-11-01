@@ -61,12 +61,22 @@ ShellPage {
 
     // History is read the first time it is shown: most visits to the
     // library never open it.
-    onSectionChanged: if (section === "history") history.more()
-    Component.onCompleted: if (section === "history") history.more()
+    onSectionChanged: if (section === "history") page.history.more()
+    Component.onCompleted: if (section === "history") page.history.more()
     StackView.onActivated: {
         if (shown)
             list.load()
         shown = true
+    }
+    // Kept for its list and posters (Shell); the rest is a new page's. A new
+    // History tells the core of a line still waiting for its undo, as one
+    // going with its page did.
+    StackView.onRemoved: {
+        section = "list"
+        flick.contentY = 0
+        const old = page.history
+        page.history = historyModel.createObject(page) as History
+        old.destroy()
     }
 
     MyList {
@@ -74,13 +84,16 @@ ShellPage {
         order: LocalSettings.listSort
     }
 
-    History {
-        id: history
-        onRefused: what => toast.say({
-            rate: qsTrId("libraryRatingNotSaved"),
-            clear: qsTrId("libraryRatingNotRemoved"),
-            remove: qsTrId("libraryHistoryRemoveFailed"),
-        }[what])
+    property History history: historyModel.createObject(page) as History
+    Component {
+        id: historyModel
+        History {
+            onRefused: what => toast.say({
+                rate: qsTrId("libraryRatingNotSaved"),
+                clear: qsTrId("libraryRatingNotRemoved"),
+                remove: qsTrId("libraryHistoryRemoveFailed"),
+            }[what])
+        }
     }
 
     // The two places in the library, and the order of the list.
@@ -307,7 +320,7 @@ ShellPage {
         objectName: "history"
         anchors.fill: parent
         visible: page.section === "history"
-        model: history
+        model: page.history
         boundsBehavior: Flickable.StopAtBounds
         // The rows pass the keyboard along themselves.
         keyNavigationEnabled: false
@@ -315,7 +328,7 @@ ShellPage {
         // The next page as the end comes near, the way a shelf pages.
         function nearEnd() {
             if (visible && contentHeight - contentY - height < 600)
-                history.more()
+                page.history.more()
         }
         onContentYChanged: nearEnd()
         onCountChanged: nearEnd()
@@ -337,24 +350,24 @@ ShellPage {
 
             Loading {
                 x: (parent.width - width) / 2
-                waiting: lines.count === 0 && !history.error && (history.loading || !history.started)
+                waiting: lines.count === 0 && !page.history.error && (page.history.loading || !page.history.started)
             }
 
             Trouble {
                 x: Tokens.gutter
-                visible: lines.count === 0 && history.error !== ""
+                visible: lines.count === 0 && page.history.error !== ""
                 title: qsTrId("libraryHistoryLoadFailed")
                 hint: qsTrId("libraryHistoryNoAnswer")
-                detail: history.error
+                detail: page.history.error
                 action: qsTrId("commonTryAgain")
-                onActed: history.retry()
+                onActed: page.history.retry()
             }
 
             Trouble {
                 objectName: "historyEmpty"
                 x: Tokens.gutter
-                visible: lines.count === 0 && history.started && !history.loading && history.error === ""
-                         && !history.removing
+                visible: lines.count === 0 && page.history.started && !page.history.loading && page.history.error === ""
+                         && !page.history.removing
                 title: qsTrId("libraryHistoryEmpty")
                 hint: qsTrId("libraryHistoryEmptyHint")
             }
@@ -488,8 +501,8 @@ ShellPage {
                         objectName: "score"
                         anchors { right: cross.left; rightMargin: 4; verticalCenter: parent.verticalCenter }
                         score: slot.rating
-                        onRated: n => history.rate(slot.index, n)
-                        onCleared: history.rate(slot.index, 0)
+                        onRated: n => page.history.rate(slot.index, n)
+                        onCleared: page.history.rate(slot.index, 0)
                     }
 
                     // Shown under the pointer and to the keyboard, which can
@@ -502,7 +515,7 @@ ShellPage {
                         glyph: "close"
                         tone: Tokens.dim
                         tip: qsTrId("libraryRemoveFromHistory")
-                        onClicked: history.remove(slot.index)
+                        onClicked: page.history.remove(slot.index)
                     }
                 }
             }
@@ -518,14 +531,14 @@ ShellPage {
                 y: 16
                 width: 24
                 height: 24
-                waiting: history.loading && lines.count > 0
+                waiting: page.history.loading && lines.count > 0
             }
 
             Row {
                 id: failed
                 x: Tokens.gutter
                 y: 16
-                visible: lines.count > 0 && history.error !== ""
+                visible: lines.count > 0 && page.history.error !== ""
                 spacing: 12
 
                 Text {
@@ -538,7 +551,7 @@ ShellPage {
                 QuietButton {
                     implicitHeight: 36
                     text: qsTrId("commonTryAgain")
-                    onClicked: history.retry()
+                    onClicked: page.history.retry()
                 }
             }
         }
@@ -598,15 +611,15 @@ ShellPage {
     // not been told; or what the core refused.
     Toast {
         id: toast
-        held: history.removing
-        text: history.removing ? qsTrId("libraryRemovedFromHistory") : said
-        action: history.removing ? qsTrId("commonUndo") : ""
-        onActed: history.undo()
+        held: page.history.removing
+        text: page.history.removing ? qsTrId("libraryRemovedFromHistory") : said
+        action: page.history.removing ? qsTrId("commonUndo") : ""
+        onActed: page.history.undo()
     }
 
     Shortcut {
         sequences: [StandardKey.Undo]
-        enabled: page.visible && history.removing
-        onActivated: history.undo()
+        enabled: page.visible && page.history.removing
+        onActivated: page.history.undo()
     }
 }
