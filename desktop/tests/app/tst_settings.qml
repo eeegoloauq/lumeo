@@ -43,6 +43,22 @@ Item {
             asked = fakeCore.requests.length
         }
 
+        // A control of Playback, scrolled to as a person gets there: pressed
+        // where it was laid out, it was below the window's edge, and whether
+        // the press landed depended on what else the shell held.
+        function playback(name) {
+            const control = findChild(page, name)
+            mouseClick(findChild(page, "nav-playback"))
+            let was = NaN
+            tryVerify(() => {
+                const y = control.mapToItem(window, 0, 0).y
+                const settled = y === was && y >= 0 && y + control.height <= window.height
+                was = y
+                return settled
+            }, 5000, name + " still in the window")
+            return control
+        }
+
         function test_aPressInTheListScrollsToItsSectionAndLightsIt() {
             mouseClick(findChild(page, "nav-playback"))
             tryCompare(page, "lit", "playback")
@@ -51,7 +67,7 @@ Item {
         // A value outside the presets is asked for, and only a number in
         // range can be set.
         function test_customAsksForANumberAndSendsIt() {
-            const seek = findChild(page, "seekStep")
+            const seek = playback("seekStep")
             mouseClick(findChild(seek, "segment--1"))
             const field = findChild(window.Overlay.overlay, "number")
             tryVerify(() => field?.activeFocus === true, 2000, "the question")
@@ -65,7 +81,7 @@ Item {
 
         // Each press shows at once; only the last of a burst is sent.
         function test_aSteppedNumberSendsTheLastOfABurst() {
-            const stepper = findChild(page, "nextNotice")
+            const stepper = playback("nextNotice")
             const more = findChild(stepper, "more")
             for (let i = 0; i < 3; ++i)
                 mouseClick(more)
@@ -78,7 +94,7 @@ Item {
         // at the top of the page.
         function test_aRefusalIsSaidInTheSectionOfItsPreference() {
             fakeCore.answer("PATCH", "/api/v1/preferences", 400, { error: "seekStep out of range" })
-            mouseClick(findChild(findChild(page, "seekStep"), "segment-10"))
+            mouseClick(findChild(playback("seekStep"), "segment-10"))
             tryCompare(page, "changedIn", "playback")
             tryVerify(() => page.errorIn("playback") !== "", 2000)
             compare(page.errorIn("appearance"), "")
