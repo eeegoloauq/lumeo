@@ -88,8 +88,8 @@ default for a person who wants a server to hold everything.
   after its last download or playback activity. The server applies both clocks
   whether or not the device is online, so nothing is held indefinitely.
 - A file stays while any device's hold on it lasts, and an active stream is never
-  removed (done). Deleting releases only that device's hold. The server owner
-  sets a maximum keep time, thirty days by default (done).
+  removed. Deleting releases only that device's hold. The server owner sets a
+  maximum keep time, thirty days by default (done).
 - A torrent shares while any device plays its file, as it shares while one
   plays it on a full core (decisions/downloads.md, Acquisition).
 - Changing the mode of a server with data is a migration through the export

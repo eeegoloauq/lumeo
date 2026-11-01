@@ -148,6 +148,36 @@ func (s *Server) touchHold(r *http.Request, id string, change acquire.HoldChange
 	return hold, true
 }
 
+// releasedBy says whether the device behind r let go of d on this media
+// server. Its lists leave d out, though another device still holds it:
+// deleting a download is not having it come back on the next refresh.
+// Playing it again holds it again.
+func (s *Server) releasedBy(r *http.Request, d acquire.Download) bool {
+	if s.viewerHere(r) {
+		return false
+	}
+	device := deviceOf(r)
+	i := slices.IndexFunc(d.Holds, func(h acquire.Hold) bool { return h.Device == device })
+	return i >= 0 && !d.Holds[i].ReleasedAt.IsZero()
+}
+
+// releaseDownload lets a device of this media server go of a download, and
+// frees the file at once when no other device's hold on it lasts.
+func (s *Server) releaseDownload(ctx context.Context, id, device string) error {
+	if err := s.downloads.Release(ctx, id, device); err != nil {
+		return err
+	}
+	if s.library != nil {
+		if _, err := s.library.Released(ctx, id); err != nil {
+			// The release is kept; the next pass frees it.
+			s.log.Warn("freeing a released download failed", "download", id, "err", err)
+		}
+	}
+	return nil
+}
+
+const errOwnersDownload = "this download is the server owner's: a device deletes only what it holds"
+
 // heldDownload is a download as a device sees it: with its own hold, which its core
 // compares with what it knows.
 type heldDownload struct {

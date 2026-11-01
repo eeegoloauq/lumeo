@@ -143,4 +143,9 @@ not run out: a watched file from the mark, an unwatched one from the device's la
 or the download finishing, while bytes still arrive too. The server applies them whether or not
 the device is online, capped by the owner's `deviceMaxKeepDays` (30 unless set), and frees a
 download once no hold on it lasts. A device sees its own hold as `hold` in the download list.
-Revoking a device releases its holds.
+
+A device deleting a download, or clearing a title from storage, lets go of its own hold: the
+download leaves that device's lists, stays for any device whose hold lasts, and goes, file and
+all, once none does, unless a stream of it is open. Playing it again holds it again. A download
+no device ever held is the owner's, and deleting it from a device is refused with 403. Revoking a
+device releases its holds.

@@ -32,6 +32,9 @@ var (
 	// ErrNothingToFetch means a pause or resume was asked of a download that
 	// has nothing left to fetch: a finished one, or a file on this machine.
 	ErrNothingToFetch = errors.New("acquire: download has nothing to fetch")
+	// ErrNotHeld means a device asked to let go of a download no device
+	// holds: the media server's owner's own.
+	ErrNotHeld = errors.New("acquire: no device holds this download")
 )
 
 // filePollInterval is how often we look for the metadata to have arrived.
@@ -391,9 +394,6 @@ func (m *Manager) Hold(ctx context.Context, id, device string, change HoldChange
 			hold.ActiveAt = now
 		}
 	}
-	if change.Release && hold.ReleasedAt.IsZero() {
-		hold.ReleasedAt = now
-	}
 	if known && sameHold(before, hold) {
 		return hold, nil
 	}
@@ -409,6 +409,39 @@ func sameHold(a, b Hold) bool {
 	return a.WatchedAt.Equal(b.WatchedAt) && slices.Equal(a.SubtitleLanguages, b.SubtitleLanguages) &&
 		a.KeepWatchedDays == b.KeepWatchedDays && a.KeepUnwatchedDays == b.KeepUnwatchedDays &&
 		a.ActiveAt.Equal(b.ActiveAt) && a.ReleasedAt.Equal(b.ReleasedAt)
+}
+
+// Release lets a device go of a download: it deleted it. The release is
+// kept on record. A download no device holds is the owner's, not a device's
+// to let go of (ErrNotHeld); one only others hold gets a released hold for
+// this device, so it no longer lists it.
+func (m *Manager) Release(ctx context.Context, id, device string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.rows[id]; !ok {
+		return ErrNotFound
+	}
+	holds := slices.Clone(m.held[id])
+	if len(holds) == 0 {
+		return ErrNotHeld
+	}
+	now := m.now()
+	switch i := slices.IndexFunc(holds, func(h Hold) bool { return h.Device == device }); {
+	case i < 0:
+		holds = append(holds, Hold{
+			Device: device, SubtitleLanguages: []string{}, ReleasedAt: now,
+			KeepWatchedDays: DefaultKeepWatchedDays, KeepUnwatchedDays: DefaultKeepUnwatchedDays,
+		})
+	case !holds[i].ReleasedAt.IsZero():
+		return nil
+	default:
+		holds[i].ReleasedAt = now
+	}
+	if err := m.store.SaveHolds(ctx, id, holds); err != nil {
+		return err
+	}
+	m.held[id] = holds
+	return nil
 }
 
 // ReleaseDevice lets go of every download a device holds: it was revoked.

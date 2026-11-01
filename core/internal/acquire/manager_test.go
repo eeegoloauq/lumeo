@@ -1145,3 +1145,35 @@ func (c *countingHolds) SaveHolds(ctx context.Context, id string, holds []Hold) 
 	c.saves++
 	return c.Store.SaveHolds(ctx, id, holds)
 }
+
+// A device lets go only of downloads devices hold: one nobody holds is the
+// owner's. Letting go of one only another device holds records the release,
+// so the device no longer lists it; the other's hold is untouched.
+func TestADeviceLetsGoOnlyOfItsOwnHold(t *testing.T) {
+	ctx := context.Background()
+	m, _, _ := testManager(t, &fakeBackend{scheme: "torrent"})
+	d, err := m.Start(ctx, torrentRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Release(ctx, d.ID, "laptop"); !errors.Is(err, ErrNotHeld) {
+		t.Fatalf("letting go of the owner's download: %v", err)
+	}
+	if _, err := m.Hold(ctx, d.ID, "tv", HoldChange{Active: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Release(ctx, d.ID, "laptop"); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Release(ctx, "missing", "laptop"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("letting go of a missing download: %v", err)
+	}
+	got, _ := m.Get(ctx, d.ID)
+	released := map[string]bool{}
+	for _, h := range got.Holds {
+		released[h.Device] = !h.ReleasedAt.IsZero()
+	}
+	if want := map[string]bool{"tv": false, "laptop": true}; !reflect.DeepEqual(released, want) {
+		t.Fatalf("released = %v, want %v", released, want)
+	}
+}

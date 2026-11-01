@@ -136,8 +136,6 @@ type HoldChange struct {
 	// Active is the device starting the download or playing it: its
 	// unwatched clock starts again, and a hold it released is taken back.
 	Active bool
-	// Release lets go of the download.
-	Release bool
 }
 
 // ExtrasDir is where files that go with the download but are not its bytes,

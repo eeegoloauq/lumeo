@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"math"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -241,6 +242,41 @@ func (s *Service) Clean(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// Released frees a download a device of a media server let go of, at once
+// when no hold on it lasts and the viewer here has no say in it: the device
+// deleted it, and leaving it for the next pass would show it there still. A
+// stream still open, from another device, keeps it until a pass after it
+// settles. freed says whether it went.
+func (s *Service) Released(ctx context.Context, id string) (freed bool, err error) {
+	prefs, err := s.prefs.Get(ctx)
+	if err != nil {
+		return false, err
+	}
+	rows := s.downloads.List(ctx)
+	i := slices.IndexFunc(rows, func(row acquire.Download) bool { return row.ID == id })
+	if i < 0 {
+		return false, nil
+	}
+	candidates, err := s.finished(ctx, rows[i:i+1], prefs, s.now())
+	if err != nil || len(candidates) == 0 || !candidates[0].lapsed {
+		return false, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, playing := s.streams[id]; playing {
+		s.Kick()
+		return false, nil
+	}
+	if err := s.downloads.Remove(ctx, id, true); err != nil {
+		if errors.Is(err, acquire.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	s.log.Info("freed a download its devices let go of", "download", id, "name", rows[i].Name)
+	return true, nil
 }
 
 // dropReplaced pauses the unfinished copies of an episode once another copy

@@ -196,9 +196,11 @@ func (s *Server) handleDownloads(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows := s.downloads.List(r.Context())
-	out := make([]heldDownload, len(rows))
-	for i, d := range rows {
-		out[i] = s.asSeenBy(r, d)
+	out := make([]heldDownload, 0, len(rows))
+	for _, d := range rows {
+		if !s.releasedBy(r, d) {
+			out = append(out, s.asSeenBy(r, d))
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"downloads": out})
 }
@@ -253,9 +255,24 @@ func (s *Server) handlePatchDownload(w http.ResponseWriter, r *http.Request) {
 
 // handleRemoveDownload stops a download. ?data=true also throws away what it
 // already fetched; without it the bytes stay, which is what "stop" usually
-// means to someone who is out of bandwidth, not out of disk.
+// means to someone who is out of bandwidth, not out of disk. A device of a
+// media server only lets go of its hold: the file goes, data and all, once
+// no other device's hold lasts, and never under another device's stream.
 func (s *Server) handleRemoveDownload(w http.ResponseWriter, r *http.Request) {
 	if !s.haveDownloads(w) {
+		return
+	}
+	if !s.viewerHere(r) {
+		switch err := s.releaseDownload(r.Context(), r.PathValue("id"), deviceOf(r)); {
+		case errors.Is(err, acquire.ErrNotFound):
+			writeError(w, http.StatusNotFound, "unknown download")
+		case errors.Is(err, acquire.ErrNotHeld):
+			writeError(w, http.StatusForbidden, errOwnersDownload)
+		case err != nil:
+			writeError(w, http.StatusInternalServerError, err.Error())
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
 		return
 	}
 	deleteData := r.URL.Query().Get("data") == "true"

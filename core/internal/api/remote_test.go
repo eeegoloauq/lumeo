@@ -19,6 +19,7 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	acquirelocal "github.com/eeegoloauq/lumeo/core/internal/acquire/local"
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
+	"github.com/eeegoloauq/lumeo/core/internal/library"
 	"github.com/eeegoloauq/lumeo/core/internal/preferences"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
@@ -108,6 +109,9 @@ func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 	theirs := acquire.NewManager(t.TempDir(), []acquire.Backend{backend}, newFakeStore(), log)
 	t.Cleanup(func() { theirs.Close() })
 	serverWatch := progress.New(serverDB, serverCatalog)
+	// The keep pass itself never runs here; a release frees through it.
+	serverPrefs := preferences.New(serverDB, preferences.Preferences{Keep: "forever", DeviceMaxKeepDays: 30})
+	serverLibrary := library.New(theirs, serverDB, serverPrefs, log)
 	l := &linked{t: t, theirs: theirs, serverWatch: serverWatch, log: log, served: &atomic.Pointer[http.Handler]{},
 		requested: make(chan string, 100)}
 	l.serverDeps = Deps{
@@ -115,6 +119,7 @@ func linkedCores(t testing.TB, found fixedSource, token string) *linked {
 		Catalog:   serverCatalog,
 		Downloads: theirs,
 		Progress:  serverWatch,
+		Library:   serverLibrary,
 		Artwork:   serverDB,
 		Devices:   serverDB,
 		CacheDir:  serverDir,

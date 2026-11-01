@@ -354,13 +354,17 @@ core. The server streams; this core passes the bytes on.
   unwatched one from the device's last start or play, or the download
   finishing, and while bytes arrive. The server applies the clocks whether
   or not the device is online, so nothing a device holds stays forever. A
-  released hold (revoked device) stays on record, so a download whose holds
-  have all ended is freed rather than taken for one nobody held, which only
-  the owner's viewer decides. `library.finished` frees a held download once
-  no hold lasts, watched or not, unless the server's own viewer has an entry:
-  one they are part way through stays, one they watched goes by their Keep.
-  Over the disk limit, one every lasting holder watched goes as any watched
-  download does. The Keeper keeps every lasting holder's languages, or the
+  device deleting a download, or a title from storage, releases its own hold
+  (`Manager.Release`); the download leaves that device's lists and is freed
+  at once if no other hold lasts (`library.Released`), unless a stream of it
+  is open. A download no device held is the owner's, not a device's to
+  delete. A released hold (deleted, or a revoked device) stays on record,
+  so a download whose holds have all ended is freed rather than taken for
+  one nobody held, which only the owner's viewer decides.
+  `library.finished` frees a held download once no hold lasts, watched or
+  not, unless the server's own viewer has an entry: one they are part way
+  through stays, one they watched goes by their Keep. Over the disk limit,
+  one every lasting holder watched goes as any watched download does. The Keeper keeps every lasting holder's languages, or the
   owner's for a download nobody held. The manager keeps holds apart from
   rows, so a row written back later never takes a newer hold with it.
 - A server that does not answer leaves what is here working. `/sources` lists

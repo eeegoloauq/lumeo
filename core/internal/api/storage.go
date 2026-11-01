@@ -77,7 +77,9 @@ func (s *Server) handleStorage(w http.ResponseWriter, r *http.Request) {
 	own, used := library.Usage(rows, s.downloads.Dirs)
 	response.Used = used
 	for _, row := range rows {
-		if row.Locator.Scheme == "file" {
+		// What a device let go of is not its storage any more, though its
+		// bytes stay in Used while another device holds it.
+		if row.Locator.Scheme == "file" || s.releasedBy(r, row) {
 			continue
 		}
 		onDisk := own[row.ID]
@@ -132,6 +134,10 @@ func (s *Server) handleClearStorage(w http.ResponseWriter, r *http.Request) {
 	if oneItem {
 		wanted = itemID[0]
 	}
+	if !s.viewerHere(r) {
+		s.releaseStorage(w, r, wanted, oneItem)
+		return
+	}
 	matched, err := s.clearStorage(r.Context(), wanted, oneItem)
 	if oneItem && matched == 0 {
 		writeError(w, http.StatusNotFound, "unknown item")
@@ -163,4 +169,35 @@ func (s *Server) clearStorage(ctx context.Context, itemID string, oneItem bool) 
 		}
 	}
 	return len(matches), err
+}
+
+// releaseStorage lets a device of this media server go of the downloads of
+// one title, or of all it holds or could, as deleting each would: the
+// owner's own stay, and a title of nothing else is refused.
+func (s *Server) releaseStorage(w http.ResponseWriter, r *http.Request, itemID string, oneItem bool) {
+	matched, released := 0, 0
+	var failed error
+	for _, row := range s.downloads.List(r.Context()) {
+		if row.Locator.Scheme == "file" || oneItem && row.ItemID != itemID || s.releasedBy(r, row) {
+			continue
+		}
+		matched++
+		switch err := s.releaseDownload(r.Context(), row.ID, deviceOf(r)); {
+		case err == nil:
+			released++
+		case errors.Is(err, acquire.ErrNotHeld), errors.Is(err, acquire.ErrNotFound):
+		case failed == nil:
+			failed = err
+		}
+	}
+	switch {
+	case failed != nil:
+		writeError(w, http.StatusInternalServerError, failed.Error())
+	case oneItem && matched == 0:
+		writeError(w, http.StatusNotFound, "unknown item")
+	case oneItem && released == 0:
+		writeError(w, http.StatusForbidden, errOwnersDownload)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

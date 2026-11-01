@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eeegoloauq/lumeo/core/internal/acquire"
 	"github.com/eeegoloauq/lumeo/core/internal/progress"
 	"github.com/eeegoloauq/lumeo/core/internal/remote"
 )
@@ -118,6 +119,64 @@ func TestOnlyADeviceOfAMediaServerHoldsADownload(t *testing.T) {
 	l.serve(full)
 	if w := deviceRequest(*l.served.Load(), "PUT", path, laptopToken, `{"watched":true,"subtitleLanguages":[]}`); w.Code != http.StatusForbidden {
 		t.Errorf("a device of a full server held a download: %d %s", w.Code, w.Body)
+	}
+}
+
+// A device deleting a download, or clearing a title, lets go of its own
+// hold: the download leaves its lists and stays for a device still holding
+// it, and goes, file and all, with the last hold. The owner's own downloads
+// are not a device's to delete.
+func TestADeviceDeletingADownloadLetsGoOfItsHoldAlone(t *testing.T) {
+	laptop := linkedCores(t, nil, laptopToken)
+	laptop.open()
+	d := laptop.start(torrentSource("Severance.S01E01.1080p", "aaa", 30, "group"))
+	tv := laptop.another(tvToken)
+	if rec := requestJSON(t, tv.local, http.MethodGet, "/api/v1/downloads/"+d.ID+"/stream", ""); rec.Code != http.StatusOK {
+		t.Fatalf("stream on the TV: status %d: %s", rec.Code, rec.Body)
+	}
+	lists := func(l *linked) (downloads, storage bool) {
+		t.Helper()
+		rec := requestJSON(t, l.local, http.MethodGet, "/api/v1/downloads", "")
+		downloads = strings.Contains(rec.Body.String(), d.ID)
+		rec = requestJSON(t, l.local, http.MethodGet, "/api/v1/storage", "")
+		return downloads, strings.Contains(rec.Body.String(), d.ID)
+	}
+
+	if rec := requestJSON(t, laptop.local, http.MethodDelete, "/api/v1/downloads/"+d.ID+"?data=true", ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete on the laptop: status %d: %s", rec.Code, rec.Body)
+	}
+	if _, err := laptop.theirs.Get(context.Background(), d.ID); err != nil {
+		t.Fatalf("the TV's download went with the laptop's delete: %v", err)
+	}
+	if downloads, storage := lists(laptop); downloads || storage {
+		t.Errorf("the laptop still lists what it deleted: downloads %v, storage %v", downloads, storage)
+	}
+	if downloads, storage := lists(tv); !downloads || !storage {
+		t.Errorf("the TV no longer lists what it holds: downloads %v, storage %v", downloads, storage)
+	}
+
+	if rec := requestJSON(t, tv.local, http.MethodDelete, "/api/v1/storage?item="+tv.itemID, ""); rec.Code != http.StatusNoContent {
+		t.Fatalf("clearing the title on the TV: status %d: %s", rec.Code, rec.Body)
+	}
+	if _, err := laptop.theirs.Get(context.Background(), d.ID); !errors.Is(err, acquire.ErrNotFound) {
+		t.Fatalf("the last hold let go and the download stayed: %v", err)
+	}
+
+	server := *laptop.served.Load()
+	body, _ := json.Marshal(startDownloadRequest{ItemID: laptop.theirID, Season: 1, Episode: 2, Source: torrentSource("Severance.S01E02.1080p", "bbb", 30, "group")})
+	w := deviceRequest(server, http.MethodPost, "/api/v1/downloads", "server-token", string(body))
+	var owners acquire.Download
+	if err := json.Unmarshal(w.Body.Bytes(), &owners); err != nil || w.Code != http.StatusCreated {
+		t.Fatalf("the owner's start: %d %s", w.Code, w.Body)
+	}
+	if w := deviceRequest(server, http.MethodDelete, "/api/v1/downloads/"+owners.ID+"?data=true", laptopToken, ""); w.Code != http.StatusForbidden {
+		t.Errorf("a device deleted the owner's download: %d %s", w.Code, w.Body)
+	}
+	if w := deviceRequest(server, http.MethodDelete, "/api/v1/storage?item="+laptop.theirID, laptopToken, ""); w.Code != http.StatusForbidden {
+		t.Errorf("a device cleared the owner's title: %d %s", w.Code, w.Body)
+	}
+	if _, err := laptop.theirs.Get(context.Background(), owners.ID); err != nil {
+		t.Fatalf("the owner's download is gone: %v", err)
 	}
 }
 

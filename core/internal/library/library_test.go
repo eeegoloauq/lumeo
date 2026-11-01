@@ -309,6 +309,45 @@ func TestAHeldDownloadGoesOnceNoHoldLasts(t *testing.T) {
 	}
 }
 
+// A device deleting a download frees it at once when no other hold on it
+// lasts and the viewer here has no say, but never under an open stream, and
+// leaves one another device still holds.
+func TestADownloadEveryDeviceLetGoOfGoesAtOnce(t *testing.T) {
+	s, downloads := library(t, preferences.Preferences{Keep: "forever", DeviceMaxKeepDays: 30})
+	released := acquire.Hold{KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: now, ReleasedAt: now}
+	lasting := acquire.Hold{KeepWatchedDays: 1, KeepUnwatchedDays: 7, ActiveAt: now}
+	for _, tc := range []struct {
+		id    string
+		holds []acquire.Hold
+	}{{"gone", []acquire.Hold{released}}, {"other", []acquire.Hold{released, lasting}}, {"playing", []acquire.Hold{released}}} {
+		dir := filepath.Join(downloads.dir, tc.id)
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		downloads.rows = append(downloads.rows, acquire.Download{
+			ID: tc.id, ItemID: "film-" + tc.id, Locator: sources.Locator{Scheme: "torrent"}, Dir: dir,
+			State: acquire.StateDone, UpdatedAt: now, Holds: tc.holds,
+		})
+	}
+	// e5 the viewer here is part way through.
+	for i := range downloads.rows {
+		if downloads.rows[i].ID == "e5" {
+			downloads.rows[i].Holds = []acquire.Hold{released}
+		}
+	}
+	done := s.Play("playing")
+	defer done()
+	for id, want := range map[string]bool{"gone": true, "other": false, "playing": false, "e5": false} {
+		freed, err := s.Released(context.Background(), id)
+		if err != nil || freed != want {
+			t.Errorf("%s: freed = %v, %v; want %v", id, freed, err, want)
+		}
+	}
+	if !slices.Equal(downloads.removed, []string{"gone"}) {
+		t.Fatalf("removed %v, want gone alone", downloads.removed)
+	}
+}
+
 // Over the ceiling a held download goes like any other once everyone whose
 // hold lasts has watched it, counted from the last of them; one a lasting
 // hold has not watched stays.
