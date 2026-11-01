@@ -351,7 +351,7 @@ func TestACopyThatDoesNotFitGoesLast(t *testing.T) {
 	all := []sources.MediaSource{remux, small, begun}
 	server := New(Deps{Downloads: manager, Library: lib, Preferences: prefs}, log)
 	fits := server.fitting(context.Background())
-	rankSources(all, nil, nil, fits)
+	rankSources(all, nil, nil, 0, fits)
 	if all[2].Locator.InfoHash != "remux" {
 		t.Fatalf("ranked %+v, want the remux over the limit last", all)
 	}

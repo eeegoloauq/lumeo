@@ -237,6 +237,7 @@ func TestPatchRejectsInvalidDocumentsWithoutWriting(t *testing.T) {
 		{name: "speed is no longer a preference", body: `{"playbackSpeed":1.5}`, message: `unknown preference "playbackSpeed"`},
 		{name: "artwork not string", body: `{"episodeArtwork":1}`, message: "episodeArtwork must be a string"},
 		{name: "invalid artwork", body: `{"episodeArtwork":"clear"}`, message: `episodeArtwork must be "show", "blur", or "hide"`},
+		{name: "invalid quality", body: `{"maxQuality":"720p"}`, message: `maxQuality must be "screen", "1080p", "2160p", or "any"`},
 		{name: "mixed document is atomic", body: `{"subtitleLanguages":["ru"],"subtitleScale":9}`, message: "subtitleScale must be between 0.5 and 2"},
 		{name: "audio languages not array", body: `{"audioLanguages":"ja"}`, message: "audioLanguages must be an array of strings"},
 		{name: "invalid audio language", body: `{"audioLanguages":["japanese"]}`, message: `invalid audio language "japanese"`},

@@ -281,8 +281,8 @@ func (s *Server) remoteSources(w http.ResponseWriter, r *http.Request) {
 	if itemID != "" {
 		all = append(all, s.onDisk(r.Context(), itemID, season, episode, all)...)
 	}
-	subs, audio := s.viewerLanguages(r.Context())
-	rankSources(all, subs, audio, fits)
+	subs, audio, ceiling := s.viewerRanking(r.Context(), screenLines(r.URL.Query()))
+	rankSources(all, subs, audio, ceiling, fits)
 	listed := s.preferKnown(r.Context(), itemID, kind == catalog.KindSeries, all, fits, state)
 	writeJSON(w, http.StatusOK, map[string]any{"sources": listed, "failed": failed, "providers": answer.Providers})
 }

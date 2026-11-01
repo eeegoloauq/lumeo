@@ -9,6 +9,7 @@
   "diskLimit": 0,
   "prefetch": true,
   "askCopy": false,
+  "maxQuality": "screen",
   "checkUpdates": true,
   "betaUpdates": false,
   "subtitleMode": "always",

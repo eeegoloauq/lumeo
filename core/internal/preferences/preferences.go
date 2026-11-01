@@ -71,6 +71,10 @@ type Preferences struct {
 	// AskCopy has Play ask which copy to start every time, from the list of
 	// copies, instead of starting the best one.
 	AskCopy bool `json:"askCopy"`
+	// MaxQuality is the sharpest copy Play prefers: "screen" for what fills
+	// the screen of the client asking, "1080p", "2160p", or "any". It orders
+	// and never filters: a healthier sharper copy still wins.
+	MaxQuality string `json:"maxQuality"`
 	// CheckUpdates lets the core ask GitHub whether a newer release is out.
 	// Off, it never asks.
 	CheckUpdates bool `json:"checkUpdates"`
@@ -126,6 +130,9 @@ var SubtitleColors = []string{"white", "yellow", "cream", "cyan"}
 
 // The policies Keep accepts, in the order a client offers them.
 var Keeps = []string{"watched", "days", "forever"}
+
+// The ceilings MaxQuality accepts, in the order a client offers them.
+var MaxQualities = []string{"screen", "1080p", "2160p", "any"}
 
 // maxRate bounds the rate limits: a terabyte a second is no limit at all.
 const maxRate = 1 << 40
@@ -200,6 +207,7 @@ func (s *Service) Get(ctx context.Context) (Preferences, error) {
 	overlay(stored, "diskLimit", &effective.DiskLimit)
 	overlay(stored, "prefetch", &effective.Prefetch)
 	overlay(stored, "askCopy", &effective.AskCopy)
+	overlay(stored, "maxQuality", &effective.MaxQuality)
 	overlay(stored, "checkUpdates", &effective.CheckUpdates)
 	overlay(stored, "betaUpdates", &effective.BetaUpdates)
 	overlay(stored, "nextCountdown", &effective.NextCountdown)
@@ -340,6 +348,8 @@ func validate(document map[string]json.RawMessage) (map[string]json.RawMessage, 
 			changes[key], err = boolean(key, raw)
 		case "episodeArtwork":
 			changes[key], err = oneOf(key, raw, []string{"show", "blur", "hide"})
+		case "maxQuality":
+			changes[key], err = oneOf(key, raw, MaxQualities)
 		case "accent":
 			changes[key], err = oneOf(key, raw, Accents)
 		case "keep":
@@ -380,7 +390,7 @@ func validate(document map[string]json.RawMessage) (map[string]json.RawMessage, 
 var personalKeys = []string{
 	"subtitleLanguages", "audioLanguages", "subtitleMode", "subtitlesWithAudio", "subtitleScale",
 	"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
-	"episodeArtwork", "accent", "askCopy", "nextCountdown", "nextNotice", "seekStep",
+	"episodeArtwork", "accent", "askCopy", "maxQuality", "nextCountdown", "nextNotice", "seekStep",
 }
 
 // Personal reports whether key is one of the viewer's own preferences.
@@ -439,7 +449,7 @@ func known(key string) bool {
 	switch key {
 	case "subtitleLanguages", "audioLanguages", "subtitleMode", "subtitlesWithAudio", "subtitleScale",
 		"subtitlePosition", "subtitleBackground", "subtitleColor", "subtitleKeepStyling",
-		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "checkUpdates",
+		"episodeArtwork", "accent", "keep", "keepDays", "diskLimit", "prefetch", "askCopy", "maxQuality", "checkUpdates",
 		"betaUpdates", "nextCountdown", "nextNotice", "seekStep", "downloadDir",
 		"uploadLimit", "downloadLimit", "deviceDiskLimit", "deviceMaxKeepDays", "serverKeepWatchedDays", "serverKeepUnwatchedDays":
 		return true

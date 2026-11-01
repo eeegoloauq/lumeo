@@ -185,6 +185,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		SubtitleColor:       "white",
 		SubtitleKeepStyling: true,
 		EpisodeArtwork:      cfg.EpisodeArtwork,
+		MaxQuality:          "screen",
 		Accent:              "white",
 		Keep:                "days",
 		KeepDays:            30,

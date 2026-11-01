@@ -61,7 +61,8 @@ Every example needs the token as a header; with the core run as above, from `cor
     curl "localhost:7666/api/v1/searches"                   # what was searched for, latest first
 
 Item ids are Lumeo's own, created on first sight and mapped to imdb/tmdb/tvdb ids in SQLite.
-`/api/v1/sources` also accepts `imdb=tt...`.
+`/api/v1/sources` also accepts `imdb=tt...`, and `screen=<lines>`, the height of the asking
+client's screen in device pixels, which the viewer's Highest quality ranks by.
 
 The viewer's own data moves between cores as one file: watch progress, scores, My list, picked
 audio and subtitle tracks, searches and the personal preferences (languages, subtitle look, accent,

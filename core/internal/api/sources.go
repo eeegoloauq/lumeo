@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -25,6 +26,7 @@ import (
 // people actually pick.
 func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
+	screen := screenLines(params)
 	q := sources.Query{
 		Kind:   kindOr(params.Get("kind"), catalog.KindMovie),
 		IMDbID: params.Get("imdb"),
@@ -78,13 +80,14 @@ func (s *Server) handleSources(w http.ResponseWriter, r *http.Request) {
 	// A device of a media server ranks the copies itself, by its own
 	// languages and choice: none of this core's viewer's go into its list.
 	var subs, audio []string
+	ceiling := 0
 	chosenFor := ""
 	if s.viewerHere(r) {
-		subs, audio = s.viewerLanguages(r.Context())
+		subs, audio, ceiling = s.viewerRanking(r.Context(), screen)
 		chosenFor = itemID
 	}
 	fits := s.fitting(r.Context())
-	rankSources(all, subs, audio, fits)
+	rankSources(all, subs, audio, ceiling, fits)
 	listed := s.preferKnown(r.Context(), chosenFor, q.Kind == catalog.KindSeries, all, fits, s.onDiskState(r.Context()))
 	// providers is how many source addons were asked: with none, an empty list
 	// means "add one", not "no copies".
@@ -180,8 +183,10 @@ func failure(provider string, err error) failedProvider {
 // one that does not, a healthier swarm a weaker one, and only inside those
 // groups does a copy the viewer can follow beat one they cannot, and sharper
 // win after that. A 1080p raw without subtitles is worse than a 720p copy
-// with them. A nil fits fits everything.
-func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sources.MediaSource) bool) {
+// with them. Sharper wins up to [ceiling] lines: a copy over it goes behind
+// those under it, never out of the list; 0 is none. A nil fits fits
+// everything.
+func rankSources(all []sources.MediaSource, subs, audio []string, ceiling int, fits func(sources.MediaSource) bool) {
 	sort.SliceStable(all, func(i, j int) bool {
 		if fits != nil {
 			if fi, fj := fits(all[i]), fits(all[j]); fi != fj {
@@ -193,6 +198,11 @@ func rankSources(all []sources.MediaSource, subs, audio []string, fits func(sour
 		}
 		if li, lj := speaks(all[i], subs, audio), speaks(all[j], subs, audio); li != lj {
 			return li > lj
+		}
+		if ceiling > 0 {
+			if oi, oj := resolutionLines(all[i].Release.Resolution) > ceiling, resolutionLines(all[j].Release.Resolution) > ceiling; oi != oj {
+				return oj
+			}
 		}
 		ri, rj := resolutionRank(all[i].Release.Resolution), resolutionRank(all[j].Release.Resolution)
 		if ri != rj {
@@ -266,16 +276,64 @@ func (s *Server) fitting(ctx context.Context) func(sources.MediaSource) bool {
 
 // viewerLanguages is the viewer's subtitle and audio languages as the bare
 // ISO 639-1 the providers use: "pt-BR" is "pt" to a flag.
-func (s *Server) viewerLanguages(ctx context.Context) (subs, audio []string) {
+// viewerRanking is what the viewer's preferences add to the ranking: their
+// languages, and the most lines worth putting first for a client whose
+// screen is [screen] lines tall (0 when it did not say).
+func (s *Server) viewerRanking(ctx context.Context, screen int) (subs, audio []string, ceiling int) {
 	if s.prefs == nil {
-		return nil, nil
+		return nil, nil, 0
 	}
 	prefs, err := s.prefs.Get(ctx)
 	if err != nil {
-		s.log.Warn("reading language preferences failed", "err", err)
-		return nil, nil
+		s.log.Warn("reading preferences for the ranking failed", "err", err)
+		return nil, nil, 0
 	}
-	return baseLanguages(prefs.SubtitleLanguages), baseLanguages(prefs.AudioLanguages)
+	return baseLanguages(prefs.SubtitleLanguages), baseLanguages(prefs.AudioLanguages),
+		qualityCeiling(prefs.MaxQuality, screen)
+}
+
+// screenLines is the screen= a client sends with a sources request: how many
+// lines its screen has, in device pixels. 0 when it is missing or nonsense.
+func screenLines(params url.Values) int {
+	n, err := strconv.Atoi(params.Get("screen"))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// lineSteps are the heights releases come in, the shortest first.
+var lineSteps = []int{480, 576, 720, 1080, 1440, 2160, 4320}
+
+// qualityCeiling is the most lines a copy has before a sharper one goes
+// behind it, 0 for no ceiling. For the screen it is the step that fills it,
+// not the one under it: a 1050- or 768-line screen would otherwise put 720p
+// ahead of 1080p, a visible loss to save little. A client that did not say
+// its screen gets no ceiling.
+func qualityCeiling(pref string, screen int) int {
+	switch pref {
+	case "1080p":
+		return 1080
+	case "2160p":
+		return 2160
+	case "screen":
+		for _, step := range lineSteps {
+			if step >= screen && screen > 0 {
+				return step
+			}
+		}
+	}
+	return 0
+}
+
+// resolutionLines is how many lines a parsed resolution has; 0 when the
+// name did not say, which no ceiling puts behind.
+func resolutionLines(res string) int {
+	n, err := strconv.Atoi(strings.TrimSuffix(res, "p"))
+	if err != nil || !strings.HasSuffix(res, "p") {
+		return 0
+	}
+	return n
 }
 
 func baseLanguages(tags []string) []string {
