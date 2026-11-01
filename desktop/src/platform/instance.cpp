@@ -102,9 +102,15 @@ bool Instance::start() {
 #ifndef Q_OS_WIN
   std::tie(m_exeDevice, m_exeInode) = identity(m_exe);
 #endif
+  m_corePath = core;
   if (Core::configuredAddress() == Core::local)
     startCore(core);
   return true;
+}
+
+void Instance::startOwnCore() {
+  if (made && !made->m_corePath.isEmpty() && !made->m_core)
+    made->startCore(made->m_corePath);
 }
 
 void Instance::restart() {

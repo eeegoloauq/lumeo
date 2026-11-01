@@ -55,6 +55,8 @@ public:
 
   // A request without this token is refused, as the core refuses it.
   QByteArray token;
+  // What the core says it is on each answer (Lumeo-Mode); empty for nothing.
+  QByteArray mode;
 
   static QJsonValue fixture(const QString &name);
   // The same, for app tests.

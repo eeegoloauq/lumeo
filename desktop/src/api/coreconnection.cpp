@@ -1,12 +1,15 @@
 #include "coreconnection.h"
 
+#include "core.h"
 #include "folders.h"
+#include "instance.h"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QNetworkReply>
+#include <QQmlEngine>
 #include <QRegularExpression>
 #include <QSaveFile>
 
@@ -17,10 +20,24 @@ bool validToken(const QString &token) {
 }
 } // namespace
 
-CoreConnection::CoreConnection(QObject *parent) : CoreConnection(file(), parent) {}
+CoreConnection::CoreConnection(const QString &path, Core *app, Core *local, QObject *parent)
+    : QObject(parent), m_path(path), m_app(app), m_local(local), m_started(read(path)),
+      m_saved(m_started) {
+  if (m_app)
+    connect(m_app, &Core::modeChanged, this, &CoreConnection::follow);
+}
 
-CoreConnection::CoreConnection(const QString &path, QObject *parent)
-    : QObject(parent), m_path(path), m_started(read(path)), m_saved(m_started) {}
+CoreConnection *CoreConnection::create(QQmlEngine *qml, QJSEngine *) {
+  auto *connection = new CoreConnection(file(), qml->singletonInstance<Core *>("Lumeo", "Core"));
+  connection->readLink();
+  return connection;
+}
+
+Core *CoreConnection::localCore() {
+  if (!m_local)
+    m_local = m_app && !usingServer() ? m_app : new Core(Core::local, Core::dataDir() + "/api-token", this);
+  return m_local;
+}
 
 QString CoreConnection::file() { return Folders::config() + "/core.json"; }
 
@@ -95,7 +112,90 @@ void CoreConnection::pair(const QString &address, const QString &code, const QSt
       emit changed();
       return;
     }
+    if (result.value("mode").toString() == "media") {
+      handOver(base, token);
+      return;
+    }
     save({{"address", base.toString()}, {"token", token}, {"deviceId", id}, {"enabled", true}});
+    if (m_error.isEmpty())
+      emit paired();
+  });
+}
+
+void CoreConnection::readLink() {
+  // While the app uses a server, its own core is not running.
+  if (overridden() || usingServer())
+    return;
+  localCore()->get("/api/v1/link", {}, this, [this](const Core::Reply &reply) {
+    // A core from before links has nothing to show.
+    if (reply.ok())
+      showLink(reply.json().toObject());
+  });
+}
+
+void CoreConnection::showLink(const QJsonObject &link) {
+  m_link = link.value("url").toString();
+  m_running = link.value("running").toString();
+  emit changed();
+}
+
+// The credential becomes this machine's core's, which checks it with the
+// server before keeping it, and the client no longer keeps it: a direct
+// connection to a media server would find none of the viewer's data there.
+void CoreConnection::handOver(const QUrl &server, const QString &token) {
+  m_busy = true;
+  m_error.clear();
+  emit changed();
+  if (usingServer())
+    Instance::startOwnCore();
+  const QJsonObject body{{"url", server.toString()}, {"token", token}};
+  localCore()->send("PUT", "/api/v1/link", {}, body, this, [this, server](const Core::Reply &reply) {
+    m_busy = false;
+    if (!reply.ok()) {
+      qWarning("handing the media server to this machine's core failed: %s", qPrintable(reply.message()));
+      m_error = qtTrId("connectionLinkFailed");
+      emit changed();
+      return;
+    }
+    m_link = reply.json()["url"].toString();
+    m_running = reply.json()["running"].toString();
+    QJsonObject saved = m_saved;
+    if (origin(saved.value("address").toString()) == server)
+      saved = {};
+    else if (!saved.isEmpty())
+      saved["enabled"] = false;
+    if (saved != m_saved)
+      save(saved);
+    else
+      emit changed();
+    if (m_error.isEmpty())
+      emit paired();
+  });
+}
+
+// A full server used directly that turns into a media server hands its
+// credential over as pairing with it would have.
+void CoreConnection::follow() {
+  if (m_followed || overridden() || !usingServer() || m_app->mode() != "media")
+    return;
+  m_followed = true;
+  handOver(origin(m_started.value("address").toString()), m_started.value("token").toString());
+}
+
+void CoreConnection::unlink() {
+  if (m_busy || overridden())
+    return;
+  m_busy = true;
+  m_error.clear();
+  emit changed();
+  localCore()->send("DELETE", "/api/v1/link", {}, QJsonValue::Undefined, this, [this](const Core::Reply &reply) {
+    m_busy = false;
+    if (reply.ok()) {
+      showLink(reply.json().toObject());
+      return;
+    }
+    m_error = qtTrId("connectionSaveFailed");
+    emit changed();
   });
 }
 

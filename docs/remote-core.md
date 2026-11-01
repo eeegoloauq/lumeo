@@ -79,7 +79,9 @@ its credential in `core.json` beside `client.json`, with owner-only permissions;
 the pairing code is not saved. On Windows this is the user's AppData directory,
 whose account ACL remains the security boundary.
 
-Restart with the offered button. Playback closes and saves its position to the
+A media server ([below](#media-server)) is not saved there: its credential
+goes to the app's own core, which forwards to the server, and General shows
+the server as a media server. Restart with the offered button. Playback closes and saves its position to the
 old core before switching. A remote connection suppresses startup of the bundled
 local core. General also offers returning to the local core and forgetting the
 remote connection. One remote can be remembered in this version. `LUMEO_CORE`
@@ -108,11 +110,17 @@ through the remote core.
 
 With `LUMEO_MODE=media` the server keeps files, not people: each device's
 history, scores, My list and preferences stay on a core of its own, linked to
-the server with `lumeo-core link` ([core](core.md), Linked to a server), and
-the server refuses them from devices. The client cannot pair this way yet;
-until it can, a desktop client pairs with a full server as above. Changing the
-mode of a server with data is a migration: export each viewer's personal data
-first, and import it on their device.
+the server, and the server refuses them from devices. A desktop client pairs
+as above and follows the mode the server answers with: the credential goes to
+its own core, which keeps it, and the client talks only to that core. A core
+without a client links with `lumeo-core link` ([core](core.md), Linked to a
+server). Forgetting the media server in General unlinks the core; revoke the
+device on the server to remove its access.
+
+Changing the mode of a server with data is a migration: export each viewer's
+personal data first, and import it on their device. A client connected to the
+server directly notices the change on its next answer and hands its
+credential to its own core; restart it to use that.
 
 ## Storage and operations
 

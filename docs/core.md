@@ -108,6 +108,16 @@ server's `lumeo-core pair`:
     LUMEO_DATA=./data go run ./cmd/lumeo link https://lumeo.example.com <code> [device name]
     LUMEO_DATA=./data go run ./cmd/lumeo unlink
 
+The client links its core the same way when it pairs with a media server, handing it the
+credential the server issued; the owner token sets and reads the link over the API:
+
+    curl -X PUT -H 'content-type: application/json' \
+         -d '{"url":"https://lumeo.example.com","token":"<device credential>"}' localhost:7666/api/v1/link
+    curl localhost:7666/api/v1/link          # {"url": saved, "running": in use until the next start}
+    curl -X DELETE localhost:7666/api/v1/link
+
+`PUT` keeps the link once the server took the credential and said it is a media server: 409 for
+any other, 422 for a credential it refused. A core that is a media server itself links to nothing.
 The link is `server.json` in the data directory, owner-only, read at start. The address is the
 server's `LUMEO_PUBLIC_URL`; plain HTTP is accepted only on loopback. Unlinking keeps the device
 on the server until it is revoked there.

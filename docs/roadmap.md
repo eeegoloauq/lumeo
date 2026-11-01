@@ -76,7 +76,7 @@ default for a person who wants a server to hold everything.
   `lumeo-core link`, docs/core.md); the server's mode, which refuses personal
   data from devices, with a hold per device carrying its watched mark and the
   subtitle languages its downloads keep (done); then pairing in the client
-  handing the credential to the local core; then limits and keep rules on the
+  handing the credential to the local core (done); then limits and keep rules on the
   holds, deleting as releasing a hold, and the preferences split by owner,
   the server's download folder no longer shown to devices.
 - Each device has a disk limit set by the server. A file counts in full against

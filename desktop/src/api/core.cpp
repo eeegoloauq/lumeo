@@ -135,6 +135,12 @@ void Core::attempt(const std::shared_ptr<Attempt> &pending) {
   QNetworkReply *reply = m_network.sendCustomRequest(request, pending->method, pending->body);
   connect(reply, &QNetworkReply::finished, this, [this, reply, pending, sent] {
     reply->deleteLater();
+    // A server switched to media mode says so on every answer, and the
+    // client follows it (CoreConnection).
+    if (const QString mode = QString::fromLatin1(reply->rawHeader("Lumeo-Mode")); !mode.isEmpty() && mode != m_mode) {
+      m_mode = mode;
+      emit modeChanged();
+    }
     if (!pending->context)
       return;
     Reply answer;

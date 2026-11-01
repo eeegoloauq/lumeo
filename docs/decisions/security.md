@@ -56,6 +56,19 @@ never inferred from untrusted proxy headers.
 On a loopback listener the Host guard also permits that configured public
 hostname, so a local reverse proxy can preserve Host without disabling the guard.
 
+A media server's credential belongs to the device's own core, not the client.
+The client still pairs, because the pair answer is what says the server's
+mode: deciding there leaves no window between asking and pairing in which a
+server changing mode strands a device, and the same hand-over serves a full
+server used directly that turns media, with the credential already issued and
+no new code. Rejected: the core pairing with the code, which needs a second
+path in the client for a full server and cannot take over a connection the
+client already has; the client running `lumeo-core link`, which puts the code
+in the process list; the client writing `server.json`, which bypasses the
+API. The core checks a handed credential with the server before keeping it,
+the route takes the owner token only, so a device paired with this core
+cannot point it elsewhere, and the answer never carries the credential back.
+
 ## Confinement is a deployment property, not a library choice
 
 The core parses hostile input from the internet: peer wire, bencode, DHT, uTP,

@@ -86,6 +86,18 @@ SettingsBlock {
                 }
             }
         }
+        // A media server, reached through this machine's core.
+        SettingRow {
+            visible: CoreConnection.server !== ""
+            label: CoreConnection.server
+            hint: qsTrId("connectionMediaHint")
+            RowButton {
+                objectName: "unlinkCore"
+                text: qsTrId("connectionForget")
+                enabled: !CoreConnection.busy
+                onClicked: CoreConnection.unlink()
+            }
+        }
         SettingRow {
             visible: CoreConnection.restartNeeded
             label: qsTrId("connectionRestartHint")

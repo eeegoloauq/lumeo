@@ -107,6 +107,9 @@ func administer(cfg config.Config, args []string, out io.Writer) error {
 // credential in the data directory. It needs no running core: the link is
 // read when the core starts.
 func link(cfg config.Config, args []string, out io.Writer) error {
+	if cfg.Mode == remote.ModeMedia {
+		return remote.ErrIsMediaServer
+	}
 	name := ""
 	if len(args) == 3 {
 		name = args[2]

@@ -3103,6 +3103,16 @@
         <extracomment>Remote core connection settings and pairing.</extracomment>
         <translation>Could not pair with the server. Check the address and its HTTPS certificate.</translation>
     </message>
+    <message id="connectionMediaHint">
+        <source>Media server. Your history stays on this computer.</source>
+        <extracomment>Remote core connection settings and pairing: under the address of a media server, which keeps files while the viewer's history, ratings and lists stay on this computer.</extracomment>
+        <translation>Media server. Your history stays on this computer.</translation>
+    </message>
+    <message id="connectionLinkFailed">
+        <source>This computer's core could not connect to the media server.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>This computer's core could not connect to the media server.</translation>
+    </message>
     <message id="connectionLocalFile">
         <source>Local files can only be opened with the local core.</source>
         <extracomment>Opening a client file while connected to a remote server.</extracomment>

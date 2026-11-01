@@ -63,6 +63,7 @@ type Server struct {
 	log       *slog.Logger
 	artwork   *store.DB
 	cacheDir  string
+	dataDir   string
 	remote    *remote.Server
 	// mode is remote.ModeMedia on a server that leaves its devices'
 	// personal data on them (mode.go).
@@ -129,6 +130,9 @@ type Deps struct {
 	Devices   *store.DB
 	Artwork   *store.DB
 	CacheDir  string
+	// DataDir holds the link to a server (remote.FileName), which the
+	// client sets through /link; empty refuses those routes.
+	DataDir string
 	// Remote is the server this core forwards to, nil for one that holds
 	// everything itself (remote.go).
 	Remote *remote.Server
@@ -164,6 +168,7 @@ func New(deps Deps, log *slog.Logger) *Server {
 		log:       log,
 		artwork:   deps.Artwork,
 		cacheDir:  deps.CacheDir,
+		dataDir:   deps.DataDir,
 		hashes:    make(map[string]string),
 		remote:    deps.Remote,
 		mode:      deps.Mode,
@@ -185,6 +190,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/pairings", s.handlePairing)
 	mux.HandleFunc("GET /api/v1/devices", s.handleDevices)
 	mux.HandleFunc("DELETE /api/v1/devices/{id}", s.handleRevokeDevice)
+	mux.HandleFunc("GET /api/v1/link", s.handleLink)
+	mux.HandleFunc("PUT /api/v1/link", s.handlePutLink)
+	mux.HandleFunc("DELETE /api/v1/link", s.handleUnlink)
 	mux.HandleFunc("GET /healthz", s.forwarded(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "providers": len(s.sources())})
 	}, s.remoteHealth))

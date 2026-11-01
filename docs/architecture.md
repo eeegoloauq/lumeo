@@ -272,9 +272,11 @@ against the certificates Qt reads from the system, given as `tls-ca-file`.
 A remote client pairs over verified HTTPS with a random single-use code the
 owner issues through `lumeo-core pair`. The code expires in ten minutes and
 is replaced on the next issue. The core stores the device's token hash in
-SQLite, and the desktop keeps the issued token in a private `core.json` in
-its configuration directory. It applies only to that saved origin; switching
-cores requires restarting the app. Console `devices` and `revoke` commands
+SQLite. The pair answer says the server's mode: the desktop keeps a full
+server's token in a private `core.json` in its configuration directory, and
+hands a media server's to the local core (A core linked to a server). It
+applies only to that saved origin; switching cores requires restarting the
+app. Console `devices` and `revoke` commands
 use the owner token locally; device tokens cannot administer enrollment.
 The reverse proxy deployment uses `LUMEO_PUBLIC_URL` for external artwork
 addresses instead of trusting forwarded headers. See [remote-core.md](remote-core.md).
@@ -297,6 +299,19 @@ core. The server streams; this core passes the bytes on.
   server before pairing, and a linked core refuses any answer from a server
   that is no longer media, forwarding nothing until it is again. Carrying on
   would leave the viewer's data split between the two.
+- The client links its own core. It pairs with the server itself and reads
+  the mode from the answer; a media server's credential goes to the local
+  core (`PUT /api/v1/link`, owner token only), which checks it with the
+  server and keeps it in `server.json`. The client keeps no copy and talks
+  only to the local core. A full server it already uses directly whose
+  answers start saying `media` is handed over the same way, with the
+  credential in use. The link is read at start: routes pick local or
+  forwarded when they are registered and the catalogue takes its provider
+  when it is built, so linking while running would make each of them
+  switchable for a change made once per device. The app restarts with its
+  core instead, as for any change of core; `GET /api/v1/link` says the
+  server saved and the one in use, and they differ until then. A media
+  server is never linked itself.
 - What a media server answers a device reads nothing of its owner's data:
   no choice in `/sources` or `/folders`, no languages in the ranking or a
   subtitle lookup, and a download a device starts records no pick there.

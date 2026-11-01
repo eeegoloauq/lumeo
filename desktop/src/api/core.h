@@ -55,6 +55,9 @@ public:
            (m_address.host() == "127.0.0.1" || m_address.host() == "localhost");
   }
   QString tokenPath() const { return m_tokenPath; }
+  // What the core said it is on its last answer that said (Lumeo-Mode):
+  // "full", "media", or empty before any did.
+  QString mode() const { return m_mode; }
   // A path the core named, as an address mpv can open.
   QUrl url(const QString &path) const { return m_address.resolved(QUrl(path)); }
   // An id as one segment of a path, whatever it holds.
@@ -82,6 +85,9 @@ public:
   // a second.
   int firstDelay = 100;
 
+signals:
+  void modeChanged();
+
 private:
   struct Attempt;
   void start(const QByteArray &method, const QString &path, const QUrlQuery &query,
@@ -95,4 +101,5 @@ private:
   QString m_tokenPath;
   QByteArray m_token;
   bool m_tokenRead = false;
+  QString m_mode;
 };

@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -111,6 +112,25 @@ func Remove(dataDir string) error {
 		return nil
 	}
 	return err
+}
+
+// ErrIsMediaServer refuses a link on a core that is a media server itself:
+// devices forward to it, and its files would be another server's.
+var ErrIsMediaServer = errors.New("this core is a media server; only a device's core links to one")
+
+// Verify asks the server, with the link's credential, whether it takes it and
+// is a media server: a credential handed over by a client paired with the
+// server is checked with it before it is kept.
+func Verify(ctx context.Context, link Link) error {
+	link.URL = strings.TrimRight(link.URL, "/")
+	if err := link.Validate(); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	server := New(link, slog.New(slog.DiscardHandler))
+	defer server.client.CloseIdleConnections()
+	return server.Do(ctx, http.MethodGet, "/healthz", nil, nil, nil)
 }
 
 // Pair trades a pairing code the server's owner issued for a device

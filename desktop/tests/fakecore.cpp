@@ -26,14 +26,18 @@ QJsonValue parse(const QByteArray &body) {
   return document.isArray() ? QJsonValue(document.array()) : QJsonValue(document.object());
 }
 
-void write(QHttpServerResponder &responder, int status, const QJsonValue &body) {
+void write(QHttpServerResponder &responder, int status, const QJsonValue &body,
+           const QByteArray &mode = {}) {
   const auto code = QHttpServerResponder::StatusCode(status);
+  QHttpHeaders headers;
+  if (!mode.isEmpty())
+    headers.append("Lumeo-Mode", mode);
   if (body.isUndefined() || body.isNull())
-    responder.write(code);
+    responder.write(headers, code);
   else if (body.isArray())
-    responder.write(QJsonDocument(body.toArray()), code);
+    responder.write(QJsonDocument(body.toArray()), headers, code);
   else
-    responder.write(QJsonDocument(body.toObject()), code);
+    responder.write(QJsonDocument(body.toObject()), headers, code);
 }
 
 // A file as the core streams one: whole, or the range asked for, so that
@@ -161,7 +165,7 @@ void FakeCore::respond(const QString &key, const QJsonValue &body, const QUrlQue
     return;
   }
   const auto [status, answer] = (*handler)(body, query);
-  write(responder, status, answer);
+  write(responder, status, answer, mode);
 }
 
 QJsonValue FakeCore::fixture(const QString &name) {

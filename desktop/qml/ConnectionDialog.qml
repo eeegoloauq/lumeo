@@ -97,8 +97,8 @@ Dialog {
 
     Connections {
         target: CoreConnection
-        function onChanged() {
-            if (dialog.visible && !CoreConnection.busy && CoreConnection.error === "" && CoreConnection.remote && CoreConnection.restartNeeded)
+        function onPaired() {
+            if (dialog.visible)
                 dialog.accept()
         }
     }

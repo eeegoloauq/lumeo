@@ -291,6 +291,7 @@ func serve(cfg config.Config, stdin io.Reader, log *slog.Logger) error {
 		Devices:     db,
 		Artwork:     db,
 		CacheDir:    cfg.CacheDir,
+		DataDir:     cfg.DataDir,
 		Remote:      server,
 		Mode:        cfg.Mode,
 	}, log)

@@ -36,6 +36,10 @@ public:
   bool ownsCore() const { return m_core; }
   bool installed() const { return m_server; }
   Q_INVOKABLE void restart();
+  // Starts the core beside the binary when this instance has not yet: the
+  // app is using a server, and a media server is linked through its own
+  // core. Nothing without a core beside the binary.
+  static void startOwnCore();
   // What the launch asked to open: a file, as an absolute path, or a
   // lumeo:// link; empty for neither.
   Q_INVOKABLE QString target() const { return m_target; }
@@ -65,6 +69,8 @@ private:
   // to stop when the kernel closes its stdin with this process, after it
   // has finished what it was writing.
   QProcess *m_core = nullptr;
+  // The core beside the binary, empty when this instance does not own one.
+  QString m_corePath;
   QString m_exe;
   quint64 m_exeDevice = 0;
   quint64 m_exeInode = 0;

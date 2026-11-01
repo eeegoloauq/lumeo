@@ -3,11 +3,24 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/eeegoloauq/lumeo/core/internal/config"
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 )
+
+// A media server is refused before anything is asked of the other server.
+func TestAMediaServerDoesNotLink(t *testing.T) {
+	cfg := config.Config{DataDir: t.TempDir(), Mode: remote.ModeMedia}
+	err := administer(cfg, []string{"link", "https://127.0.0.1:1", "code"}, io.Discard)
+	if !errors.Is(err, remote.ErrIsMediaServer) {
+		t.Fatalf("linking a media server: %v", err)
+	}
+}
 
 func TestAdministratorPairsThroughTheRunningCore(t *testing.T) {
 	cfg := testConfig(t, t.TempDir(), true)

@@ -3137,6 +3137,16 @@
         <extracomment>Remote core connection settings and pairing.</extracomment>
         <translation>Не удалось подключиться к серверу. Проверьте адрес и его HTTPS-сертификат.</translation>
     </message>
+    <message id="connectionMediaHint">
+        <source>Media server. Your history stays on this computer.</source>
+        <extracomment>Remote core connection settings and pairing: under the address of a media server, which keeps files while the viewer's history, ratings and lists stay on this computer.</extracomment>
+        <translation>Медиасервер. История остаётся на этом компьютере.</translation>
+    </message>
+    <message id="connectionLinkFailed">
+        <source>This computer's core could not connect to the media server.</source>
+        <extracomment>Remote core connection settings and pairing.</extracomment>
+        <translation>Ядро на этом компьютере не смогло подключиться к медиасерверу.</translation>
+    </message>
     <message id="connectionLocalFile">
         <source>Local files can only be opened with the local core.</source>
         <extracomment>Opening a client file while connected to a remote server.</extracomment>
