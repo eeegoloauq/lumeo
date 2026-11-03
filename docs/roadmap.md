@@ -86,13 +86,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - Gamepad support.
 - The player's notice line is a second `Toast` (top, wrapped, 8 s): one
   component with those as properties.
-- A link or file opened from outside (`Opening.onTitle`) pushes a title page
-  every time, and each stays made with its rows until Back passes it. The
-  tabs and Search go back to the copy in the stack; a title opened from
-  outside should replace an outside-opened title on top instead. legato hit
-  the unbounded form of this (80 kept pages, 1.3 GB, seconds laying them all
-  out on a resize) and keeps its history as routes with scroll offsets, with
-  four pages made.
 
 ## Metadata: TMDB
 

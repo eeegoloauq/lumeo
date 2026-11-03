@@ -63,5 +63,23 @@ Item {
             keyClick(Qt.Key_Escape)
             compare(shell.page, "home", "library was not pushed twice")
         }
+
+        // A title from a link or a file was pushed every time and stayed made
+        // until Back passed it, one more page for every link followed.
+        function test_aTitleFromOutsideGivesWayToTheNextOne() {
+            const film = id => ({ id: id, kind: "movie", title: id, year: 1950 })
+            const shown = () => findChild(shell, "title")?.item.id
+            shell.openFromOutside(film("tt1"))
+            shell.openFromOutside(film("tt2"))
+            compare(shown(), "tt2")
+            keyClick(Qt.Key_Escape)
+            compare(shell.page, "home", "the first gave way")
+
+            // Opened inside, it is the viewer's to go back to.
+            shell.open(film("tt3"), false)
+            shell.openFromOutside(film("tt4"))
+            keyClick(Qt.Key_Escape)
+            compare(shown(), "tt3")
+        }
     }
 }

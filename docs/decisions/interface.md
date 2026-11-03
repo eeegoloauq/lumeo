@@ -254,6 +254,12 @@ A tab is lit only on its own page. A title or a search lit the tab it was
 opened from, as if the window were still there; now it lights none, and the
 arrow says where the page leads back to.
 
+Back goes where the viewer went, so a tab or Search already in the stack is
+gone back to rather than pushed again. A title from a link or a file opened
+outside the app takes the place of one opened that way on top: each was
+pushed, and following link after link kept a page made, with its rows, for
+every one until Back passed them. A page the viewer went on to from it stays.
+
 ## Help at the moment it is needed
 
 Nothing greets a first run: a banner on Home would stand between a new viewer

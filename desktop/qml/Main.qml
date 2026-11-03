@@ -138,7 +138,7 @@ ApplicationWindow {
     Connections {
         target: Opening
         function onPlay(downloadId, name) { window.play(downloadId, name, false) }
-        function onTitle(item) { shell.open(item, false) }
+        function onTitle(item) { shell.openFromOutside(item) }
         function onFailed(what, reason) {
             shell.say(reason === "" ? qsTrId("commonUnknownLink") : qsTrId("commonCouldNotOpen").arg(what).arg(reason))
         }

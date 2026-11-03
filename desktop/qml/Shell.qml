@@ -67,6 +67,18 @@ FocusScope {
         stack.push(titlePage, {item: item, play: !!play, at: at ?? null})
     }
 
+    // A title from a link or a file opened outside the app. One opened that
+    // way on top gives way to it, so following link after link does not keep
+    // a page made, with its rows, for each until Back passes them; a page the
+    // viewer went on to from it stays, as anything opened inside does.
+    property Item fromOutside: null
+    function openFromOutside(item) {
+        const properties = {item: item, play: false, at: null}
+        fromOutside = stack.currentItem === fromOutside
+            ? stack.replace(titlePage, properties)
+            : stack.push(titlePage, properties)
+    }
+
     // A search already in the stack is gone back to, its word kept and
     // selected; otherwise a fresh one.
     function search() {
