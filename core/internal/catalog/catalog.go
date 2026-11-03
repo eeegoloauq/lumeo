@@ -35,6 +35,7 @@ type MediaItem struct {
 	Title       string      `json:"title"`
 	Year        int         `json:"year,omitempty"`
 	YearEnd     int         `json:"yearEnd,omitempty"` // series: last aired year, 0 while running
+	Released    time.Time   `json:"released,omitzero"` // movie: first release; a series is dated by its episodes
 	Overview    string      `json:"overview,omitempty"`
 	Poster      string      `json:"poster,omitempty"`
 	Background  string      `json:"background,omitempty"`

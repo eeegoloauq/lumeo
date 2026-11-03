@@ -31,8 +31,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## Library and storage
 
-- Films on Coming up: the catalogue keeps a film's year, not its release
-  date, which Cinemeta's meta has.
 - Default download folder `Videos/Lumeo`, laid out
   `Title (Year)/Season NN/<torrent name>/`. Only the directories above the
   torrent's are ours: renaming its files breaks seeding.

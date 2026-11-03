@@ -175,12 +175,14 @@ func (s *Service) Finished(ctx context.Context) ([]string, error) {
 	return out, nil
 }
 
-// Shelved is a series on a library shelf, by one of its episodes: for New
-// episodes the viewer's next, out in the last fortnight, and for Coming up
-// the soonest not out yet.
+// Shelved is a title on a library shelf: a series by one of its episodes,
+// for New episodes the viewer's next, out in the last fortnight, and for
+// Coming up the soonest not out yet; or on Coming up a film not out yet.
 type Shelved struct {
-	Item    catalog.MediaItem `json:"item"`
-	Episode catalog.Episode   `json:"episode"`
+	Item catalog.MediaItem `json:"item"`
+	// Episode is a series' and left out for a film, which is dated by its
+	// Item's Released.
+	Episode catalog.Episode `json:"episode,omitzero"`
 	// Count is, on New episodes, how many are out from Episode on, Episode
 	// included.
 	Count int `json:"count,omitempty"`
@@ -230,10 +232,10 @@ func (s *Service) NewEpisodes(ctx context.Context) ([]Shelved, error) {
 	return out, nil
 }
 
-// ComingUp is the calendar of the series the viewer follows: the soonest
-// dated episode not out yet of each, the soonest first. Unlike NewEpisodes
-// it does not ask how far the viewer is: a season announced is worth knowing
-// about while still in the one before.
+// ComingUp is the calendar of what the viewer follows: the soonest dated
+// episode not out yet of each series and the films not out yet, the soonest
+// first. Unlike NewEpisodes it does not ask how far the viewer is: a season
+// announced is worth knowing about while still in the one before.
 func (s *Service) ComingUp(ctx context.Context) ([]Shelved, error) {
 	items, _, err := s.followed(ctx)
 	if err != nil {
@@ -242,6 +244,10 @@ func (s *Service) ComingUp(ctx context.Context) ([]Shelved, error) {
 	now := s.now()
 	out := []Shelved{}
 	for _, item := range items {
+		if item.Kind == catalog.KindMovie && item.Released.After(now) {
+			out = append(out, Shelved{Item: item})
+			continue
+		}
 		if item.Kind != catalog.KindSeries {
 			continue
 		}
@@ -262,8 +268,21 @@ func (s *Service) ComingUp(ctx context.Context) ([]Shelved, error) {
 		item.Episodes = nil
 		out = append(out, Shelved{Item: item, Episode: episode})
 	}
-	sort.SliceStable(out, func(i, j int) bool { return later(out[j].Episode, out[i].Episode) })
+	sort.SliceStable(out, func(i, j int) bool {
+		if a, b := out[i].day(), out[j].day(); !a.Equal(b) {
+			return a.Before(b)
+		}
+		return later(out[j].Episode, out[i].Episode)
+	})
 	return out, nil
+}
+
+// day is when the shelved title comes out: its episode, or the film.
+func (s Shelved) day() time.Time {
+	if s.Item.Kind == catalog.KindMovie {
+		return s.Item.Released
+	}
+	return s.Episode.Released
 }
 
 // followed is every series and film the viewer follows, as the catalogue

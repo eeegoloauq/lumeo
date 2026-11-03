@@ -482,6 +482,7 @@ type metaObject struct {
 	MovieDBID   anyString   `json:"moviedb_id"`
 	TVDBID      anyString   `json:"tvdb_id"`
 	ReleaseInfo string      `json:"releaseInfo"`
+	Released    string      `json:"released"`
 	Videos      []metaVideo `json:"videos"`
 	Trailers    []struct {
 		Source string `json:"source"`
@@ -656,6 +657,9 @@ func (m metaObject) toItem(full bool) catalog.MediaItem {
 		Runtime:    m.Runtime,
 	}
 	item.Year, item.YearEnd = parseReleaseInfo(m.ReleaseInfo)
+	if item.Kind == catalog.KindMovie {
+		item.Released = parseMetaTime(m.Released, "")
+	}
 	if r := string(m.IMDbRating); r != "" {
 		item.IMDbRating, _ = strconv.ParseFloat(r, 64)
 	}

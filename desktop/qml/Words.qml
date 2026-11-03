@@ -84,10 +84,14 @@ QtObject {
     }
 
     // Which episode is coming and when: "S2 E1 · Tomorrow".
+    // An episode of a series, or a film, which has none.
     function comingUpCaption(found) {
         const e = found.episode
+        const today = new Date().toISOString().slice(0, 10)
+        if (!e)
+            return qsTrId("libraryComingUpFilm").arg(dayLabel(found.item.released.slice(0, 10), today))
         return qsTrId("libraryNewEpisodeDate").arg(e.season).arg(e.number)
-            .arg(dayLabel(e.released.slice(0, 10), new Date().toISOString().slice(0, 10)))
+            .arg(dayLabel(e.released.slice(0, 10), today))
     }
 
     // A history line's title: the series and the episode, or the film.

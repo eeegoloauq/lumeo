@@ -94,8 +94,10 @@ episode with a date still ahead, the soonest series first, dated the way a
 person says it (Tomorrow, the weekday within the week, the date beyond). It
 is a calendar, so it does not ask how far the viewer is: a season announced
 is worth knowing about while still in the one before. Specials are left out
-here too. Films are not on it, since the catalogue keeps a film's year and not
-its date.
+here too. A followed film is on it until its date, among the episodes by
+that date and captioned with it alone. The date is Cinemeta's `released`, a
+film's first release, mostly in cinemas: its `dvdRelease`, when a copy can
+be had, was empty for every film looked at.
 
 History is a query over watch progress, not a log of its own: an entry that
 is watched or stopped part way, the latest first, fifty at a time, grouped

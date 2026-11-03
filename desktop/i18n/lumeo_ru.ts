@@ -1574,6 +1574,10 @@
         <extracomment>New episode caption. (%1 season, %2 episode)</extracomment>
         <translation>S%1 E%2</translation>
     </message>
+    <message id="libraryComingUpFilm">
+        <source>Film · %1</source>
+        <translation>Фильм · %1</translation>
+    </message>
     <message id="libraryNewEpisodeDate">
         <source>S%1 E%2 · %3</source>
         <extracomment>New or coming-up episode caption with its release date. (%1 season, %2 episode, %3 date)</extracomment>

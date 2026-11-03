@@ -340,8 +340,9 @@ ShellPage {
             }
 
             // The followed series with something new, on the first new
-            // episode; then those with an episode dated ahead, on the soonest.
-            SeriesShelf {
+            // episode; then those with an episode dated ahead, on the
+            // soonest, and the films not out yet.
+            ListShelf {
                 id: fresh
                 objectName: "fresh"
                 title: qsTrId("libraryNewEpisodes")
@@ -353,7 +354,7 @@ ShellPage {
                 onDown: (comingUp.visible ? comingUp : null)?.focusCard(0) ?? page.focusGrid()
             }
 
-            SeriesShelf {
+            ListShelf {
                 id: comingUp
                 objectName: "comingUp"
                 title: qsTrId("libraryComingUp")
@@ -675,9 +676,9 @@ ShellPage {
 
     WheelScroll { flickable: lines }
 
-    // A shelf of series over My list, one poster each, on the episode it
-    // opens onto.
-    component SeriesShelf: Column {
+    // A shelf over My list, one poster each: a series on the episode it
+    // opens onto, or on Coming up a film, which has none.
+    component ListShelf: Column {
         id: shelf
 
         property string title
@@ -712,13 +713,14 @@ ShellPage {
             delegate: CaptionedTile {
                 required property int index
                 required property var modelData
+                readonly property var episode: modelData.episode
                 objectName: shelf.objectName + "-" + modelData.item.id
                 width: shelf.cell
                 item: modelData.item
                 line: shelf.caption(modelData)
-                mark: Downloads.marks[modelData.item.id + "/" + modelData.episode.season + "/" + modelData.episode.number]
-                onClicked: shelf.chosen(modelData.item, { season: modelData.episode.season, episode: modelData.episode.number })
-                onMenu: at => TitleActions.ask({item: modelData.item, episode: modelData.episode, source: button,
+                mark: Downloads.marks[modelData.item.id + (episode ? "/" + episode.season + "/" + episode.number : "")]
+                onClicked: shelf.chosen(modelData.item, episode ? { season: episode.season, episode: episode.number } : null)
+                onMenu: at => TitleActions.ask({item: modelData.item, episode: episode, source: button,
                                                 x: at.x, y: at.y})
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
                 button.Keys.onUpPressed: shelf.up()

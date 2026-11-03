@@ -144,7 +144,8 @@ func TestBrowseBuildsExtraPath(t *testing.T) {
 				"runtime": "136 min",
 				"imdbRating": "8.7",
 				"moviedb_id": 603,
-				"releaseInfo": "1999"
+				"releaseInfo": "1999",
+				"released": "1999-03-31T00:00:00.000Z"
 			}]
 		}`)
 	}))
@@ -166,6 +167,9 @@ func TestBrowseBuildsExtraPath(t *testing.T) {
 	}
 	if it.Title != "The Matrix" || it.Year != 1999 || it.YearEnd != 0 {
 		t.Errorf("title/year: %+v", it)
+	}
+	if want := time.Date(1999, 3, 31, 0, 0, 0, 0, time.UTC); !it.Released.Equal(want) {
+		t.Errorf("released: %v, want %v", it.Released, want)
 	}
 	if it.IMDbRating != 8.7 {
 		t.Errorf("rating: %v", it.IMDbRating)
@@ -226,6 +230,7 @@ func TestMetaSeriesEpisodes(t *testing.T) {
 				"tvdb_id": 81189,
 				"director": null,
 				"releaseInfo": "2008–2013",
+				"released": "2008-01-20T00:00:00.000Z",
 				"cast": ["Bryan Cranston"],
 				"genres": ["Crime", "Drama"],
 				"trailers": [
@@ -254,6 +259,10 @@ func TestMetaSeriesEpisodes(t *testing.T) {
 	}
 	if item.Title != "Breaking Bad" || item.Year != 2008 || item.YearEnd != 2013 {
 		t.Errorf("title/years: %+v", item)
+	}
+	// Dated by its episodes: Cinemeta's own date is the first one's.
+	if !item.Released.IsZero() {
+		t.Errorf("released: %v, want none for a series", item.Released)
 	}
 	if item.IMDbRating != 9.5 {
 		t.Errorf("rating: %v", item.IMDbRating)

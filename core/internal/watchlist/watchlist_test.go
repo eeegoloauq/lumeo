@@ -244,18 +244,23 @@ func TestComingUpIsTheSoonestDatedEpisodeOfEachFollowedSeries(t *testing.T) {
 			"stranger": {ID: "stranger", Kind: catalog.KindSeries, Episodes: []catalog.Episode{
 				{Season: 1, Number: 1, Released: day(3)},
 			}},
+			// A film on the list between the two by its own date; one out
+			// already is not coming.
+			"film": {ID: "film", Kind: catalog.KindMovie, Released: day(20)},
+			"out":  {ID: "out", Kind: catalog.KindMovie, Released: day(-5)},
 		},
-		list:     []Entry{{ItemID: "listed"}, {ItemID: "ended"}},
+		list:     []Entry{{ItemID: "listed"}, {ItemID: "ended"}, {ItemID: "film"}, {ItemID: "out"}},
 		progress: []progress.Entry{{ItemID: "behind", Season: 1, Episode: 4, Watched: true}},
 	}
 	got, err := service(m).ComingUp(context.Background())
 	if err != nil {
 		t.Fatalf("coming up: %v", err)
 	}
-	if len(got) != 2 || got[0].Item.ID != "listed" || got[0].Episode.Number != 2 ||
-		got[1].Item.ID != "behind" || got[1].Episode.Season != 2 || got[1].Episode.Number != 1 ||
+	if len(got) != 3 || got[0].Item.ID != "listed" || got[0].Episode.Number != 2 ||
+		got[1].Item.ID != "film" || got[1].Episode != (catalog.Episode{}) ||
+		got[2].Item.ID != "behind" || got[2].Episode.Season != 2 || got[2].Episode.Number != 1 ||
 		got[0].Item.Episodes != nil {
-		t.Fatalf("coming up = %+v, want listed S1E2 then behind S2E1", got)
+		t.Fatalf("coming up = %+v, want listed S1E2, the film, then behind S2E1", got)
 	}
 }
 
