@@ -129,8 +129,6 @@ ShellPage {
         contentHeight: column.height
         boundsBehavior: Flickable.StopAtBounds
 
-        WheelScroll { flickable: flick }
-
         Column {
             id: column
             width: flick.width
@@ -305,4 +303,6 @@ ShellPage {
             }
         }
     }
+
+    WheelScroll { flickable: flick }
 }

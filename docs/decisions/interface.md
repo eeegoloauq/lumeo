@@ -330,13 +330,25 @@ column.
 A row that eats the mouse wheel stops the page scrolling wherever the pointer
 happens to rest. So the wheel belongs to the page, and sideways movement comes
 from the three things that mean it — an arrow at each end on hover, shift with
-the wheel, and a trackpad's own horizontal gesture. The page moves a long step
+the wheel, and a trackpad's own horizontal gesture. The page moves a step
 per notch and glides to a stop, notches that come quickly adding up
-(`WheelScroll.qml`); left to the list's own wheel, a quick spin dropped what
-was left of each notch and scrolled less the faster it went. Notches under
-100 ms apart go farther each, up to four steps: Qt hands over the wheel as
-the system gives it, and neither Windows nor libinput speeds one up, so
-without it a long page took a spin per screen.
+(`WheelScroll.qml`, shared with legato); left to the list's own wheel, a
+quick spin dropped what was left of each notch and scrolled less the faster
+it went. The step is GTK 4's, the view's height to the power 2/3, about 90 px
+in an 860 px view, so a notch goes as far as in other GNOME apps. Each quick
+notch goes that same step: an earlier gain that took notches under 100 ms
+apart up to four steps each made spins fly past.
+
+The wheel lies over the page, not inside it. Declared inside a list, it went
+to the list's content, whose bounds are not the page on screen: a header lies
+above them and a long list's height is a guess, so a wheel there fell to the
+list's own slow scroll. A notch is taken from its angle: Wayland sends a
+mouse wheel with both a notch of angle and the compositor's 10 to 15 pixels,
+and taking the pixels moved the page 10 px a notch. Only a trackpad's
+gesture, which says where it begins and ends, moves the page by its pixels,
+under the fingers. Turning the wheel back mid-glide goes back from where the
+page is; it used to go on the old way until the unfinished target ran out.
+Shift with the wheel passes through to the row under it.
 
 Selecting an episode does not fetch its sources immediately. Clicking along a
 season would otherwise fire one provider request per card; the list is fetched

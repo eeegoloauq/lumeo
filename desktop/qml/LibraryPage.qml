@@ -294,8 +294,6 @@ ShellPage {
                 contentY = Math.max(originY, tile.y - 90)
         })
 
-        WheelScroll { flickable: grid }
-
         readonly property ListHeader head: headerItem as ListHeader
         header: ListHeader {}
 
@@ -315,6 +313,8 @@ ShellPage {
             onActiveFocusChanged: if (activeFocus) grid.currentIndex = index
         }
     }
+
+    WheelScroll { flickable: grid }
 
     component ListHeader: Item {
         readonly property alias fresh: fresh
@@ -449,8 +449,6 @@ ShellPage {
             positionViewAtIndex(index, ListView.Contain)
             itemAtIndex(index)?.forceActiveFocus(Qt.TabFocusReason)
         }
-
-        WheelScroll { flickable: lines }
 
         header: Column {
             width: lines.width
@@ -681,6 +679,8 @@ ShellPage {
             }
         }
     }
+
+    WheelScroll { flickable: lines }
 
     // A shelf of series over My list, one poster each, on the episode it
     // opens onto.

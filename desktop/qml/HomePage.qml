@@ -107,8 +107,6 @@ ShellPage {
         cacheBuffer: 3000
         footer: Item { width: 1; height: 40 }
 
-        WheelScroll { objectName: "wheel"; flickable: list }
-
         delegate: Item {
             id: slot
 
@@ -144,6 +142,8 @@ ShellPage {
             }
         }
     }
+
+    WheelScroll { objectName: "wheel"; flickable: list }
 
     // Without a hero the shelves start under the bar.
     Component {

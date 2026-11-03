@@ -62,20 +62,61 @@ Item {
             compare(arrow.opacity, 1)
         }
 
-        // Flickable's wheel dropped the rest of a notch when the next came,
-        // so spinning faster scrolled less; a spin now goes farther per notch.
-        function test_notchesThatComeQuicklyAddUpAndSpeedUp() {
+        // Flickable's wheel dropped the rest of a notch when the next came, so
+        // spinning faster scrolled less. Quick notches now add up, each one
+        // step: a gain that multiplied them made spins fly past.
+        function test_notchesThatComeQuicklyAddUpAStepEach() {
             const list = findChild(shell, "shelves")
-            const wheel = findChild(list, "wheel")
-            wheel.duration = 0
-            wheel.burst = 60000
+            const wheel = findChild(shell, "wheel")
+            wheel.duration = 1000
             const start = list.contentY
             for (let i = 0; i < 3; ++i)
                 mouseWheel(list, 700, 300, 0, -120)
-            tryCompare(list, "contentY", start + 120 + 180 + 240, 2000)
-            wheel.burst = 0
-            mouseWheel(list, 700, 300, 0, -120)
-            tryCompare(list, "contentY", start + 540 + 120, 2000)
+            compare(wheel.goal, start + 3 * wheel.step)
+            wheel.glide.complete()
+            compare(list.contentY, start + 3 * wheel.step)
+        }
+
+        // What a mouse wheel on Wayland sends for one notch: a notch of angle and the compositor's
+        // 10-15 px. Taking the pixels moved the page 10 px a notch.
+        function test_aWaylandNotchMovesAStepNotTheCompositorsPixels() {
+            const list = findChild(shell, "shelves")
+            const wheel = findChild(shell, "wheel")
+            wheel.duration = 0
+            const start = list.contentY
+            wheel.scroll({ angleDelta: Qt.point(0, -120), pixelDelta: Qt.point(0, -10),
+                           phase: Qt.NoScrollPhase, modifiers: Qt.NoModifier })
+            tryCompare(list, "contentY", start + wheel.step, 2000)
+        }
+
+        // A touchpad gesture has phases; the page follows the fingers.
+        function test_aTouchpadGestureFollowsTheFingers() {
+            const list = findChild(shell, "shelves")
+            const wheel = findChild(shell, "wheel")
+            const start = list.contentY
+            wheel.scroll({ angleDelta: Qt.point(0, -24), pixelDelta: Qt.point(0, -17),
+                           phase: Qt.ScrollUpdate, modifiers: Qt.NoModifier })
+            compare(list.contentY, start + 17)
+        }
+
+        // Turning back mid-glide went on the old way until the unfinished target ran out.
+        function test_turningBackGoesBackFromWhereThePageIs() {
+            const list = findChild(shell, "shelves")
+            const wheel = findChild(shell, "wheel")
+            const notch = angle => wheel.scroll({ angleDelta: Qt.point(0, angle), pixelDelta: Qt.point(0, 0),
+                                                  phase: Qt.NoScrollPhase, modifiers: Qt.NoModifier })
+            // Down the page first, so there is room to turn back into.
+            wheel.duration = 0
+            notch(-120)
+            notch(-120)
+            tryVerify(() => list.contentY >= 2 * wheel.step, 2000, "room to turn back")
+            wheel.duration = 1000
+            notch(-120)
+            notch(-120)
+            wait(50)
+            const here = list.contentY
+            notch(120)
+            verify(wheel.goal < here, "the page turns back at once")
         }
 
         function test_theArrowsWalkTheHeroAndTheShelvesAndEnterOpensATitle() {

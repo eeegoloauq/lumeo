@@ -125,11 +125,6 @@ ShellPage {
 
         onDraggingChanged: if (dragging) page.pressed = ""
 
-        WheelScroll {
-            flickable: view
-            onMoved: page.pressed = ""
-        }
-
         Column {
             id: column
             x: page.side + page.nav
@@ -147,6 +142,11 @@ ShellPage {
             ShortcutsSection {}
             AboutSection { settings: page }
         }
+    }
+
+    WheelScroll {
+        flickable: view
+        onMoved: page.pressed = ""
     }
 
     NumberAnimation {
