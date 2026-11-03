@@ -33,8 +33,10 @@ firewall policy to prevent direct egress when its VPN fails.
 
 The pinned dependencies already include `golang.org/x/net v0.60.0`, whose SOCKS5
 dialer covers TCP but not UDP ASSOCIATE. The pinned torrent engine has custom
-peer dialer/listener hooks, `TrackerListenPacket` and `NewAnacrolixDhtServer`.
-The existing `anacrolix/utp` dependency can wrap a supplied `net.PacketConn`.
+peer dialer/listener hooks, a SOCKS5 dialer for peer connections (`dialer`
+package, TCP only), `ListenPacket` for the uTP socket the DHT shares,
+`TrackerListenPacket` and `NewAnacrolixDhtServer`. Its `anacrolix/go-utp`
+dependency can wrap a supplied `net.PacketConn`.
 These are integration points, not proof that complete proxy support is ready.
 
 First prove a UDP transport adapter and its integration without patching the
@@ -42,7 +44,7 @@ torrent engine. Prefer existing dependencies. Decide whether a small adapter
 or a maintained additional library is appropriate after that investigation;
 zero new dependencies is not yet a promise. Do not replace the engine or
 upgrade dependencies speculatively. An upstream report about HTTP CONNECT
-tracker handling in v1.61.0 also needs consideration if reusing that path
+tracker handling in v1.61.0 also needs checking against the pinned engine if reusing that path
 ([issue #1038](https://github.com/anacrolix/torrent/issues/1038)).
 
 The setting needs an endpoint, optional authentication, transport mode and a

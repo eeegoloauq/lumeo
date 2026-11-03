@@ -132,9 +132,9 @@ completes season 0.
   fallback. Scope, failure behaviour, dependency questions and required tests
   are in [the planned work](torrent-proxy.md). Separate from remote-core access;
   support on the real proxy still needs verification.
-- anacrolix/torrent v1.61.0 can freeze a download from few peers for up to a
-  minute (#1070, fixed on master). Update to the first release with the fix
-  and drop the skip in `TestBackendStreamsFromLocalPeer`.
+- anacrolix/torrent is pinned to a master commit, the first with its bencode
+  depth limit (GHSA, a crafted info dict crashed the core). Move to the
+  release that follows v1.61.0 once it is out.
 - Playback jumping to the end of an episode, cause unknown. Next time: the
   core's `stream cut short` warning and `mpv.log` in `~/.local/state/lumeo`.
 - `[?]` A proxy per addon, beyond `HTTP_PROXY`.

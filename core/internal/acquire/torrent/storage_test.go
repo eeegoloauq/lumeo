@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
 )
@@ -286,7 +287,7 @@ func TestStorageSettlesANameACrashLeftBehindTheRecord(t *testing.T) {
 	tor.Close()
 
 	// Recorded missing a piece, still under its own name.
-	if err := fs.completion.Set(metainfo.PieceKey{InfoHash: metainfo.Hash{1}, Index: 1}, false); err != nil {
+	if err := fs.completion.Set(metainfo.PieceKey{InfoHash: metainfo.Hash{1}, Index: 1}, g.Some(false)); err != nil {
 		t.Fatal(err)
 	}
 	fs.Close()

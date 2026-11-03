@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/segments"
 	"github.com/anacrolix/torrent/storage"
@@ -344,7 +345,7 @@ func (p *storedPiece) set(complete bool) (bool, error) {
 	if c.Ok && c.Complete == complete {
 		return false, nil
 	}
-	return c.Complete != complete, p.t.completion.Set(p.key(), complete)
+	return c.Complete != complete, p.t.completion.Set(p.key(), g.Some(complete))
 }
 
 // Completion is the record, checked against the files: a piece recorded as

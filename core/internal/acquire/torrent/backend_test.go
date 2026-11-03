@@ -24,9 +24,6 @@ import (
 )
 
 func TestBackendStreamsFromLocalPeer(t *testing.T) {
-	// The seeder's writer can miss a wakeup and sit on served requests until
-	// its one-minute keepalive; fixed on anacrolix master, not yet released.
-	t.Skip("anacrolix/torrent#1070: remove with the anacrolix update past v1.61.0")
 	const contentSize = 6 << 20
 	const transferTimeout = 60 * time.Second
 
