@@ -32,6 +32,9 @@ type Request struct {
 	Season  int
 	Episode int
 	Source  sources.MediaSource
+	// Folder is where under the download root the download's directory is
+	// made, as FolderFor names it; empty for straight under the root.
+	Folder string
 }
 
 // Download is one acquisition as everything outside this package sees it.
@@ -44,6 +47,7 @@ type Download struct {
 	Name     string          `json:"name"`
 	Locator  sources.Locator `json:"locator"`
 	Dir      string          `json:"-"` // where the backend writes; not the client's business
+	Folder   string          `json:"-"` // Dir's path between the root and its own directory: ours to take out once empty
 	FilePath string          `json:"-"`
 	Size     int64           `json:"size,omitempty"`
 	// BingeGroup and PackPath are the source's: the release the file came

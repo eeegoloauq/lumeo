@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/eeegoloauq/lumeo/core/internal/acquire"
+	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/library"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
@@ -56,6 +57,21 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	s.startDownload(w, r, req)
 }
 
+// downloadFolder names the title's folders a download goes in, or none
+// where the catalogue cannot say what the title is: the download is no less
+// wanted for it, and goes straight under the root.
+func (s *Server) downloadFolder(ctx context.Context, itemID string, season int) string {
+	if s.catalog == nil || itemID == "" {
+		return ""
+	}
+	item, err := s.catalog.Item(ctx, itemID)
+	if err != nil {
+		s.log.Info("a download without its title's folder", "item", itemID, "err", err)
+		return ""
+	}
+	return acquire.FolderFor(item.Title, item.Year, item.Kind == catalog.KindSeries, season)
+}
+
 func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req startDownloadRequest) {
 	// Only the core knows what the downloads take and which of them the limit
 	// would free, so whether a prefetch fits is its answer.
@@ -81,12 +97,14 @@ func (s *Server) startDownload(w http.ResponseWriter, r *http.Request, req start
 	if !s.deviceRoomFor(r, w, req.Source) {
 		return
 	}
+	folder := s.downloadFolder(r.Context(), req.ItemID, req.Season)
 	start := func() (acquire.Download, error) {
 		return s.downloads.Start(r.Context(), acquire.Request{
 			ItemID:  req.ItemID,
 			Season:  req.Season,
 			Episode: req.Episode,
 			Source:  req.Source,
+			Folder:  folder,
 		})
 	}
 	var d acquire.Download

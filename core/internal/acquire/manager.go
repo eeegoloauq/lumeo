@@ -201,6 +201,9 @@ func (m *Manager) start(ctx context.Context, req Request, local bool) (Download,
 	if req.Source.Locator.Scheme == "file" && !local {
 		return Download{}, ErrLocalNotOpened
 	}
+	if req.Folder != "" && !filepath.IsLocal(req.Folder) {
+		return Download{}, fmt.Errorf("acquire: folder %q is not under the download root", req.Folder)
+	}
 	now := m.now()
 	row := Download{
 		ID:         newID(),
@@ -220,10 +223,13 @@ func (m *Manager) start(ctx context.Context, req Request, local bool) (Download,
 	if row.Locator.Scheme != "file" {
 		// The backend runs one torrent per infohash and writes it where its
 		// first download started, so the episodes of a pack share that
-		// directory rather than each owning one.
-		row.Dir = m.torrentDir(row.Locator)
+		// directory rather than each owning one. Each torrent has one of its
+		// own, under the title's folders: the backend keeps what it knows of
+		// the torrent beside its files.
+		row.Dir, row.Folder = m.torrentDir(row.Locator)
 		if row.Dir == "" {
-			row.Dir = filepath.Join(m.Dir(), row.ID)
+			row.Folder = req.Folder
+			row.Dir = filepath.Join(m.Dir(), req.Folder, row.ID)
 		}
 		// 0700: what someone watches is nobody else's business, least of all
 		// another account on a shared machine.
@@ -710,6 +716,9 @@ func (m *Manager) removeData(row Download, rest []Download, running map[string]b
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("acquire: remove data: %w", err)
 		}
+		if dir == absolute(row.Dir) {
+			prune(row)
+		}
 	}
 	return nil
 }
@@ -780,16 +789,17 @@ func absolute(path string) string {
 	return filepath.Clean(path)
 }
 
-// torrentDir is the directory of another download of the same torrent.
-func (m *Manager) torrentDir(loc sources.Locator) string {
+// torrentDir is the directory of another download of the same torrent, and
+// the folders it is in.
+func (m *Manager) torrentDir(loc sources.Locator) (dir, folder string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, row := range m.rows {
 		if row.Dir != "" && sameTorrent(loc, row.Locator) {
-			return row.Dir
+			return row.Dir, row.Folder
 		}
 	}
-	return ""
+	return "", ""
 }
 
 func sameTorrent(a, b sources.Locator) bool {

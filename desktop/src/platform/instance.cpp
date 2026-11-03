@@ -190,6 +190,9 @@ void Instance::startCore(const QString &path) {
   m_core = new QProcess;
   QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
   environment.insert("LUMEO_EXIT_ON_STDIN_EOF", "1");
+  // A folder named in the environment stands, as LUMEO_DATA does.
+  if (!environment.contains("LUMEO_DOWNLOADS") && !Folders::downloads().isEmpty())
+    environment.insert("LUMEO_DOWNLOADS", Folders::downloads());
   m_core->setProcessEnvironment(environment);
 #ifdef Q_OS_WIN
   // The core logs to stderr, and a GUI process has none to give it.

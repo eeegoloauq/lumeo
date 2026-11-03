@@ -26,7 +26,7 @@ func TestDownloadRoundTrip(t *testing.T) {
 			ItemID:  "item-movie",
 			Name:    "Movie",
 			Locator: sources.Locator{Scheme: "torrent", InfoHash: "abc", Trackers: []string{"udp://tracker.example/announce"}},
-			Dir:     "/data/dl", FilePath: "/data/dl/movie.mkv", Size: 1234,
+			Dir:     "/data/Movie (1999)/dl", Folder: "Movie (1999)", FilePath: "/data/Movie (1999)/dl/movie.mkv", Size: 1234,
 			State:     acquire.StateDone,
 			Progress:  acquire.Progress{Completed: 100, Total: 200, Peers: 3, Seeders: 1, Rate: 9},
 			CreatedAt: time.Unix(1_700_000_000, 0).UTC(),

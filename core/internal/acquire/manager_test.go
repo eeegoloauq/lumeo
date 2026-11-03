@@ -408,6 +408,72 @@ func TestRemoveKeepsDataUnlessAsked(t *testing.T) {
 	}
 }
 
+// A download goes in its title's folders, each torrent in a directory of its
+// own there; the folders go with the last download in them, and not while
+// anything else is, the viewer's own file included. The root stays.
+func TestTheTitlesFoldersGoWithTheirLastDownload(t *testing.T) {
+	m, _, root := testManager(t, &fakeBackend{scheme: "torrent", task: &fakeTask{}})
+	season := filepath.Join("Severance (2022)", "Season 02")
+	first, second := torrentRequest(), torrentRequest()
+	first.Folder, second.Folder = season, season
+	second.Source.Locator.InfoHash = "cafe"
+	d1, err := m.Start(context.Background(), first)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	d2, err := m.Start(context.Background(), second)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if want := filepath.Join(root, season, d1.ID); d1.Dir != want {
+		t.Fatalf("dir = %s, want %s", d1.Dir, want)
+	}
+	notes := filepath.Join(root, "Severance (2022)", "notes.txt")
+	if err := os.WriteFile(notes, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Remove(context.Background(), d1.ID, true); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if _, err := os.Stat(d2.Dir); err != nil {
+		t.Fatalf("the other torrent's directory went: %v", err)
+	}
+	if err := m.Remove(context.Background(), d2.ID, true); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, season)); !os.IsNotExist(err) {
+		t.Errorf("the empty season's folder stayed: %v", err)
+	}
+	if _, err := os.Stat(notes); err != nil {
+		t.Errorf("the title's folder went with the viewer's file in it: %v", err)
+	}
+	if err := os.Remove(notes); err != nil {
+		t.Fatal(err)
+	}
+	d3, err := m.Start(context.Background(), first)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	if err := m.Remove(context.Background(), d3.ID, true); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "Severance (2022)")); !os.IsNotExist(err) {
+		t.Errorf("the empty title's folder stayed: %v", err)
+	}
+	if _, err := os.Stat(root); err != nil {
+		t.Errorf("the root went: %v", err)
+	}
+}
+
+func TestAFolderOutsideTheRootIsRefused(t *testing.T) {
+	m, _, _ := testManager(t, &fakeBackend{scheme: "torrent"})
+	req := torrentRequest()
+	req.Folder = filepath.Join("..", "elsewhere")
+	if _, err := m.Start(context.Background(), req); err == nil {
+		t.Fatal("a folder above the root was taken")
+	}
+}
+
 // The episodes of a pack are one torrent, written where its first download
 // started: freeing one episode must leave the others' files where they are.
 func TestRemoveFreesOneEpisodeOfAPack(t *testing.T) {

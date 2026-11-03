@@ -31,6 +31,7 @@ type Addon struct {
 type Config struct {
 	Addr      string // HTTP listen address
 	DataDir   string // SQLite + library metadata
+	Downloads string // where downloads go when the preference names none; empty for DataDir's
 	CacheDir  string // downloaded artwork
 	PublicURL string // external HTTPS origin, a reverse proxy's or this core's own with TLS
 	// Addons a fresh database starts with. What each one is for — catalog,
@@ -70,8 +71,14 @@ func (c Config) PublicHost() string {
 // DBPath is the one SQLite file the core keeps everything in.
 func (c Config) DBPath() string { return filepath.Join(c.DataDir, "lumeo.db") }
 
-// DownloadDir is where acquired media lands, one directory per download.
-func (c Config) DownloadDir() string { return filepath.Join(c.DataDir, "downloads") }
+// DownloadDir is where acquired media lands when the preference names no
+// folder.
+func (c Config) DownloadDir() string {
+	if c.Downloads != "" {
+		return c.Downloads
+	}
+	return filepath.Join(c.DataDir, "downloads")
+}
 
 // FromEnv reads the environment, falling back to values that make a fresh
 // checkout run without a config file.
@@ -81,6 +88,7 @@ func FromEnv() Config {
 		DataDir:   envOr("LUMEO_DATA", defaultDataDir()),
 		CacheDir:  envOr("LUMEO_CACHE", defaultCacheDir()),
 		PublicURL: strings.TrimRight(os.Getenv("LUMEO_PUBLIC_URL"), "/"),
+		Downloads: os.Getenv("LUMEO_DOWNLOADS"),
 	}
 	// LUMEO_ADDONS: comma-separated addon URLs, optionally "name=url". It is
 	// what a database with no addons starts with — the list is edited over

@@ -284,3 +284,16 @@ func TestSourcesKeepToTheBroadcastCutAndTheFolderPicked(t *testing.T) {
 		t.Fatalf("director's cut picked: %v", got)
 	}
 }
+
+// A download goes in its title's folders, named from the catalogue; a title
+// it does not have goes straight under the root, still downloaded.
+func TestADownloadGoesInItsTitlesFolders(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	srv := New(Deps{Catalog: catalog.NewService(catalog.Fixed(stubMeta{}), &stubStore{item: severance()}, log)}, log)
+	if got, want := srv.downloadFolder(context.Background(), "abc123", 1), filepath.Join("Severance", "Season 01"); got != want {
+		t.Errorf("folder = %q, want %q", got, want)
+	}
+	if got := srv.downloadFolder(context.Background(), "unknown", 1); got != "" {
+		t.Errorf("folder of a title the catalogue lacks = %q", got)
+	}
+}

@@ -134,11 +134,20 @@ fetched in the order a player asks for them, so playback starts long before the
 download finishes, and it is a plain `io.ReadSeekCloser`, so an HTTP backend
 later needs no new concept.
 
-Acquired downloads own a directory `<id>` under the download directory and a
-row in SQLite. The download directory is `<data>/downloads` unless the
-`downloadDir` preference names another; a change of it takes the downloads
-started after it, and the episodes of a pack already begun stay with their
-torrent. `/about` and `/storage` report the one in effect. Progress is not
+Acquired downloads own a directory `<id>` and a row in SQLite, the directory
+under the title's folders in the download directory: `Title (Year)/<id>` for a
+film, `Title (Year)/Season 01/<id>` (or `Specials`) for an episode, the way
+media servers read a library. Only those folders are named by us, made safe
+for Windows on every system, and taken out once the last download in them goes
+and nothing else is there; the torrent's files inside `<id>` keep their names,
+which seeding needs, and `<id>` keeps what the backend knows of the torrent
+beside them, so two torrents never share one. A title the catalogue cannot
+name goes straight under the root. The download directory is the
+`downloadDir` preference, else `LUMEO_DOWNLOADS`, which the desktop app sets
+to `Videos/Lumeo` for the core it starts, else `<data>/downloads`, as on a
+server; a change of it takes the downloads started after it, and the episodes
+of a pack already begun stay with their torrent. `/about` and `/storage`
+report the one in effect. Progress is not
 persisted: it is cheaper to ask the backend than to keep a stale number honest.
 The exception is a pause, which freezes it. A download says `resolved` once the backend knows
 which file it is (a magnet's metadata has arrived), so the client can tell

@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QStandardPaths>
 
 namespace {
 
@@ -39,4 +40,9 @@ QString Folders::state() {
 QString Folders::playerLog() {
   const QString chosen = qEnvironmentVariable("LUMEO_MPV_LOG");
   return chosen.isEmpty() ? state() + "/mpv.log" : chosen;
+}
+
+QString Folders::downloads() {
+  const QString videos = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+  return videos.isEmpty() ? QString() : QDir::toNativeSeparators(videos + "/Lumeo");
 }

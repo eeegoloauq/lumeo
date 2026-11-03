@@ -31,9 +31,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## Library and storage
 
-- Default download folder `Videos/Lumeo`, laid out
-  `Title (Year)/Season NN/<torrent name>/`. Only the directories above the
-  torrent's are ours: renaming its files breaks seeding.
 - Trakt import and export. A first-watched time needs a column of its own:
   `progress.updated_at` moves with a rewatch.
 - A folder of films the user already has, scanned as a library of its own on

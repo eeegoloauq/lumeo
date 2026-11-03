@@ -30,8 +30,9 @@ LUMEO_PUBLIC_URL=https://lumeo.example.com
 ```
 
 The unit creates `/var/lib/lumeo` and `/var/cache/lumeo`, private to its
-unprivileged user. Downloads stay under the data directory. An external media
-directory needs a unit override granting write access to that directory.
+unprivileged user. Downloads stay under the data directory unless
+`LUMEO_DOWNLOADS` names another, laid out by title and season. An external
+media directory needs a unit override granting write access to that directory.
 Run `systemctl daemon-reload` and `systemctl enable --now lumeo-core`.
 Logs are in `journalctl -u lumeo-core`. Closing a remote client leaves it running.
 

@@ -13,4 +13,8 @@ QString cache();
 QString state();
 // mpv's log for the player being opened; LUMEO_MPV_LOG names another.
 QString playerLog();
+// Where the core this app starts downloads to unless the settings name a
+// folder: Lumeo in the system's Videos, where people look for films, rather
+// than the core's data folder. Empty where the system names no Videos.
+QString downloads();
 } // namespace Folders
