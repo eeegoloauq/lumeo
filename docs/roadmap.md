@@ -53,8 +53,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## Player
 
-- mpv's window requests (clipboard, window size, minimise, on-top): answer
-  each through an observed property, as `fullscreen` is.
 - "Identify as…" for a file matched to the wrong title or none (`[?]`).
 - A copy that is not the episode (another cut, a short), told by mpv's
   `duration` against the catalogue runtime. Only if somebody asks.

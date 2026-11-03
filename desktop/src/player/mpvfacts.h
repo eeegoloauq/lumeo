@@ -86,10 +86,13 @@ public:
   // do, in that order.
   static QVariantList shortcuts(const QVariantList &bindings, const QStringList &only = {});
   // The player's own bindings over mpv's, as `define-section` takes them:
-  // its actions, and the arrows at the stored step so that mpv seeks.
-  static QStringList ownBindings(int seekStep);
+  // its actions, and the arrows at the stored step so that mpv seeks. mpv's
+  // T is ours only where a window can ask to [stayOnTop].
+  static QStringList ownBindings(int seekStep, bool stayOnTop = canStayOnTop());
   // The same as input-bindings lists them.
-  static QVariantList ownBindingList(int seekStep);
+  static QVariantList ownBindingList(int seekStep, bool stayOnTop = canStayOnTop());
+  // Wayland has no way for a window to ask to be kept above the others.
+  static bool canStayOnTop();
   // The keyboard page of the settings: mpv's bindings and ours, the keys
   // most people reach for unless [all].
   Q_INVOKABLE QVariantList shortcutLines(int seekStep, bool all) const;

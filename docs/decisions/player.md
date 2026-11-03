@@ -181,6 +181,14 @@ mpv's flag and the window both ways took a stale state the compositor
 reported as a window opening fullscreen for the viewer leaving fullscreen,
 and the film fell out of it.
 
+mpv's other window keys ask the same way. Alt+0, Alt+1 and Alt+2 take the
+window out of fullscreen with the picture at half, one or twice its size, a
+video pixel to a screen pixel as mpv sizes its own window, smaller where the
+screen is. T keeps the window above the others until the film ends, as mpv's
+`ontop` lasts as long as mpv; it is not bound on Wayland, which has no way
+for a window to ask that. mpv's minimise and maximise have no default key,
+so nothing asks for them.
+
 **A film takes the screen.** Playing left the window exactly as it was, which
 on a maximised window means the desktop's own panel sits across the top of the
 picture — and the key that would fix it is one nobody thinks to press once the

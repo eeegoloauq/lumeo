@@ -2752,6 +2752,30 @@
         <extracomment>Own shortcut action shown in player shortcuts list.</extracomment>
         <translation>Звук и субтитры</translation>
     </message>
+    <message id="playerShortcutOnTop">
+        <source>Keep on top</source>
+        <translation>Поверх других окон</translation>
+    </message>
+    <message id="playerShortcutSizeHalf">
+        <source>Half the video size</source>
+        <translation>Половина размера видео</translation>
+    </message>
+    <message id="playerShortcutSizeVideo">
+        <source>The video’s size</source>
+        <translation>Размер видео</translation>
+    </message>
+    <message id="playerShortcutSizeDouble">
+        <source>Twice the video size</source>
+        <translation>Двойной размер видео</translation>
+    </message>
+    <message id="playerOnTop">
+        <source>Kept on top</source>
+        <translation>Поверх других окон</translation>
+    </message>
+    <message id="playerNotOnTop">
+        <source>No longer on top</source>
+        <translation>Не поверх других окон</translation>
+    </message>
     <message id="playerShortcutFullscreen">
         <source>Fullscreen</source>
         <extracomment>Own shortcut action shown in player shortcuts list.</extracomment>

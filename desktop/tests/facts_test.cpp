@@ -64,6 +64,16 @@ private slots:
                           "Shift+→ = Seek exactly 1 second forward", "Shift+↑ = Seek 5 seconds forward"}));
   }
 
+  // mpv's window keys ask ours, and T only where a window can stay on top:
+  // mpv's own have no window to act on and stay off the page.
+  void theWindowKeysAskTheWindow() {
+    const QVariantList mpvs = {binding("T", "cycle ontop"), binding("Alt+1", "set window-scale 1.0")};
+    QCOMPARE(lines(MpvFacts::shortcuts(mpvs + MpvFacts::ownBindingList(5, true), {"T", "Alt+1"})),
+             QStringList({"Shift+T = Keep on top", "Alt+1 = The video’s size"}));
+    QCOMPARE(lines(MpvFacts::shortcuts(mpvs + MpvFacts::ownBindingList(5, false), {"T", "Alt+1"})),
+             QStringList({"Alt+1 = The video’s size"}));
+  }
+
   void keysAsTheirKeycapsRead() {
     QCOMPARE(MpvFacts::keyLabel("f"), "F");
     QCOMPARE(MpvFacts::keyLabel("F"), "Shift+F");

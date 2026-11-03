@@ -476,6 +476,23 @@ Item {
             tryVerify(() => win.visibility === Window.FullScreen, 5000, "the window given back fullscreen")
         }
 
+        // mpv's Alt+2 sizes a window of its own, which a render API client
+        // has none of: the player's window takes the picture at twice its
+        // size, out of fullscreen. T is not here: Wayland keeps no window
+        // above the others, so it is not bound (facts_test.cpp).
+        function test_altTwoSizesTheWindowToThePicture() {
+            const win = createTemporaryObject(windowComponent, null)
+            tryVerify(() => win.visible, 5000)
+            win.play("d1", "Nosferatu", true)
+            tryVerify(() => win.visibility === Window.FullScreen, 5000)
+            tryVerify(() => win.player.mpv.hasPicture, 10000)
+            win.player.mpv.command(["keypress", "Alt+2"])
+            tryVerify(() => win.visibility === Window.Windowed, 5000, "out of fullscreen")
+            const ratio = win.screen.devicePixelRatio
+            tryVerify(() => win.width === Math.round(1280 / ratio) && win.height === Math.round(720 / ratio), 5000,
+                      "the clip's 640 by 360 twice, not " + win.width + " by " + win.height)
+        }
+
         // Another copy or episode in the same sitting keeps the window as it
         // is; the one before goes, its position saved.
         function test_theNextDownloadTakesTheWindowInTheSameSitting() {

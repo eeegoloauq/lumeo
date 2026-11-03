@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QJSEngine>
 #include <QProcess>
 #include <QRegularExpression>
@@ -71,6 +72,14 @@ QString ownLabel(const QString &cmd) {
     return qtTrId("playerShortcutTracks");
   if (cmd == "script-message lumeo fullscreen")
     return qtTrId("playerShortcutFullscreen");
+  if (cmd == "script-message lumeo ontop")
+    return qtTrId("playerShortcutOnTop");
+  if (cmd == "script-message lumeo size-half")
+    return qtTrId("playerShortcutSizeHalf");
+  if (cmd == "script-message lumeo size-video")
+    return qtTrId("playerShortcutSizeVideo");
+  if (cmd == "script-message lumeo size-double")
+    return qtTrId("playerShortcutSizeDouble");
   return {};
 }
 
@@ -111,7 +120,7 @@ QString commandLabel(const QString &cmd) {
 // window and its scripts' panels.
 bool actsHere(const QString &cmd) {
   for (const char *dead : {"ignore", "quit", "playlist-", "set fullscreen", "cycle fullscreen", "cycle ontop",
-                           "set current-window-scale", "script-binding osc/",
+                           "set current-window-scale", "set window-scale", "script-binding osc/",
                            "script-binding console/"})
     if (cmd.startsWith(QLatin1String(dead)))
       return false;
@@ -492,8 +501,10 @@ QVariantList MpvFacts::shortcuts(const QVariantList &bindings, const QStringList
   return lines;
 }
 
-QStringList MpvFacts::ownBindings(int seekStep) {
-  return {
+bool MpvFacts::canStayOnTop() { return !QGuiApplication::platformName().startsWith("wayland"); }
+
+QStringList MpvFacts::ownBindings(int seekStep, bool stayOnTop) {
+  QStringList bindings{
       "MBTN_LEFT cycle pause",
       "ESC script-message lumeo escape",
       "q script-message lumeo back",
@@ -510,7 +521,15 @@ QStringList MpvFacts::ownBindings(int seekStep) {
       "Shift+RIGHT seek 1 exact",
       "Shift+DOWN seek -5 exact",
       "Shift+UP seek 5 exact",
+      // mpv's window keys, which a render API client has no window of mpv's
+      // for: they ask ours, as fullscreen does.
+      "Alt+0 script-message lumeo size-half",
+      "Alt+1 script-message lumeo size-video",
+      "Alt+2 script-message lumeo size-double",
   };
+  if (stayOnTop)
+    bindings.append("T script-message lumeo ontop");
+  return bindings;
 }
 
 QVariantList MpvFacts::shortcutLines(int seekStep, bool all) const {
@@ -523,9 +542,9 @@ QVariantList MpvFacts::shortcutLines(int seekStep, bool all) const {
   return shortcuts(m_bindings + ownBindingList(seekStep), all ? QStringList() : everyday);
 }
 
-QVariantList MpvFacts::ownBindingList(int seekStep) {
+QVariantList MpvFacts::ownBindingList(int seekStep, bool stayOnTop) {
   QVariantList list;
-  for (const QString &line : ownBindings(seekStep)) {
+  for (const QString &line : ownBindings(seekStep, stayOnTop)) {
     const qsizetype space = line.indexOf(' ');
     list.append(QVariantMap{{"key", line.left(space)}, {"cmd", line.mid(space + 1)}, {"section", "lumeo"}});
   }

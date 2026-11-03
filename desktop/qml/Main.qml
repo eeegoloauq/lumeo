@@ -40,6 +40,9 @@ ApplicationWindow {
     property int windowed: Window.Windowed
     // How a film found the window, to give it back that way.
     property bool wasFullscreen: false
+    // Above the other windows, while a film asks for it.
+    property bool staysOnTop: false
+    onStaysOnTopChanged: flags = staysOnTop ? flags | Qt.WindowStaysOnTopHint : flags & ~Qt.WindowStaysOnTopHint
     property Player player: null
     // The app is ending, not going to the background; with a film up, the
     // window closes once the film's position is saved.
@@ -83,6 +86,17 @@ ApplicationWindow {
             sitting.handedOver = true
             sitting.close()
         }
+    }
+
+    // Out of fullscreen with the content at [width] by [height] screen
+    // pixels, a picture's pixel to each as mpv sizes its own window, and
+    // smaller to fit the screen.
+    function fit(width, height) {
+        const ratio = Screen.devicePixelRatio
+        const room = Math.min(1, Screen.desktopAvailableWidth * ratio / width, Screen.desktopAvailableHeight * ratio / height)
+        visibility = Window.Windowed
+        window.width = Math.round(width * room / ratio)
+        window.height = Math.round(height * room / ratio)
     }
 
     onVisibilityChanged: {
@@ -264,6 +278,9 @@ ApplicationWindow {
             // fullscreen.
             fullscreen: window.visibility === Window.FullScreen
             onFullscreenAsked: on => window.visibility = on ? Window.FullScreen : window.windowed
+            staysOnTop: window.staysOnTop
+            onStaysOnTopAsked: on => window.staysOnTop = on
+            onSizeAsked: (width, height) => window.fit(width, height)
             onNext: (downloadId, name) => window.play(downloadId, name, film.kept)
             onStorage: {
                 film.close()
@@ -271,6 +288,8 @@ ApplicationWindow {
             }
             onClosed: {
                 film.visible = false
+                // The film's, as mpv's own window was.
+                window.staysOnTop = false
                 if (film.handedOver)
                     return
                 if (film.kept && !LocalSettings.keepsTold) {

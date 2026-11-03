@@ -25,6 +25,11 @@ FocusScope {
     // not used, so the window and mpv cannot disagree.
     property bool fullscreen: false
     signal fullscreenAsked(bool on)
+    // The window's too: kept above the others, and sized to the picture at
+    // [width] by [height] screen pixels, as mpv's T and Alt+0 to 2 ask.
+    property bool staysOnTop: false
+    signal staysOnTopAsked(bool on)
+    signal sizeAsked(real width, real height)
     readonly property alias playback: session
 
     // The film is left: the window goes back to the pages.
@@ -112,6 +117,17 @@ FocusScope {
                 player.menu = ""
             else if (name === "fullscreen")
                 player.fullscreenAsked(!player.fullscreen)
+            else if (name === "ontop") {
+                note.say(player.staysOnTop ? qsTrId("playerNotOnTop") : qsTrId("playerOnTop"))
+                player.staysOnTopAsked(!player.staysOnTop)
+            } else if (name.startsWith("size-")) {
+                const scale = { half: 0.5, video: 1, double: 2 }[name.slice(5)]
+                // The picture as shown, its aspect applied.
+                video.get("video-params", params => {
+                    if (params?.dw > 0)
+                        player.sizeAsked(params.dw * scale, params.dh * scale)
+                })
+            }
             else if (name === "back" || (name === "escape" && !player.fullscreen))
                 player.close()
             else if (name === "escape")

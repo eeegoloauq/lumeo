@@ -2725,6 +2725,30 @@
         <extracomment>Own shortcut action shown in player shortcuts list.</extracomment>
         <translation>Audio &amp; subtitles</translation>
     </message>
+    <message id="playerShortcutOnTop">
+        <source>Keep on top</source>
+        <translation>Keep on top</translation>
+    </message>
+    <message id="playerShortcutSizeHalf">
+        <source>Half the video size</source>
+        <translation>Half the video size</translation>
+    </message>
+    <message id="playerShortcutSizeVideo">
+        <source>The video’s size</source>
+        <translation>The video’s size</translation>
+    </message>
+    <message id="playerShortcutSizeDouble">
+        <source>Twice the video size</source>
+        <translation>Twice the video size</translation>
+    </message>
+    <message id="playerOnTop">
+        <source>Kept on top</source>
+        <translation>Kept on top</translation>
+    </message>
+    <message id="playerNotOnTop">
+        <source>No longer on top</source>
+        <translation>No longer on top</translation>
+    </message>
     <message id="playerShortcutFullscreen">
         <source>Fullscreen</source>
         <extracomment>Own shortcut action shown in player shortcuts list.</extracomment>
