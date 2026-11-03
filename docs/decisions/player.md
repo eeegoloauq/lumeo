@@ -172,6 +172,12 @@ It is this machine's (client.json), as the volume is: the speakers decide it.
 `af` is set only when the switch moves, since mpv builds its filters again on
 each set, a break in the sound.
 
+**Surround can go to a receiver as it is.** Off by default, and this
+machine's: on, mpv's `audio-spdif` passes AC-3, E-AC-3, DTS, DTS-HD and
+TrueHD over HDMI or S/PDIF for the receiver to decode. Neither the volume nor
+the loudness filter reaches a stream nobody here decodes, which the row says,
+since nobody would guess it. Set only when the switch moves, as `af` is.
+
 **Fullscreen is the window's.** The window goes fullscreen and the player
 stays the item it was, with its mpv and its state. The window is the one
 owner of it: `f`, F11 and the double click ask the player, which asks the
@@ -226,6 +232,9 @@ the release (its black bars, its line art, a file the graphics decode wrong)
 and to this machine's screen and graphics, so they are kept in client.json,
 not in the core. Volume and speed are not: the volume follows the room and the
 hour, and a series that kept last night's quiet would start quiet by day.
+Decoding is kept against the machine's own switch (Settings › Playback,
+on by default): with it off a film starts in software, and a title put back
+on the graphics keeps that, as one taken off them does with it on.
 
 **A playing film keeps the screen on.** mpv's `stop-screensaver` works through
 a window of mpv's own, which a render API client has none of, so the player

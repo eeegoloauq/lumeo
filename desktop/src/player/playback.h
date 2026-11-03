@@ -175,7 +175,7 @@ private:
   void resume();
   void defineBindings();
   void applyScreenshots();
-  void applyLoudness();
+  void applyAudio();
   void applyPicture();
   void rememberPicture();
   void stayAwake();
@@ -195,8 +195,8 @@ private:
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
-  // What `af` was last set to by the loudness switch, none yet.
-  std::optional<bool> m_reducingLoud;
+  // What the sound settings last set, nothing yet.
+  std::optional<QString> m_af, m_spdif;
   Awake m_awake;
   QString m_downloadId;
   QStringList m_urls;

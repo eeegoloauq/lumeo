@@ -639,6 +639,18 @@
         <source>Reduce loud sounds</source>
         <translation>Приглушать громкие звуки</translation>
     </message>
+    <message id="settingsPassthrough">
+        <source>Surround to the receiver</source>
+        <translation>Объёмный звук на ресивер</translation>
+    </message>
+    <message id="settingsPassthroughHint">
+        <source>Dolby and DTS go as they are: the volume and Reduce loud sounds do not reach them</source>
+        <translation>Dolby и DTS идут как есть: громкость и приглушение громких звуков на них не действуют</translation>
+    </message>
+    <message id="settingsHardwareDecoding">
+        <source>Hardware decoding</source>
+        <translation>Аппаратное декодирование</translation>
+    </message>
     <message id="settingsKeepFileStyling">
         <source>Keep the file’s styling</source>
         <translation>Сохранять оформление файла</translation>

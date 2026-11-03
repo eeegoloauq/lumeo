@@ -178,7 +178,7 @@ void LocalSettings::write() {
 
 void LocalSettings::resetChoices() {
   const QString language = this->language();
-  for (const char *key : {"timelinePreviews", "reduceLoud", "screenshotsDir", "language", "background", "autostart", "textScale",
+  for (const char *key : {"timelinePreviews", "reduceLoud", "passthrough", "hardwareDecoding", "screenshotsDir", "language", "background", "autostart", "textScale",
                           "pictures"})
     m_values.remove(key);
   emit changed();

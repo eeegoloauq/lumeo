@@ -228,6 +228,43 @@ Item {
             }, 5000, "no filter, not " + af)
         }
 
+        // A receiver decodes what it is sent: the surround codecs go to it as
+        // they are, and only while the switch is on.
+        function test_surroundGoesToTheReceiverAsItIs() {
+            playing()
+            let spdif
+            LocalSettings.passthrough = true
+            tryVerify(() => {
+                player.mpv.get("audio-spdif", value => spdif = value)
+                return spdif === "ac3,eac3,dts,dts-hd,truehd"
+            }, 5000, "passed through, not " + spdif)
+            LocalSettings.passthrough = false
+            tryVerify(() => {
+                player.mpv.get("audio-spdif", value => spdif = value)
+                return spdif === ""
+            }, 5000, "decoded here, not " + spdif)
+        }
+
+        // A machine whose graphics decode wrong plays in software, and a title
+        // put back on the graphics there keeps that as its own.
+        function test_aMachineWithoutHardwareDecodingPlaysInSoftware() {
+            LocalSettings.hardwareDecoding = false
+            playing()
+            compare(player.mpv.decoding, "no")
+            player.mpv.set("hwdec", "auto-safe")
+            tryCompare(player.mpv, "decoding", "auto-safe")
+            player.destroy()
+            start()
+            tryVerify(() => player.mpv.hasPicture, 10000, "a picture")
+            const kept = player.mpv.decoding
+            // The machine's own back before the check, so a failure leaves the
+            // next tests alone.
+            player.mpv.set("hwdec", "no")
+            tryCompare(player.mpv, "decoding", "no")
+            LocalSettings.hardwareDecoding = true
+            compare(kept, "auto-safe")
+        }
+
         // Kept for the film on this machine, and set before it loads again. Set
         // through mpv, not the menu: llvmpipe takes seconds over a frame with
         // Anime4K, longer than the menu's waits for rendering.

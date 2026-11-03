@@ -44,8 +44,8 @@ void Playback::componentComplete() {
     connect(m_next, &Next::watched, this, [this] { report(true); });
     emit tracksChanged();
     applyScreenshots();
-    applyLoudness();
-    connect(m_settings, &LocalSettings::changed, this, &Playback::applyLoudness);
+    applyAudio();
+    connect(m_settings, &LocalSettings::changed, this, &Playback::applyAudio);
   }
   refresh();
 }
@@ -312,8 +312,9 @@ void Playback::defineBindings() {
 }
 
 // The title's picture as it was last left on this machine, set before the
-// file loads so that the decoder starts as it stays. Nothing for a title left
-// at the defaults: an mpv profile's own settings stand.
+// file loads so that the decoder starts as it stays, and else the machine's
+// decoding. Nothing for a title left at the defaults: an mpv profile's own
+// settings stand.
 void Playback::applyPicture() {
   const QVariantMap picture = m_settings->picture(m_download.value("itemId").toString());
   if (picture.contains("fit"))
@@ -322,6 +323,8 @@ void Playback::applyPicture() {
     m_mpv->setAnime4k(picture.value("anime4k").toString());
   if (picture.contains("hwdec"))
     m_mpv->set("hwdec", picture.value("hwdec").toString());
+  else if (!m_settings->hardwareDecoding())
+    m_mpv->set("hwdec", "no");
 }
 
 // Changed by the menu or a key: kept for the title, as mpv has it now.
@@ -335,8 +338,11 @@ void Playback::rememberPicture() {
   // "other" is shaders of the viewer's own, which a profile sets anyway.
   if (!m_mpv->anime4k().isEmpty() && m_mpv->anime4k() != "other")
     picture["anime4k"] = m_mpv->anime4k();
-  if (m_mpv->decoding() == "no")
-    picture["hwdec"] = "no";
+  // Against the machine's decoding: a title kept on the graphics where the
+  // machine's are off is as much its own as one kept off them.
+  const bool software = m_mpv->decoding() == "no";
+  if (software != !m_settings->hardwareDecoding())
+    picture["hwdec"] = software ? "no" : "auto-safe";
   m_settings->setPicture(itemId, picture);
 }
 
@@ -344,15 +350,22 @@ void Playback::stayAwake() {
   m_awake.hold(m_mpv && m_mpv->hasPicture() && !m_mpv->paused() && !m_closing);
 }
 
-// ffmpeg's dynaudnorm with a short window, so a shout is brought down within
-// the scene. Set only when the switch moves: mpv builds its filters again on
-// every `af`, a break in the sound, and the settings change with the volume.
-void Playback::applyLoudness() {
-  const bool on = m_settings->reduceLoud();
-  if (m_reducingLoud == on)
-    return;
-  m_reducingLoud = on;
-  m_mpv->set("af", on ? "lavfi=[dynaudnorm=f=75:g=25:p=0.55]" : "");
+// This machine's sound: ffmpeg's dynaudnorm with a short window, so a shout
+// is brought down within the scene, and the surround codecs a receiver
+// decodes passed through as they are. Each is set only when its switch moves:
+// mpv builds its audio again on either, a break in the sound, and the settings
+// change with every volume step.
+void Playback::applyAudio() {
+  const QString af = m_settings->reduceLoud() ? "lavfi=[dynaudnorm=f=75:g=25:p=0.55]" : "";
+  if (m_af != af) {
+    m_af = af;
+    m_mpv->set("af", af);
+  }
+  const QString spdif = m_settings->passthrough() ? "ac3,eac3,dts,dts-hd,truehd" : "";
+  if (m_spdif != spdif) {
+    m_spdif = spdif;
+    m_mpv->set("audio-spdif", spdif);
+  }
 }
 
 // mpv's own folder is the process's working directory, often `/` for an app

@@ -64,8 +64,7 @@ app. This revises "No browser playback" in decisions/foundations.md.
   a backoff.
 - Settings to add: what opens at startup; pausing when minimised (X11 and
   Windows only: Wayland never says); an external player for what
-  our mpv cannot open; surround passthrough; subtitle outline; whether a
-  newer release exists; mpv's network timeout and cache, `hwdec`.
+  our mpv cannot open; subtitle outline; mpv's network timeout and cache.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).
 - A web demo on the share site, to try the app without installing it: a
   page of its own in HTML and JS, as the share page is, over answers recorded

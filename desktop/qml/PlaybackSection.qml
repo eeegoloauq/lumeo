@@ -107,6 +107,17 @@ SettingsBlock {
             }
             Hint { text: qsTrId("settingsShiftSkip") }
         }
+        // This machine's: its graphics.
+        SettingRow {
+            label: qsTrId("settingsHardwareDecoding")
+
+            SettingSwitch {
+                objectName: "hardwareDecoding"
+                label: qsTrId("settingsHardwareDecoding")
+                checked: LocalSettings.hardwareDecoding
+                onToggled: LocalSettings.hardwareDecoding = checked
+            }
+        }
         // This machine's: whether it can afford a second decoder.
         SettingRow {
             label: qsTrId("settingsTimelinePreviews")

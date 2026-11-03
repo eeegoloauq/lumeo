@@ -639,6 +639,18 @@
         <source>Reduce loud sounds</source>
         <translation>Reduce loud sounds</translation>
     </message>
+    <message id="settingsPassthrough">
+        <source>Surround to the receiver</source>
+        <translation>Surround to the receiver</translation>
+    </message>
+    <message id="settingsPassthroughHint">
+        <source>Dolby and DTS go as they are: the volume and Reduce loud sounds do not reach them</source>
+        <translation>Dolby and DTS go as they are: the volume and Reduce loud sounds do not reach them</translation>
+    </message>
+    <message id="settingsHardwareDecoding">
+        <source>Hardware decoding</source>
+        <translation>Hardware decoding</translation>
+    </message>
     <message id="settingsKeepFileStyling">
         <source>Keep the file’s styling</source>
         <translation>Keep the file’s styling</translation>

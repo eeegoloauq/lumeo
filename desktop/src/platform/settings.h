@@ -26,6 +26,12 @@ class LocalSettings : public QObject {
   // machine has: the same viewer wants it on a laptop at night and not on a
   // home cinema.
   Q_PROPERTY(bool reduceLoud READ reduceLoud WRITE setReduceLoud NOTIFY changed)
+  // Surround tracks sent as they are to a receiver over HDMI or S/PDIF,
+  // which decodes them; the receiver is this machine's.
+  Q_PROPERTY(bool passthrough READ passthrough WRITE setPassthrough NOTIFY changed)
+  // The graphics decode the picture where they can; off where this
+  // machine's decode it wrong. A title's own choice in the player stands.
+  Q_PROPERTY(bool hardwareDecoding READ hardwareDecoding WRITE setHardwareDecoding NOTIFY changed)
   // A title's page plays its trailer, muted, in place of the backdrop.
   Q_PROPERTY(bool trailerPreviews READ trailerPreviews WRITE setTrailerPreviews NOTIFY changed)
   // Where screenshots go; empty for Pictures/Lumeo.
@@ -69,9 +75,13 @@ public:
   bool timelinePreviews() const { return m_values.value("timelinePreviews").toBool(true); }
   void setTimelinePreviews(bool on) { set("timelinePreviews", on); }
   bool trailerPreviews() const { return m_values.value("trailerPreviews").toBool(true); }
+  void setTrailerPreviews(bool on) { set("trailerPreviews", on); }
   bool reduceLoud() const { return m_values.value("reduceLoud").toBool(false); }
   void setReduceLoud(bool on) { set("reduceLoud", on); }
-  void setTrailerPreviews(bool on) { set("trailerPreviews", on); }
+  bool passthrough() const { return m_values.value("passthrough").toBool(false); }
+  void setPassthrough(bool on) { set("passthrough", on); }
+  bool hardwareDecoding() const { return m_values.value("hardwareDecoding").toBool(true); }
+  void setHardwareDecoding(bool on) { set("hardwareDecoding", on); }
   QString screenshotsDir() const { return m_values.value("screenshotsDir").toString(); }
   void setScreenshotsDir(const QString &dir) { set("screenshotsDir", dir); }
   QString language() const;

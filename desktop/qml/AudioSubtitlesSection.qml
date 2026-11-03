@@ -40,6 +40,18 @@ SettingsBlock {
                 onToggled: LocalSettings.reduceLoud = checked
             }
         }
+        // This machine's too: the receiver it is wired to.
+        SettingRow {
+            label: qsTrId("settingsPassthrough")
+            hint: qsTrId("settingsPassthroughHint")
+
+            SettingSwitch {
+                objectName: "passthrough"
+                label: qsTrId("settingsPassthrough")
+                checked: LocalSettings.passthrough
+                onToggled: LocalSettings.passthrough = checked
+            }
+        }
         SettingRow {
             visible: block.known
             label: qsTrId("settingsSubtitleLanguages")
