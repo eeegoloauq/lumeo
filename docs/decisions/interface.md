@@ -356,6 +356,11 @@ under the fingers. Turning the wheel back mid-glide goes back from where the
 page is; it used to go on the old way until the unfinished target ran out.
 Shift with the wheel passes through to the row under it.
 
+A list read again or narrowed keeps its place: its view is given a model
+changed in place (`Rows`, keyed where rows move; `History`), not a new list.
+A view handed a new model goes back to its start, which sent My list to its
+top on every stage, order and title marked from a menu.
+
 Selecting an episode does not fetch its sources immediately. Clicking along a
 season would otherwise fire one provider request per card; the list is fetched
 for the episode the pointer settles on.

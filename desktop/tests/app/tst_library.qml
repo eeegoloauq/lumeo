@@ -71,8 +71,34 @@ Item {
             LocalSettings.listKind = ""
         }
 
+        // The grid's titles in order, once it has taken the last change in;
+        // as many as it holds at once.
         function titles() {
-            return findChild(shell, "library").titles.map(t => t.item.title)
+            const grid = findChild(shell, "myList")
+            grid.forceLayout()
+            const out = []
+            for (let i = 0; i < grid.count; ++i)
+                out.push(grid.itemAtIndex(i).item.title)
+            return out
+        }
+
+        // A row of the title menu once the title has answered, laid out.
+        function menuRow(name) {
+            const menu = findChild(shell, "titleMenu")
+            tryVerify(() => menu.opened && menu.ready, 5000, "the menu open on its title")
+            const found = findChild(menu.contentItem, name)
+            tryVerify(() => found.visible && found.enabled && found.height > 0, 5000, name)
+            waitForRendering(menu.contentItem)
+            return found
+        }
+
+        // What the menu reads of [item] before it offers anything.
+        function answerTitle(item, inList) {
+            fakeCore.answer("GET", "/api/v1/items/" + item.id, 200, item)
+            fakeCore.answer("GET", "/api/v1/progress/" + item.id, 200, {})
+            fakeCore.answer("GET", "/api/v1/list/" + item.id, 200, { inList: inList })
+            fakeCore.answer("GET", "/api/v1/ratings/" + item.id, 200, { ratings: [] })
+            fakeCore.answer("PUT", "/api/v1/progress/" + item.id, 200, {})
         }
 
         function history() {
@@ -153,7 +179,7 @@ Item {
             tryVerify(() => orders.opened)
             mouseClick(findChild(orders.contentItem, "order-title"))
             compare(LocalSettings.listSort, "title")
-            compare(findChild(shell, "library").titles.map(t => t.item.title), ["Breaking Bad", "Nosferatu"])
+            compare(titles(), ["Breaking Bad", "Nosferatu"])
         }
 
         // A stage narrows the grid for now; a kind is kept on this machine,
@@ -187,8 +213,8 @@ Item {
             mouseClick(findChild(shell, "tab-home"))
             tryCompare(shell, "page", "home")
             mouseClick(findChild(shell, "tab-library"))
-            tryVerify(() => library.titles.length === 9, 5000, "the nine titles")
             const grid = findChild(shell, "myList")
+            tryCompare(grid, "count", 9, 5000, "the nine titles")
             const columns = library.columns
             verify(columns > 1 && columns < 9, columns + " columns")
 
@@ -207,6 +233,73 @@ Item {
             tryVerify(() => on() === 1, 2000, "a row up")
             keyClick(Qt.Key_Up)
             tryVerify(() => findChild(shell, "comingUp-" + show.id)?.button.activeFocus ?? false, 2000, "the shelf over the grid")
+        }
+
+        // My list was a new model on every stage and every reading again, and
+        // a view handed one goes back to its start: the page jumped to its top,
+        // the chips just pressed under the shelves out of sight.
+        function test_myListKeepsItsPlace() {
+            const many = []
+            for (let i = 0; i < 60; ++i)
+                many.push({ item: { id: "tt90" + i, kind: "movie", title: "Film " + i, year: 2000 },
+                            addedAt: at(i), seen: { watched: 0, released: 1, played: i % 10 === 9 } })
+            fakeCore.answer("GET", "/api/v1/list", 200, { items: many })
+            mouseClick(findChild(shell, "tab-home"))
+            tryCompare(shell, "page", "home")
+            mouseClick(findChild(shell, "tab-library"))
+            const grid = findChild(shell, "myList")
+            tryCompare(grid, "count", 60, 5000, "the sixty titles")
+            tryVerify(() => findChild(shell, "comingUp").visible, 5000, "Coming up")
+            waitForPolish(grid)
+
+            const stage = findChild(shell, "stage-toWatch")
+            grid.contentY = stage.mapToItem(grid.contentItem, 0, 0).y - 300
+            const kept = grid.contentY
+            verify(kept > grid.originY + 300, "under the shelves: " + kept)
+            mouseClick(stage)
+            grid.forceLayout()
+            compare(grid.count, 54)
+            compare(grid.contentY, kept, "a stage")
+
+            // Marked watched from its menu, the first leaves To watch.
+            const film = many[0].item
+            answerTitle(film, true)
+            const tile = findChild(shell, "listed-" + film.id)
+            mouseClick(tile, tile.width / 2, 40, Qt.RightButton)
+            const watched = menuRow("menuWatched")
+            many[0].seen = { watched: 1, released: 1, played: true }
+            fakeCore.answer("GET", "/api/v1/list", 200, { items: many })
+            mouseClick(watched)
+            tryCompare(grid, "count", 53, 5000, "the list read again")
+            grid.forceLayout()
+            compare(grid.contentY, kept, "a reading again")
+        }
+
+        // The history was made anew on every title changed from a menu, and
+        // went back to its start as My list did.
+        function test_theHistoryKeepsItsPlaceReadAgain() {
+            const lines = []
+            for (let e = 1; e <= 30; ++e)
+                lines.push(line(e, 0, 480))
+            fakeCore.answer("GET", "/api/v1/history", 200, { entries: lines, more: false })
+            history()
+            const view = findChild(shell, "history")
+            view.contentY = view.originY + 1000
+            const kept = view.contentY
+            waitForPolish(view)
+
+            const shown = view.itemAt(100, view.contentY + 300)
+            answerTitle(show, true)
+            mouseClick(shown, 200, shown.height / 2, Qt.RightButton)
+            const watched = menuRow("menuWatched")
+            const episode = shown.entry.episode
+            lines[episode - 1] = line(episode, 0, 0)
+            fakeCore.answer("GET", "/api/v1/history", 200, { entries: lines, more: false })
+            mouseClick(watched)
+            tryVerify(() => findChild(findChild(shell, "line-" + show.id + "/1/" + episode), "state")?.text === "Watched",
+                      5000, "the history read again")
+            compare(view.contentY, kept)
+            verify(requests().includes("GET /api/v1/history?limit=50"), "read as far as before")
         }
 
         function test_theHistoryIsByDayTheLatestFirst() {

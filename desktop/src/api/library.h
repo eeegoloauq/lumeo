@@ -10,6 +10,8 @@
 #include <QtQml/qqmlregistration.h>
 #include <optional>
 
+#include "rows.h"
+
 class Core;
 
 // My list as the page shows it: the titles of the stage and kind chosen in
@@ -30,16 +32,20 @@ class MyList : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QString stage READ stage WRITE setStage NOTIFY changed)
   // "" for both kinds, "movie" or "series".
   Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY changed)
-  // The titles of [stage] and [kind] in [order], each the core's listed title.
-  Q_PROPERTY(QVariantList titles READ titles NOTIFY changed)
+  // The titles of [stage] and [kind] in [order], a row `listed` each, the
+  // core's listed title. Changed in place: a view handed a new model goes
+  // back to its start, so the grid lost its place on every stage and reload.
+  Q_PROPERTY(Rows *titles READ titles CONSTANT)
   // How many are on the list whatever is shown: an empty list and an empty
   // stage say different things.
   Q_PROPERTY(int total READ total NOTIFY changed)
   // A shelf over the list, not the list: a core that cannot work them out
   // still shows what is on it.
-  Q_PROPERTY(QVariantList fresh READ fresh NOTIFY changed)
+  // Told apart from changed(): a shelf handed its list again goes back to
+  // its start, which a stage or an order has nothing to do with.
+  Q_PROPERTY(QVariantList fresh READ fresh NOTIFY shelvesChanged)
   // The followed series' episodes dated ahead, soonest first; a shelf too.
-  Q_PROPERTY(QVariantList comingUp READ comingUp NOTIFY changed)
+  Q_PROPERTY(QVariantList comingUp READ comingUp NOTIFY shelvesChanged)
 
 public:
   enum Status { Loading, Ready, Failed };
@@ -59,9 +65,7 @@ public:
   void setStage(const QString &stage);
   QString kind() const { return m_kind; }
   void setKind(const QString &kind);
-  QVariantList titles() const {
-    return sorted(filtered(m_titles, m_stage, m_kind), m_order).toVariantList();
-  }
+  Rows *titles() const { return m_shown; }
   int total() const { return int(m_titles.size()); }
   QVariantList fresh() const { return m_fresh.toVariantList(); }
   QVariantList comingUp() const { return m_comingUp.toVariantList(); }
@@ -81,9 +85,14 @@ public:
 
 signals:
   void changed();
+  void shelvesChanged();
 
 private:
+  // [titles] made up to [stage], [kind] and [order] as they are now.
+  void fill();
+
   Core *m_core = nullptr;
+  Rows *m_shown = new Rows({"id", "listed"}, this, "id");
   Status m_status = Loading;
   QString m_error;
   QString m_order = "added";
@@ -152,6 +161,10 @@ public:
   // one failed.
   Q_INVOKABLE void more();
   Q_INVOKABLE void retry();
+  // What has been read, read again and changed in place, so the view keeps
+  // its place: a title changed from its menu may change any line. A line
+  // waiting for its undo stays out and comes back with it.
+  Q_INVOKABLE void reload();
   // Scores what line [row] is about: the episode for a series, the film
   // otherwise; 0 takes the score off. The line changes at once and goes
   // back if the core refuses.
@@ -173,6 +186,8 @@ private:
   };
 
   int find(const QJsonObject &line) const;
+  // The lines read made [lines], each one kept on its row as it moves.
+  void replace(const QList<QJsonObject> &lines);
   void insert(int at, const QJsonObject &line);
   void commit();
   void forget(const QJsonObject &line, QObject *context, std::function<void(bool)> done);
@@ -186,6 +201,8 @@ private:
   // Where the next page starts on the core's side: the lines read, less
   // those the core has since forgotten.
   int m_offset = 0;
+  // Which reading the answer on its way belongs to: reload() outdates a page.
+  int m_asking = 0;
   std::optional<Pending> m_pending;
   QTimer m_undo;
 };

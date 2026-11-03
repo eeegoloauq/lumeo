@@ -24,7 +24,6 @@ ShellPage {
     readonly property real inner: width - 2 * Tokens.gutter
     readonly property int columns: Math.max(3, Math.floor((inner + gap) / (160 + gap)))
     readonly property real cell: Math.floor((inner - (columns - 1) * gap) / columns)
-    readonly property var titles: list.titles
     // Back from a title opened here, which may have changed the list.
     property bool shown
 
@@ -91,12 +90,7 @@ ShellPage {
         target: TitleActions
         function onChanged() {
             list.load()
-            if (!page.history.started)
-                return
-            const old = page.history
-            page.history = historyModel.createObject(page) as History
-            old.destroy()
-            page.history.more()
+            page.history.reload()
         }
     }
 
@@ -267,11 +261,10 @@ ShellPage {
         cellWidth: page.cell + page.gap
         cellHeight: Math.round(page.cell * 1.5) + 46 + page.gap
         boundsBehavior: Flickable.StopAtBounds
-        model: list.status === MyList.Ready ? page.titles : []
+        model: list.titles
         // No title is current until the keyboard comes: the view scrolls to
         // its current one, which sent the page past its shelves on arrival.
         currentIndex: -1
-        onModelChanged: if (!activeFocus) currentIndex = -1
         // A page at its top stays there as its header grows: the view keeps
         // its place instead, which left the shelves that come with the list
         // scrolled under the bar.
@@ -299,15 +292,15 @@ ShellPage {
 
         delegate: CaptionedTile {
             required property int index
-            required property var modelData
-            objectName: "listed-" + modelData.item.id
+            required property var listed
+            objectName: "listed-" + listed.item.id
             width: page.cell
-            item: modelData.item
-            line: Words.listedCaption(modelData)
-            score: modelData.rating ?? 0
-            mark: Downloads.marks[modelData.item.id]
-            onClicked: page.open(modelData.item, null)
-            onMenu: at => TitleActions.ask({item: modelData.item, source: button, x: at.x, y: at.y})
+            item: listed.item
+            line: Words.listedCaption(listed)
+            score: listed.rating ?? 0
+            mark: Downloads.marks[listed.item.id]
+            onClicked: page.open(listed.item, null)
+            onMenu: at => TitleActions.ask({item: listed.item, source: button, x: at.x, y: at.y})
             // Tab or the pointer can land on any title: the arrows go on
             // from there.
             onActiveFocusChanged: if (activeFocus) grid.currentIndex = index
@@ -415,7 +408,7 @@ ShellPage {
             Text {
                 objectName: "stageEmpty"
                 x: Tokens.gutter
-                visible: list.status === MyList.Ready && list.total > 0 && page.titles.length === 0
+                visible: list.status === MyList.Ready && list.total > 0 && grid.count === 0
                 text: qsTrId("libraryStageEmpty")
                 color: Tokens.muted
                 font.family: Tokens.fontSans

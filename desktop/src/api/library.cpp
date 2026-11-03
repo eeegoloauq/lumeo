@@ -17,6 +17,7 @@ void MyList::setOrder(const QString &order) {
   if (order == m_order)
     return;
   m_order = order;
+  fill();
   emit changed();
 }
 
@@ -24,6 +25,7 @@ void MyList::setStage(const QString &stage) {
   if (stage == m_stage)
     return;
   m_stage = stage;
+  fill();
   emit changed();
 }
 
@@ -31,6 +33,7 @@ void MyList::setKind(const QString &kind) {
   if (kind == m_kind)
     return;
   m_kind = kind;
+  fill();
   emit changed();
 }
 
@@ -55,13 +58,17 @@ void MyList::load() {
       return;
     }
     const QJsonArray titles = reply.json()["items"].toArray();
-    if (m_status == Ready && titles == m_titles && **fresh == m_fresh && **comingUp == m_comingUp)
+    const bool shelves = **fresh != m_fresh || **comingUp != m_comingUp;
+    if (m_status == Ready && titles == m_titles && !shelves)
       return;
     m_titles = titles;
     m_fresh = **fresh;
     m_comingUp = **comingUp;
     m_status = Ready;
     m_error.clear();
+    fill();
+    if (shelves)
+      emit shelvesChanged();
     emit changed();
   };
   m_core->get("/api/v1/new-episodes", {}, this, [fresh, show](const Core::Reply &reply) {
@@ -80,6 +87,13 @@ void MyList::load() {
     m_status = Loading;
     emit changed();
   }
+}
+
+void MyList::fill() {
+  QList<QVariantMap> rows;
+  for (const QJsonValue &t : sorted(filtered(m_titles, m_stage, m_kind), m_order))
+    rows.append({{"id", t["item"]["id"].toString()}, {"listed", t.toObject().toVariantMap()}});
+  m_shown->set(rows);
 }
 
 static QString sortTitle(const QString &title) {
@@ -212,7 +226,10 @@ void History::more() {
   QUrlQuery query{{"limit", QString::number(page)}};
   if (m_offset > 0)
     query.addQueryItem("offset", QString::number(m_offset));
-  m_core->get("/api/v1/history", query, this, [this](const Core::Reply &reply) {
+  const int asking = ++m_asking;
+  m_core->get("/api/v1/history", query, this, [this, asking](const Core::Reply &reply) {
+    if (asking != m_asking)
+      return;
     m_loading = false;
     m_started = true;
     if (!reply.ok()) {
@@ -241,6 +258,68 @@ void History::retry() {
 static bool same(const QJsonObject &a, const QJsonObject &b) {
   return a["item"]["id"] == b["item"]["id"] && a["entry"]["season"] == b["entry"]["season"] &&
          a["entry"]["episode"] == b["entry"]["episode"];
+}
+
+void History::reload() {
+  if (!m_started)
+    return;
+  const int asking = ++m_asking;
+  m_loading = true;
+  emit stateChanged();
+  // As far as was read, the line waiting for its undo included: the core
+  // has not been told of it yet.
+  const QUrlQuery query{{"limit", QString::number(std::max(int(page), m_offset))}};
+  m_core->get("/api/v1/history", query, this, [this, asking](const Core::Reply &reply) {
+    if (asking != m_asking)
+      return;
+    m_loading = false;
+    // Lines already on screen stay: it is a reading again that failed.
+    if (!reply.ok()) {
+      emit stateChanged();
+      return;
+    }
+    const QJsonArray entries = reply.json()["entries"].toArray();
+    QList<QJsonObject> lines;
+    for (const QJsonValue &e : entries)
+      if (!m_pending || !same(e.toObject(), m_pending->line))
+        lines.append(e.toObject());
+    replace(lines);
+    m_offset = int(entries.size());
+    m_more = reply.json()["more"].toBool();
+    m_error.clear();
+    emit stateChanged();
+  });
+}
+
+// Each new line in turn: the old one moved up to its place and changed, or
+// a new one put there; what is left over at the end went.
+void History::replace(const QList<QJsonObject> &lines) {
+  for (int i = 0; i < lines.size(); ++i) {
+    int at = -1;
+    for (int j = i; j < m_lines.size() && at < 0; ++j)
+      if (same(m_lines[j], lines[i]))
+        at = j;
+    if (at < 0) {
+      beginInsertRows({}, i, i);
+      m_lines.insert(i, lines[i]);
+      endInsertRows();
+      continue;
+    }
+    if (at > i) {
+      beginMoveRows({}, at, at, {}, i);
+      m_lines.move(at, i);
+      endMoveRows();
+    }
+    if (m_lines[i] != lines[i]) {
+      m_lines[i] = lines[i];
+      emit dataChanged(index(i), index(i));
+    }
+  }
+  if (m_lines.size() > lines.size()) {
+    beginRemoveRows({}, int(lines.size()), int(m_lines.size() - 1));
+    m_lines.resize(lines.size());
+    endRemoveRows();
+  }
 }
 
 int History::find(const QJsonObject &line) const {

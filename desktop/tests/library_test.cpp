@@ -119,6 +119,37 @@ private slots:
     QTRY_VERIFY(fake->requests().last().startsWith("GET /api/v1/history?limit=50&offset=1"));
   }
 
+  // Read again, the history is what the core has now, as far as it had
+  // been read; a line waiting for its undo stays out and still comes back.
+  void theHistoryReadAgainKeepsALineWaitingForItsUndo() {
+    fake->answer("GET", "/api/v1/history", 200,
+                 QJsonObject{{"entries", QJsonArray{line(3), line(2), line(1)}}, {"more", false}});
+    History history(core.get());
+    history.more();
+    QTRY_COMPARE(history.rowCount(), 3);
+    history.setUndoTime(60000);
+    history.remove(2);
+
+    QJsonObject again = line(1);
+    again["rating"] = 8;
+    fake->answer("GET", "/api/v1/history", 200,
+                 QJsonObject{{"entries", QJsonArray{line(4), line(2), again}}, {"more", false}});
+    history.reload();
+    QTRY_VERIFY(!history.loading());
+    QCOMPARE(fake->requests().last(), "GET /api/v1/history?limit=50");
+    auto episodes = [&] {
+      QList<int> out;
+      for (int i = 0; i < history.rowCount(); ++i)
+        out.append(history.data(history.index(i), History::EntryRole).toMap()["episode"].toInt());
+      return out;
+    };
+    QCOMPARE(episodes(), (QList<int>{4, 2}));
+    QVERIFY(history.removing());
+    history.undo();
+    QCOMPARE(episodes(), (QList<int>{4, 2, 1}));
+    QCOMPARE(forgotten(*fake), QStringList());
+  }
+
   void aLineTheCoreWouldNotForgetComesBack() {
     fake->answer("GET", "/api/v1/history", 200,
                  QJsonObject{{"entries", QJsonArray{line(2), line(1)}}, {"more", false}});

@@ -3,7 +3,7 @@
 #include <QAbstractListModel>
 #include <QtQml/qqmlregistration.h>
 
-// The rows of a menu, changed in place: a list handed to QML as a value is
+// The rows of a view, changed in place: a list handed to QML as a value is
 // drawn again whole on every change, and a row made again under the pointer
 // loses the click whose press and release straddle it. Every row has every
 // role.
