@@ -84,8 +84,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
   Play and downloads open the title in an installed Lumeo. The client does
   not build for a browser well: Qt's is a large WebAssembly download.
 - Gamepad support.
-- The player's notice line is a second `Toast` (top, wrapped, 8 s): one
-  component with those as properties.
 
 ## Metadata: TMDB
 

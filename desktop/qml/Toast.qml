@@ -3,7 +3,7 @@ import QtQuick.Controls.Basic
 import Lumeo
 
 // A line at the foot of a page for a few seconds, or for as long as [held],
-// with a button when it offers one.
+// with a button when it offers one. A line too long for the window wraps.
 Rectangle {
     id: toast
     objectName: "toast"
@@ -14,6 +14,11 @@ Rectangle {
     property bool held: false
     // The button's label; empty for none.
     property string action
+    // Qt.BottomEdge or Qt.TopEdge, [margin] from it.
+    property int edge: Qt.BottomEdge
+    property real margin: 32
+    // How long a line stays, in ms.
+    property int lasts: 4000
     signal acted()
 
     function say(text) {
@@ -21,15 +26,21 @@ Rectangle {
         timer.restart()
     }
 
-    anchors { bottom: parent.bottom; bottomMargin: 32; horizontalCenter: parent.horizontalCenter }
+    anchors {
+        top: edge === Qt.TopEdge ? parent.top : undefined
+        topMargin: margin
+        bottom: edge === Qt.BottomEdge ? parent.bottom : undefined
+        bottomMargin: margin
+        horizontalCenter: parent.horizontalCenter
+    }
     visible: held || timer.running
-    width: row.implicitWidth + 28
-    height: 52
+    width: row.implicitWidth + 36
+    height: Math.max(52, row.implicitHeight + 20)
     radius: Tokens.radiusFloating
     color: Tokens.floating
     border.color: Tokens.rim
 
-    Timer { id: timer; interval: 4000 }
+    Timer { id: timer; interval: toast.lasts }
 
     Row {
         id: row
@@ -37,7 +48,13 @@ Rectangle {
         spacing: 18
 
         Text {
+            objectName: "toastText"
+            // What the window leaves beside its sides' 24 px and the button.
+            readonly property real room: (toast.parent?.width ?? 0) - 48 - 36
+                                         - (button.visible ? button.implicitWidth + row.spacing : 0)
             anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(implicitWidth, room)
+            wrapMode: Text.Wrap
             text: toast.text
             color: Tokens.text
             font.family: Tokens.fontSans

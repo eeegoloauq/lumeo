@@ -64,6 +64,17 @@ Item {
             compare(shell.page, "home", "library was not pushed twice")
         }
 
+        // A toast was one line however long, and a long one ran off both
+        // sides of the window.
+        function test_aLongLineWrapsInsideTheWindow() {
+            const toast = findChild(shell, "toast")
+            shell.say("A line far too long to stand on one row of the window. ".repeat(8))
+            verify(toast.visible)
+            verify(toast.x >= 24 && toast.x + toast.width <= shell.width - 24,
+                   "inside the window: " + toast.x + " " + toast.width)
+            verify(findChild(toast, "toastText").lineCount > 1, "wrapped")
+        }
+
         // A title from a link or a file was pushed every time and stayed made
         // until Back passed it, one more page for every link followed.
         function test_aTitleFromOutsideGivesWayToTheNextOne() {

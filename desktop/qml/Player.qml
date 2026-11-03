@@ -210,36 +210,14 @@ FocusScope {
         palette.dark: "white"
     }
 
-    // A short line over the picture, gone after eight seconds.
-    Rectangle {
+    // A line over the picture under the top band, longer than a page's:
+    // what went wrong with the file can take a while to read.
+    Toast {
         id: note
-
-        function say(text) {
-            line.text = text
-            visible = true
-            forget.restart()
-        }
-
-        anchors { top: parent.top; topMargin: 84; horizontalCenter: parent.horizontalCenter }
-        visible: false
-        width: Math.min(line.implicitWidth, player.width - 48) + 28
-        height: line.implicitHeight + 18
-        radius: Tokens.radiusControl
-        color: Qt.alpha(Tokens.floating, 0.92)
-        border.color: Tokens.rim
-
-        Text {
-            id: line
-            objectName: "notice"
-            anchors.centerIn: parent
-            width: parent.width - 28
-            wrapMode: Text.Wrap
-            color: Tokens.dim
-            font.family: Tokens.fontSans
-            font.pixelSize: Tokens.textCard
-        }
-
-        Timer { id: forget; interval: 8000; onTriggered: note.visible = false }
+        objectName: "notice"
+        edge: Qt.TopEdge
+        margin: 84
+        lasts: 8000
     }
 
     // The bar follows the mouse and nothing else: up when the pointer moves,
