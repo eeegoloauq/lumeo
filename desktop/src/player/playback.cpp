@@ -44,6 +44,8 @@ void Playback::componentComplete() {
     connect(m_next, &Next::watched, this, [this] { report(true); });
     emit tracksChanged();
     applyScreenshots();
+    applyLoudness();
+    connect(m_settings, &LocalSettings::changed, this, &Playback::applyLoudness);
   }
   refresh();
 }
@@ -340,6 +342,17 @@ void Playback::rememberPicture() {
 
 void Playback::stayAwake() {
   m_awake.hold(m_mpv && m_mpv->hasPicture() && !m_mpv->paused() && !m_closing);
+}
+
+// ffmpeg's dynaudnorm with a short window, so a shout is brought down within
+// the scene. Set only when the switch moves: mpv builds its filters again on
+// every `af`, a break in the sound, and the settings change with the volume.
+void Playback::applyLoudness() {
+  const bool on = m_settings->reduceLoud();
+  if (m_reducingLoud == on)
+    return;
+  m_reducingLoud = on;
+  m_mpv->set("af", on ? "lavfi=[dynaudnorm=f=75:g=25:p=0.55]" : "");
 }
 
 // mpv's own folder is the process's working directory, often `/` for an app

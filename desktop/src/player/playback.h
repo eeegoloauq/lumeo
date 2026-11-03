@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
+#include <optional>
 
 class Core;
 class LocalSettings;
@@ -174,6 +175,7 @@ private:
   void resume();
   void defineBindings();
   void applyScreenshots();
+  void applyLoudness();
   void applyPicture();
   void rememberPicture();
   void stayAwake();
@@ -193,6 +195,8 @@ private:
   Core *m_core = nullptr;
   Preferences *m_preferences = nullptr;
   LocalSettings *m_settings = nullptr;
+  // What `af` was last set to by the loudness switch, none yet.
+  std::optional<bool> m_reducingLoud;
   Awake m_awake;
   QString m_downloadId;
   QStringList m_urls;

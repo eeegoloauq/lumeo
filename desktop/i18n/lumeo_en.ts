@@ -635,6 +635,10 @@
         <extracomment>Higher in ui/screens/settings/audio_subtitles_section.dart</extracomment>
         <translation>Higher</translation>
     </message>
+    <message id="settingsReduceLoud">
+        <source>Reduce loud sounds</source>
+        <translation>Reduce loud sounds</translation>
+    </message>
     <message id="settingsKeepFileStyling">
         <source>Keep the file’s styling</source>
         <translation>Keep the file’s styling</translation>

@@ -205,6 +205,29 @@ Item {
             tryCompare(player.mpv, "volume", volume, 5000)
         }
 
+        // The switch is mpv's audio filter. A graph ffmpeg cannot build is
+        // still read back as set, and leaves the film silent: mpv says so only
+        // in its log, which comes before its answer.
+        function test_reduceLoudSoundsFiltersTheAudio() {
+            playing()
+            const errors = []
+            const keep = line => errors.push(line)
+            player.mpv.logged.connect(keep)
+            let af
+            LocalSettings.reduceLoud = true
+            tryVerify(() => {
+                player.mpv.get("af", value => af = JSON.stringify(value))
+                return (af ?? "").includes("dynaudnorm")
+            }, 5000, "the filter, not " + af)
+            player.mpv.logged.disconnect(keep)
+            compare(errors.filter(line => /filter/i.test(line)), [])
+            LocalSettings.reduceLoud = false
+            tryVerify(() => {
+                player.mpv.get("af", value => af = JSON.stringify(value))
+                return af === "[]"
+            }, 5000, "no filter, not " + af)
+        }
+
         // Kept for the film on this machine, and set before it loads again. Set
         // through mpv, not the menu: llvmpipe takes seconds over a frame with
         // Anime4K, longer than the menu's waits for rendering.

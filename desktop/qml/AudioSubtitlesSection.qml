@@ -29,6 +29,17 @@ SettingsBlock {
                 onEdited: codes => block.set("audioLanguages", codes)
             }
         }
+        // This machine's: its speakers.
+        SettingRow {
+            label: qsTrId("settingsReduceLoud")
+
+            SettingSwitch {
+                objectName: "reduceLoud"
+                label: qsTrId("settingsReduceLoud")
+                checked: LocalSettings.reduceLoud
+                onToggled: LocalSettings.reduceLoud = checked
+            }
+        }
         SettingRow {
             visible: block.known
             label: qsTrId("settingsSubtitleLanguages")

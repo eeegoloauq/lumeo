@@ -164,6 +164,14 @@ Three of the decisions inside the bar are ours rather than inherited.
 and the one time anybody wants that is a film mixed so quietly the dialogue
 disappears. The slider goes there.
 
+**Reducing loud sounds is a switch, off by default.** A release has no
+loudness standard, and a 5.1 mix folded to stereo buries the voices under the
+effects. On, mpv's `af` is ffmpeg's `dynaudnorm` with a short window, so a
+shout comes down within the scene and speech comes up: nothing to bundle.
+It is this machine's (client.json), as the volume is: the speakers decide it.
+`af` is set only when the switch moves, since mpv builds its filters again on
+each set, a break in the sound.
+
 **Fullscreen is the window's.** The window goes fullscreen and the player
 stays the item it was, with its mpv and its state. The window is the one
 owner of it: `f`, F11 and the double click ask the player, which asks the

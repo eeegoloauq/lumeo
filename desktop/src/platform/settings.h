@@ -22,6 +22,10 @@ class LocalSettings : public QObject {
   Q_PROPERTY(double volume READ volume WRITE setVolume NOTIFY changed)
   // Frames over the seek bar, from a second mpv on the same file.
   Q_PROPERTY(bool timelinePreviews READ timelinePreviews WRITE setTimelinePreviews NOTIFY changed)
+  // Loud scenes brought down and quiet speech up, for the speakers this
+  // machine has: the same viewer wants it on a laptop at night and not on a
+  // home cinema.
+  Q_PROPERTY(bool reduceLoud READ reduceLoud WRITE setReduceLoud NOTIFY changed)
   // A title's page plays its trailer, muted, in place of the backdrop.
   Q_PROPERTY(bool trailerPreviews READ trailerPreviews WRITE setTrailerPreviews NOTIFY changed)
   // Where screenshots go; empty for Pictures/Lumeo.
@@ -65,6 +69,8 @@ public:
   bool timelinePreviews() const { return m_values.value("timelinePreviews").toBool(true); }
   void setTimelinePreviews(bool on) { set("timelinePreviews", on); }
   bool trailerPreviews() const { return m_values.value("trailerPreviews").toBool(true); }
+  bool reduceLoud() const { return m_values.value("reduceLoud").toBool(false); }
+  void setReduceLoud(bool on) { set("reduceLoud", on); }
   void setTrailerPreviews(bool on) { set("trailerPreviews", on); }
   QString screenshotsDir() const { return m_values.value("screenshotsDir").toString(); }
   void setScreenshotsDir(const QString &dir) { set("screenshotsDir", dir); }
