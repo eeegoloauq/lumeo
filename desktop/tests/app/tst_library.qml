@@ -65,6 +65,8 @@ Item {
         }
 
         function cleanup() {
+            window.width = 1440
+            window.height = 900
             LocalSettings.listSort = "added"
             LocalSettings.listKind = ""
         }
@@ -121,6 +123,27 @@ Item {
             compare(page.section, "list")
             verify(findChild(shell, "listed-" + film.id)?.visible, "the list at once")
             tryVerify(() => findChild(shell, "listEmpty")?.visible === true, 5000, "the list read again")
+        }
+
+        // The kept library was made at the stack's size, which counted as set
+        // by hand, so the stack never resized it: maximised after the first
+        // visit, it stayed at its first size.
+        function test_theKeptLibraryFollowsTheWindowShownAndAway() {
+            const page = findChild(shell, "library")
+            window.width = 1000
+            window.height = 700
+            compare(page.width, 1000)
+            compare(page.height, 700)
+
+            mouseClick(findChild(shell, "tab-home"))
+            tryCompare(shell, "page", "home")
+            compare(page.width, 1000, "waits at the size it left at")
+            window.width = 1600
+            window.height = 1000
+            mouseClick(findChild(shell, "tab-library"))
+            compare(shell.page, "library")
+            compare(page.width, 1600)
+            compare(page.height, 1000)
         }
 
         function test_theOrderChosenIsKeptOnThisMachine() {

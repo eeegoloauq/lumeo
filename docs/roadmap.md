@@ -86,13 +86,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - Gamepad support.
 - The player's notice line is a second `Toast` (top, wrapped, 8 s): one
   component with those as properties.
-- The kept Library page (`Shell.library()`) never follows the window's size:
-  made with `width` and `height`, it counts as sized by hand, and StackView
-  only resizes items it sized itself. Maximised or resized after the first
-  visit, Library stays at its first size. Make it with `implicitWidth` and
-  `implicitHeight` instead; set them to the stack's size as it leaves, so it
-  waits at that size (the stack drops it to its implicit size). Add a resize
-  case to the app tests.
 - A link or file opened from outside (`Opening.onTitle`) pushes a title page
   every time, and each stays made with its rows until Back passes it. The
   tabs and Search go back to the copy in the stack; a title opened from

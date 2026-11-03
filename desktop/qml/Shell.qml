@@ -35,11 +35,13 @@ FocusScope {
     // page filling in. The rest of it starts over when it leaves the stack.
     // Made in the stack at its size, it is laid out at once as a page the
     // stack makes is, and the stack hides it, as one it did not make, when it
-    // leaves.
+    // leaves. The size is implicit: the stack resizes only a page whose width
+    // and height nobody set, and drops one to its implicit size as it leaves,
+    // so the page waits at the size it left at.
     property LibraryPage kept: null
     function library(): LibraryPage {
         if (!kept)
-            kept = libraryPage.createObject(stack, {width: stack.width, height: stack.height}) as LibraryPage
+            kept = libraryPage.createObject(stack, {implicitWidth: stack.width, implicitHeight: stack.height}) as LibraryPage
         return kept
     }
 
@@ -215,7 +217,14 @@ FocusScope {
     }
     Component {
         id: libraryPage
-        LibraryPage { objectName: "library"; onOpen: (item, at) => shell.open(item, false, at) }
+        LibraryPage {
+            objectName: "library"
+            onOpen: (item, at) => shell.open(item, false, at)
+            StackView.onDeactivating: {
+                implicitWidth = width
+                implicitHeight = height
+            }
+        }
     }
     Component { id: settingsPage; SettingsPage { objectName: "settings"; onBack: shell.back() } }
     Component {
