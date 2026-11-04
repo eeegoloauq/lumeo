@@ -555,7 +555,8 @@ request logic in QML, no layout in C++.
                   behind the seek bar's previews and episode stills
     src/platform  the machine: one instance and the core as a child
                   (instance), tray and login (background), folders,
-                  client.json (settings), fonts, languages
+                  client.json (settings), fonts, languages, a controller
+                  as the window's keys or mpv's (gamepad, through SDL3)
     qml/          the screens, the shell and its bar, the player, the theme
                   (Theme.qml over the Tokens.qml design/tokens.json makes)
     tests/        units, app tests and player tests (decisions/testing.md)

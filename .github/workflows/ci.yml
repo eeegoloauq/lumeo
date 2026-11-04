@@ -20,6 +20,8 @@ on:
       - design/**
       - packaging/install-qt.sh
       - packaging/fetch-libmpv.sh
+      - packaging/build-sdl.sh
+      - packaging/fetch-sdl.sh
       - .github/workflows/ci.yml
   workflow_dispatch:
   workflow_call:
@@ -43,7 +45,8 @@ jobs:
       - uses: actions/checkout@v7
       # What building against Qt and running on a screen need from the
       # machine: libmpv is the system's (decisions/shipping.md), Weston is
-      # the screen, ffmpeg makes the player tests' clips.
+      # the screen, ffmpeg makes the player tests' clips, udev's headers let
+      # SDL find a gamepad plugged in later.
       - name: build dependencies
         # Seconds when the runner's apt mirror answers; a stalled one hangs.
         timeout-minutes: 10
@@ -55,7 +58,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build pkg-config ccache mold \
             libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 \
-            libmpv-dev weston ffmpeg
+            libmpv-dev libudev-dev weston ffmpeg
       # Not when release.yml calls this (it restores no cache, and says
       # why): a called workflow carries the caller's name.
       - uses: actions/cache@v6
@@ -71,10 +74,18 @@ jobs:
           path: ~/.cache/ccache
           key: ccache-${{ github.sha }}
           restore-keys: ccache-
+      - uses: actions/cache@v6
+        if: github.workflow == 'ci'
+        with:
+          path: ~/.cache/lumeo/sdl-*
+          key: sdl-${{ hashFiles('packaging/build-sdl.sh') }}
       - name: qt
         run: |
           [ -d ~/.cache/lumeo/qt/6.12.0 ] || packaging/install-qt.sh
           echo "CMAKE_PREFIX_PATH=$HOME/.cache/lumeo/qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+      # Ubuntu 24.04 has no SDL3.
+      - name: sdl
+        run: echo "SDL3_ROOT=$(packaging/build-sdl.sh)" >> "$GITHUB_ENV"
       - run: cmake --preset dev
         working-directory: desktop
       - run: cmake --build --preset dev
@@ -108,7 +119,11 @@ jobs:
         run: |
           packaging/fetch-libmpv.sh dist/mpv
           cygpath -w "$PWD/dist/mpv" >> "$GITHUB_PATH"
-      - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv"
+      - name: sdl
+        run: |
+          packaging/fetch-sdl.sh dist/sdl
+          cygpath -w "$PWD/dist/sdl/bin" >> "$GITHUB_PATH"
+      - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv" -DSDL3_DIR="$PWD/dist/sdl/lib/cmake/SDL3"
       - run: cmake --build desktop/build/ci
       - run: |
           set -o pipefail

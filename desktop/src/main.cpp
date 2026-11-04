@@ -1,6 +1,7 @@
 #include "artwork.h"
 #include "background.h"
 #include "fonts.h"
+#include "gamepad.h"
 #include "instance.h"
 #include "language.h"
 #include "mpvfacts.h"
@@ -61,6 +62,9 @@ int main(int argc, char *argv[]) {
   // anything plays.
   MpvFacts::instance();
   MpvFacts::updateYtdl();
+  // Made now, not when the player first asks for it: the pad drives every
+  // page.
+  Gamepad::instance();
 
   QQmlApplicationEngine engine;
   // The chosen language from the first frame, and every text again when

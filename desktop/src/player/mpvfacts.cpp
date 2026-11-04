@@ -526,7 +526,19 @@ QStringList MpvFacts::ownBindings(int seekStep, bool stayOnTop) {
       "Alt+0 script-message lumeo size-half",
       "Alt+1 script-message lumeo size-video",
       "Alt+2 script-message lumeo size-double",
+      // A gamepad (Gamepad), which mpv's defaults leave unbound: the face
+      // button below plays and pauses, the one right of it steps back as
+      // Esc does, the D-pad or the stick seeks and sets the volume, the
+      // shoulders go by chapter.
+      "GAMEPAD_ACTION_DOWN cycle pause",
+      "GAMEPAD_ACTION_RIGHT script-message lumeo escape",
+      "GAMEPAD_LEFT_SHOULDER add chapter -1",
+      "GAMEPAD_RIGHT_SHOULDER add chapter 1",
   };
+  for (const char *pad : {"GAMEPAD_DPAD", "GAMEPAD_LEFT_STICK"})
+    bindings << QString("%1_LEFT seek -%2").arg(pad).arg(seekStep)
+             << QString("%1_RIGHT seek %2").arg(pad).arg(seekStep)
+             << QString("%1_UP add volume 2").arg(pad) << QString("%1_DOWN add volume -2").arg(pad);
   if (stayOnTop)
     bindings.append("T script-message lumeo ontop");
   return bindings;

@@ -69,6 +69,16 @@ ship, and on Fedora it is the one that RPM Fusion's codecs reach. The RPM's
 dependency generator finds it and every other system library the bundle
 links; Qt and ICU are kept out of what the package provides and requires.
 
+SDL3, for the gamepad, is linked into the binary on Linux: a static build of
+its pinned release with only the joystick and gamepad parts
+(`packaging/build-sdl.sh`, its source checked against the release's digest),
+since Ubuntu 24.04, which the tarball is built on, has no package of it.
+Linked in, it is no dependency the RPM, the PKGBUILD or someone unpacking the
+tarball has to meet. Windows carries SDL's own MinGW build of the same
+release beside the binary (`fetch-sdl.sh`). A bump is the version and the
+digests in both scripts, after an OSV query for the release's commit, and
+not a release from its first week.
+
 Arch gets a package on the release page too (`packaging/PKGBUILD`, built by
 `build-arch.sh` in Arch's container). It is the same tarball laid out the Arch
 way; an AUR entry would need the release files somewhere public to download

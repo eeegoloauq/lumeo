@@ -130,6 +130,9 @@ public:
   // Lets go of every key mpv holds, as the keyboard leaves: one released
   // elsewhere would repeat in mpv for ever.
   Q_INVOKABLE void releaseKeys();
+  // A gamepad's button or stick by mpv's name for it less GAMEPAD_, pressed
+  // or let go of (Gamepad).
+  Q_INVOKABLE void gamepad(const QString &name, bool down);
   // A mouse button over the picture, as mpv's MBTN keys: mpv's bindings
   // decide, its double click included.
   Q_INVOKABLE void button(int button, bool down);

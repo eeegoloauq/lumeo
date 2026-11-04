@@ -140,6 +140,25 @@ Item {
             tryCompare(closed, "count", 1, 5000, "q leaves")
         }
 
+        // A gamepad is mpv's while the keys are, by mpv's GAMEPAD_ names,
+        // which only our bindings give a meaning (Gamepad has the rest).
+        function test_aGamepadIsMpvsWhileThePlayerHasTheKeys() {
+            playing()
+            compare(Gamepad.player, player.mpv)
+            const press = name => {
+                player.mpv.gamepad(name, true)
+                player.mpv.gamepad(name, false)
+            }
+            press("ACTION_DOWN")
+            tryVerify(() => player.mpv.paused, 5000, "the bottom button pauses")
+            const at = player.mpv.position
+            press("DPAD_RIGHT")
+            tryVerify(() => Math.abs(player.mpv.position - (at + 5)) < 0.5, 5000,
+                      "the D-pad seeks the stored step")
+            press("ACTION_RIGHT")
+            tryCompare(closed, "count", 1, 5000, "the right button steps back as Esc does")
+        }
+
         function test_escLeavesFullscreenFirstThenTheFilm() {
             playing()
             fullscreenAsked.target = player

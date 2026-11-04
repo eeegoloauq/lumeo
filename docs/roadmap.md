@@ -70,12 +70,8 @@ app. This revises "No browser playback" in decisions/foundations.md.
   Search runs over the recording; My list and progress stay in the browser;
   Play and downloads open the title in an installed Lumeo. The client does
   not build for a browser well: Qt's is a large WebAssembly download.
-- Gamepad support through SDL3's gamepad API alone (agreed; pinned, checked
-  and scanned like libmpv; Ubuntu 24.04 has no package, so CI builds or
-  fetches it). Buttons become the keys the app already answers (arrows,
-  Enter, Esc, Menu), only while the window is active; in the player they
-  go to mpv as its `GAMEPAD_*` keys, which mpv's defaults leave unbound, so
-  we bind them. Typing in search needs an answer of its own.
+- Typing in search from a gamepad, which drives every other page: the
+  system's on-screen keyboard where there is one, or one of our own.
 
 ## Metadata: TMDB
 

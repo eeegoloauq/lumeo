@@ -23,7 +23,8 @@ endif()
 
 # The install is the bundle a package carries whole: the binary, the Qt it
 # was built and tested with (lib/, plugins/, qml/), and the shaders. libmpv
-# stays the system's (decisions/shipping.md).
+# stays the system's (decisions/shipping.md); SDL3 is linked in on Linux and
+# beside the binary on Windows.
 install(TARGETS lumeo-desktop RUNTIME DESTINATION bin)
 install(DIRECTORY ${anime4k}/ DESTINATION share/lumeo/anime4k)
 # Qt's own translations are for its dialogs, which are the system's here.
@@ -31,6 +32,7 @@ if(WIN32)
   # windeployqt lays Qt out beside the binary, the compiler's runtime with it.
   qt_generate_deploy_qml_app_script(TARGET lumeo-desktop OUTPUT_SCRIPT deploy NO_TRANSLATIONS)
   install(FILES ${MPV_DIR}/libmpv-2.dll DESTINATION bin)
+  install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3-shared DESTINATION bin)
 else()
   # Wayland alongside X11, which the deploy would leave as the only platform;
   # not the QML debugger, nor the plugins for a device with no desktop, nor

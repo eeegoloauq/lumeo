@@ -597,6 +597,10 @@ void MpvItem::releaseKeys() {
   command({"keyup", ""});
 }
 
+void MpvItem::gamepad(const QString &name, bool down) {
+  command({down ? "keydown" : "keyup", "GAMEPAD_" + name});
+}
+
 void MpvItem::button(int button, bool down) {
   for (const auto &[which, name] : mouseButtons)
     if (which == button)

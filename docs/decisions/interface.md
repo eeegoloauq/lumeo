@@ -404,6 +404,33 @@ submitted or opened. It replaced a panel of five rows under the field and a
 separate page of all results: a catalogue of films is browsed by its posters,
 and five lines of text were a second interface for the same question.
 
+## A gamepad is the keys the window already answers
+
+Through SDL3's gamepad API alone (`Gamepad`, `desktop/src/platform/`): SDL
+names a pad's buttons by where they sit and carries the mappings that make
+thousands of controllers one layout, which Qt no longer has (Qt Gamepad
+ended with Qt 5) and a reading of evdev and XInput of our own would have to
+keep up with. A pad is not a second interface: its buttons become the keys
+every page already answers, the D-pad and the left stick the arrows, the
+bottom face button Enter, the right one Esc, Start the Menu key, and they
+come in by the window system's way, so a shortcut answers them as it answers
+the keyboard. A held arrow repeats as a keyboard's does. Only while one of
+our windows is active: SDL sees the pad whatever has the focus, and a game in
+front must not drive the app behind it. What was pressed meanwhile is
+dropped, not delivered when the window comes back.
+
+In the player the pad follows the keyboard: while the player holds the keys
+they go to mpv, and so does the pad, as mpv's `GAMEPAD_*` keys, which mpv's
+defaults leave unbound and our own section binds. The bottom button plays
+and pauses, the right one steps back as Esc does, the D-pad or the stick
+seeks by the arrow step and sets the volume, the shoulders go by chapter.
+mpv's own gamepad input was the alternative: it exists only in an mpv built
+with SDL2, and reaches the player alone, not the pages. The Shortcuts page
+lists the keyboard's keys and leaves the pad's out, as mpv names them in
+words nobody would read.
+
+Typing has no answer yet: search needs a keyboard (roadmap).
+
 ## Settings: one page, and which choices stay on this machine
 
 Settings is one page that scrolls, with its sections listed beside it: a press

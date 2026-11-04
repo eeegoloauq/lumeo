@@ -14,11 +14,13 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
 - Go (the version in `core/go.mod`).
 - Qt 6.12 with Image Formats (artwork arrives in WebP too), Shader Tools, HTTP Server and
   WebSockets (the fake core in the tests). `packaging/install-qt.sh` installs that Qt into
-  `~/.cache/lumeo/qt`, as CI does; a distribution's Qt 6.8 or later builds too.
-- libmpv with its headers, CMake, Ninja, ccache and mold. On Fedora:
-  `sudo dnf install cmake ninja-build gcc-c++ ccache mold mpv-devel`; on Debian and Ubuntu, as CI
-  installs them: `cmake ninja-build pkg-config ccache mold libgl-dev libegl-dev libxkbcommon-dev
-  libmpv-dev`.
+  `~/.cache/lumeo/qt`, as CI does; a distribution's Qt 6.8 or later builds too, with its private
+  headers (`qt6-qtbase-private-devel` on Fedora), which the gamepad's keys come in through.
+- libmpv with its headers, SDL3 3.2 or later, CMake, Ninja, ccache and mold. On Fedora:
+  `sudo dnf install cmake ninja-build gcc-c++ ccache mold mpv-devel SDL3-devel`; on Debian and
+  Ubuntu, as CI installs them: `cmake ninja-build pkg-config ccache mold libgl-dev libegl-dev
+  libxkbcommon-dev libmpv-dev libudev-dev`. Ubuntu 24.04 has no SDL3: `packaging/build-sdl.sh`
+  builds the release's into `~/.cache/lumeo` and prints where, for `SDL3_ROOT`.
 - For the player tests: `weston` and `ffmpeg`. `desktop/tool/build-mpv.sh` builds libmpv 0.41 into
   `~/.cache/lumeo` when your distribution's is older; the player tests use it when it is there.
 
@@ -27,6 +29,7 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
 From `desktop/`:
 
     cmake --preset dev        # once; add -DCMAKE_PREFIX_PATH=<qt>/gcc_64 for a Qt of your own
+                              # and -DSDL3_ROOT=$(../packaging/build-sdl.sh) without a system SDL3
     cmake --build --preset dev
     build/dev/bin/lumeo [file or lumeo:// link]
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The Windows release: the Qt client's bundle with the Go core and libmpv
-# beside it, and the installer that carries them (lumeo.iss). Runs in Git
+# The Windows release: the Qt client's bundle with the Go core, libmpv and
+# SDL3 beside it, and the installer that carries them (lumeo.iss). Runs in Git
 # Bash with the Qt of install-qt.sh, its MinGW and Ninja on PATH, and ISCC
 # (Inno Setup 6). The same commands by hand and in release.yml.
 set -euo pipefail
@@ -24,9 +24,12 @@ mkdir -p dist/deno
 echo "==> libmpv"
 packaging/fetch-libmpv.sh dist/mpv
 
+echo "==> sdl"
+packaging/fetch-sdl.sh dist/sdl
+
 echo "==> client"
 cmake -S desktop -B desktop/build/windows -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-  -DLUMEO_VERSION="$version" -DMPV_DIR="$PWD/dist/mpv"
+  -DLUMEO_VERSION="$version" -DMPV_DIR="$PWD/dist/mpv" -DSDL3_DIR="$PWD/dist/sdl/lib/cmake/SDL3"
 cmake --build desktop/build/windows
 cmake --install desktop/build/windows --prefix "$bundle"
 
@@ -48,9 +51,11 @@ cp dist/deno/deno.exe "$bundle/bin/"
 
 # What the licences of the programs the bundle carries ask to go with them.
 # libmpv is GPLv2+: its notice, the licence texts and where its source is.
+# SDL3 is zlib's, which asks nothing of a binary; its text goes along anyway.
 echo "==> licences"
 mkdir -p "$bundle/licenses/deno"
 cp -r dist/mpv/licenses "$bundle/licenses/mpv"
+cp -r dist/sdl/licenses "$bundle/licenses/sdl"
 curl -fsSL -o "$bundle/licenses/deno/LICENSE.md" \
   "https://raw.githubusercontent.com/denoland/deno/v$deno_version/LICENSE.md"
 

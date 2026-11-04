@@ -8,6 +8,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # it; development, CI and the packages run 6.12 (packaging/install-qt.sh).
 find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concurrent ShaderTools
   LinguistTools Widgets)
+# A gamepad's keys come in by the window system's way, as a keyboard's do
+# (src/platform/gamepad.cpp), which only Qt's QPA header offers. Qt warns
+# that this ties the binary to the Qt it was built with: the bundle carries
+# that Qt (decisions/shipping.md).
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
+find_package(Qt6 6.8 REQUIRED COMPONENTS GuiPrivate)
+# The gamepad (decisions/interface.md, Gamepad). On Linux a static build
+# from packaging/build-sdl.sh where the system has none; on Windows the
+# pinned release's DLL (packaging/fetch-sdl.sh), which the bundle carries.
+find_package(SDL3 3.2 REQUIRED CONFIG)
 if(LINUX)
   find_package(Qt6 6.8 REQUIRED COMPONENTS DBus)
 endif()
@@ -218,6 +228,7 @@ qt_add_qml_module(lumeo
     src/platform/folders.h src/platform/folders.cpp
     src/platform/background.h src/platform/background.cpp
     src/platform/fonts.h src/platform/fonts.cpp
+    src/platform/gamepad.h src/platform/gamepad.cpp
     src/platform/instance.h src/platform/instance.cpp
     src/platform/language.h src/platform/language.cpp
     src/platform/settings.h src/platform/settings.cpp
@@ -239,9 +250,16 @@ target_include_directories(lumeo PUBLIC src src/api src/player src/platform)
 
 target_link_libraries(lumeo PUBLIC
   Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg Qt6::Concurrent Qt6::Widgets ${mpv}
+  Qt6::GuiPrivate SDL3::SDL3
 )
 if(LINUX)
   target_link_libraries(lumeo PUBLIC Qt6::DBus)
+endif()
+# A static SDL3 stays inside the binary. A distribution's libmpv may link
+# SDL2, whose functions have the same names: exported to satisfy it, ours
+# would answer libmpv's calls with SDL3's.
+if(TARGET SDL3::SDL3-static AND NOT TARGET SDL3::SDL3-shared AND NOT WIN32)
+  target_link_options(lumeo INTERFACE "LINKER:--exclude-libs,libSDL3.a")
 endif()
 
 # mpv reads the Anime4K shaders as files, at share/lumeo/anime4k beside the

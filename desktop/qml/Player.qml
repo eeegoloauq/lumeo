@@ -168,6 +168,13 @@ FocusScope {
     Keys.onReleased: event => event.accepted = video.release(event.key, event.nativeScanCode,
                                                            event.isAutoRepeat)
     onActiveFocusChanged: if (!activeFocus) video.releaseKeys()
+    // A gamepad follows the keyboard: mpv's while the keys are.
+    Binding {
+        target: Gamepad
+        property: "player"
+        value: video
+        when: player.activeFocus
+    }
 
     // The picture: buttons go to mpv as they change, so its bindings decide,
     // its double click included. Not before there is a picture, or a click

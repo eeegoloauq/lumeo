@@ -40,7 +40,8 @@ jobs:
           go-version-file: core/go.mod
           cache: false
       # What building against Qt needs from the machine; libmpv is linked,
-      # not carried (decisions/shipping.md), and rsvg renders the icons.
+      # not carried (decisions/shipping.md), rsvg renders the icons, and
+      # SDL3, built in by build-dist.sh, finds a gamepad through udev.
       - name: build dependencies
         timeout-minutes: 10
         run: |
@@ -50,7 +51,7 @@ jobs:
             sudo tee /etc/apt/apt.conf.d/99lumeo-retries >/dev/null
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build pkg-config \
-            libgl-dev libegl-dev libxkbcommon-dev libmpv-dev librsvg2-bin
+            libgl-dev libegl-dev libxkbcommon-dev libmpv-dev libudev-dev librsvg2-bin
       - name: qt
         run: echo "CMAKE_PREFIX_PATH=$(packaging/install-qt.sh)" >> "$GITHUB_ENV"
       - name: build

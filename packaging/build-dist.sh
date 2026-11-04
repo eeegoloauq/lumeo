@@ -16,8 +16,12 @@ mkdir -p "$stage"
 # The client with the Qt it was built and tested with, from the Qt that
 # CMAKE_PREFIX_PATH (or PATH) names: bin/, lib/, plugins/, qml/
 # (desktop/CMakeLists.txt, install).
+# SDL3, linked in: Ubuntu 24.04, where the release is built, has none.
+echo "==> sdl"
+sdl=$(packaging/build-sdl.sh)
+
 echo "==> client"
-cmake -S desktop --preset release -DLUMEO_VERSION="$version"
+cmake -S desktop --preset release -DLUMEO_VERSION="$version" -DSDL3_DIR="$sdl/lib/cmake/SDL3"
 cmake --build desktop/build/release
 cmake --install desktop/build/release --prefix "$stage/bundle"
 
