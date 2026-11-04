@@ -651,6 +651,10 @@
         <source>Hardware decoding</source>
         <translation>Hardware decoding</translation>
     </message>
+    <message id="settingsPauseMinimised">
+        <source>Pause when minimised</source>
+        <translation>Pause when minimised</translation>
+    </message>
     <message id="settingsKeepFileStyling">
         <source>Keep the file’s styling</source>
         <translation>Keep the file’s styling</translation>

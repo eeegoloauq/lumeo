@@ -107,6 +107,18 @@ SettingsBlock {
             }
             Hint { text: qsTrId("settingsShiftSkip") }
         }
+        // Wayland never says a window is minimised, so there it does nothing.
+        SettingRow {
+            visible: !Qt.platform.pluginName.startsWith("wayland")
+            label: qsTrId("settingsPauseMinimised")
+
+            SettingSwitch {
+                objectName: "pauseMinimised"
+                label: qsTrId("settingsPauseMinimised")
+                checked: LocalSettings.pauseMinimised
+                onToggled: LocalSettings.pauseMinimised = checked
+            }
+        }
         // This machine's: its graphics.
         SettingRow {
             label: qsTrId("settingsHardwareDecoding")

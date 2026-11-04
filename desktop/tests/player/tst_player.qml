@@ -228,6 +228,25 @@ Item {
             }, 5000, "no filter, not " + af)
         }
 
+        // Minimised, a film playing pauses where the setting says, and plays on
+        // when the window is back; one paused by hand stays paused.
+        function test_aFilmPausesWhileTheWindowIsMinimised() {
+            LocalSettings.pauseMinimised = true
+            playing()
+            player.minimised = true
+            tryVerify(() => player.mpv.paused, 5000, "paused while minimised")
+            player.minimised = false
+            tryVerify(() => !player.mpv.paused, 5000, "playing again")
+            player.mpv.set("pause", true)
+            tryVerify(() => player.mpv.paused)
+            player.minimised = true
+            player.minimised = false
+            // mpv answers a set within a cycle of its events.
+            wait(200)
+            verify(player.mpv.paused, "the pause by hand stays")
+            LocalSettings.pauseMinimised = false
+        }
+
         // A receiver decodes what it is sent: the surround codecs go to it as
         // they are, and only while the switch is on.
         function test_surroundGoesToTheReceiverAsItIs() {

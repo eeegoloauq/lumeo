@@ -651,6 +651,10 @@
         <source>Hardware decoding</source>
         <translation>Аппаратное декодирование</translation>
     </message>
+    <message id="settingsPauseMinimised">
+        <source>Pause when minimised</source>
+        <translation>Пауза при сворачивании</translation>
+    </message>
     <message id="settingsKeepFileStyling">
         <source>Keep the file’s styling</source>
         <translation>Сохранять оформление файла</translation>

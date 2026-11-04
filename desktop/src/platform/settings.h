@@ -32,6 +32,9 @@ class LocalSettings : public QObject {
   // The graphics decode the picture where they can; off where this
   // machine's decode it wrong. A title's own choice in the player stands.
   Q_PROPERTY(bool hardwareDecoding READ hardwareDecoding WRITE setHardwareDecoding NOTIFY changed)
+  // A film pauses while the window is minimised and plays on when it is
+  // back, as mpv's own pause-when-minimize script does.
+  Q_PROPERTY(bool pauseMinimised READ pauseMinimised WRITE setPauseMinimised NOTIFY changed)
   // A title's page plays its trailer, muted, in place of the backdrop.
   Q_PROPERTY(bool trailerPreviews READ trailerPreviews WRITE setTrailerPreviews NOTIFY changed)
   // Where screenshots go; empty for Pictures/Lumeo.
@@ -82,6 +85,8 @@ public:
   void setPassthrough(bool on) { set("passthrough", on); }
   bool hardwareDecoding() const { return m_values.value("hardwareDecoding").toBool(true); }
   void setHardwareDecoding(bool on) { set("hardwareDecoding", on); }
+  bool pauseMinimised() const { return m_values.value("pauseMinimised").toBool(false); }
+  void setPauseMinimised(bool on) { set("pauseMinimised", on); }
   QString screenshotsDir() const { return m_values.value("screenshotsDir").toString(); }
   void setScreenshotsDir(const QString &dir) { set("screenshotsDir", dir); }
   QString language() const;

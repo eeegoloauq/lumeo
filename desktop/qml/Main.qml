@@ -279,6 +279,7 @@ ApplicationWindow {
             fullscreen: window.visibility === Window.FullScreen
             onFullscreenAsked: on => window.visibility = on ? Window.FullScreen : window.windowed
             staysOnTop: window.staysOnTop
+            minimised: window.visibility === Window.Minimized
             onStaysOnTopAsked: on => window.staysOnTop = on
             onSizeAsked: (width, height) => window.fit(width, height)
             onNext: (downloadId, name) => window.play(downloadId, name, film.kept)

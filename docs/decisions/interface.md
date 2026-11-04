@@ -450,8 +450,10 @@ server owner's. General has the language, and the
 background: "Keep running when closed" and, under it, "Start with the system", both
 off by default and both this machine's (`client.json`). Login needs the
 background, so turning one on or the other off carries the other with it.
-Pausing when minimised waits for a minimised state Wayland does not report
-(roadmap, Application).
+Playback has "Pause when minimised", off by default and this machine's: a film
+playing pauses and plays on when the window is back, as mpv's own
+pause-when-minimize script does, and one paused by hand is left alone. The row
+is not shown on Wayland, which never says a window is minimised.
 
 Running in the background is the window hidden, not the app minimised: the
 process and its core stay, closing the window takes a film with it (playing on

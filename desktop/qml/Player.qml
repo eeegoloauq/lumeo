@@ -30,6 +30,20 @@ FocusScope {
     property bool staysOnTop: false
     signal staysOnTopAsked(bool on)
     signal sizeAsked(real width, real height)
+    // The window minimised. A film playing then pauses, where the setting
+    // says, and plays on when the window is back; one already paused is left
+    // as it was.
+    property bool minimised: false
+    property bool pausedByMinimising: false
+    onMinimisedChanged: {
+        if (minimised && LocalSettings.pauseMinimised && !video.paused) {
+            pausedByMinimising = true
+            video.set("pause", true)
+        } else if (!minimised && pausedByMinimising) {
+            pausedByMinimising = false
+            video.set("pause", false)
+        }
+    }
     readonly property alias playback: session
 
     // The film is left: the window goes back to the pages.
