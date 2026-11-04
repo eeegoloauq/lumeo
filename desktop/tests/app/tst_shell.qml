@@ -13,6 +13,11 @@ Item {
         focus: true
     }
 
+    Component {
+        id: another
+        Shell { anchors.fill: parent }
+    }
+
     TestCase {
         name: "Shell"
         when: windowShown
@@ -91,6 +96,22 @@ Item {
             shell.openFromOutside(film("tt4"))
             keyClick(Qt.Key_Escape)
             compare(shown(), "tt3")
+        }
+
+        // A window chosen to open on My list opens there, with Home under it
+        // as after its tab.
+        function test_theWindowOpensOnTheStartPage() {
+            LocalSettings.startPage = "list"
+            const started = createTemporaryObject(another, window)
+            LocalSettings.startPage = "home"
+            compare(started.page, "library")
+            compare(findChild(started, "library").section, "list")
+            // Two shells' Escape would be ambiguous, and neither answers.
+            shell.visible = false
+            started.forceActiveFocus()
+            keyClick(Qt.Key_Escape)
+            shell.visible = true
+            compare(started.page, "home")
         }
     }
 }

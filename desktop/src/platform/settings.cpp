@@ -81,6 +81,18 @@ void LocalSettings::setListSort(const QString &order) {
     set("listSort", order);
 }
 
+static const QStringList startPages = {"home", "list"};
+
+QString LocalSettings::startPage() const {
+  const QString page = m_values.value("startPage").toString();
+  return startPages.contains(page) ? page : startPages.first();
+}
+
+void LocalSettings::setStartPage(const QString &page) {
+  if (startPages.contains(page))
+    set("startPage", page);
+}
+
 static const QStringList listKinds = {"", "movie", "series"};
 
 QString LocalSettings::listKind() const {
@@ -178,7 +190,7 @@ void LocalSettings::write() {
 
 void LocalSettings::resetChoices() {
   const QString language = this->language();
-  for (const char *key : {"timelinePreviews", "reduceLoud", "passthrough", "hardwareDecoding", "pauseMinimised", "screenshotsDir", "language", "background", "autostart", "textScale",
+  for (const char *key : {"timelinePreviews", "reduceLoud", "passthrough", "hardwareDecoding", "pauseMinimised", "screenshotsDir", "language", "background", "autostart", "textScale", "startPage",
                           "pictures"})
     m_values.remove(key);
   emit changed();

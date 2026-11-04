@@ -420,7 +420,7 @@ where downloads go), and so is anything only the core can apply (the disk,
 seeding and rate limits). A fact about one machine or one screen is
 `client.json`: timeline previews (whether this machine can afford a second
 decoder), where screenshots go (a folder on this machine), the background and
-login, the interface's language, and the text size. Reset puts back both
+login, the interface's language, the text size, and the start page. Reset puts back both
 kinds; downloads, the list and history are not settings.
 
 The text size scales the whole interface, not the text alone: the sizes are
@@ -446,10 +446,13 @@ the eye cannot find a name among them.
 A row that does nothing is not shown. On a media server, Downloads shows the
 device's two keep rules and leaves out the folder, the disk limit, the keep
 policy and the transfer limits: what downloads goes there, and those are the
-server owner's. General has the language, and the
+server owner's. General has the language, the start page and the
 background: "Keep running when closed" and, under it, "Start with the system", both
 off by default and both this machine's (`client.json`). Login needs the
 background, so turning one on or the other off carries the other with it.
+The start page, Home or My list, is this machine's for the language's
+reason: the first page is drawn before the core could answer. Home stays
+under My list, so Back goes there as it does from the tab.
 Playback has "Pause when minimised", off by default and this machine's: a film
 playing pauses and plays on when the window is back, as mpv's own
 pause-when-minimize script does, and one paused by hand is left alone. The row

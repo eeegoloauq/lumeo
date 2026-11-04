@@ -40,6 +40,19 @@ SettingsBlock {
             }
         }
         SettingRow {
+            label: qsTrId("settingsStartPage")
+
+            Segments {
+                objectName: "startPage"
+                choices: [
+                    { value: "home", label: qsTrId("homeTitle") },
+                    { value: "list", label: qsTrId("libraryMyList") },
+                ]
+                selected: LocalSettings.startPage
+                onPicked: value => LocalSettings.startPage = value
+            }
+        }
+        SettingRow {
             visible: Background.available
             label: qsTrId("settingsBackground")
             SettingSwitch {

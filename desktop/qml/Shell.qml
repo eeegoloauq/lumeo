@@ -194,8 +194,13 @@ FocusScope {
         function onAsked(target) { titleMenu.show(target) }
     }
     // Which titles are finished, for the eye on every poster: the player
-    // marks as it plays, so the window coming back from it asks again.
-    Component.onCompleted: Viewing.refresh()
+    // marks as it plays, so the window coming back from it asks again. Home
+    // stays under the start page, so Back from it goes home as from its tab.
+    Component.onCompleted: {
+        Viewing.refresh()
+        if (LocalSettings.startPage === "list")
+            place("library")
+    }
     onVisibleChanged: if (visible) Viewing.refresh()
     Connections {
         target: Viewing

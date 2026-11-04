@@ -3130,6 +3130,11 @@
         <extracomment>Background setting in ui/screens/settings/general_section.dart</extracomment>
         <translation>Работать в фоне после закрытия</translation>
     </message>
+    <message id="settingsStartPage">
+        <source>Start page</source>
+        <extracomment>Settings, General: what the window opens on, Home or My list.</extracomment>
+        <translation>Начальная страница</translation>
+    </message>
     <message id="settingsAutostart">
         <source>Start with the system</source>
         <extracomment>Autostart setting in ui/screens/settings/general_section.dart</extracomment>
