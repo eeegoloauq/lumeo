@@ -1,6 +1,6 @@
 module github.com/eeegoloauq/lumeo/core
 
-go 1.27.2
+go 1.27.3
 
 // Some networks, Russia's among them, drop a TLS handshake that offers a
 // post-quantum key exchange, whose larger ClientHello spans two packets:
