@@ -171,6 +171,9 @@ SettingsBlock {
         }
         SettingRow {
             label: qsTrId("settingsKeepFileStyling")
+            // Under sub-ass-override=scale size and height reach a styled
+            // track and colour and edge do not, which nobody would guess.
+            hint: (block.current.subtitleKeepStyling ?? true) ? qsTrId("settingsKeepFileStylingHint") : ""
 
             SettingSwitch {
                 objectName: "subtitleKeepStyling"

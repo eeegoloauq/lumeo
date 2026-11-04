@@ -77,10 +77,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
   Enter, Esc, Menu), only while the window is active; in the player they
   go to mpv as its `GAMEPAD_*` keys, which mpv's defaults leave unbound, so
   we bind them. Typing in search needs an answer of its own.
-- Subtitle size, colour and background reported to change nothing. First
-  check whether those files were styled (ASS) with "Keep the file's styling"
-  on, where mpv lets the file's style win by design; if so the setting
-  should say what it reaches.
 
 ## Metadata: TMDB
 

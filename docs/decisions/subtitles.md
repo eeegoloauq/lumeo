@@ -124,7 +124,10 @@ picker and a free colour picker are where subtitle settings go to become a
 preferences panel. The four (white, a broadcast yellow, cream, cyan) are
 mpv's `sub-color`, which reaches plain text only; "keep the file's styling"
 off is `sub-ass-override=force`, for the viewer who wants our size, colour and
-background on an ASS track too, signs and all. Size and height are also on
+background on an ASS track too, signs and all. While it is on, size and height
+still reach a styled track and colour and edge do not (checked against mpv
+0.41's frames), so the row says so: changing the colour over an ASS release
+looked like a setting that did nothing. Size and height are also on
 the settings page, since the core keeps them. The steps either side exist for a
 screen further away than the default assumes, not to fix a bad default.
 

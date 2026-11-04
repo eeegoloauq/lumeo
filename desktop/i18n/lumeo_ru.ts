@@ -659,6 +659,11 @@
         <source>Keep the file’s styling</source>
         <translation>Сохранять оформление файла</translation>
     </message>
+    <message id="settingsKeepFileStylingHint">
+        <source>A styled track keeps its own colour and edge</source>
+        <extracomment>Under Keep the file’s styling while it is on: an ASS track ignores the colour and edge chosen above, size and height still apply.</extracomment>
+        <translation>Оформленные субтитры сохраняют свои цвет и контур</translation>
+    </message>
     <message id="settingsSubtitlePreview">
         <source>Don’t go. One more episode.</source>
         <translation>Не уходи. Ещё одна серия.</translation>
