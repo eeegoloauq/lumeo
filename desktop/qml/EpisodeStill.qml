@@ -42,7 +42,8 @@ Item {
         visible: status === Image.Ready && still.stills !== "hide"
         opacity: still.faint ? 0.4 : 1
         source: still.stills === "hide" ? ""
-            : still.episode.thumbnail && !still.stillFailed ? Format.art(still.episode.thumbnail)
+            : still.episode.thumbnail && !still.stillFailed
+                ? (still.frame ? Format.still : Format.art)(still.episode.thumbnail)
             : still.frame
         onStatusChanged: if (status === Image.Error && still.episode.thumbnail) still.stillFailed = true
         sourceSize.width: Math.ceil(still.width * 1.1)

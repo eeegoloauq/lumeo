@@ -132,11 +132,15 @@ transit.
   dial 5 s, so the one existing retry fits inside the caller's timeout.
   Retrying harder in the core buys nothing: the resolver hands the same dead
   address back until its TTL runs out.
-- **The client asks again.** One `ArtworkImage` provider behind every
+- **The client asks again.** One `Artwork` provider behind every
   picture retries a 5xx or a broken connection after 2, 6 and 20 s, which
-  outlasts one TTL, and takes a 4xx as final. The core already joins
-  concurrent fetches and caches on disk; only the client knows whether a
-  picture is still on screen.
+  outlasts one TTL, then every minute for as long as an Image shows it, and
+  takes a 4xx as final. Giving up after the first three left a poster
+  blank for as long as its page stayed made after a longer outage (a laptop
+  waking, a VPN coming up). An episode's still with a frame of the file to
+  stand in gives up after the three instead, so the frame shows offline.
+  The core already joins concurrent fetches and caches on disk; only the
+  client knows whether a picture is still on screen.
 - **HTTP/2 stays.** The dead node fails before any HTTP is spoken, and the
   HTTP/2 ping is what closes a connection stalled mid-body; HTTP/1.1 would
   leave that to the 20 s timeout.

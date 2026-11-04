@@ -8,6 +8,12 @@ function art(url) {
     return url ? "image://artwork/" + encodeURIComponent(url) : ""
 }
 
+// The same for a picture with something of our own to stand in for it: the
+// provider gives up after its first retries rather than asking every minute.
+function still(url) {
+    return url ? "image://still/" + encodeURIComponent(url) : ""
+}
+
 // A title card, its ink repainted white when it would vanish on our ground.
 function logo(url) {
     return url ? "image://logo/" + encodeURIComponent(url) : ""

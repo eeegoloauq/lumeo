@@ -12,6 +12,7 @@
 #include <QtConcurrent>
 
 QList<int> Artwork::retryDelays{2000, 6000, 20000};
+int Artwork::againEvery = 60000;
 
 namespace {
 
@@ -47,8 +48,9 @@ QImage decode(const QByteArray &bytes, const QSize &requested, bool ink) {
 // Fetched on the GUI thread, where the network lives, and decoded off it.
 class Response : public QQuickImageResponse {
 public:
-  Response(QNetworkAccessManager *network, const QUrl &url, const QSize &requested, bool ink)
-      : m_network(network), m_url(url), m_requested(requested), m_ink(ink) {}
+  Response(QNetworkAccessManager *network, const QUrl &url, const QSize &requested, bool ink,
+           bool patient)
+      : m_network(network), m_url(url), m_requested(requested), m_ink(ink), m_patient(patient) {}
 
   void fetch() {
     if (!m_network) {
@@ -94,11 +96,14 @@ private:
       return;
     }
     const bool again = status == 0 || status >= 500;
-    if (!again || m_attempt == Artwork::retryDelays.size()) {
+    const bool retried = m_attempt == Artwork::retryDelays.size();
+    if (!again || (retried && !m_patient)) {
       fail(status ? QString("HTTP %1").arg(status) : m_reply->errorString());
       return;
     }
-    QTimer::singleShot(Artwork::retryDelays.at(m_attempt++), this, [this] {
+    // Cancelled when no Image wants it any more, which ends this.
+    const int pause = retried ? Artwork::againEvery : Artwork::retryDelays.at(m_attempt++);
+    QTimer::singleShot(pause, this, [this] {
       if (!m_cancelled)
         fetch();
     });
@@ -113,6 +118,7 @@ private:
   QUrl m_url;
   QSize m_requested;
   bool m_ink;
+  bool m_patient;
   QPointer<QNetworkReply> m_reply;
   int m_attempt = 0;
   bool m_cancelled = false;
@@ -122,17 +128,19 @@ private:
 
 } // namespace
 
-Artwork::Artwork(bool ink)
-    : m_ink(ink), m_network(new QNetworkAccessManager(QCoreApplication::instance())) {}
+Artwork::Artwork(bool ink, bool patient)
+    : m_ink(ink), m_patient(patient),
+      m_network(new QNetworkAccessManager(QCoreApplication::instance())) {}
 
 void Artwork::install(QQmlEngine *engine) {
-  engine->addImageProvider("artwork", new Artwork(false));
-  engine->addImageProvider("logo", new Artwork(true));
+  engine->addImageProvider("artwork", new Artwork(false, true));
+  engine->addImageProvider("logo", new Artwork(true, true));
+  engine->addImageProvider("still", new Artwork(false, false));
 }
 
 QQuickImageResponse *Artwork::requestImageResponse(const QString &id, const QSize &requestedSize) {
   auto *response = new Response(m_network, QUrl(QUrl::fromPercentEncoding(id.toUtf8())),
-                                requestedSize, m_ink);
+                                requestedSize, m_ink, m_patient);
   // Qt may ask from its image thread; the request is made on the GUI's.
   response->moveToThread(QCoreApplication::instance()->thread());
   QMetaObject::invokeMethod(response, [response] { response->fetch(); }, Qt::QueuedConnection);

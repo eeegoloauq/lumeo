@@ -14,16 +14,20 @@ class QQmlEngine;
 //
 // The core answers 5xx when the provider's CDN did not answer in time. On a
 // throttled line that is often a node blocked by address, which the system
-// resolver keeps handing out for the name's 30 s TTL, so the retries reach
-// past one TTL. The image stays loading meanwhile, so the placeholder holds
-// and every Image showing the address fills in together. A 4xx is an answer,
-// the image does not exist, and is final.
+// resolver keeps handing out for the name's 30 s TTL, so the first retries
+// reach past one TTL; after them it is asked again every minute for as long
+// as an Image wants it, since a line down for longer (a laptop waking, a VPN
+// coming up) otherwise left the picture blank while its page stayed made.
+// The image stays loading meanwhile, so the placeholder holds and every Image
+// showing the address fills in together. A 4xx is an answer, the image does
+// not exist, and is final.
 //
 // image://logo/<address> is a title card, with ink that would vanish on our
-// ground repainted white (needsInk).
+// ground repainted white (needsInk). image://still/<address> gives up after
+// the first retries, for a picture with something of our own to stand in.
 class Artwork : public QQuickAsyncImageProvider {
 public:
-  explicit Artwork(bool ink);
+  Artwork(bool ink, bool patient);
 
   // Both providers on [engine].
   static void install(QQmlEngine *engine);
@@ -35,10 +39,13 @@ public:
   // opaque pixels is below 0.18 (decisions/interface.md).
   static bool needsInk(const QImage &logo);
 
-  // The pause before each retry, in milliseconds; tests shorten it.
+  // The pause before each retry, in milliseconds, and between the patient
+  // ones after them; tests shorten both.
   static QList<int> retryDelays;
+  static int againEvery;
 
 private:
   bool m_ink;
+  bool m_patient;
   QPointer<QNetworkAccessManager> m_network;
 };

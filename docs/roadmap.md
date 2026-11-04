@@ -60,8 +60,7 @@ app. This revises "No browser playback" in decisions/foundations.md.
   mirror is overwritten by pushes). Runtime as minutes from the core, so the
   client says it in the viewer's language.
 - A title never opened, on a slow Cinemeta: draw the page from the catalog
-  row at once and fill episodes and cast in later. Retry a failed poster with
-  a backoff.
+  row at once and fill episodes and cast in later.
 - Settings to add: an external player for what our mpv cannot open;
   subtitle outline; mpv's network timeout and cache.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).

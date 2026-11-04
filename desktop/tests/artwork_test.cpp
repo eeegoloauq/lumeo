@@ -49,6 +49,7 @@ private slots:
     fake = std::make_unique<FakeCore>();
     QVERIFY(fake->listen());
     Artwork::retryDelays = {20, 20, 20};
+    Artwork::againEvery = 20;
   }
 
   // Posters arrive about 660 px wide and are drawn at 160; at full size a
@@ -56,7 +57,7 @@ private slots:
   void artworkIsDecodedAtTheSizeItIsDrawn() {
     // As the core serves most of it.
     fake->file("/art/poster", png({300, 450}, Qt::red, "JPEG"), "image/jpeg");
-    Artwork provider(false);
+    Artwork provider(false, true);
     QCOMPARE(fetch(provider, at("/art/poster"), {176, 0}).image.size(), QSize(176, 264));
     QCOMPARE(fetch(provider, at("/art/poster"), {}).image.size(), QSize(300, 450));
     QCOMPARE(fetch(provider, at("/art/poster"), {600, 0}).image.size(), QSize(300, 450));
@@ -66,7 +67,7 @@ private slots:
   // plugin for it.
   void artworkInWebPIsDecoded() {
     fake->file("/art/webp", png({30, 45}, Qt::red, "WEBP"), "image/webp");
-    Artwork provider(false);
+    Artwork provider(false, true);
     QCOMPARE(fetch(provider, at("/art/webp")).image.size(), QSize(30, 45));
   }
 
@@ -78,7 +79,7 @@ private slots:
         fake->file("/art/slow", png({30, 45}, Qt::red), "image/png");
       });
     });
-    Artwork provider(false);
+    Artwork provider(false, true);
     const Fetched fetched = fetch(provider, at("/art/slow"));
     QCOMPARE(fetched.image.size(), QSize(30, 45));
     QCOMPARE(fake->requests().size(), 2);
@@ -86,15 +87,45 @@ private slots:
 
   void aMissingImageIsFinal() {
     fake->answer("GET", "/art/missing", 404);
-    Artwork provider(false);
+    Artwork provider(false, true);
     QVERIFY(!fetch(provider, at("/art/missing")).error.isEmpty());
     QTest::qWait(60);
     QCOMPARE(fake->requests().size(), 1);
   }
 
-  void theRetriesStop() {
+  // A line down for longer than the first retries left a poster blank for
+  // as long as its page stayed made, Home all session.
+  void anImageIsAskedForUntilTheCoreHasIt() {
     fake->answer("GET", "/art/down", 502);
-    Artwork provider(false);
+    const int failing = 3 + Artwork::retryDelays.size();
+    connect(fake.get(), &FakeCore::requested, this, [this, failing] {
+      if (fake->requests().size() == failing)
+        QTimer::singleShot(0, this, [this] {
+          fake->file("/art/down", png({30, 45}, Qt::red), "image/png");
+        });
+    });
+    Artwork provider(false, true);
+    QCOMPARE(fetch(provider, at("/art/down")).image.size(), QSize(30, 45));
+    QCOMPARE(fake->requests().size(), failing + 1);
+  }
+
+  void anImageNoLongerWantedIsNotAskedForAgain() {
+    fake->answer("GET", "/art/gone", 502);
+    Artwork provider(false, true);
+    std::unique_ptr<QQuickImageResponse> response(provider.requestImageResponse(
+        QUrl::toPercentEncoding(at("/art/gone").toString()), {}));
+    QTRY_VERIFY(fake->requests().size() > 1 + Artwork::retryDelays.size());
+    response->cancel();
+    QTest::qWait(2 * Artwork::againEvery);
+    const qsizetype asked = fake->requests().size();
+    QTest::qWait(2 * Artwork::againEvery);
+    QCOMPARE(fake->requests().size(), asked);
+  }
+
+  // A still with a frame of the file to stand in gives up instead.
+  void aStillsRetriesStop() {
+    fake->answer("GET", "/art/down", 502);
+    Artwork provider(false, false);
     QVERIFY(!fetch(provider, at("/art/down")).error.isEmpty());
     QCOMPARE(fake->requests().size(), 1 + Artwork::retryDelays.size());
   }
@@ -103,7 +134,7 @@ private slots:
   // on our ground; the shape is the design, only the ink changes.
   void aBlackTitleCardComesBackWhite() {
     fake->file("/art/logo", png({40, 20}, Qt::black), "image/png");
-    Artwork provider(true);
+    Artwork provider(true, true);
     const QImage logo = fetch(provider, at("/art/logo")).image;
     QCOMPARE(logo.pixelColor(10, 10), QColor(Qt::white));
   }
