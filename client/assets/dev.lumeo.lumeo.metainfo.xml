@@ -34,11 +34,52 @@
   <supports>
     <control>pointing</control>
     <control>keyboard</control>
+    <control>gamepad</control>
   </supports>
 
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79~beta.25" date="2026-11-04" type="development">
+      <description>
+        <ul>
+          <li>Play with a gamepad: the D-pad moves, the bottom button opens, the right one goes back; in a film it pauses, seeks and sets the volume.</li>
+          <li xml:lang="ru">Управляйте геймпадом: крестовина перемещает, нижняя кнопка открывает, правая возвращает назад; в фильме — пауза, перемотка и громкость.</li>
+          <li>Choose the start page, Home or My list, in Settings › General.</li>
+          <li xml:lang="ru">Выберите начальную страницу, «Главную» или «Мой список», в Настройках › Общие.</li>
+          <li>Reduce loud sounds in Settings › Audio &amp; subtitles evens out explosions and whispers.</li>
+          <li xml:lang="ru">«Приглушать громкие звуки» в Настройках › Аудио и субтитры выравнивает взрывы и шёпот.</li>
+          <li>Surround to the receiver sends Dolby and DTS to your receiver as they are.</li>
+          <li xml:lang="ru">«Объёмный звук на ресивер» отправляет Dolby и DTS на ресивер как есть.</li>
+          <li>Hardware decoding can be turned off for this computer in Settings › Playback.</li>
+          <li xml:lang="ru">Аппаратное декодирование можно выключить для этого компьютера в Настройках › Воспроизведение.</li>
+          <li>Pause when minimised, in Settings › Playback, where the system tells.</li>
+          <li xml:lang="ru">«Пауза при сворачивании» в Настройках › Воспроизведение, где система об этом сообщает.</li>
+          <li>In the player, T keeps the window on top, and Alt+0, 1 and 2 size it to half, the video and double.</li>
+          <li xml:lang="ru">В плеере T держит окно поверх других, а Alt+0, 1 и 2 задают размер: половина, как у видео и двойной.</li>
+          <li>New downloads go into Lumeo in your Videos folder, a folder for each title and season.</li>
+          <li xml:lang="ru">Новые загрузки сохраняются в папку Lumeo в «Видео», по папке на фильм и сезон.</li>
+          <li>Films you follow appear in Coming up by their release date.</li>
+          <li xml:lang="ru">Отслеживаемые фильмы появляются в «Скоро выйдут» по дате выхода.</li>
+          <li>Posters that failed while you were offline fill in once the connection is back.</li>
+          <li xml:lang="ru">Постеры, не загрузившиеся без сети, появляются, когда связь возвращается.</li>
+          <li>Keep the file’s styling now says that a styled track keeps its own colour and edge.</li>
+          <li xml:lang="ru">«Сохранять оформление файла» теперь поясняет, что оформленные субтитры сохраняют свои цвет и контур.</li>
+          <li>The mouse wheel scrolls at your system’s pace, without sudden jumps.</li>
+          <li xml:lang="ru">Колесо мыши прокручивает в темпе системы, без рывков.</li>
+          <li>My list and History stay where you were when they refresh.</li>
+          <li xml:lang="ru">«Мой список» и «История» остаются на месте при обновлении.</li>
+          <li>The library fits the window again after it is resized.</li>
+          <li xml:lang="ru">Библиотека снова подстраивается под размер окна.</li>
+          <li>A title opened from a link replaces the previous one instead of piling up.</li>
+          <li xml:lang="ru">Фильм, открытый по ссылке, заменяет предыдущий, а не накапливается.</li>
+          <li>Player messages appear at the top and stay for 8 seconds.</li>
+          <li xml:lang="ru">Сообщения плеера появляются сверху и держатся 8 секунд.</li>
+          <li>A damaged torrent can no longer crash Lumeo.</li>
+          <li xml:lang="ru">Повреждённый торрент больше не может обрушить Lumeo.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.24" date="2026-11-01" type="development">
       <description>
         <ul>
