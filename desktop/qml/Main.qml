@@ -94,14 +94,37 @@ ApplicationWindow {
     function fit(width, height) {
         const ratio = Screen.devicePixelRatio
         const room = Math.min(1, Screen.desktopAvailableWidth * ratio / width, Screen.desktopAvailableHeight * ratio / height)
+        const size = Qt.size(Math.round(width * room / ratio), Math.round(height * room / ratio))
+        if (visibility === Window.Windowed) {
+            window.width = size.width
+            window.height = size.height
+            return
+        }
+        // Out of fullscreen or maximised the window system answers later
+        // with the size from before, which would replace one set now; ours
+        // follows that answer (applyConfigure in Qt's xdg-shell).
+        fitting = size
         visibility = Window.Windowed
-        window.width = Math.round(width * room / ratio)
-        window.height = Math.round(height * room / ratio)
     }
+    property size fitting: Qt.size(0, 0)
+    function fitted() {
+        if (fitting.width === 0 || visibility !== Window.Windowed)
+            return
+        // Numbers, not the size: a value type read from a property follows it.
+        const width = fitting.width, height = fitting.height
+        fitting = Qt.size(0, 0)
+        window.width = width
+        window.height = height
+    }
+    onWidthChanged: fitted()
+    onHeightChanged: fitted()
 
     onVisibilityChanged: {
         if (window.visibility === Window.Windowed || window.visibility === Window.Maximized)
             window.windowed = window.visibility
+        // Back in fullscreen before the answer came: the size is not wanted.
+        if (window.visibility === Window.FullScreen)
+            fitting = Qt.size(0, 0)
     }
 
     // Into the background the film goes with the window: playing on behind

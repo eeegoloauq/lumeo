@@ -547,6 +547,8 @@ Item {
             const ratio = win.screen.devicePixelRatio
             tryVerify(() => win.width === Math.round(1280 / ratio) && win.height === Math.round(720 / ratio), 5000,
                       "the clip's 640 by 360 twice, not " + win.width + " by " + win.height)
+            win.player.close()
+            tryVerify(() => win.player === null, 5000, "the player gone")
         }
 
         // Another copy or episode in the same sitting keeps the window as it
