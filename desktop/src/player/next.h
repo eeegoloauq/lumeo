@@ -107,10 +107,27 @@ public:
     // The file named this interval; an unnamed end holds its last frame.
     bool credits = true;
   };
+  // The chapters the rules use, worked out once per chapters change: what
+  // reads them runs on every position update.
+  struct Marks {
+    // The opening's start and the next chapter's, -1 for none or for the
+    // file's end.
+    double opening = -1;
+    double openingEnd = -1;
+    // The ending run's start, and the first chapter after it; -1 for none
+    // or for the file's end.
+    double ending = -1;
+    double afterEnding = -1;
+  };
+  static Marks marks(const QVariantList &chapters);
   // What is offered at [position]. [notice] is how long before an end the
   // file does not name the next episode is offered; zero, only once it ends.
+  static Moment moment(const Marks &marks, double position, double duration, bool hasNext,
+                       double notice);
   static Moment moment(const QVariantList &chapters, double position, double duration,
-                       bool hasNext, double notice);
+                       bool hasNext, double notice) {
+    return moment(marks(chapters), position, duration, hasNext, notice);
+  }
 
 signals:
   void changed();
@@ -129,7 +146,13 @@ private:
   double grace() const;
   double notice() const;
 
+  void readPreferences();
+
   QPointer<MpvItem> m_mpv;
+  Marks m_marks;
+  // The preferences' nextCountdown and nextNotice, in seconds.
+  double m_countdownSeconds = 5;
+  double m_noticeSeconds = 0;
   Core *m_core;
   Preferences *m_preferences;
   Downloads *m_downloads;

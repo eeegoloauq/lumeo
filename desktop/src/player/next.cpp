@@ -90,30 +90,44 @@ bool Next::inCredits(const QVariantList &chapters, double position) {
   return at >= 0 && position >= timeOf(chapters, at);
 }
 
-Next::Moment Next::moment(const QVariantList &chapters, double position, double duration,
-                          bool hasNext, double notice) {
+Next::Marks Next::marks(const QVariantList &chapters) {
+  Marks marks;
   const int opened = openingChapter(chapters);
   if (opened >= 0) {
+    marks.opening = timeOf(chapters, opened);
+    if (opened + 1 < chapters.size())
+      marks.openingEnd = timeOf(chapters, opened + 1);
+  }
+  const int ended = endingChapter(chapters);
+  if (ended >= 0) {
+    marks.ending = timeOf(chapters, ended);
+    const int after = afterEnding(chapters, ended);
+    if (after >= 0)
+      marks.afterEnding = timeOf(chapters, after);
+  }
+  return marks;
+}
+
+Next::Moment Next::moment(const Marks &marks, double position, double duration, bool hasNext,
+                          double notice) {
+  if (marks.opening >= 0) {
     // mpv lists starts only: the next start, or the file's end, ends it. At
     // the next chapter a skip would seek to the frame on screen.
-    const double end = opened + 1 < chapters.size() ? timeOf(chapters, opened + 1) : duration;
-    const Moment skip = span("intro", timeOf(chapters, opened), end, position, false);
+    const double end = marks.openingEnd >= 0 ? marks.openingEnd : duration;
+    const Moment skip = span("intro", marks.opening, end, position, false);
     if (!skip.action.isEmpty())
       return skip;
   }
-  const int ended = endingChapter(chapters);
-  const int after = ended < 0 ? -1 : afterEnding(chapters, ended);
-  if (after >= 0) {
+  if (marks.afterEnding >= 0) {
     // A scene after the credits belongs to the episode: skipped to, as the
     // opening is, whether or not an episode follows.
-    const Moment skip =
-        span("ending", timeOf(chapters, ended), timeOf(chapters, after), position, false);
+    const Moment skip = span("ending", marks.ending, marks.afterEnding, position, false);
     if (!skip.action.isEmpty())
       return skip;
   }
   if (!hasNext)
     return {};
-  if (ended < 0 || after >= 0) {
+  if (marks.ending < 0 || marks.afterEnding >= 0) {
     // Past half a short file, "before the end" would be all of it: it is
     // offered its successor once it ends.
     if (notice <= 0 || duration < notice * 2)
@@ -122,15 +136,21 @@ Next::Moment Next::moment(const QVariantList &chapters, double position, double 
   }
   // Over the credits and the previews after them; mpv can hold the last
   // frame at exactly the file's length.
-  return span("next", timeOf(chapters, ended), duration, position, true);
+  return span("next", marks.ending, duration, position, true);
 }
 
 Next::Next(MpvItem *mpv, Core *core, Preferences *preferences, Downloads *downloads,
            QObject *parent)
     : QObject(parent), m_mpv(mpv), m_core(core), m_preferences(preferences),
       m_downloads(downloads) {
+  m_marks = marks(mpv->chapters());
+  readPreferences();
+  connect(preferences, &Preferences::changed, this, &Next::readPreferences);
   connect(mpv, &MpvItem::positionChanged, this, &Next::recompute);
-  connect(mpv, &MpvItem::chaptersChanged, this, &Next::recompute);
+  connect(mpv, &MpvItem::chaptersChanged, this, [this] {
+    m_marks = marks(m_mpv->chapters());
+    recompute();
+  });
   connect(mpv, &MpvItem::hasPictureChanged, this, &Next::recompute);
   // `keep-open` holds the last frame, and eof-reached says so; a seek back
   // clears it. Not the position: a seek forward from the end steps back to
@@ -163,13 +183,15 @@ QVariantMap Next::download() const {
                          m_episode.value("number").toInt());
 }
 
-double Next::grace() const {
-  return m_preferences->current().value("nextCountdown", 5).toDouble() * second / 1000;
+void Next::readPreferences() {
+  const QVariantMap current = m_preferences->current();
+  m_countdownSeconds = current.value("nextCountdown", 5).toDouble();
+  m_noticeSeconds = current.value("nextNotice", 0).toDouble();
 }
 
-double Next::notice() const {
-  return m_preferences->current().value("nextNotice", 0).toDouble() * second / 1000;
-}
+double Next::grace() const { return m_countdownSeconds * second / 1000; }
+
+double Next::notice() const { return m_noticeSeconds * second / 1000; }
 
 void Next::update(const QVariantMap &download) {
   m_playing = download;
@@ -279,8 +301,7 @@ void Next::onEnded() {
   m_fileEnded = true;
   if (m_episode.isEmpty())
     return;
-  const Moment showing = moment(m_mpv->chapters(), m_mpv->position(), m_mpv->duration(), true,
-                                notice());
+  const Moment showing = moment(m_marks, m_mpv->position(), m_mpv->duration(), true, notice());
   m_offerStart = showing.action == "next" ? showing.start : m_endedPosition;
   if (showing.action == "next" && showing.credits && grace() > 0) {
     advance();
@@ -309,7 +330,7 @@ void Next::recompute() {
       }
     } else {
       const Moment now =
-          moment(m_mpv->chapters(), m_mpv->position(), m_mpv->duration(), hasNext, notice());
+          moment(m_marks, m_mpv->position(), m_mpv->duration(), hasNext, notice());
       offer = now.action;
       fill = now.fill;
       m_target = now.end;
