@@ -22,6 +22,15 @@
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "OFF"
       }
+    },
+    {
+      "name": "sanitize",
+      "displayName": "Sanitizers: the dev build under ASan, UBSan and LSan",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/sanitize",
+      "cacheVariables": {
+        "LUMEO_SANITIZE": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -32,6 +41,10 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize"
     }
   ]
 }

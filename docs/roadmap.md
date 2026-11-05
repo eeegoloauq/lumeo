@@ -4,18 +4,6 @@ What is next, not what was done: done work is in git and, where it set a
 rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle
 before code.
 
-## Performance
-
-From a read of the client on 2026-11-05 and the desktop's measurements of
-2026-11-04: about 1 GiB PSS after two hours, at least 450 MiB of it memory
-glibc had freed and kept. Directions and how to measure are in
-[decisions/performance.md](decisions/performance.md). In order, each
-measured before and after:
-
-1. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
-   LeakSanitizer in CI, with a suppressions file for Qt's and Mesa's own
-   allocations.
-
 ## Remote core
 
 A server is reached over HTTPS, through a reverse proxy or with the core's

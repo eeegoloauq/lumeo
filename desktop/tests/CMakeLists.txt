@@ -47,3 +47,14 @@ target_compile_definitions(player_test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CU
 # qmllint as a test, so every ctest run has it; qml/.qmllint.ini makes a
 # warning fail it.
 add_test(NAME qmllint COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target lumeo_qmllint)
+
+# Under the sanitize preset every test runs with the sanitizers' settings:
+# a leak or undefined behaviour fails it, and what is not ours is in
+# sanitizers/. The player tests run with the system's libmpv and stay out.
+if(LUMEO_SANITIZE)
+  get_property(tests DIRECTORY PROPERTY TESTS)
+  set_property(TEST ${tests} APPEND PROPERTY ENVIRONMENT
+    "ASAN_OPTIONS=detect_leaks=1:strict_init_order=1:check_initialization_order=1"
+    "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/sanitizers/lsan.supp:print_suppressions=0"
+    "UBSAN_OPTIONS=print_stacktrace=1")
+endif()

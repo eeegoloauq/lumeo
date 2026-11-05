@@ -60,12 +60,19 @@ Client, from `desktop/`:
     taskset -c 1 ctest --test-dir build/dev --repeat until-fail:5    # on one CPU, about three
     tool/player-test.sh                               # the player on a headless Weston, about two
 
+    cmake --preset sanitize && cmake --build --preset sanitize    # for ownership or lifetimes
+    ctest --test-dir build/sanitize --output-on-failure           # under ASan, UBSan and LSan
+
 Tests go in the lowest layer that can show the behaviour, once: units under QtTest in
 `desktop/tests/*_test.cpp`, the whole app over the fake core in `desktop/tests/app/`, and only what
 needs a real libmpv in `desktop/tests/player/`. [docs/decisions/testing.md](docs/decisions/testing.md)
 says what goes where and what a test does not check. qmllint fails on any warning
 (`desktop/qml/.qmllint.ini`); a line whose types it cannot see takes `// qmllint disable <category>` and a
 comment saying why. A fix for a visible defect comes with a test.
+The sanitize preset builds the same tests with AddressSanitizer and UndefinedBehaviorSanitizer, and a
+leak at exit fails a test; CI runs it as a job of its own. A report from Qt, Mesa or libmpv goes in
+`desktop/tests/sanitizers/lsan.supp`, matched as narrowly as its stack allows and with a comment
+saying why it is not ours; one of ours is fixed.
 The run on one CPU is for a change to the app, QML or anything asynchronous: the CI runners,
 Windows most, are slower than a desktop, and a test that checks a moment rather than waiting for a
 state fails there first (a Linux system without `taskset` drops the prefix).

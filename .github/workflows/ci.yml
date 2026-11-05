@@ -7,8 +7,8 @@
 #
 # The desktop job builds desktop/ once and runs every layer on it: units and
 # app tests offscreen, then the player tests on headless Weston with a real
-# libmpv (docs/decisions/testing.md). The windows job runs the units and app
-# tests on Windows. release.yml calls this too and publishes only when it
+# libmpv (docs/decisions/testing.md). The sanitizers job runs the units and
+# app tests again under ASan, UBSan and LSan, and the windows job on Windows. release.yml calls this too and publishes only when it
 # passes.
 name: ci
 
@@ -93,6 +93,56 @@ jobs:
       - run: ctest --test-dir build/dev --output-on-failure
         working-directory: desktop
       - run: tool/player-test.sh
+        working-directory: desktop
+
+  # The units and app tests built with AddressSanitizer and
+  # UndefinedBehaviorSanitizer, leaks checked at exit: use after free,
+  # overflows and memory nothing points to, which a reading misses
+  # (decisions/performance.md). What is not ours is in
+  # desktop/tests/sanitizers/. A job of its own, so the desktop job's run
+  # stays as long as it was.
+  sanitizers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: build dependencies
+        timeout-minutes: 10
+        run: |
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30"; Acquire::https::Timeout "30";' |
+            sudo tee /etc/apt/apt.conf.d/99lumeo-retries >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config ccache mold \
+            libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 \
+            libmpv-dev libudev-dev
+      - uses: actions/cache@v6
+        if: github.workflow == 'ci'
+        with:
+          path: ~/.cache/lumeo/qt
+          key: qt-${{ hashFiles('packaging/install-qt.sh') }}
+      # Objects of their own: a sanitized object is not the dev build's.
+      - uses: actions/cache@v6
+        if: github.workflow == 'ci'
+        with:
+          path: ~/.cache/ccache
+          key: ccache-sanitize-${{ github.sha }}
+          restore-keys: ccache-sanitize-
+      - uses: actions/cache@v6
+        if: github.workflow == 'ci'
+        with:
+          path: ~/.cache/lumeo/sdl-*
+          key: sdl-${{ hashFiles('packaging/build-sdl.sh') }}
+      - name: qt
+        run: |
+          [ -d ~/.cache/lumeo/qt/6.12.0 ] || packaging/install-qt.sh
+          echo "CMAKE_PREFIX_PATH=$HOME/.cache/lumeo/qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+      - name: sdl
+        run: echo "SDL3_ROOT=$(packaging/build-sdl.sh)" >> "$GITHUB_ENV"
+      - run: cmake --preset sanitize
+        working-directory: desktop
+      - run: cmake --build --preset sanitize
+        working-directory: desktop
+      - run: ctest --test-dir build/sanitize --output-on-failure
         working-directory: desktop
 
   # The units and app tests on Windows, where the Q_OS_WIN branches are

@@ -1,0 +1,13 @@
+# Leaks LeakSanitizer reports that are not leaks of the client's, each
+# matched as narrowly as the stacks allow, with why.
+
+# An image still loading when the app tests exit: Qt's pixmap reader has
+# stopped by then, so the response's cancel is never answered with its
+# deletion. The provider goes with it, kept alive by the response.
+leak:Artwork::requestImageResponse
+
+# mpv's built-in Lua scripts (Ubuntu's libmpv links Lua 5.2), mid-allocation
+# when a test exits before the probe in MpvFacts::ask is terminated. Matched
+# on Lua, not on libmpv, so an mpv handle the client fails to destroy is
+# still reported.
+leak:liblua5.2.so

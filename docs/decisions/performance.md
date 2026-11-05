@@ -2,8 +2,9 @@
 
 How the client keeps its memory and its frames in check, and where to look
 when either grows. The core is small (about 60 MiB on the desktop) and is not
-covered here. The work these directions came from is in the roadmap,
-Performance.
+covered here. They come from a read of the client on 2026-11-05 and the
+desktop's measurements of 2026-11-04: about 1 GiB PSS after two hours, at
+least 450 MiB of it memory glibc had freed and kept.
 
 ## Where to look first
 
@@ -107,6 +108,8 @@ times the device pixel ratio; the provider scales while decoding. The
 - NVIDIA and Wayland numbers come from a real desktop: llvmpipe in a VM does
   not show the driver's memory.
 - Sanitizers find what a reading misses: use after free, overflows, undefined
-  behaviour and memory nothing points to at exit. They see only the code the
-  tests run, and memory still referenced (an oversized cache) is no leak to
-  them.
+  behaviour and memory nothing points to at exit. The units and app tests run
+  under them in CI (the sanitize preset, CONTRIBUTING.md). They see only the
+  code the tests run, and memory still referenced (an oversized cache) is no
+  leak to them. A cycle shows as indirect leaks alone, such as a closure
+  holding a `shared_ptr` to itself.

@@ -4,6 +4,16 @@ project(lumeo-desktop LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Address, undefined-behaviour and leak checks for the tests (the sanitize
+# preset); tests/CMakeLists.txt points them at their suppressions. -g1 keeps
+# the reports' file and line without the disk full debug information takes.
+option(LUMEO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+if(LUMEO_SANITIZE)
+  add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=undefined
+    -fno-omit-frame-pointer -g1)
+  add_link_options(-fsanitize=address,undefined)
+endif()
+
 # 6.8 is the oldest LTS a distribution's Qt might be, for a build against
 # it; development, CI and the packages run 6.12 (packaging/install-qt.sh).
 find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Svg Concurrent ShaderTools
