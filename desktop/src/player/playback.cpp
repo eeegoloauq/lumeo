@@ -174,9 +174,17 @@ void Playback::refresh() {
       emit changed();
       return;
     }
+    // Only what moved, since every binding on the player reads these; no
+    // peers is also a matter of time.
+    const QVariantMap download = reply.json().toObject().toVariantMap();
+    bool moved = m_failure == CoreStopped || download != m_download;
     if (m_failure == CoreStopped)
       m_failure = None;
-    m_download = reply.json().toObject().toVariantMap();
+    m_download = download;
+    if (findingNoPeers() != m_findingNoPeers) {
+      m_findingNoPeers = !m_findingNoPeers;
+      moved = true;
+    }
     const QString itemId = m_download.value("itemId").toString();
     if (m_openedUnnamed < 0)
       m_openedUnnamed = itemId.isEmpty();
@@ -185,7 +193,8 @@ void Playback::refresh() {
       m_itemAsked = true;
       loadItem();
     }
-    emit changed();
+    if (moved)
+      emit changed();
     resume();
     if (m_next)
       m_next->update(m_download);
@@ -246,6 +255,7 @@ void Playback::loadItem() {
                   applyScreenshots();
                 }
                 emit changed();
+                emit itemChanged();
               });
   if (episode > 0)
     loadProgress();
@@ -259,8 +269,11 @@ void Playback::loadProgress() {
               [this](const Core::Reply &reply) {
                 if (!reply.ok())
                   return;
-                m_watching = reply.json().toObject().toVariantMap();
-                emit changed();
+                const QVariantMap watching = reply.json().toObject().toVariantMap();
+                if (watching == m_watching)
+                  return;
+                m_watching = watching;
+                emit watchingChanged();
               });
 }
 

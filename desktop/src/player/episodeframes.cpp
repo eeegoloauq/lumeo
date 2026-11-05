@@ -17,7 +17,7 @@ EpisodeFrames::EpisodeFrames(Core *core, Downloads *downloads, const QString &di
   // A dot is a frame mpv was still writing when the client quit.
   for (const QString &file : QDir(directory).entryList(QDir::Files))
     if (!file.startsWith('.'))
-      m_known.insert(file);
+      add(file);
   connect(downloads, &Downloads::changed, this, &EpisodeFrames::update);
   update();
 }
@@ -35,18 +35,15 @@ QString EpisodeFrames::name(const QString &itemId, int season, int episode) {
       .arg(episode);
 }
 
-QVariantMap EpisodeFrames::known() const {
+void EpisodeFrames::add(const QString &file) {
   static const QRegularExpression named("^(.*)-s(\\d+)e(\\d+)\\.jpg$");
-  QVariantMap known;
-  for (const QString &file : m_known) {
-    const QRegularExpressionMatch match = named.match(file);
-    if (match.hasMatch())
-      known.insert(QString("%1/%2/%3")
-                       .arg(QUrl::fromPercentEncoding(match.captured(1).toUtf8()),
-                            match.captured(2), match.captured(3)),
-                   QUrl::fromLocalFile(m_directory + "/" + file).toString());
-  }
-  return known;
+  m_known.insert(file);
+  const QRegularExpressionMatch match = named.match(file);
+  if (match.hasMatch())
+    m_frames.insert(QString("%1/%2/%3")
+                        .arg(QUrl::fromPercentEncoding(match.captured(1).toUtf8()),
+                             match.captured(2), match.captured(3)),
+                    QUrl::fromLocalFile(m_directory + "/" + file).toString());
 }
 
 void EpisodeFrames::update() {
@@ -72,7 +69,7 @@ void EpisodeFrames::update() {
       if (!m_grabber)
         return;
       if (saved && QFile::rename(part, m_directory + "/" + file)) {
-        m_known.insert(file);
+        add(file);
         emit changed();
       }
       m_grabber->deleteLater();

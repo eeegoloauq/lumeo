@@ -17,6 +17,7 @@ Item {
     }
 
     SignalSpy { id: next; signalName: "next" }
+    SignalSpy { id: listed; signalName: "episodesChanged" }
 
     TestCase {
         name: "Next"
@@ -208,6 +209,21 @@ Item {
             mouseClick(findChild(panel, "episode-1-2"))
             tryCompare(next, "count", 1, 5000)
             compare(next.signalArguments[0][0], "e2")
+        }
+
+        // A poll that brings the same download makes no row again.
+        function test_theEpisodesPanelOutlivesAPollThatChangedNothing() {
+            playing("e1", { state: "active" })
+            mouseMove(player, player.width / 2, player.height - 30)
+            mouseClick(findChild(player, "episodesButton"))
+            const panel = findChild(player, "episodesPanel")
+            tryVerify(() => panel.visible && !!findChild(panel, "episode-1-2"))
+            listed.target = panel
+            listed.clear()
+            const polled = () => requests().filter(r => /^GET \/api\/v1\/downloads\/e1( |$)/.test(r)).length
+            const polls = polled()
+            tryVerify(() => polled() >= polls + 2, 5000, "two polls")
+            compare(listed.count, 0, "the rows made again")
         }
     }
 }

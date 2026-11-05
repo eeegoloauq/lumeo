@@ -28,19 +28,22 @@ public:
                 QObject *parent = nullptr);
   static EpisodeFrames *create(QQmlEngine *qml, QJSEngine *);
 
-  QVariantMap known() const;
+  QVariantMap known() const { return m_frames; }
 
 signals:
   void changed();
 
 private:
   static QString name(const QString &itemId, int season, int episode);
+  void add(const QString &file);
   void update();
 
   Core *m_core;
   Downloads *m_downloads;
   QString m_directory;
   QSet<QString> m_known;
+  // known, kept: bindings read it for every card on every change.
+  QVariantMap m_frames;
   // Taken or failed this session; a failure is not tried again until a
   // restart.
   QSet<QString> m_tried;

@@ -61,11 +61,11 @@ class Playback : public QObject, public QQmlParserStatus {
   // The seek bar's frames, made again with each open; null when they are off.
   Q_PROPERTY(Previews *previews READ previews NOTIFY changed)
   // The title's episodes, for the episodes panel; empty for a film.
-  Q_PROPERTY(QVariantList episodes READ episodes NOTIFY changed)
+  Q_PROPERTY(QVariantList episodes READ episodes NOTIFY itemChanged)
   // How long an episode runs, as the catalogue says; empty when it does not.
-  Q_PROPERTY(QString runtime READ runtime NOTIFY changed)
+  Q_PROPERTY(QString runtime READ runtime NOTIFY itemChanged)
   // The title's watching, {entries}, as last asked.
-  Q_PROPERTY(QVariantMap watching READ watching NOTIFY changed)
+  Q_PROPERTY(QVariantMap watching READ watching NOTIFY watchingChanged)
   // close() has been called: what mpv says now is about no film.
   Q_PROPERTY(bool closing READ closing NOTIFY changed)
   // Why nothing plays, once that is the answer.
@@ -157,6 +157,10 @@ signals:
   void mpvChanged();
   void tracksChanged();
   void changed();
+  // Apart from changed, which every poll can bring: the panel's rows bind to
+  // these.
+  void itemChanged();
+  void watchingChanged();
   // Something to say over the picture: a sound or picture decoder that
   // failed ("sound" or "picture"), naming [codec]; a file that stopped
   // ("failed"); a subtitle that could not be fetched ("subtitle"); a codec
@@ -211,6 +215,8 @@ private:
   QString m_named;
   QString m_episodeTitle;
   QVariantList m_episodes;
+  // findingNoPeers as the last poll said it.
+  bool m_findingNoPeers = false;
   QString m_runtime;
   QVariantMap m_watching;
   QVariantMap m_download;

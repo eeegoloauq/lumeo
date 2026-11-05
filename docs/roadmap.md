@@ -12,27 +12,22 @@ glibc had freed and kept. Directions and how to measure are in
 [decisions/performance.md](decisions/performance.md). In order, each
 measured before and after:
 
-1. The player's episodes panel. `Playback::refresh` emits `changed` on every
-   2 s poll, changed or not; `EpisodesPanel.qml` filters `episodes` into a
-   new array, so every row is made again, the hidden panel too; each row
-   reads `EpisodeFrames::known`, which rebuilds the whole map with a regex
-   per saved still (245,448 allocations in six minutes).
-2. `Next::recompute` runs on every position update: chapter regexes and two
+1. `Next::recompute` runs on every position update: chapter regexes and two
    conversions of the preferences. Worked out once per chapters change.
-3. `Artwork::Response`: a cancel during the request or the retry delay never
+2. `Artwork::Response`: a cancel during the request or the retry delay never
    emits `finished`, so the engine never deletes the response. A small leak
    and a broken contract, with tests for each cancel path.
-4. One signal per property and the converted value kept: `Title` (item and
+3. One signal per property and the converted value kept: `Title` (item and
    progress), `Downloads.marks` (read by every poster every 2 s while
    something downloads), `Preferences.current`. Search results as a
    `GridView` over a model.
-5. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
+4. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
    the strip and the Library grid; unwatched stills blurred once at decode;
    no `Behavior` on the skip fill.
-6. What stays made while hidden: the shell in the tray, the Library page,
+5. What stays made while hidden: the shell in the tray, the Library page,
    Home's `cacheBuffer: 3000`, a banner at screen width for each title page
    in the stack. Navigation state in C++ so the pages can go.
-7. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
+6. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
    LeakSanitizer in CI, with a suppressions file for Qt's and Mesa's own
    allocations.
 

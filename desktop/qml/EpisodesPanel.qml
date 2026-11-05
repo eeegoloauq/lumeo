@@ -19,6 +19,8 @@ MenuPanel {
     readonly property bool trailers: playback.urls.length > 0
     readonly property int playingSeason: trailers ? 0 : playback.download.season ?? 0
     readonly property int playingNumber: trailers ? playback.trailer + 1 : playback.download.episode ?? 0
+    // A string, so a poll that brings the same download wakes no row.
+    readonly property string itemId: playback.download.itemId ?? ""
     property int season: playingSeason
     readonly property var seasons: [...new Set(playback.episodes.map(e => e.season))].sort((a, b) => a - b)
     readonly property var episodes: trailers ? playback.trailers.map((url, i) => ({season: 0, number: i + 1,
@@ -132,7 +134,7 @@ MenuPanel {
                     height: 72
                     episode: row.modelData
                     stills: panel.trailers ? "show" : Preferences.current.episodeArtwork ?? "show"
-                    frame: EpisodeFrames.known[panel.playback.download.itemId + "/" + row.modelData.season
+                    frame: EpisodeFrames.known[panel.itemId + "/" + row.modelData.season
                                                + "/" + row.modelData.number] ?? ""
                     watched: row.watched?.watched ?? false
                     bar: row.watched?.position > 0 && row.watched.duration > 0 ? row.watched.position / row.watched.duration : 0
