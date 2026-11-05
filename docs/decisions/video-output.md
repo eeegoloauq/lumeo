@@ -35,13 +35,21 @@ documents it in microseconds and mpv has filled it with nanoseconds since 0.36,
 so every film stood on its first picture. Our own clock arithmetic against
 mpv's is a second implementation of something mpv already does.
 
-## Open
+## Screenshots are taken in GL
 
-`ADVANCED_CONTROL` is off. The Flutter client turned it on for screenshots:
-without it mpv grabs in software, and mpv 0.41's software grab could not read
-an NVDEC frame. Screenshots of an NVDEC-decoded film on NVIDIA are unchecked
-in this client. If they fail, the flag comes on with what it asks of the
-render thread (`mpv_render_context_update` on every update).
+`ADVANCED_CONTROL` is on, for screenshots: with it mpv takes them in GL on the
+render thread, as mpv itself does, rather than in software. mpv 0.41's software
+grab hands an NVDEC (`cuda`) frame to libswscale without downloading it ("Input
+image format cuda not supported by libswscale"); 0.42 fixes that (mpv c66204b),
+but a system on 0.41 keeps the bug, and in GL the frame never leaves the GPU.
+In return the render thread calls `mpv_render_context_update` before every
+frame so the work mpv queued there runs. Direct rendering, the flag's other
+feature, is off (`vd-lavc-dr=no`): it would make decoding wait on the render
+thread, which stops while the window is minimised and the sound plays on.
+Screenshots of an NVDEC-decoded film on NVIDIA are checked by hand on a real
+GPU.
+
+## Open
 
 A black picture or a stuck frame on NVIDIA under Wayland is read against mpv's
 own statistics (`I`): whether `frame-drop-count` climbs while the picture is

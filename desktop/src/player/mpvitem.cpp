@@ -300,6 +300,8 @@ public:
     if (!m_context)
       return;
     QOpenGLFramebufferObject *fbo = framebufferObject();
+    // Runs what mpv queued for this thread, a screenshot among it.
+    mpv_render_context_update(m_context);
     mpv_opengl_fbo target{static_cast<int>(fbo->handle()), fbo->width(), fbo->height(), 0};
     int flip = 0;
     mpv_render_param params[] = {
@@ -327,9 +329,13 @@ private:
 
   void create() {
     mpv_opengl_init_params gl{procAddress, nullptr};
+    // Screenshots in GL on this thread, not in software, which on mpv 0.41
+    // cannot read an NVDEC frame (decisions/video-output.md).
+    int advanced = 1;
     std::vector<mpv_render_param> params = {
         {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
         {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl},
+        {MPV_RENDER_PARAM_ADVANCED_CONTROL, &advanced},
     };
     // The display lets hardware decoders hand frames to GL without a copy
     // (VA-API's interop needs it; NVDEC's goes through CUDA and does not).
@@ -370,6 +376,9 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"hwdec", "auto-safe"},
       {"hr-seek", "yes"},
       {"keep-open", "yes"},
+      // Direct rendering would make decoding wait on the render thread,
+      // which stops while the window is minimised and the sound plays on.
+      {"vd-lavc-dr", "no"},
       {"input-default-bindings", "yes"},
       {"cache-pause-initial", "yes"},
       // The core is near and reads ahead on the torrent itself; mpv's
