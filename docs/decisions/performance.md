@@ -37,7 +37,8 @@ buffer and a window hidden to the tray keep their images, as the decoded
 copy and the GPU texture, and keep their bindings running. Keep the data in
 C++ and make the page again from it. Where the viewer is and what the pages
 show live in `Navigation` (`src/api/navigation.h`), so the pages go while
-the window is in the background, and a page that leaves the stack goes. A `cacheBuffer` is about one
+the window is in the background, its scene graph and graphics context with
+them, and a page that leaves the stack goes. A `cacheBuffer` is about one
 screen. Something kept on purpose says why in a comment, with what it costs:
 Home stays under the other pages, as the page Back ends at; a title page
 under another stays, since made again it would ask the providers for its

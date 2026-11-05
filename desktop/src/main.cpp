@@ -87,5 +87,13 @@ int main(int argc, char *argv[]) {
   QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                    [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
   engine.loadFromModule("Lumeo", "Main");
+  // Hidden to the background, the window gives back its scene graph and its
+  // graphics context with its pages (decisions/performance.md): kept, they
+  // held over a hundred megabytes on llvmpipe. Only hide() lets them go, so a
+  // minimised window, a film still on it, keeps both.
+  if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0))) {
+    window->setPersistentGraphics(false);
+    window->setPersistentSceneGraph(false);
+  }
   return app.exec();
 }
