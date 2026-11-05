@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls.Basic
+import Qt.labs.qmlmodels
 import Lumeo
 import "format.js" as Format
 
@@ -30,49 +31,53 @@ ShellPage {
     // the rest of its row.
     readonly property int span: columns >= 6 ? 3 : 2
 
-    readonly property var results: search.results
     readonly property bool idle: search.status === Search.Idle
     readonly property bool found: search.status === Search.Ready && search.films + search.series > 0
 
     // Down from the field: into what the page shows.
     function enter() {
-        if (found && results.length > 0)
+        if (found && grid.count > 0)
             return focusAt(0)
-        if (idle && popular.item)
-            return (popular.item as ShelfRow)?.focusCard() ?? false
+        if (idle && grid.head?.popular.item)
+            return (grid.head.popular.item as ShelfRow)?.focusCard() ?? false
         return false
     }
 
-    function focusAt(index) {
-        const target = index === 0 ? best.item : (tiles.itemAt(index - 1) as Cell)?.button
+    // A place may be off screen and not made yet: the view makes it first.
+    function focusAt(place) {
+        grid.positionViewAtIndex(place, GridView.Contain)
+        const made = grid.itemAtIndex(place)
+        const target = (made as Cell)?.button ?? made
         if (!target)
             return false
         target.forceActiveFocus(Qt.TabFocusReason)
-        reveal(target)
+        reveal(made)
         return true
     }
 
-    // The arrows walk the grid as it is drawn: the best match takes the
-    // first [span] places of the first row.
-    function move(index, across, down) {
-        if (across !== 0)
-            return focusAt(Math.max(0, Math.min(results.length - 1, index + across)))
-        const place = (index === 0 ? 0 : index + span - 1) + down * columns
-        if (place < 0) {
+    // The arrows walk the grid as it is drawn: the best match is place 0,
+    // and the places it covers beside it lead back to it.
+    function move(place, across, down) {
+        const title = at => at < search.lead ? 0 : at
+        if (across !== 0) {
+            const to = place === 0 && across > 0 ? search.lead : place + across
+            return focusAt(title(Math.max(0, Math.min(grid.count - 1, to))))
+        }
+        const to = place + down * columns
+        if (to < 0) {
             page.up()
             return true
         }
-        const at = place < span ? 0 : place - span + 1
-        return at < results.length && focusAt(at)
+        return to < grid.count && focusAt(title(to))
     }
 
+    // Clear of the bar floating over the page's top.
     function reveal(item) {
-        const top = item.mapToItem(column, 0, 0).y
         const clearance = 90
-        if (top - clearance < flick.contentY)
-            flick.contentY = Math.max(0, top - clearance)
-        else if (top + item.height + 24 > flick.contentY + flick.height)
-            flick.contentY = top + item.height + 24 - flick.height
+        if (item.y - clearance < grid.contentY)
+            grid.contentY = Math.max(grid.originY, item.y - clearance)
+        else if (item.y + item.height + 24 > grid.contentY + grid.height)
+            grid.contentY = item.y + item.height + 24 - grid.height
     }
 
     // The poster and its caption, one cell of the grid.
@@ -80,25 +85,29 @@ ShellPage {
         id: slot
 
         required property int index
-        required property var modelData
 
-        objectName: "result-" + modelData.id
+        objectName: "result-" + item.id
         width: page.cell
         posterHeight: page.poster
-        item: modelData
-        line: qsTrId("searchYearKind").arg(Format.years(modelData))
-              .arg(modelData.kind === "series" ? qsTrId("commonSeries") : qsTrId("commonFilm"))
+        line: qsTrId("searchYearKind").arg(Format.years(item))
+              .arg(item.kind === "series" ? qsTrId("commonSeries") : qsTrId("commonFilm"))
               .trim()
-        markKey: modelData.id
-        onClicked: page.open(modelData)
-        onMenu: at => TitleActions.ask({item: modelData, source: button, x: at.x, y: at.y})
-        button.Keys.onLeftPressed: page.move(slot.index + 1, -1, 0)
-        button.Keys.onRightPressed: page.move(slot.index + 1, 1, 0)
-        button.Keys.onUpPressed: page.move(slot.index + 1, 0, -1)
-        button.Keys.onDownPressed: page.move(slot.index + 1, 0, 1)
+        markKey: item.id
+        onClicked: page.open(item)
+        onMenu: at => TitleActions.ask({item: item, source: button, x: at.x, y: at.y})
+        button.Keys.onLeftPressed: page.move(slot.index, -1, 0)
+        button.Keys.onRightPressed: page.move(slot.index, 1, 0)
+        button.Keys.onUpPressed: page.move(slot.index, 0, -1)
+        button.Keys.onDownPressed: page.move(slot.index, 0, 1)
     }
 
-    scrolled: flick.contentY > 12
+    scrolled: grid.contentY - grid.originY > 12
+
+    Binding {
+        target: page.search
+        property: "lead"
+        value: page.span
+    }
 
     Loading {
         anchors.centerIn: parent
@@ -122,19 +131,84 @@ ShellPage {
         hint: qsTrId("searchProviderHint")
     }
 
-    Flickable {
-        id: flick
+    // The titles, made as they come into view; the searches from before,
+    // what is popular and the kinds are its header and scroll with it.
+    GridView {
+        id: grid
         anchors.fill: parent
         visible: page.idle || page.found
-        contentHeight: column.height
+        // The margins hold exactly the page's columns: a column is a cell
+        // and the gap after it, and the last gap hangs into the right one.
+        leftMargin: Tokens.gutter
+        rightMargin: Tokens.gutter - page.gap
+        bottomMargin: 56
+        cellWidth: page.cell + page.gap
+        cellHeight: page.poster + page.caption + page.gap
         boundsBehavior: Flickable.StopAtBounds
+        model: page.search.titles
+        // The arrows are the page's (move()): the view's own would stop on
+        // the places the best match covers, and its current item scrolls
+        // the page on arrival.
+        keyNavigationEnabled: false
+        currentIndex: -1
+        // A page at its top stays there as its header grows: the view keeps
+        // its place instead, which left the searches from before under the
+        // bar when they came.
+        property bool atTop: true
+        onContentYChanged: atTop = contentY <= originY + 1
+        onOriginYChanged: if (atTop) contentY = originY
+
+        readonly property SearchHeader head: headerItem as SearchHeader
+        header: SearchHeader {}
+
+        delegate: DelegateChooser {
+            role: "place"
+
+            DelegateChoice {
+                roleValue: "best"
+
+                BestMatch {
+                    id: bestMatch
+                    objectName: "best"
+                    width: page.span * page.cell + (page.span - 1) * page.gap
+                    height: page.poster + page.caption
+                    onClicked: page.open(item)
+                    onMenu: at => TitleActions.ask({item: item, source: bestMatch, x: at.x, y: at.y})
+                    Keys.onLeftPressed: page.move(0, -1, 0)
+                    Keys.onRightPressed: page.move(0, 1, 0)
+                    Keys.onUpPressed: page.move(0, 0, -1)
+                    Keys.onDownPressed: page.move(0, 0, 1)
+                }
+            }
+            DelegateChoice {
+                roleValue: "gap"
+
+                Item {}
+            }
+            DelegateChoice {
+                roleValue: "title"
+
+                Cell {}
+            }
+        }
+    }
+
+    WheelScroll { flickable: grid }
+
+    // The view places its header at its left margin; the shelf under the
+    // searches spans the page.
+    component SearchHeader: Item {
+        readonly property alias popular: popular
+
+        width: page.inner
+        height: column.height
 
         Column {
             id: column
-            width: flick.width
+            x: -grid.leftMargin
+            width: page.width
             // The titles start under their kinds, closer to the bar than a heading.
             topPadding: page.idle ? 108 : 88
-            bottomPadding: 56
             spacing: 0
 
             // An empty field: the searches from before, each asked again with
@@ -268,41 +342,6 @@ ShellPage {
                     }
                 }
             }
-
-            Flow {
-                x: Tokens.gutter
-                width: page.inner
-                visible: page.found
-                spacing: page.gap
-
-                Loader {
-                    id: best
-                    width: page.span * page.cell + (page.span - 1) * page.gap
-                    height: page.poster + page.caption
-                    active: page.found && page.results.length > 0
-
-                    sourceComponent: BestMatch {
-                        id: bestMatch
-                        objectName: "best"
-                        item: page.results[0]
-                        onClicked: page.open(item)
-                        onMenu: at => TitleActions.ask({item: item, source: bestMatch, x: at.x, y: at.y})
-                        Keys.onLeftPressed: page.move(0, -1, 0)
-                        Keys.onRightPressed: page.move(0, 1, 0)
-                        Keys.onUpPressed: page.move(0, 0, -1)
-                        Keys.onDownPressed: page.move(0, 0, 1)
-                    }
-                }
-
-                Repeater {
-                    id: tiles
-                    model: page.found ? page.results.slice(1) : []
-
-                    Cell {}
-                }
-            }
         }
     }
-
-    WheelScroll { flickable: flick }
 }

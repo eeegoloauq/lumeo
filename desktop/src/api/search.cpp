@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "home.h"
+#include "rows.h"
 
 #include <QJsonObject>
 #include <QQmlEngine>
@@ -26,7 +27,8 @@ QString plain(const QString &text) {
 
 } // namespace
 
-Search::Search(QObject *parent) : QObject(parent) {
+Search::Search(QObject *parent)
+    : QObject(parent), m_titles(new Rows({"key", "place", "item"}, this, "key")) {
   m_wait.setSingleShot(true);
   m_wait.setInterval(220);
   connect(&m_wait, &QTimer::timeout, this, &Search::ask);
@@ -60,6 +62,7 @@ void Search::setQuery(const QString &query) {
     m_answered.clear();
     m_ranked = {};
     m_films = m_series = 0;
+    place();
     emit changed();
     return;
   }
@@ -79,7 +82,36 @@ void Search::setKind(const QString &kind) {
   if (kind == m_kind)
     return;
   m_kind = kind;
+  place();
   emit changed();
+}
+
+void Search::setLead(int lead) {
+  lead = std::max(1, lead);
+  if (lead == m_lead)
+    return;
+  m_lead = lead;
+  place();
+  emit leadChanged();
+}
+
+// A title's key carries its place: a delegate is chosen by place when it is
+// made, so the title that becomes the best match is a row of its own.
+void Search::place() {
+  QList<QVariantMap> places;
+  const QVariantList shown = results();
+  for (qsizetype i = 0; i < shown.size(); ++i) {
+    const QVariantMap item = shown[i].toMap();
+    const QString key = item["kind"].toString() + "/" + item["id"].toString();
+    if (i > 0) {
+      places.append({{"key", key}, {"place", "title"}, {"item", item}});
+      continue;
+    }
+    places.append({{"key", "best/" + key}, {"place", "best"}, {"item", item}});
+    for (int gap = 1; gap < m_lead; ++gap)
+      places.append({{"key", "gap/" + QString::number(gap)}, {"place", "gap"}, {"item", {}}});
+  }
+  m_titles->set(places);
 }
 
 QVariantList Search::results() const {
@@ -134,6 +166,7 @@ void Search::show(const QString &word, const QJsonArray &ranked, bool failed) {
   }));
   m_series = int(m_ranked.size()) - m_films;
   m_status = failed ? Failed : Ready;
+  place();
   emit changed();
   if (m_submitted)
     pick();

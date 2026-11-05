@@ -109,8 +109,9 @@ Item {
             // The kinds appear with the results and are placed on the next polish.
             waitForPolish(shell.Window.window)
             mouseClick(findChild(shell, "kind-series"))
-            tryCompare(best(), "item", gallery)
-            compare(findChild(shell, "result-" + living.id), null)
+            // A place the filter took out is deleted later: found again each try.
+            tryVerify(() => best()?.item?.id === gallery.id, 5000, "the series first")
+            tryVerify(() => findChild(shell, "result-" + living.id) === null, 5000, "the film gone")
         }
 
         function test_aSearchFromBeforeIsAskedAgainFromTheEmptyField() {

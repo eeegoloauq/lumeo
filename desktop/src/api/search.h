@@ -8,6 +8,8 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
+#include "rows.h"
+
 class Core;
 class Shelf;
 
@@ -26,8 +28,14 @@ class Search : public QObject, public QQmlParserStatus {
   // The word the titles on screen answer; until the next word's answer
   // arrives they stay, so the page does not blank between two keys.
   Q_PROPERTY(QString answered READ answered NOTIFY changed)
-  // The answer's titles of the kind shown, the best match first.
-  Q_PROPERTY(QVariantList results READ results NOTIFY changed)
+  // The answer's titles of the kind shown as the grid's places, each
+  // {key, place, item}: the best match ("best"), the [lead] - 1 places it
+  // also covers ("gap", no item), then the rest ("title"). Changed in place
+  // as the word is typed, so a title still there keeps its poster.
+  Q_PROPERTY(Rows *titles READ titles CONSTANT)
+  // How many places of the grid the best match takes; the page sets it from
+  // its width.
+  Q_PROPERTY(int lead READ lead WRITE setLead NOTIFY leadChanged)
   Q_PROPERTY(int films READ films NOTIFY changed)
   Q_PROPERTY(int series READ series NOTIFY changed)
   // What was searched for before, the latest first.
@@ -59,7 +67,11 @@ public:
   void setKind(const QString &kind);
   Status status() const { return m_status; }
   QString answered() const { return m_answered; }
+  // The titles of the kind shown, the best match first.
   QVariantList results() const;
+  Rows *titles() const { return m_titles; }
+  int lead() const { return m_lead; }
+  void setLead(int lead);
   int films() const { return m_films; }
   int series() const { return m_series; }
   QStringList recent() const { return m_recent; }
@@ -94,6 +106,7 @@ signals:
   void recentChanged();
   void popularChanged();
   void waitChanged();
+  void leadChanged();
   // The title Enter asked for.
   void picked(const QVariantMap &item);
 
@@ -101,6 +114,8 @@ private:
   void ask();
   void show(const QString &word, const QJsonArray &ranked, bool failed);
   void pick();
+  // The grid's places from the answer and the kind shown.
+  void place();
   QString word() const { return m_query.trimmed(); }
 
   Core *m_core = nullptr;
@@ -109,6 +124,8 @@ private:
   Status m_status = Idle;
   QString m_answered;
   QJsonArray m_ranked;
+  Rows *m_titles;
+  int m_lead = 1;
   int m_films = 0;
   int m_series = 0;
   QTimer m_wait;

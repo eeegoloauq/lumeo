@@ -1,6 +1,7 @@
 #include "core.h"
 #include "fakecore.h"
 #include "home.h"
+#include "rows.h"
 #include "search.h"
 
 #include <QJsonArray>
@@ -99,6 +100,32 @@ private slots:
              (QStringList{"Night of the Living Dead", "Night Gallery", "The Night of the Hunter"}));
     QCOMPARE(search->films(), 2);
     QCOMPARE(search->series(), 1);
+  }
+
+  // The grid's places: the best match, the places beside it that it
+  // covers, then the rest. A kind chosen takes out what it hides and leaves
+  // the others their posters.
+  void theGridHoldsTheBestMatchWideAndKeepsWhatAFilterLeaves() {
+    search->setLead(2);
+    search->setQuery("night");
+    QTRY_COMPARE(search->status(), Search::Ready);
+    Rows *rows = search->titles();
+    QStringList places;
+    for (const QVariantMap &row : rows->rows())
+      places.append(row["place"].toString() + " " + row["item"].toMap()["title"].toString());
+    QCOMPARE(places, (QStringList{"best Night of the Living Dead", "gap ", "title Night Gallery",
+                                  "title The Night of the Hunter"}));
+
+    QSignalSpy inserted(rows, &QAbstractItemModel::rowsInserted);
+    QSignalSpy removed(rows, &QAbstractItemModel::rowsRemoved);
+    search->setKind("movie");
+    QCOMPARE(rows->rowCount(), 3);
+    QCOMPARE(inserted.size(), 0);
+    QCOMPARE(removed.size(), 1);
+
+    search->setKind("series");
+    QCOMPARE(rows->rows().first()["item"].toMap()["title"].toString(), "Night Gallery");
+    QCOMPARE(rows->rows().first()["place"].toString(), "best");
   }
 
   void anAnswerToAWordNoLongerInTheFieldIsDropped() {
