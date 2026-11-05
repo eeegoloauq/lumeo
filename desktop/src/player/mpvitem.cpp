@@ -372,6 +372,11 @@ MpvItem::MpvItem(QQuickItem *parent)
       {"keep-open", "yes"},
       {"input-default-bindings", "yes"},
       {"cache-pause-initial", "yes"},
+      // The core is near and reads ahead on the torrent itself; mpv's
+      // internet defaults hold 200 MiB that glibc keeps once freed.
+      {"cache-secs", "30"},
+      {"demuxer-max-bytes", "64MiB"},
+      {"demuxer-max-back-bytes", "16MiB"},
       {"volume-max", "150"},
       // mpv's bar would be drawn into the picture under ours; a seek shows
       // its time, without the percentage the bar already shows.

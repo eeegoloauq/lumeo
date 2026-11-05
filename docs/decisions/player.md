@@ -40,6 +40,20 @@ video output, then lets it go. Ending with them running crashed every close
 during playback: the GPU driver's exit handlers tear down what a decoder or
 the render thread still uses.
 
+## mpv buffers seconds, not an hour
+
+mpv's defaults are for a stream from the internet: with its cache on, which
+it is for any HTTP stream, it reads up to an hour ahead into 150 MiB and keeps
+50 MiB behind. Here the core is on the same machine or the LAN and reads ahead
+on the torrent itself, so mpv's buffer only covers the hop to it. Each mpv
+that plays (the film, the player's trailer and the banner's) reads 30 seconds
+ahead, at most 64 MiB, and keeps 16 MiB behind for a short jump back. A 4K
+remux at 80 Mbit/s still has six seconds in hand. The bytes matter even after
+playback: what the demuxer frees stays resident in glibc's arenas
+([performance.md](performance.md)). A 40 Mbit/s file over HTTP, measured on
+mpv 0.37 on 2026-11-05: 166 MiB buffered and 291 MiB PSS with the defaults,
+80 MiB and 174 MiB with these.
+
 ## The player's controls, and where each of them came from
 
 The bar is deliberately the one every player already has, because nobody
