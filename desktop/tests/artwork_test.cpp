@@ -2,6 +2,7 @@
 #include "fakecore.h"
 
 #include <QBuffer>
+#include <QNetworkAccessManager>
 #include <QQuickTextureFactory>
 #include <QSignalSpy>
 #include <QtTest>
@@ -120,6 +121,42 @@ private slots:
     const qsizetype asked = fake->requests().size();
     QTest::qWait(2 * Artwork::againEvery);
     QCOMPARE(fake->requests().size(), asked);
+  }
+
+  // Qt deletes a response only after its finished, cancelled or not; a
+  // cancel that never finished kept every poster scrolled past mid-request.
+  void aCancelDuringTheRequestFinishes() {
+    fake->hold("GET", "/art/held");
+    Artwork provider(false, true);
+    std::unique_ptr<QQuickImageResponse> response(provider.requestImageResponse(
+        QUrl::toPercentEncoding(at("/art/held").toString()), {}));
+    QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
+    QTRY_COMPARE(fake->requests().size(), 1);
+    response->cancel();
+    QVERIFY(finished.wait());
+    QVERIFY(!response->errorString().isEmpty());
+    QTest::qWait(2 * Artwork::retryDelays.first());
+    QCOMPARE(fake->requests().size(), 1);
+  }
+
+  void aCancelDuringThePauseFinishes() {
+    fake->answer("GET", "/art/down", 502);
+    // Long enough that the cancel lands in it; cancelled, never waited out.
+    Artwork::retryDelays = {60000};
+    Artwork provider(false, true);
+    std::unique_ptr<QQuickImageResponse> response(provider.requestImageResponse(
+        QUrl::toPercentEncoding(at("/art/down").toString()), {}));
+    QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
+    // The provider's manager is a child of the application; its finished
+    // comes just before the response sees the 502 and starts the pause.
+    bool answered = false;
+    for (auto *network : qApp->findChildren<QNetworkAccessManager *>())
+      connect(network, &QNetworkAccessManager::finished, this, [&answered] { answered = true; });
+    QTRY_VERIFY(answered);
+    response->cancel();
+    QVERIFY(finished.wait());
+    QVERIFY(!response->errorString().isEmpty());
+    QCOMPARE(fake->requests().size(), 1);
   }
 
   // A still with a frame of the file to stand in gives up instead.

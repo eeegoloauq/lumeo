@@ -1,6 +1,7 @@
 #include "artwork.h"
 #include "pins.h"
 
+#include <QBasicTimer>
 #include <QBuffer>
 #include <QCoreApplication>
 #include <QImageReader>
@@ -8,7 +9,7 @@
 #include <QNetworkReply>
 #include <QPainter>
 #include <QQmlEngine>
-#include <QTimer>
+#include <QTimerEvent>
 #include <QtConcurrent>
 
 QList<int> Artwork::retryDelays{2000, 6000, 20000};
@@ -67,24 +68,46 @@ public:
   }
   QString errorString() const override { return m_error; }
 
+  // Qt deletes a response only once it has emitted finished, cancelled or
+  // not, so every way out of a cancel ends in finished.
   void cancel() override {
     QMetaObject::invokeMethod(this, [this] {
       m_cancelled = true;
-      if (m_reply)
-        m_reply->abort();
+      if (m_reply) {
+        m_reply->abort(); // fetched() finishes
+      } else if (m_pause.isActive()) {
+        m_pause.stop();
+        fail("cancelled");
+      }
+      // Otherwise it is decoding, and finishes when that is done, or it has
+      // finished already.
     }, Qt::QueuedConnection);
+  }
+
+protected:
+  void timerEvent(QTimerEvent *event) override {
+    if (event->id() != m_pause.id())
+      return QQuickImageResponse::timerEvent(event);
+    m_pause.stop();
+    fetch();
   }
 
 private:
   void fetched() {
-    m_reply->deleteLater();
-    if (m_cancelled)
+    // Cleared now, not when it is deleted: cancel() tells a request in
+    // flight by it.
+    QNetworkReply *reply = m_reply;
+    m_reply = nullptr;
+    reply->deleteLater();
+    if (m_cancelled) {
+      fail("cancelled");
       return;
-    const int status = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    }
+    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (status == 200) {
-      // Continued here only while this response is alive: Qt deletes one it
-      // gave up on.
-      QtConcurrent::run(decode, m_reply->readAll(), m_requested, m_ink)
+      // Continued here only while this response is alive, which a test
+      // holding one of its own may end first.
+      QtConcurrent::run(decode, reply->readAll(), m_requested, m_ink)
           .then(this, [this](const QImage &image) {
             if (image.isNull()) {
               fail("not an image");
@@ -98,15 +121,12 @@ private:
     const bool again = status == 0 || status >= 500;
     const bool retried = m_attempt == Artwork::retryDelays.size();
     if (!again || (retried && !m_patient)) {
-      fail(status ? QString("HTTP %1").arg(status) : m_reply->errorString());
+      fail(status ? QString("HTTP %1").arg(status) : reply->errorString());
       return;
     }
     // Cancelled when no Image wants it any more, which ends this.
     const int pause = retried ? Artwork::againEvery : Artwork::retryDelays.at(m_attempt++);
-    QTimer::singleShot(pause, this, [this] {
-      if (!m_cancelled)
-        fetch();
-    });
+    m_pause.start(std::chrono::milliseconds(pause), this);
   }
 
   void fail(const QString &why) {
@@ -120,6 +140,7 @@ private:
   bool m_ink;
   bool m_patient;
   QPointer<QNetworkReply> m_reply;
+  QBasicTimer m_pause;
   int m_attempt = 0;
   bool m_cancelled = false;
   QImage m_image;

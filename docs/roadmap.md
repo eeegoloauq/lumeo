@@ -12,20 +12,17 @@ glibc had freed and kept. Directions and how to measure are in
 [decisions/performance.md](decisions/performance.md). In order, each
 measured before and after:
 
-1. `Artwork::Response`: a cancel during the request or the retry delay never
-   emits `finished`, so the engine never deletes the response. A small leak
-   and a broken contract, with tests for each cancel path.
-2. One signal per property and the converted value kept: `Title` (item and
+1. One signal per property and the converted value kept: `Title` (item and
    progress), `Downloads.marks` (read by every poster every 2 s while
    something downloads), `Preferences.current`. Search results as a
    `GridView` over a model.
-3. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
+2. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
    the strip and the Library grid; unwatched stills blurred once at decode;
    no `Behavior` on the skip fill.
-4. What stays made while hidden: the shell in the tray, the Library page,
+3. What stays made while hidden: the shell in the tray, the Library page,
    Home's `cacheBuffer: 3000`, a banner at screen width for each title page
    in the stack. Navigation state in C++ so the pages can go.
-5. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
+4. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
    LeakSanitizer in CI, with a suppressions file for Qt's and Mesa's own
    allocations.
 
