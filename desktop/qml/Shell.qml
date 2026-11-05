@@ -4,12 +4,16 @@ import QtQuick
 import QtQuick.Controls.Basic
 import Lumeo
 
-// The window's pages under the bar, which floats over them. Home is the
-// bottom of the stack; Library and Settings are pushed, so Back returns to
-// what was being looked at, and a tab already in the stack is gone back to
-// rather than pushed again.
+// The window's pages under the bar, which floats over them, as the
+// navigation has them: Home is the bottom of the stack and the tabs are
+// pushed, so Back returns to what was being looked at. The shell goes while
+// the window is in the background (Main), and is made again where the
+// navigation was.
 FocusScope {
     id: shell
+
+    // Where the pages are and what they are made from; it outlives the shell.
+    required property Navigation navigation
 
     readonly property string page: stack.currentItem?.objectName ?? ""
 
@@ -19,78 +23,43 @@ FocusScope {
     signal trailer(var trailer, string name)
 
     function place(name) {
-        if (name === "home") {
-            stack.pop(null)
-            return
-        }
-        const at = stack.find(item => item.objectName === name)
-        if (at)
-            stack.pop(at)
-        else
-            stack.push(name === "library" ? library() : pages[name])
-    }
-
-    // The library is made once and kept, as home is: made anew, it read its
-    // list and asked for every poster again on each visit, and showed as a
-    // page filling in. The rest of it starts over when it leaves the stack.
-    // Made in the stack at its size, it is laid out at once as a page the
-    // stack makes is, and the stack hides it, as one it did not make, when it
-    // leaves. The size is implicit: the stack resizes only a page whose width
-    // and height nobody set, and drops one to its implicit size as it leaves,
-    // so the page waits at the size it left at.
-    property LibraryPage kept: null
-    function library(): LibraryPage {
-        if (!kept)
-            kept = libraryPage.createObject(stack, {implicitWidth: stack.width, implicitHeight: stack.height}) as LibraryPage
-        return kept
+        navigation.go({page: name})
     }
 
     // Settings at its Downloads, where the disk the downloads take is managed.
     function storage() {
-        const at = stack.find(item => item.objectName === "settings")
-        if (at) {
-            stack.pop(at)
-            (at as SettingsPage).go("downloads")
-        } else {
-            stack.push(settingsPage, {section: "downloads"})
-        }
+        const kept = navigation.find("settings") >= 0
+        navigation.go({page: "settings", section: "downloads"})
+        if (kept)
+            (stack.currentItem as SettingsPage).go("downloads")
     }
 
     function back() {
-        if (stack.depth > 1)
-            stack.pop()
+        navigation.back()
     }
 
     // A title's page; [play] starts it there, as the banner's Play does,
     // and [at], {season, episode}, is the episode it opens on.
     function open(item, play, at) {
-        stack.push(titlePage, {item: item, play: !!play, at: at ?? null})
+        navigation.open({page: "title", item: item, play: !!play, at: at ?? null})
     }
 
-    // A title from a link or a file opened outside the app. One opened that
-    // way on top gives way to it, so following link after link does not keep
-    // a page made, with its rows, for each until Back passes them; a page the
-    // viewer went on to from it stays, as anything opened inside does.
-    property Item fromOutside: null
+    // A title from a link or a file opened outside the app.
     function openFromOutside(item) {
-        const properties = {item: item, play: false, at: null}
-        fromOutside = stack.currentItem === fromOutside
-            ? stack.replace(titlePage, properties)
-            : stack.push(titlePage, properties)
+        navigation.openFromOutside(item)
     }
 
     // A search already in the stack is gone back to, its word kept and
     // selected; otherwise a fresh one.
     function search() {
-        const at = stack.find(item => item.objectName === "search")
-        if (at) {
-            stack.pop(at)
+        if (navigation.find("search") >= 0) {
+            navigation.go({page: "search"})
             field.forceActiveFocus()
             field.selectAll()
             return
         }
         finder.open()
-        stack.push(pages.search)
+        navigation.open({page: "search"})
     }
 
     // A line at the foot of whatever page is up.
@@ -98,10 +67,43 @@ FocusScope {
         toast.say(text)
     }
 
-    readonly property var pages: ({
-        settings: settingsPage,
-        search: searchPage,
-    })
+    // The page [place] is made from, and what it is made with.
+    function made(place) {
+        switch (place.page) {
+        case "title": return [titlePage, {item: place.item, play: !!place.play, at: place.at ?? null}]
+        case "library": return [libraryPage, {}]
+        case "settings": return [settingsPage, {section: place.section ?? "", backTo: place.backTo ?? ""}]
+        case "search": return [searchPage, {}]
+        }
+        return []
+    }
+
+    // The stack as the navigation has it, its first [kept] pages as they
+    // were. Of several new pages only the top one is made: the stack makes
+    // each under it when Back reaches it.
+    function follow(kept) {
+        if (stack.depth > kept) {
+            if (navigation.depth === kept) {
+                stack.popToIndex(kept - 1)
+                return
+            }
+            if (stack.depth > kept + 1)
+                stack.popToIndex(kept)
+            const [page, properties] = made(navigation.at(kept))
+            stack.replaceCurrentItem(page, properties)
+            ++kept
+        }
+        let above = []
+        for (let i = kept; i < navigation.depth; ++i)
+            above = above.concat(made(navigation.at(i)))
+        if (above.length > 0)
+            stack.pushItems(above)
+    }
+
+    Connections {
+        target: shell.navigation
+        function onMoved(kept) { shell.follow(kept) }
+    }
 
     // The page the stack changed to takes the keyboard, so a key always has
     // somewhere to go (decisions/testing.md, App tests).
@@ -152,19 +154,19 @@ FocusScope {
         onStorage: shell.storage()
     }
 
-    // The word and its titles outlive the page: a title opened from it and
-    // left again comes back to the same search.
-    Search {
-        id: finder
-        objectName: "finder"
-        onPicked: item => shell.open(item, false)
+    // The word and its titles outlive the page, and the shell: a title
+    // opened from it and left again comes back to the same search.
+    readonly property Search finder: navigation.search
+    Connections {
+        target: shell.finder
+        function onPicked(item) { shell.open(item, false) }
     }
 
     // Over the bar, where its tabs are while search is the page.
     SearchField {
         id: field
         objectName: "searchField"
-        search: finder
+        search: shell.finder
         visible: shell.page === "search"
         width: Math.min(640, shell.width - 2 * (Tokens.gutter + 140))
         anchors.horizontalCenter: parent.horizontalCenter
@@ -194,12 +196,10 @@ FocusScope {
         function onAsked(target) { titleMenu.show(target) }
     }
     // Which titles are finished, for the eye on every poster: the player
-    // marks as it plays, so the window coming back from it asks again. Home
-    // stays under the start page, so Back from it goes home as from its tab.
+    // marks as it plays, so the window coming back from it asks again.
     Component.onCompleted: {
         Viewing.refresh()
-        if (LocalSettings.startPage === "list")
-            place("library")
+        follow(1)
     }
     onVisibleChanged: if (visible) Viewing.refresh()
     Connections {
@@ -222,25 +222,32 @@ FocusScope {
     Shortcut { sequence: "Ctrl+F"; enabled: shell.visible; onActivated: shell.search() }
     TapHandler { acceptedButtons: Qt.BackButton; onTapped: shell.back() }
 
-    Component { id: homePage; HomePage { objectName: "home"; onOpen: (item, play) => shell.open(item, play) } }
+    // Home stays made under the other pages, as the one Back always ends at
+    // and the one most often gone back to: about a screen of shelves and its
+    // banner at the screen's width (decisions/performance.md).
+    Component {
+        id: homePage
+        HomePage {
+            objectName: "home"
+            home: shell.navigation.home
+            onOpen: (item, play) => shell.open(item, play)
+        }
+    }
     Component {
         id: titlePage
         TitlePage {
             objectName: "title"
             onWatch: (downloadId, name) => shell.watch(downloadId, name)
             onTrailer: (trailer, name) => shell.trailer(trailer, name)
-            onAddSource: stack.push(settingsPage, {section: "sources", backTo: item.title})
+            onAddSource: shell.navigation.open({page: "settings", section: "sources", backTo: item.title})
         }
     }
     Component {
         id: libraryPage
         LibraryPage {
             objectName: "library"
+            list: shell.navigation.list
             onOpen: (item, at) => shell.open(item, false, at)
-            StackView.onDeactivating: {
-                implicitWidth = width
-                implicitHeight = height
-            }
         }
     }
     Component { id: settingsPage; SettingsPage { objectName: "settings"; onBack: shell.back() } }
@@ -248,9 +255,9 @@ FocusScope {
         id: searchPage
         SearchPage {
             objectName: "search"
-            search: finder
+            search: shell.finder
             onOpen: item => {
-                finder.remember()
+                shell.finder.remember()
                 shell.open(item, false)
             }
             onUp: field.forceActiveFocus()

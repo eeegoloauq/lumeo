@@ -66,6 +66,13 @@ QHash<int, QByteArray> Shelf::roleNames() const {
           {WatchedRole, "watched"}, {RemainingRole, "remaining"}};
 }
 
+void Shelf::setPosition(int position) {
+  if (position == m_position)
+    return;
+  m_position = position;
+  emit positionChanged();
+}
+
 void Shelf::more() {
   if (!m_core || m_loading || m_exhausted)
     return;

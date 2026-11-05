@@ -9,6 +9,9 @@ Item {
     id: root
 
     property string url
+    // Off, the picture is let go: at the screen's width it is the most a page
+    // holds, decoded and as a texture, and a page under another shows none.
+    property bool held: true
     // Over the artwork and under the scrim: a picture moving in its place.
     default property alias content: slot.data
 
@@ -19,8 +22,9 @@ Item {
     }
     Image {
         id: art
+        objectName: "bannerArt"
         anchors.fill: parent
-        source: Format.art(root.url)
+        source: root.held ? Format.art(root.url) : ""
         sourceSize.width: Screen.width
         fillMode: Image.PreserveAspectCrop
         verticalAlignment: Image.AlignTop

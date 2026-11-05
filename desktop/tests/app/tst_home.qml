@@ -7,6 +7,7 @@ Item {
     width: 1440
     height: 900
 
+    Component { id: navigationComponent; Navigation {} }
     Component { id: shellComponent; Shell { anchors.fill: parent; focus: true } }
 
     TestCase {
@@ -14,6 +15,7 @@ Item {
         when: windowShown
 
         property var shell
+        property var navigation
 
         // A shelf long enough to scroll sideways.
         function films(count) {
@@ -23,15 +25,27 @@ Item {
             return { items: items }
         }
 
+        function cleanup() {
+            shell.destroy()
+        }
+
         function init() {
             fakeCore.answer("GET", "/api/v1/catalog", 200, films(30))
-            shell = createTemporaryObject(shellComponent, window)
+            navigation = createTemporaryObject(navigationComponent, window)
+            // Made and destroyed here, so it goes before what it is made from.
+            shell = shellComponent.createObject(window, { navigation: navigation })
             tryVerify(() => findChild(shell, "play") !== null, 5000, "the hero")
-            // The shelves past the window are made over the next frames, and
-            // until they are the list's height is a guess that a wheel can
-            // land in the middle of.
+            // The shelves kept made, to a screen past the window, are made
+            // over the next frames, and until they are the list's height is a
+            // guess that a wheel can land in the middle of.
             const list = findChild(shell, "shelves")
-            tryVerify(() => list.itemAtIndex(list.count - 1) !== null, 5000, "every shelf")
+            tryVerify(() => {
+                let last = 0
+                while (list.itemAtIndex(last + 1))
+                    ++last
+                const item = list.itemAtIndex(last)
+                return last === list.count - 1 || item.y + item.height >= list.contentY + list.height + list.cacheBuffer
+            }, 5000, "the shelves within reach")
             // Laid out, so the pointer lands where the items are drawn.
             waitForRendering(shell)
         }
@@ -166,6 +180,27 @@ Item {
             verify(!holder?.item || holder.item.id === first, "the keyboard is on " + holder?.item?.title)
             keyClick(Qt.Key_Right)
             compare(shell.Window.activeFocusItem.item.id, next, "on from the card it was on")
+        }
+
+        // A few screens of shelves stayed made so that one scrolled sideways
+        // was where it was on the way back up. Now about one screen does, and
+        // a shelf made again, scrolled back to or after the window was away,
+        // starts where it was left.
+        function test_aShelfMadeAgainIsWhereItWasScrolledSideways() {
+            const strip = () => findChild(findChild(shell, "shelf-movie/top/"), "strip")
+            tryVerify(() => strip().count >= 20, 5000, "the shelf filled")
+            for (let i = 0; i < 12; ++i)
+                mouseWheel(strip(), 400, 100, 0, -120, Qt.NoButton, Qt.ShiftModifier)
+            const shown = strip().firstShown()
+            verify(shown > 2, "scrolled sideways: " + shown)
+
+            let gone = false
+            shell.Component.destruction.connect(() => gone = true)
+            shell.destroy()
+            tryVerify(() => gone)
+            shell = shellComponent.createObject(window, { navigation: navigation })
+            tryVerify(() => strip()?.count >= 20, 5000, "the shelf made again")
+            tryVerify(() => strip().firstShown() === shown, 2000, "where it was: " + strip().firstShown())
         }
     }
 }

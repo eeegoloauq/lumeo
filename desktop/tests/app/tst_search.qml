@@ -7,7 +7,7 @@ Item {
     width: 1440
     height: 900
 
-    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true } }
+    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true; navigation: Navigation {} } }
 
     TestCase {
         name: "Search"
@@ -52,7 +52,7 @@ Item {
             fakeCore.answer("GET", "/api/v1/searches", 200, { searches: [] })
             fakeCore.answer("POST", "/api/v1/searches", 204)
             shell = createTemporaryObject(shellComponent, window)
-            findChild(shell, "finder").wait = 0
+            shell.finder.wait = 0
             tryVerify(() => findChild(shell, "play") !== null, 5000, "home")
             asked = fakeCore.requests.length
             keySequence("Ctrl+F")

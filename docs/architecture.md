@@ -547,8 +547,9 @@ request logic in QML, no layout in C++.
 
     src/api       the core over HTTP and the token (core), the stores
                   (downloads, preferences, addons) and one class per screen's
-                  data (home, title, search, library), files and links opened
-                  (opening), release notes and updates (releases)
+                  data (home, title, search, library), where the window's
+                  pages are (navigation), files and links opened (opening),
+                  release notes and updates (releases)
     src/player    the mpv item and its render path (mpvitem), a film's
                   playback, tracks and next episode, the headless mpv that
                   answers decoders and bindings (mpvfacts), the frame grabber

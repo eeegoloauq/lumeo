@@ -24,8 +24,9 @@ ShellPage {
     readonly property real inner: width - 2 * Tokens.gutter
     readonly property int columns: Math.max(3, Math.floor((inner + gap) / (160 + gap)))
     readonly property real cell: Math.floor((inner - (columns - 1) * gap) / columns)
-    // Back from a title opened here, which may have changed the list.
-    property bool shown
+    // My list, kept with the navigation: a library made again shows it at
+    // once, and reads it again behind it.
+    required property MyList list
 
     readonly property var orders: ({
         added: qsTrId("libraryRecentlyAdded"),
@@ -59,51 +60,43 @@ ShellPage {
     // History is read the first time it is shown: most visits to the
     // library never open it.
     onSectionChanged: if (section === "history") page.history.more()
-    Component.onCompleted: if (section === "history") page.history.more()
+    Component.onCompleted: {
+        if (section === "history")
+            page.history.more()
+        if (page.list.status !== MyList.Loading)
+            page.list.load()
+    }
+    // Back from a title opened here, which may have changed the list.
+    property bool shown
     StackView.onActivated: {
         if (shown)
-            list.load()
+            page.list.load()
         shown = true
     }
-    // Kept for its list and posters (Shell); the rest is a new page's. A new
-    // History tells the core of a line still waiting for its undo, as one
-    // going with its page did.
-    StackView.onRemoved: {
-        section = "list"
-        stage = "all"
-        grid.positionViewAtBeginning()
-        const old = page.history
-        page.history = historyModel.createObject(page) as History
-        old.destroy()
-    }
 
-    MyList {
-        id: list
-        order: LocalSettings.listSort
-        kind: LocalSettings.listKind
-        stage: page.stage
-    }
+    // Each page sets them as it is made: nothing to give back as it goes.
+    Binding { target: page.list; property: "order"; value: LocalSettings.listSort; restoreMode: Binding.RestoreNone }
+    Binding { target: page.list; property: "kind"; value: LocalSettings.listKind; restoreMode: Binding.RestoreNone }
+    Binding { target: page.list; property: "stage"; value: page.stage; restoreMode: Binding.RestoreNone }
 
     // A title changed from its menu, here or on another page: the list and
     // the history are read again.
     Connections {
         target: TitleActions
         function onChanged() {
-            list.load()
+            page.list.load()
             page.history.reload()
         }
     }
 
-    property History history: historyModel.createObject(page) as History
-    Component {
-        id: historyModel
-        History {
-            onRefused: what => toast.say({
-                rate: qsTrId("libraryRatingNotSaved"),
-                clear: qsTrId("libraryRatingNotRemoved"),
-                remove: qsTrId("libraryHistoryRemoveFailed"),
-            }[what])
-        }
+    // Read again with every visit; one going with its page tells the core
+    // of a line still waiting for its undo.
+    readonly property History history: History {
+        onRefused: what => toast.say({
+            rate: qsTrId("libraryRatingNotSaved"),
+            clear: qsTrId("libraryRatingNotRemoved"),
+            remove: qsTrId("libraryHistoryRemoveFailed"),
+        }[what])
     }
 
     // The two places in the library, and the order of the list.
@@ -264,7 +257,7 @@ ShellPage {
         // A tile scrolled out is kept for the next one scrolled in. The one
         // with the keyboard is the current one, which the view never pools.
         reuseItems: true
-        model: list.titles
+        model: page.list.titles
         // No title is current until the keyboard comes: the view scrolls to
         // its current one, which sent the page past its shelves on arrival.
         currentIndex: -1
@@ -329,17 +322,17 @@ ShellPage {
 
             Loading {
                 x: (parent.width - width) / 2
-                waiting: list.status === MyList.Loading
+                waiting: page.list.status === MyList.Loading
             }
 
             Trouble {
                 x: Tokens.gutter
-                visible: list.status === MyList.Failed
+                visible: page.list.status === MyList.Failed
                 title: qsTrId("libraryListLoadFailed")
                 hint: qsTrId("libraryListNoAnswer")
-                detail: list.error
+                detail: page.list.error
                 action: qsTrId("commonTryAgain")
-                onActed: list.load()
+                onActed: page.list.load()
             }
 
             // The followed series with something new, on the first new
@@ -349,7 +342,7 @@ ShellPage {
                 id: fresh
                 objectName: "fresh"
                 title: qsTrId("libraryNewEpisodes")
-                model: list.status === MyList.Ready ? list.fresh : []
+                model: page.list.status === MyList.Ready ? page.list.fresh : []
                 cell: page.cell
                 gap: page.gap
                 onChosen: (item, at) => page.open(item, at)
@@ -361,7 +354,7 @@ ShellPage {
                 id: comingUp
                 objectName: "comingUp"
                 title: qsTrId("libraryComingUp")
-                model: list.status === MyList.Ready ? list.comingUp : []
+                model: page.list.status === MyList.Ready ? page.list.comingUp : []
                 cell: page.cell
                 gap: page.gap
                 onChosen: (item, at) => page.open(item, at)
@@ -371,7 +364,7 @@ ShellPage {
             }
 
             Heading {
-                visible: (fresh.visible || comingUp.visible) && list.total > 0
+                visible: (fresh.visible || comingUp.visible) && page.list.total > 0
                 text: qsTrId("libraryMyList")
                 bottomPadding: 14
             }
@@ -379,7 +372,7 @@ ShellPage {
             Trouble {
                 objectName: "listEmpty"
                 x: Tokens.gutter
-                visible: list.status === MyList.Ready && list.total === 0
+                visible: page.list.status === MyList.Ready && page.list.total === 0
                 title: qsTrId("libraryListEmpty")
                 hint: qsTrId("libraryListEmptyHint")
             }
@@ -388,7 +381,7 @@ ShellPage {
             // of it played.
             Row {
                 x: Tokens.gutter
-                visible: list.status === MyList.Ready && list.total > 0
+                visible: page.list.status === MyList.Ready && page.list.total > 0
                 spacing: 8
                 bottomPadding: 20
 
@@ -412,7 +405,7 @@ ShellPage {
             Text {
                 objectName: "stageEmpty"
                 x: Tokens.gutter
-                visible: list.status === MyList.Ready && list.total > 0 && grid.count === 0
+                visible: page.list.status === MyList.Ready && page.list.total > 0 && grid.count === 0
                 text: qsTrId("libraryStageEmpty")
                 color: Tokens.muted
                 font.family: Tokens.fontSans

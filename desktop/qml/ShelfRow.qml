@@ -72,7 +72,18 @@ Column {
             onContentXChanged: {
                 if (originX + contentWidth - contentX - width < 900)
                     row.shelf.more()
+                if (placed)
+                    row.shelf.position = firstShown()
             }
+            // A row made again starts where the shelf was left, once it is
+            // laid out: the list places itself at its start as it completes.
+            property bool placed: false
+            function restore() {
+                if (row.shelf.position > 0 && row.shelf.position < count)
+                    place(row.shelf.position)
+                placed = true
+            }
+            Component.onCompleted: Qt.callLater(restore)
 
             delegate: row.progress ? resumeCard : posterTile
         }

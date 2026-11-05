@@ -7,7 +7,7 @@ Item {
     width: 1440
     height: 900
 
-    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true } }
+    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true; navigation: Navigation {} } }
 
     TestCase {
         name: "Menu"

@@ -11,18 +11,25 @@ Item {
         id: shell
         anchors.fill: parent
         focus: true
+        navigation: Navigation {}
     }
 
     Component {
         id: another
-        Shell { anchors.fill: parent }
+        Shell { anchors.fill: parent; navigation: Navigation {} }
     }
+
+    // A shell over a navigation the test keeps, as the window keeps it.
+    Component { id: navigationComponent; Navigation {} }
+    Component { id: over; Shell { anchors.fill: parent } }
+    Component { id: windowComponent; Main {} }
 
     TestCase {
         name: "Shell"
         when: windowShown
 
         function cleanup() {
+            shell.visible = true
             shell.place("home")
         }
 
@@ -96,6 +103,72 @@ Item {
             shell.openFromOutside(film("tt4"))
             keyClick(Qt.Key_Escape)
             compare(shown(), "tt3")
+        }
+
+        // The shell goes while the window is in the background, and comes
+        // back where the viewer was: the top page made at once, the ones under
+        // it as Back reaches them, and a title opened with Play not started
+        // again.
+        function test_aShellMadeAgainComesBackWhereTheViewerWas() {
+            const navigation = createTemporaryObject(navigationComponent, window)
+            let made = over.createObject(window, { navigation: navigation })
+            shell.visible = false
+            made.forceActiveFocus()
+            mouseClick(findChild(made, "tab-settings"))
+            made.open({ id: "tt1", kind: "movie", title: "Nosferatu", year: 1922 }, true)
+            compare(made.page, "title")
+            verify(findChild(made, "title").play, "Play pressed on the way")
+            let gone = false
+            made.Component.destruction.connect(() => gone = true)
+            made.destroy()
+            tryVerify(() => gone)
+
+            made = over.createObject(window, { navigation: navigation })
+            made.forceActiveFocus()
+            compare(made.page, "title")
+            const page = findChild(made, "title")
+            compare(page.item.id, "tt1")
+            verify(!page.play, "not started again")
+            verify(!findChild(made, "settings"), "the page under it not made yet")
+            keyClick(Qt.Key_Escape)
+            compare(made.page, "settings")
+            keyClick(Qt.Key_Escape)
+            compare(made.page, "home")
+            made.destroy()
+        }
+
+        // A title page under another kept its banner, decoded at the
+        // screen's width, for every page in the stack.
+        function test_aTitleUnderAnotherPageLetsGoOfItsBanner() {
+            const film = id => ({ id: id, kind: "movie", title: id, year: 1950, background: "https://example.com/" + id + ".jpg" })
+            shell.open(film("tt1"), false)
+            const under = findChild(shell, "title")
+            const art = findChild(under, "bannerArt")
+            verify(art.source.toString() !== "", "the banner shown")
+            shell.open(film("tt2"), false)
+            compare(art.source.toString(), "", "let go under the next page")
+            keyClick(Qt.Key_Escape)
+            verify(findChild(shell, "title") === under)
+            verify(art.source.toString() !== "", "back with Back")
+        }
+
+        // Hidden to the background, the window kept every page, its pictures
+        // and its bindings; now it keeps where they were.
+        function test_theWindowAwayKeepsNoPages() {
+            const away = createTemporaryObject(windowComponent, null)
+            tryVerify(() => away.visible && !!away.shell, 5000, "the window up")
+            away.shell.place("settings")
+            away.hide()
+            tryVerify(() => !away.shell, 2000, "no pages while away")
+            away.show()
+            tryVerify(() => !!away.shell, 2000, "the pages back")
+            compare(away.shell.page, "settings")
+            away.shell.back()
+            compare(away.shell.page, "home")
+            // The test's window takes the keys back.
+            away.hide()
+            window.Window.window.requestActivate()
+            tryVerify(() => window.Window.active, 2000, "the test's window active")
         }
 
         // A window chosen to open on My list opens there, with Home under it

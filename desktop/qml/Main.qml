@@ -175,9 +175,9 @@ ApplicationWindow {
     Connections {
         target: Opening
         function onPlay(downloadId, name) { window.play(downloadId, name, false) }
-        function onTitle(item) { shell.openFromOutside(item) }
+        function onTitle(item) { window.navigation.openFromOutside(item) }
         function onFailed(what, reason) {
-            shell.say(reason === "" ? qsTrId("commonUnknownLink") : qsTrId("commonCouldNotOpen").arg(what).arg(reason))
+            window.shell?.say(reason === "" ? qsTrId("commonUnknownLink") : qsTrId("commonCouldNotOpen").arg(what).arg(reason))
         }
     }
 
@@ -202,13 +202,26 @@ ApplicationWindow {
         onActivated: window.visibility = window.visibility === Window.FullScreen ? window.windowed : Window.FullScreen
     }
 
-    Shell {
-        id: shell
+    // Where the pages are, kept while the shell is not.
+    readonly property Navigation navigation: Navigation {}
+
+    // The pages exist while the window is shown: hidden to the background
+    // they would keep every picture, decoded and as a texture, and their
+    // bindings running (decisions/performance.md). Shown again, the shell is
+    // made where the navigation was.
+    readonly property Shell shell: shellLoader.item as Shell
+    Loader {
+        id: shellLoader
         anchors.fill: parent
-        visible: !window.player?.visible
+        active: window.visible
         focus: true
-        onWatch: (downloadId, name) => window.play(downloadId, name, true)
-        onTrailer: (trailer, name) => window.play("", name, false, trailer)
+        sourceComponent: Shell {
+            navigation: window.navigation
+            visible: !window.player?.visible
+            focus: true
+            onWatch: (downloadId, name) => window.play(downloadId, name, true)
+            onTrailer: (trailer, name) => window.play("", name, false, trailer)
+        }
     }
 
     // The corner's notice, one at a time: what just happened to the film
@@ -216,7 +229,7 @@ ApplicationWindow {
     // notes of this one, since it covers the update the viewer is on. The
     // column spans the height, so a long card is held to the window.
     Item {
-        visible: shell.visible
+        visible: window.shell?.visible ?? false
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom; margins: Theme.edge }
         width: 360
 
@@ -254,7 +267,7 @@ ApplicationWindow {
                 text: qsTrId("keepsStorage")
                 onClicked: {
                     window.keptTitle = ""
-                    shell.storage()
+                    window.shell?.storage()
                 }
             }
         }
@@ -308,7 +321,7 @@ ApplicationWindow {
             onNext: (downloadId, name) => window.play(downloadId, name, film.kept)
             onStorage: {
                 film.close()
-                shell.storage()
+                window.shell?.storage()
             }
             onClosed: {
                 film.visible = false
@@ -324,7 +337,7 @@ ApplicationWindow {
                 // it hidden.
                 if (window.visible)
                     window.visibility = window.wasFullscreen ? Window.FullScreen : window.windowed
-                shell.forceActiveFocus()
+                window.shell?.forceActiveFocus()
             }
             // mpv goes with the item, before the process ends: the GPU
             // driver's exit handlers would tear down what it still uses.

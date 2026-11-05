@@ -488,7 +488,9 @@ is not shown on Wayland, which never says a window is minimised.
 Running in the background is the window hidden, not the app minimised: the
 process and its core stay, closing the window takes a film with it (playing on
 behind no window is nobody's wish, and an open stream keeps its torrent
-sharing), and launching the app again shows the same window. Sharing follows
+sharing), and launching the app again shows the same window, on the page it
+was left on: the pages go while it is hidden and are made again there, at
+their top (decisions/performance.md). Sharing follows
 the same rule as with the window open (downloads.md), so the background never
 turns the player into a seedbox (`Background`, `desktop/src/platform/`):
 

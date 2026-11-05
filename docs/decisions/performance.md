@@ -35,8 +35,13 @@ collection hide where the memory went and are not used.
 **Hidden is not gone.** A page in the stack, a delegate in a view's cache
 buffer and a window hidden to the tray keep their images, as the decoded
 copy and the GPU texture, and keep their bindings running. Keep the data in
-C++ and make the page again from it. A `cacheBuffer` is about one screen.
-Something kept on purpose says why in a comment, with what it costs.
+C++ and make the page again from it. Where the viewer is and what the pages
+show live in `Navigation` (`src/api/navigation.h`), so the pages go while
+the window is in the background, and a page that leaves the stack goes. A `cacheBuffer` is about one
+screen. Something kept on purpose says why in a comment, with what it costs:
+Home stays under the other pages, as the page Back ends at; a title page
+under another stays, since made again it would ask the providers for its
+copies again, but lets go of its banner.
 
 **Images are decoded at the size shown.** `sourceSize` is the shown size
 times the device pixel ratio; the provider scales while decoding. The
@@ -93,6 +98,9 @@ times the device pixel ratio; the provider scales while decoding. The
 - Memory is PSS and SwapPss from `/proc/<pid>/smaps_rollup`; mpv's buffer is
   `demuxer-cache-state`; allocation stacks come from heaptrack. heaptrack
   slows every allocation, so a delay seen under it is not the app's.
+- What a change frees shows first in the heap in use (`mallinfo2`, arenas
+  and mmapped chunks), read from inside the process: PSS keeps what glibc
+  freed and kept, and moves less and later.
 - A level that stops growing across the repeats is the working set. One that
   grows with every repeat is a leak.
 - NVIDIA and Wayland numbers come from a real desktop: llvmpipe in a VM does

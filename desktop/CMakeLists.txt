@@ -213,6 +213,7 @@ qt_add_qml_module(lumeo
     src/api/viewing.h src/api/viewing.cpp
     src/api/search.h src/api/search.cpp
     src/api/library.h src/api/library.cpp
+    src/api/navigation.h src/api/navigation.cpp
     src/api/addons.h src/api/addons.cpp
     src/api/downloads.h src/api/downloads.cpp
     src/api/downloadlist.h src/api/downloadlist.cpp

@@ -284,6 +284,9 @@ ShellPage {
             Banner {
                 anchors.fill: parent
                 url: page.shown.background ?? ""
+                // Under another page; under the player it stays, for the
+                // way back from the film.
+                held: page.StackView.status !== StackView.Inactive
 
                 // The trailer in place of the backdrop, muted, a moment after
                 // the page is up. Once it has ended or the page was left it

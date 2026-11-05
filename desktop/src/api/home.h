@@ -25,6 +25,9 @@ class Shelf : public QAbstractListModel {
   // Nothing came and nothing will: a genre nobody has titles for is not a
   // shelf.
   Q_PROPERTY(bool empty READ empty NOTIFY emptyChanged)
+  // The first card shown, which the row sets as it scrolls sideways: a row
+  // made again, scrolled back to or after the window was away, starts there.
+  Q_PROPERTY(int position READ position WRITE setPosition NOTIFY positionChanged)
 
 public:
   enum Role {
@@ -47,6 +50,8 @@ public:
   QString catalog() const { return m_core ? m_row["id"].toString() : "continue"; }
   QString genre() const { return m_genre; }
   bool empty() const { return m_empty; }
+  int position() const { return m_position; }
+  void setPosition(int position);
 
   int rowCount(const QModelIndex &parent = {}) const override;
   QVariant data(const QModelIndex &index, int role) const override;
@@ -60,6 +65,7 @@ public:
 
 signals:
   void emptyChanged();
+  void positionChanged();
 
 private:
   void setEmpty(bool empty);
@@ -71,6 +77,7 @@ private:
   bool m_loading = false;
   bool m_exhausted = false;
   bool m_empty = false;
+  int m_position = 0;
 };
 
 // What Home shows: the hero picked from the first shelf's first page, the

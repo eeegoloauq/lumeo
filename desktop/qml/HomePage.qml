@@ -9,6 +9,10 @@ import "format.js" as Format
 ShellPage {
     id: page
 
+    // The catalogues' shelves, kept with the navigation so a page made
+    // again shows them at once.
+    required property Home home
+
     // A title to open, or to open and start.
     signal open(var item, bool play)
 
@@ -20,7 +24,7 @@ ShellPage {
     // Where the type starts, under the bar that floats over the page.
     readonly property real barClearance: 90
 
-    readonly property bool heroShown: home.status === Home.Ready && home.hero.id !== undefined
+    readonly property bool heroShown: page.home.status === Home.Ready && page.home.hero.id !== undefined
 
     // Where the keyboard is among the stops Up and Down move through: the
     // hero's buttons, the shelf over the hero, then the shelves; -1 before
@@ -65,46 +69,45 @@ ShellPage {
 
     // Back from the player or from a title: a film watched since has moved
     // Continue watching.
-    onVisibleChanged: if (visible) home.refreshProgress()
-
-    Home { id: home }
+    onVisibleChanged: if (visible) page.home.refreshProgress()
 
     // Continue watching after a title's menu changed it.
     Connections {
         target: TitleActions
-        function onChanged() { home.refreshProgress() }
+        function onChanged() { page.home.refreshProgress() }
     }
 
     Loading {
         anchors.centerIn: parent
-        waiting: home.status === Home.Loading
+        waiting: page.home.status === Home.Loading
     }
 
     Trouble {
         anchors.centerIn: parent
-        visible: home.status === Home.Failed || home.status === Home.Empty
-        title: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailable") : qsTrId("homeNoCatalogues")
-        hint: home.status === Home.Failed ? qsTrId("homeCatalogueUnavailableHint") : qsTrId("homeNoCatalogueHint")
-        detail: home.status === Home.Failed ? home.error : ""
-        action: home.status === Home.Failed ? qsTrId("commonTryAgain") : ""
-        onActed: home.load()
+        visible: page.home.status === Home.Failed || page.home.status === Home.Empty
+        title: page.home.status === Home.Failed ? qsTrId("homeCatalogueUnavailable") : qsTrId("homeNoCatalogues")
+        hint: page.home.status === Home.Failed ? qsTrId("homeCatalogueUnavailableHint") : qsTrId("homeNoCatalogueHint")
+        detail: page.home.status === Home.Failed ? page.home.error : ""
+        action: page.home.status === Home.Failed ? qsTrId("commonTryAgain") : ""
+        onActed: page.home.load()
     }
 
     ListView {
         id: list
         objectName: "shelves"
         anchors.fill: parent
-        visible: home.status === Home.Ready
+        visible: page.home.status === Home.Ready
         // The hero first, as an item rather than the header: a header that
         // grows as the window does leaves the list where it ended.
-        model: home.status === Home.Ready ? [null].concat(home.shelves) : []
+        model: page.home.status === Home.Ready ? [null].concat(page.home.shelves) : []
         boundsBehavior: Flickable.StopAtBounds
         keyNavigationEnabled: false
         // No current shelf, which would take the keyboard as the page opens.
         currentIndex: -1
-        // Shelves load when built, and a few screens of them stay built, so
-        // one scrolled sideways is where it was on the way back up.
-        cacheBuffer: 3000
+        // Shelves load when built and keep what they loaded; a shelf made
+        // again is where it was scrolled sideways (Shelf.position). Beyond a
+        // screen each way it goes, with its posters.
+        cacheBuffer: height
         footer: Item { width: 1; height: 40 }
 
         delegate: Item {
@@ -163,7 +166,7 @@ ShellPage {
             readonly property alias lead: foot
             readonly property alias play: play
 
-            readonly property var item: home.hero
+            readonly property var item: page.home.hero
             // What the screen has left above one whole shelf, less the part
             // that lies over the artwork; a floor below which it stops being
             // a picture, and a ceiling past which the page is a screen with
@@ -224,7 +227,7 @@ ShellPage {
                 id: foot
                 y: banner.height - page.overlap
                 width: parent.width
-                shelf: home.lead
+                shelf: page.home.lead
                 onChosen: item => page.chosen(item, foot.progress)
                 onHoldsKeysChanged: if (holdsKeys) page.stop = 1
             }

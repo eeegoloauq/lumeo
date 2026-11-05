@@ -7,7 +7,7 @@ Item {
     width: 1440
     height: 900
 
-    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true } }
+    Component { id: shellComponent; Shell { anchors.fill: parent; focus: true; navigation: Navigation {} } }
 
     TestCase {
         name: "Library"
@@ -135,44 +135,22 @@ Item {
             tryVerify(() => findChild(shell, "listEmpty")?.visible === true, 5000, "the list read again")
         }
 
-        // Left for home and come back to, the library is the one left: its
-        // list and posters show at once, and the list is read again behind
-        // them. Everything else starts over, as on a library opened anew.
+        // Left for home, the library goes; come back to, it is made again
+        // from the list kept with the navigation, which shows at once and is
+        // read again behind it. Everything else starts over, as on a library
+        // opened anew.
         function test_theLibraryComesBackWithItsListShownAtOnce() {
             tryVerify(() => !!findChild(shell, "listed-" + film.id), 5000, "the list")
             history()
-            const page = findChild(shell, "library")
             mouseClick(findChild(shell, "tab-home"))
             tryCompare(shell, "page", "home")
-            verify(!page.visible, "the library hidden under home")
+            tryVerify(() => !findChild(shell, "library"), 2000, "the library gone")
             fakeCore.answer("GET", "/api/v1/list", 200, { items: [] })
             mouseClick(findChild(shell, "tab-library"))
             compare(shell.page, "library")
-            verify(findChild(shell, "library") === page, "the library left")
-            compare(page.section, "list")
+            compare(findChild(shell, "library").section, "list")
             verify(findChild(shell, "listed-" + film.id)?.visible, "the list at once")
             tryVerify(() => findChild(shell, "listEmpty")?.visible === true, 5000, "the list read again")
-        }
-
-        // The kept library was made at the stack's size, which counted as set
-        // by hand, so the stack never resized it: maximised after the first
-        // visit, it stayed at its first size.
-        function test_theKeptLibraryFollowsTheWindowShownAndAway() {
-            const page = findChild(shell, "library")
-            window.width = 1000
-            window.height = 700
-            compare(page.width, 1000)
-            compare(page.height, 700)
-
-            mouseClick(findChild(shell, "tab-home"))
-            tryCompare(shell, "page", "home")
-            compare(page.width, 1000, "waits at the size it left at")
-            window.width = 1600
-            window.height = 1000
-            mouseClick(findChild(shell, "tab-library"))
-            compare(shell.page, "library")
-            compare(page.width, 1600)
-            compare(page.height, 1000)
         }
 
         function test_theOrderChosenIsKeptOnThisMachine() {
@@ -212,13 +190,12 @@ Item {
                 many.push({ item: { id: "tt90" + i, kind: "movie", title: "Film " + i, year: 2000 + i },
                             addedAt: at(i), seen: { watched: 0, released: 1 } })
             fakeCore.answer("GET", "/api/v1/list", 200, { items: many })
-            const library = findChild(shell, "library")
             mouseClick(findChild(shell, "tab-home"))
             tryCompare(shell, "page", "home")
             mouseClick(findChild(shell, "tab-library"))
             const grid = findChild(shell, "myList")
             tryCompare(grid, "count", 9, 5000, "the nine titles")
-            const columns = library.columns
+            const columns = findChild(shell, "library").columns
             verify(columns > 1 && columns < 9, columns + " columns")
 
             const coming = findChild(shell, "comingUp")
