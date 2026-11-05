@@ -4,6 +4,42 @@ What is next, not what was done: done work is in git and, where it set a
 rule, in [decisions/](decisions/README.md). `[?]` marks a question to settle
 before code.
 
+## Performance
+
+From a read of the client on 2026-11-05 and the desktop's measurements of
+2026-11-04: about 1 GiB PSS after two hours, at least 450 MiB of it memory
+glibc had freed and kept. Directions and how to measure are in
+[decisions/performance.md](decisions/performance.md). In order, each
+measured before and after:
+
+1. mpv's buffer bounded and recorded in `decisions/player.md`, for the film
+   and the banner's trailer (`mpvitem.cpp`). mpv's defaults hold up to
+   150 MiB ahead and 50 MiB behind; heaptrack found 195 MiB in the MKV
+   demuxer.
+2. The player's episodes panel. `Playback::refresh` emits `changed` on every
+   2 s poll, changed or not; `EpisodesPanel.qml` filters `episodes` into a
+   new array, so every row is made again, the hidden panel too; each row
+   reads `EpisodeFrames::known`, which rebuilds the whole map with a regex
+   per saved still (245,448 allocations in six minutes).
+3. `Next::recompute` runs on every position update: chapter regexes and two
+   conversions of the preferences. Worked out once per chapters change.
+4. `Artwork::Response`: a cancel during the request or the retry delay never
+   emits `finished`, so the engine never deletes the response. A small leak
+   and a broken contract, with tests for each cancel path.
+5. One signal per property and the converted value kept: `Title` (item and
+   progress), `Downloads.marks` (read by every poster every 2 s while
+   something downloads), `Preferences.current`. Search results as a
+   `GridView` over a model.
+6. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
+   the strip and the Library grid; unwatched stills blurred once at decode;
+   no `Behavior` on the skip fill.
+7. What stays made while hidden: the shell in the tray, the Library page,
+   Home's `cacheBuffer: 3000`, a banner at screen width for each title page
+   in the stack. Navigation state in C++ so the pages can go.
+8. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
+   LeakSanitizer in CI, with a suppressions file for Qt's and Mesa's own
+   allocations.
+
 ## Remote core
 
 A server is reached over HTTPS, through a reverse proxy or with the core's
@@ -64,12 +100,14 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - Settings to add: an external player for what our mpv cannot open;
   subtitle outline; mpv's network timeout and cache.
 - The home hero rotates every ~10 s, paused under the pointer (mockup first).
-- A web demo on the share site, to try the app without installing it: a
-  page of its own in HTML and JS, as the share page is, over answers recorded
-  from the real core in CI: the home rows, those titles' pages and artwork.
-  Search runs over the recording; My list and progress stay in the browser;
-  Play and downloads open the title in an installed Lumeo. The client does
-  not build for a browser well: Qt's is a large WebAssembly download.
+- A web demo on the share site, to try the app without installing it: the
+  client itself built with Qt for WebAssembly, single-threaded (GitHub Pages
+  cannot send the headers threads need). One network manager answers from an
+  invented catalogue bundled into the page, its JSON checked against the
+  core's types as `tests/fixtures/` is; My list and progress stay in memory.
+  No playback and no downloads: Play says the app does that. First a size
+  check of a build of the shell, compressed as Pages serves it: about 10 MB
+  is fine, much more and this is reconsidered.
 - Typing in search from a gamepad, which drives every other page: the
   system's on-screen keyboard where there is one, or one of our own.
 

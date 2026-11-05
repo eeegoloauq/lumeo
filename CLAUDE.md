@@ -60,6 +60,8 @@ file for the area before reopening a choice), `docs/roadmap.md` (what is next).
 - Every request to the core carries the token from `<data>/api-token`; artwork alone goes by an
   unguessable address instead. The core binds to localhost: exposing it needs TLS and a way to
   hand a remote client the token first.
+- Read `docs/decisions/performance.md` before adding an mpv option, a kept page, a model, an
+  animation or a layer.
 - Interface text is short: a setting is a name and a control, a hint only for a consequence
   nobody would guess (`docs/decisions/interface.md`, Settings).
 - Fix causes, not symptoms; a workaround needs the user's agreement and a comment saying why.
