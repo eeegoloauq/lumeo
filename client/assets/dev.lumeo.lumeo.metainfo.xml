@@ -40,6 +40,112 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.79" date="2026-11-05">
+      <description>
+        <p>Added</p>
+        <p xml:lang="ru">Добавлено</p>
+        <ul>
+          <li>A new desktop app built on Qt, with the system’s title bar.</li>
+          <li xml:lang="ru">Новое приложение для компьютера на Qt, с системным заголовком окна.</li>
+          <li>Gamepad controls.</li>
+          <li xml:lang="ru">Управление геймпадом.</li>
+          <li>Connecting to a remote core over HTTPS with a one-time pairing code.</li>
+          <li xml:lang="ru">Подключение к удалённому ядру по HTTPS с одноразовым кодом сопряжения.</li>
+          <li>The server core as a container image.</li>
+          <li xml:lang="ru">Серверное ядро в виде образа контейнера.</li>
+          <li>Trailers on a title’s page, where yt-dlp is installed.</li>
+          <li xml:lang="ru">Трейлеры на странице тайтла, если установлен yt-dlp.</li>
+          <li>A Coming up shelf with the series and films you follow.</li>
+          <li xml:lang="ru">Полка «Скоро выйдут» с сериалами и фильмами, за которыми вы следите.</li>
+          <li>A right-click menu on posters, cards and season tabs.</li>
+          <li xml:lang="ru">Меню по правому клику на постерах, карточках и вкладках сезонов.</li>
+          <li>Marking a series watched up to an episode.</li>
+          <li xml:lang="ru">Отметка сериала просмотренным до нужной серии.</li>
+          <li>My list filters by status, and by films or series.</li>
+          <li xml:lang="ru">Фильтры «Моего списка» по статусу и по фильмам или сериалам.</li>
+          <li>Export and import of history, ratings and My list.</li>
+          <li xml:lang="ru">Экспорт и импорт истории, оценок и «Моего списка».</li>
+          <li>A version menu for films and series, or ask every time.</li>
+          <li xml:lang="ru">Меню выбора версии у фильмов и сериалов или вопрос каждый раз.</li>
+          <li>A starting film shows what it waits for: peers, percent and speed.</li>
+          <li xml:lang="ru">Запускающийся фильм показывает, чего ждёт: пиры, процент и скорость.</li>
+          <li>A folder on this computer as a series’ source, never deleted.</li>
+          <li xml:lang="ru">Папка на этом компьютере как источник сериала, которая не удаляется.</li>
+          <li>Anime4K, which sharpens anime on a large screen with a strong graphics card.</li>
+          <li xml:lang="ru">Anime4K делает аниме чётче на большом экране; нужна мощная видеокарта.</li>
+          <li>Fit, Anime4K and decoding are kept for each film and series.</li>
+          <li xml:lang="ru">Заполнение, Anime4K и декодирование запоминаются для каждого фильма и сериала.</li>
+          <li>Reduce loud sounds, which evens out explosions and whispers.</li>
+          <li xml:lang="ru">«Приглушать громкие звуки» выравнивает взрывы и шёпот.</li>
+          <li>Surround to the receiver, which sends Dolby and DTS as they are.</li>
+          <li xml:lang="ru">«Объёмный звук на ресивер» передаёт Dolby и DTS как есть.</li>
+          <li>Text size, which scales the whole interface from the next start.</li>
+          <li xml:lang="ru">Размер текста, который масштабирует весь интерфейс со следующего запуска.</li>
+          <li>A choice of start page: Home or My list.</li>
+          <li xml:lang="ru">Выбор начальной страницы: «Главная» или «Мой список».</li>
+          <li>Share copies a link that opens the title in Lumeo.</li>
+          <li xml:lang="ru">«Поделиться» копирует ссылку, которая открывает тайтл в Lumeo.</li>
+        </ul>
+        <p>Improved</p>
+        <p xml:lang="ru">Улучшено</p>
+        <ul>
+          <li>Full-quality picture: gradients without bands, sharper scaling, better HDR.</li>
+          <li xml:lang="ru">Картинка в полном качестве: градиенты без полос, более чёткое масштабирование, лучше HDR.</li>
+          <li>Search is one page, and titles appear as you type.</li>
+          <li xml:lang="ru">Поиск стал одной страницей, а названия появляются по мере ввода.</li>
+          <li>Wide Continue watching cards with the episode and time left.</li>
+          <li xml:lang="ru">Широкие карточки «Продолжить просмотр» с серией и оставшимся временем.</li>
+          <li>Subtitle tracks are grouped: in the file, downloaded or online.</li>
+          <li xml:lang="ru">Дорожки субтитров сгруппированы: в файле, скачанные или в сети.</li>
+          <li>Subtitles come on by default only for audio in another language.</li>
+          <li xml:lang="ru">Субтитры по умолчанию включаются, только если звук не на вашем языке.</li>
+          <li>Play no longer starts a copy larger than the free space.</li>
+          <li xml:lang="ru">Play больше не запускает копию больше свободного места.</li>
+          <li>New downloads go into Lumeo in Videos, by title and season.</li>
+          <li xml:lang="ru">Новые загрузки идут в папку Lumeo в «Видео», по фильмам и сезонам.</li>
+          <li>A season opens on the episode where you left it.</li>
+          <li xml:lang="ru">Сезон открывается на серии, где вы остановились.</li>
+          <li>History is grouped by day.</li>
+          <li xml:lang="ru">История сгруппирована по дням.</li>
+          <li>The downloads panel shows a series as one row.</li>
+          <li xml:lang="ru">Панель загрузок показывает сериал одной строкой.</li>
+          <li>Long shelves and the library scroll more smoothly.</li>
+          <li xml:lang="ru">Длинные полки и библиотека прокручиваются плавнее.</li>
+          <li>On Windows, a current mpv with its console and statistics.</li>
+          <li xml:lang="ru">Windows: свежий mpv с его консолью и статистикой.</li>
+          <li>Release notes are grouped into Added, Improved, Fixed and Removed.</li>
+          <li xml:lang="ru">Заметки о версии разделены на «Добавлено», «Улучшено», «Исправлено» и «Удалено».</li>
+        </ul>
+        <p>Fixed</p>
+        <p xml:lang="ru">Исправлено</p>
+        <ul>
+          <li>On Windows, keyboard and mouse after closing Lumeo to the tray.</li>
+          <li xml:lang="ru">Windows: клавиатура и мышь работают после закрытия Lumeo в трей.</li>
+          <li>On Windows, a console host running beside the app.</li>
+          <li xml:lang="ru">Windows: рядом с приложением больше не запускается консольный хост.</li>
+          <li>Closing during playback keeping an older position.</li>
+          <li xml:lang="ru">Закрытие во время просмотра сохраняет самую свежую позицию.</li>
+          <li>Late subtitles replacing the track you picked.</li>
+          <li xml:lang="ru">Докачавшиеся субтитры больше не заменяют выбранную дорожку.</li>
+          <li>A director’s cut being picked for an episode.</li>
+          <li xml:lang="ru">Режиссёрская версия больше не выбирается для серии сама.</li>
+          <li>Continue watching starting a special from season 0.</li>
+          <li xml:lang="ru">«Продолжить просмотр» запускает следующую серию, а не спецвыпуск из нулевого сезона.</li>
+          <li>Download progress moving back when a damaged part is fetched again.</li>
+          <li xml:lang="ru">Прогресс загрузки больше не откатывается назад при повторной загрузке повреждённой части.</li>
+          <li>Addons coming back empty on some networks.</li>
+          <li xml:lang="ru">Аддоны снова загружаются в сетях, где приходили пустыми.</li>
+          <li>A crash on a damaged torrent.</li>
+          <li xml:lang="ru">Падение на повреждённом торренте.</li>
+        </ul>
+        <p>Removed</p>
+        <p xml:lang="ru">Удалено</p>
+        <ul>
+          <li>The episode synopsis above the episodes, which spoiled them.</li>
+          <li xml:lang="ru">Описание серии над лентой, чтобы не было спойлеров.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79~beta.26" date="2026-11-05" type="development">
       <description>
         <p>Improved</p>
