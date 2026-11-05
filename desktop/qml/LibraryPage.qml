@@ -261,6 +261,9 @@ ShellPage {
         cellWidth: page.cell + page.gap
         cellHeight: Math.round(page.cell * 1.5) + 46 + page.gap
         boundsBehavior: Flickable.StopAtBounds
+        // A tile scrolled out is kept for the next one scrolled in. The one
+        // with the keyboard is the current one, which the view never pools.
+        reuseItems: true
         model: list.titles
         // No title is current until the keyboard comes: the view scrolls to
         // its current one, which sent the page past its shelves on arrival.
@@ -719,6 +722,7 @@ ShellPage {
                 item: modelData.item
                 line: shelf.caption(modelData)
                 markKey: modelData.item.id + (episode ? "/" + episode.season + "/" + episode.number : "")
+                ListView.onPooled: focus = false
                 onClicked: shelf.chosen(modelData.item, episode ? { season: episode.season, episode: episode.number } : null)
                 onMenu: at => TitleActions.ask({item: modelData.item, episode: episode, source: button,
                                                 x: at.x, y: at.y})

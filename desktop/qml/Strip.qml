@@ -10,6 +10,10 @@ import Lumeo
 // The arrows and the hover sit beside the list, not in it: a Flickable
 // loses its own hover to a child that takes hover, so an arrow inside
 // hid itself as soon as it was pointed at, and came back, over and over.
+//
+// A card scrolled out of the row is kept for the next one scrolled in, and
+// would take the keyboard with it to another title: each delegate lets go of
+// it when pooled (ListView.onPooled: focus = false).
 FocusScope {
     id: strip
 
@@ -78,6 +82,7 @@ FocusScope {
         leftMargin: Tokens.gutter
         rightMargin: Tokens.gutter
         boundsBehavior: Flickable.StopAtBounds
+        reuseItems: true
         // The cards pass the keyboard along themselves, so it moves with the
         // focus ring rather than with currentIndex.
         keyNavigationEnabled: false

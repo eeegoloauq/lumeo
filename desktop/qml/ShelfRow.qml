@@ -84,6 +84,7 @@ Column {
                 required property int index
                 required item
                 markKey: item.id
+                ListView.onPooled: focus = false
                 onClicked: row.chosen(item)
                 onMenu: at => TitleActions.ask({item: item, source: poster, x: at.x, y: at.y})
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
@@ -101,6 +102,7 @@ Column {
                 required watched
                 required remaining
                 markKey: item.id + "/" + season + "/" + episode
+                ListView.onPooled: focus = false
                 onClicked: row.chosen(item)
                 onMenu: at => TitleActions.ask({
                     item: item, continuing: true, source: resume, x: at.x, y: at.y,

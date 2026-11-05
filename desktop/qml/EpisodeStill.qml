@@ -20,8 +20,9 @@ Item {
     property string frame
     // Only a real still is a spoiler; the number stays readable.
     readonly property bool blurred: stills === "blur" && !watched
-    // The catalogue's still would not load: the frame stands in.
-    property bool stillFailed: false
+    // The catalogue's still that would not load, for which the frame stands
+    // in. Kept by address, so a card reused for another episode tries its own.
+    property string failedStill
 
     Rectangle {
         anchors.fill: parent
@@ -43,11 +44,11 @@ Item {
         visible: status === Image.Ready && still.stills !== "hide"
         opacity: still.faint ? 0.4 : 1
         source: still.stills === "hide" ? ""
-            : still.episode.thumbnail && !still.stillFailed
+            : still.episode.thumbnail && still.episode.thumbnail !== still.failedStill
                 ? (still.frame ? Format.still : Format.art)(still.episode.thumbnail, still.blurred)
             : still.blurred ? Format.still(still.frame, true)
             : still.frame
-        onStatusChanged: if (status === Image.Error && still.episode.thumbnail) still.stillFailed = true
+        onStatusChanged: if (status === Image.Error && still.episode.thumbnail) still.failedStill = still.episode.thumbnail
         sourceSize.width: Math.ceil(still.width * 1.1)
         fillMode: Image.PreserveAspectCrop
     }

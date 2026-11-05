@@ -58,6 +58,13 @@ times the device pixel ratio; the provider scales while decoding. The
 - A list QML shows is a model with inserts, removes and `dataChanged`. A JS
   array or a `QVariantList` as `model:` makes every delegate again whenever it
   is replaced.
+- A view of cards that scrolls keeps the cards scrolled out for those
+  scrolled in (`reuseItems`); making each one again cost eight times as long
+  per scroll. A reused card keeps nothing its model data does not set again
+  (a still that failed is remembered by its address, not as a flag), and a
+  `ListView` card lets go of the keyboard when pooled, or it comes back as
+  another title with the focus on it. A `GridView` whose current item follows
+  the keyboard needs nothing: the current item is never pooled.
 - What connects to mpv's position runs about once per video frame. It
   compares numbers; anything slower is worked out on the signal behind it
   (chapters changed, preferences changed). A clock changes once a second.

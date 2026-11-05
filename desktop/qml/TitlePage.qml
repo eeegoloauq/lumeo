@@ -673,6 +673,7 @@ ShellPage {
                     frame: EpisodeFrames.known[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number] ?? ""
                     // With no provider to ask, only what is on disk plays.
                     unreachable: copies.unreachable && !card.onDisk
+                    ListView.onPooled: focus = false
                     onChosen: page.picked = card.modelData
                     onPlayed: page.playEpisode(card.modelData)
                     onMenu: at => TitleActions.ask({

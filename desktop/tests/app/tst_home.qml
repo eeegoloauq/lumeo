@@ -146,5 +146,26 @@ Item {
             keyClick(Qt.Key_Escape)
             compare(shell.page, "home")
         }
+
+        // A shelf keeps the cards scrolled out of it for those scrolled in,
+        // and one kept with the keyboard came back as another title with the
+        // ring on it, for Enter to open.
+        function test_aCardScrolledAwayGivesTheKeyboardToNoOtherTitle() {
+            const row = findChild(findChild(shell, "shelf-movie/top/"), "strip")
+            tryVerify(() => row.count > 0, 5000, "the shelf filled")
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Down)
+            const first = shell.Window.activeFocusItem.item.id
+            const at = row.focused
+            const next = row.itemAtIndex(at + 1).item.id
+            // A card at a time, so each one scrolled out is the next one in.
+            for (let i = at + 1; i < row.count; ++i)
+                row.place(i)
+            tryVerify(() => row.firstShown() > 10, 2000, "the card scrolled away")
+            const holder = shell.Window.activeFocusItem
+            verify(!holder?.item || holder.item.id === first, "the keyboard is on " + holder?.item?.title)
+            keyClick(Qt.Key_Right)
+            compare(shell.Window.activeFocusItem.item.id, next, "on from the card it was on")
+        }
     }
 }
