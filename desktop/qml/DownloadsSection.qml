@@ -55,7 +55,7 @@ SettingsBlock {
         id: policyChange
         property bool pending
         target: Preferences
-        function onChanged() {
+        function onAnswered() {
             if (!policyChange.pending)
                 return
             policyChange.pending = false

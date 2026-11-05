@@ -33,7 +33,7 @@ void Playback::componentComplete() {
   m_core = engine->singletonInstance<Core *>("Lumeo", "Core");
   m_preferences = engine->singletonInstance<Preferences *>("Lumeo", "Preferences");
   m_settings = engine->singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
-  connect(m_preferences, &Preferences::changed, this, &Playback::defineBindings);
+  connect(m_preferences, &Preferences::currentChanged, this, &Playback::defineBindings);
   if (m_mpv) {
     m_mpv->set("volume", m_settings->volume());
     defineBindings();

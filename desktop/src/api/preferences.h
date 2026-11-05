@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core.h"
+
 #include <QJsonObject>
 #include <QObject>
 #include <QTimer>
@@ -8,7 +10,6 @@
 #include <deque>
 #include <functional>
 
-class Core;
 class QQmlEngine;
 class QJSEngine;
 
@@ -19,19 +20,19 @@ class Preferences : public QObject {
   QML_ELEMENT
   QML_SINGLETON
   // Empty until the core has answered.
-  Q_PROPERTY(QVariantMap current READ current NOTIFY changed)
+  Q_PROPERTY(QVariantMap current READ current NOTIFY currentChanged)
   // The languages a preference may name, with what files call them.
-  Q_PROPERTY(QVariantList languages READ languages NOTIFY changed)
+  Q_PROPERTY(QVariantList languages READ languages NOTIFY languagesChanged)
   // The last failure, cleared by the next answer.
-  Q_PROPERTY(QString error READ error NOTIFY changed)
+  Q_PROPERTY(QString error READ error NOTIFY errorChanged)
   // The preferences the failed write carried; none for a read or a reset.
-  Q_PROPERTY(QStringList failedKeys READ failedKeys NOTIFY changed)
+  Q_PROPERTY(QStringList failedKeys READ failedKeys NOTIFY failedKeysChanged)
 
 public:
   explicit Preferences(Core *core, QObject *parent = nullptr);
   static Preferences *create(QQmlEngine *qml, QJSEngine *);
 
-  QVariantMap current() const { return m_current.toVariantMap(); }
+  QVariantMap current() const { return m_current; }
   QVariantList languages() const { return m_languages; }
   QString error() const { return m_error; }
   QStringList failedKeys() const { return m_failedKeys; }
@@ -52,15 +53,24 @@ public:
   int rememberDelay = 500;
 
 signals:
-  void changed();
+  void currentChanged();
+  void languagesChanged();
+  void errorChanged();
+  void failedKeysChanged();
+  // The core answered a read of the document or a write, whatever it said:
+  // what it holds is the truth again, a refusal beside the old value.
+  void answered();
 
 private:
   using Write = std::function<void()>;
   void write(const QByteArray &method, const QJsonObject &body, const QStringList &keys);
   void next();
+  // Keeps the core's answer and says what moved.
+  void take(const Core::Reply &reply, const QStringList &keys);
 
   Core *m_core;
-  QJsonObject m_current;
+  // Converted once: every binding on a preference reads the whole map.
+  QVariantMap m_current;
   QVariantList m_languages;
   QString m_error;
   QStringList m_failedKeys;

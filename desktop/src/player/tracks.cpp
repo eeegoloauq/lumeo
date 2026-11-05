@@ -121,11 +121,8 @@ void Tracks::prepare(const QString &itemId, const QString &downloadId,
   if (!m_preferences->current().isEmpty()) {
     done();
   } else {
-    // The languages answer apart and say changed too.
     auto connection = std::make_shared<QMetaObject::Connection>();
-    *connection = connect(m_preferences, &Preferences::changed, this, [this, connection, done] {
-      if (m_preferences->current().isEmpty() && m_preferences->error().isEmpty())
-        return;
+    *connection = connect(m_preferences, &Preferences::answered, this, [connection, done] {
       QObject::disconnect(*connection);
       done();
     });

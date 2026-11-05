@@ -41,7 +41,7 @@ Rectangle {
     // the old one beside its refusal.
     Connections {
         target: Preferences
-        function onChanged() { if (!burst.running) stepper.held = undefined }
+        function onAnswered() { if (!burst.running) stepper.held = undefined }
     }
 
     Row {

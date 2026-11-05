@@ -145,7 +145,7 @@ Next::Next(MpvItem *mpv, Core *core, Preferences *preferences, Downloads *downlo
       m_downloads(downloads) {
   m_marks = marks(mpv->chapters());
   readPreferences();
-  connect(preferences, &Preferences::changed, this, &Next::readPreferences);
+  connect(preferences, &Preferences::currentChanged, this, &Next::readPreferences);
   connect(mpv, &MpvItem::positionChanged, this, &Next::recompute);
   connect(mpv, &MpvItem::chaptersChanged, this, [this] {
     m_marks = marks(m_mpv->chapters());
