@@ -25,6 +25,9 @@ class QQmlEngine;
 // image://logo/<address> is a title card, with ink that would vanish on our
 // ground repainted white (needsInk). image://still/<address> gives up after
 // the first retries, for a picture with something of our own to stand in.
+// <address> may be a file of our own too, and blur/<address> is the picture
+// blurred as it is decoded: an unwatched episode's still, where an effect on
+// the Image cost offscreen textures and render passes for each still shown.
 class Artwork : public QQuickAsyncImageProvider {
 public:
   Artwork(bool ink, bool patient);

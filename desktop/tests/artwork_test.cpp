@@ -3,6 +3,7 @@
 
 #include <QBuffer>
 #include <QNetworkAccessManager>
+#include <QPainter>
 #include <QQuickTextureFactory>
 #include <QSignalSpy>
 #include <QtTest>
@@ -23,9 +24,20 @@ struct Fetched {
   QString error;
 };
 
-Fetched fetch(Artwork &provider, const QUrl &url, const QSize &size = {}) {
+// Half black, half white: what a blur shows at the edge between them.
+QByteArray halves(const QSize &size) {
+  QImage image(size, QImage::Format_RGB32);
+  image.fill(Qt::black);
+  QPainter(&image).fillRect(size.width() / 2, 0, size.width() / 2, size.height(), Qt::white);
+  QBuffer buffer;
+  buffer.open(QIODevice::WriteOnly);
+  image.save(&buffer, "PNG");
+  return buffer.data();
+}
+
+Fetched fetch(Artwork &provider, const QUrl &url, const QSize &size = {}, const QString &as = {}) {
   std::unique_ptr<QQuickImageResponse> response(
-      provider.requestImageResponse(QUrl::toPercentEncoding(url.toString()), size));
+      provider.requestImageResponse(as + QUrl::toPercentEncoding(url.toString()), size));
   QSignalSpy finished(response.get(), &QQuickImageResponse::finished);
   // The app sets no time limit on a request, so a slow runner fails this only
   // past one a person would notice. Seen 2026-11-01 on Windows CI: the first
@@ -165,6 +177,35 @@ private slots:
     Artwork provider(false, false);
     QVERIFY(!fetch(provider, at("/art/down")).error.isEmpty());
     QCOMPARE(fake->requests().size(), 1 + Artwork::retryDelays.size());
+  }
+
+  // An unwatched episode's still is blurred as it is decoded, at the size
+  // it is drawn, not by an effect on every frame it is shown.
+  void aStillIsBlurredAsItIsDecoded() {
+    fake->file("/art/still", halves({400, 100}), "image/png");
+    Artwork provider(false, false);
+    QCOMPARE(qGray(fetch(provider, at("/art/still"), {200, 0}).image.pixel(98, 25)), 0);
+    const QImage blurred = fetch(provider, at("/art/still"), {200, 0}, "blur/").image;
+    QCOMPARE(blurred.size(), QSize(200, 50));
+    const int edge = qGray(blurred.pixel(98, 25));
+    QVERIFY2(edge > 60 && edge < 128, qPrintable(QString::number(edge)));
+    // Far from the edge, and at the picture's own edges, nothing fades.
+    QCOMPARE(blurred.pixel(0, 0), qRgb(0, 0, 0));
+    QCOMPARE(blurred.pixel(199, 49), qRgb(255, 255, 255));
+  }
+
+  // A frame of the file on disk stands in for a still, blurred the same.
+  void aFrameOnDiskIsBlurredToo() {
+    QTemporaryDir folder;
+    QFile frame(folder.filePath("frame.png"));
+    QVERIFY(frame.open(QIODevice::WriteOnly));
+    frame.write(halves({200, 50}));
+    frame.close();
+    Artwork provider(false, false);
+    const QImage blurred = fetch(provider, QUrl::fromLocalFile(frame.fileName()), {}, "blur/").image;
+    QCOMPARE(blurred.size(), QSize(200, 50));
+    QVERIFY(qGray(blurred.pixel(98, 25)) > 60);
+    QCOMPARE(fake->requests().size(), 0);
   }
 
   // Some titles ship a card drawn dark for a light poster, which disappears

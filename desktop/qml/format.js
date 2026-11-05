@@ -3,15 +3,16 @@
 // How the catalogue's values read on screen, the same on every page.
 
 // An address from the core as an Image source: through the artwork
-// provider, which asks again when the core could not fetch it.
-function art(url) {
-    return url ? "image://artwork/" + encodeURIComponent(url) : ""
+// provider, which asks again when the core could not fetch it; [blurred] as
+// it is decoded.
+function art(url, blurred) {
+    return url ? "image://artwork/" + (blurred ? "blur/" : "") + encodeURIComponent(url) : ""
 }
 
 // The same for a picture with something of our own to stand in for it: the
 // provider gives up after its first retries rather than asking every minute.
-function still(url) {
-    return url ? "image://still/" + encodeURIComponent(url) : ""
+function still(url, blurred) {
+    return url ? "image://still/" + (blurred ? "blur/" : "") + encodeURIComponent(url) : ""
 }
 
 // A title card, its ink repainted white when it would vanish on our ground.

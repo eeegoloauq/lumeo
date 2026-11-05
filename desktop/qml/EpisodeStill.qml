@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import Lumeo
 import "format.js" as Format
 
@@ -19,6 +18,8 @@ Item {
     property bool faint
     // A frame taken from the file on disk, for an episode with no still.
     property string frame
+    // Only a real still is a spoiler; the number stays readable.
+    readonly property bool blurred: stills === "blur" && !watched
     // The catalogue's still would not load: the frame stands in.
     property bool stillFailed: false
 
@@ -43,18 +44,12 @@ Item {
         opacity: still.faint ? 0.4 : 1
         source: still.stills === "hide" ? ""
             : still.episode.thumbnail && !still.stillFailed
-                ? (still.frame ? Format.still : Format.art)(still.episode.thumbnail)
+                ? (still.frame ? Format.still : Format.art)(still.episode.thumbnail, still.blurred)
+            : still.blurred ? Format.still(still.frame, true)
             : still.frame
         onStatusChanged: if (status === Image.Error && still.episode.thumbnail) still.stillFailed = true
         sourceSize.width: Math.ceil(still.width * 1.1)
         fillMode: Image.PreserveAspectCrop
-        // Only a real still is a spoiler; the number stays readable.
-        layer.enabled: still.stills === "blur" && !still.watched
-        layer.effect: MultiEffect {
-            blurEnabled: true
-            blur: 1
-            blurMax: 32
-        }
     }
 
     // How far the viewer is, the player's timeline in small; seen to the end

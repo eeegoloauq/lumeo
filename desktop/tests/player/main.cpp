@@ -1,3 +1,4 @@
+#include "artwork.h"
 #include "fakecore.h"
 #include "fonts.h"
 #include "glyphs.h"
@@ -104,6 +105,7 @@ public slots:
     engine->rootContext()->setContextProperty("ownCore", own.get());
     engine->rootContext()->setContextProperty("screenshots", config.filePath("shots"));
     engine->rootContext()->setContextProperty("disk", &disk);
+    Artwork::install(engine);
     Glyphs::install(engine);
   }
 };

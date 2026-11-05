@@ -75,7 +75,7 @@ times the device pixel ratio; the provider scales while decoding. The
   breaks batching. It does not go on something repeated in a list, such as an
   icon: an icon is tinted when it is loaded (`image://glyph`).
 - An effect on a still picture, such as the blur of an unwatched episode, is
-  applied once when the picture is decoded.
+  applied once when the picture is decoded (`image://artwork/blur/`).
 - Idle means no frames. With nothing playing and nothing moving,
   `QT_LOGGING_RULES=qt.scenegraph.time.renderloop=true` logs nothing.
 
