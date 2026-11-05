@@ -16,20 +16,21 @@ class Title : public QObject, public QQmlParserStatus {
   QML_ELEMENT
   Q_INTERFACES(QQmlParserStatus)
   Q_PROPERTY(QString itemId READ itemId WRITE setItemId NOTIFY itemIdChanged)
-  Q_PROPERTY(Status status READ status NOTIFY changed)
-  Q_PROPERTY(QString error READ error NOTIFY changed)
-  Q_PROPERTY(QVariantMap item READ item NOTIFY changed)
+  // The error is why the status is Failed, and changes with it.
+  Q_PROPERTY(Status status READ status NOTIFY statusChanged)
+  Q_PROPERTY(QString error READ error NOTIFY statusChanged)
+  Q_PROPERTY(QVariantMap item READ item NOTIFY itemChanged)
   // How far it was watched, as the core keeps it: {entries, next, upcoming}.
-  Q_PROPERTY(QVariantMap progress READ progress NOTIFY changed)
+  Q_PROPERTY(QVariantMap progress READ progress NOTIFY progressChanged)
   // The episode the page opens on, {season, episode}: the one to play next,
   // else the one a caught-up series goes on with, else the last one
   // watched; empty for a title never watched.
-  Q_PROPERTY(QVariantMap opening READ opening NOTIFY changed)
+  Q_PROPERTY(QVariantMap opening READ opening NOTIFY progressChanged)
   // A season's download is being asked for, one episode at a time.
   Q_PROPERTY(bool queueing READ queueing NOTIFY queueingChanged)
   // The link the title is shared by; empty without an IMDb id, which names
   // it the same on every machine.
-  Q_PROPERTY(QString link READ link NOTIFY changed)
+  Q_PROPERTY(QString link READ link NOTIFY itemChanged)
 
 public:
   enum Status { Loading, Failed, Ready };
@@ -45,11 +46,11 @@ public:
   void setItemId(const QString &itemId);
   Status status() const { return m_status; }
   QString error() const { return m_error; }
-  QVariantMap item() const { return m_item.toVariantMap(); }
-  QVariantMap progress() const { return m_progress.toVariantMap(); }
-  QVariantMap opening() const;
+  QVariantMap item() const { return m_itemMap; }
+  QVariantMap progress() const { return m_progressMap; }
+  QVariantMap opening() const { return m_opening; }
   bool queueing() const { return m_queueing; }
-  QString link() const;
+  QString link() const { return m_link; }
 
   // Where shared links point: a page anyone can open, whose Open button
   // hands lumeo://title/<kind>/<imdb> to an installed Lumeo (site/).
@@ -70,7 +71,9 @@ public:
 
 signals:
   void itemIdChanged();
-  void changed();
+  void statusChanged();
+  void itemChanged();
+  void progressChanged();
   void queueingChanged();
   void moved();
   // The season's download stopped: the core did not answer, or a provider
@@ -80,6 +83,14 @@ signals:
 private:
   void queueNext();
   void stopQueue(const QString &reason);
+  void setStatus(Status status, const QString &error = {});
+  // Keep the answer and what is worked out from it, and say so when it
+  // differs: a series' item carries every episode, and the page makes its
+  // cards again from each new one.
+  void setItem(const QJsonObject &item);
+  void setProgress(const QJsonObject &progress);
+  QString makeLink() const;
+  QVariantMap makeOpening() const;
 
   Core *m_core = nullptr;
   Downloads *m_downloads = nullptr;
@@ -89,7 +100,11 @@ private:
   Status m_status = Loading;
   QString m_error;
   QJsonObject m_item;
+  QVariantMap m_itemMap;
+  QString m_link;
   QJsonObject m_progress;
+  QVariantMap m_progressMap;
+  QVariantMap m_opening;
   int m_load = 0;
 };
 

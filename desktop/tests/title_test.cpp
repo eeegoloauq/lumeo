@@ -73,6 +73,26 @@ private slots:
     QCOMPARE(opening({}), QVariantMap());
   }
 
+  // A series' item carries every episode, and the page makes its cards
+  // again from each new one: progress read again after playing is not one.
+  void progressReadAgainLeavesTheItemAlone() {
+    fake->answer("GET", "/api/v1/items/tt1", 200, QJsonObject{{"id", "tt1"}, {"kind", "series"}});
+    fake->answer("GET", "/api/v1/progress/tt1", 200, QJsonObject{{"entries", QJsonArray()}});
+    Title title(core.get(), downloads.get(), "tt1");
+    QTRY_COMPARE(title.status(), Title::Ready);
+    QSignalSpy item(&title, &Title::itemChanged);
+    QSignalSpy progress(&title, &Title::progressChanged);
+    QSignalSpy moved(&title, &Title::moved);
+
+    fake->answer("GET", "/api/v1/progress/tt1", 200,
+                 QJsonObject{{"entries", QJsonArray{entry(1, 2, "2026-09-01T00:00:00Z")}}});
+    title.refreshProgress();
+    QTRY_COMPARE(moved.size(), 1);
+    QCOMPARE(progress.size(), 1);
+    QCOMPARE(title.opening(), (QVariantMap{{"season", 1}, {"episode", 2}}));
+    QCOMPARE(item.size(), 0);
+  }
+
   void progressThatFailsLeavesThePageWithoutIt() {
     fake->answer("GET", "/api/v1/items/tt1", 200, QJsonObject{{"id", "tt1"}});
     fake->answer("GET", "/api/v1/progress/tt1", 500);

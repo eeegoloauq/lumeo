@@ -11,6 +11,7 @@
 #include <QScreen>
 #include <QTimer>
 #include <QWindow>
+#include <optional>
 
 Title::Title(Core *core, Downloads *downloads, const QString &itemId, QObject *parent)
     : QObject(parent), m_core(core), m_downloads(downloads), m_itemId(itemId) {
@@ -35,7 +36,7 @@ const QString Title::sharePage = "https://eeegoloauq.github.io/lumeo";
 // The share page with the IMDb id, then the title and year as words, which
 // the page shows when it cannot reach the catalogue and which say what the
 // link is to whoever reads it.
-QString Title::link() const {
+QString Title::makeLink() const {
   const QString imdb = m_item["externalIds"]["imdb"].toString();
   if (imdb.isEmpty())
     return {};
@@ -49,7 +50,7 @@ QString Title::link() const {
          QString::fromUtf8(QUrl::toPercentEncoding(words.join('-')));
 }
 
-void Title::copyLink() const { QGuiApplication::clipboard()->setText(link()); }
+void Title::copyLink() const { QGuiApplication::clipboard()->setText(m_link); }
 
 void Title::componentComplete() {
   m_core = qmlEngine(this)->singletonInstance<Core *>("Lumeo", "Core");
@@ -135,7 +136,7 @@ void Title::setItemId(const QString &itemId) {
     load();
 }
 
-QVariantMap Title::opening() const {
+QVariantMap Title::makeOpening() const {
   const QJsonObject next = m_progress["next"].toObject();
   if (!next.isEmpty())
     return {{"season", next["season"].toInt()}, {"episode", next["episode"].toInt()}};
@@ -151,44 +152,68 @@ QVariantMap Title::opening() const {
   return {{"season", latest["season"].toInt()}, {"episode", latest["episode"].toInt()}};
 }
 
+void Title::setStatus(Status status, const QString &error) {
+  if (status == m_status && error == m_error)
+    return;
+  m_status = status;
+  m_error = error;
+  emit statusChanged();
+}
+
+void Title::setItem(const QJsonObject &item) {
+  if (item == m_item)
+    return;
+  m_item = item;
+  m_itemMap = item.toVariantMap();
+  m_link = makeLink();
+  emit itemChanged();
+}
+
+void Title::setProgress(const QJsonObject &progress) {
+  if (progress == m_progress)
+    return;
+  m_progress = progress;
+  m_progressMap = progress.toVariantMap();
+  m_opening = makeOpening();
+  emit progressChanged();
+}
+
 void Title::load() {
   const int load = ++m_load;
-  m_status = Loading;
-  m_error.clear();
-  m_item = {};
-  m_progress = {};
-  emit changed();
-  auto progressHere = std::make_shared<bool>(false);
-  auto itemHere = std::make_shared<bool>(false);
-  auto settle = [this, progressHere, itemHere] {
-    if (*progressHere && *itemHere && m_status == Loading) {
-      m_status = Ready;
-      emit changed();
-    }
+  setStatus(Loading);
+  setItem({});
+  setProgress({});
+  // Both answers are shown together: the item alone opens the page at its
+  // first season, and progress moves it a moment later.
+  struct Answers {
+    std::optional<QJsonObject> item, progress;
+  };
+  auto answers = std::make_shared<Answers>();
+  auto settle = [this, answers] {
+    if (!answers->item || !answers->progress || m_status != Loading)
+      return;
+    setItem(*answers->item);
+    setProgress(*answers->progress);
+    setStatus(Ready);
   };
   const QString id = Core::segment(m_itemId);
   m_core->get("/api/v1/items/" + id, {}, this,
-              [this, load, itemHere, settle](const Core::Reply &reply) {
+              [this, load, answers, settle](const Core::Reply &reply) {
                 if (load != m_load)
                   return;
                 if (!reply.ok()) {
-                  m_status = Failed;
-                  m_error = reply.message();
-                  emit changed();
+                  setStatus(Failed, reply.message());
                   return;
                 }
-                m_item = reply.json().toObject();
-                *itemHere = true;
+                answers->item = reply.json().toObject();
                 settle();
               });
   // Progress that fails leaves the page without it, not without the page.
   m_core->get("/api/v1/progress/" + id, {}, this,
-              [this, load, progressHere, settle](const Core::Reply &reply) {
+              [this, load, answers, settle](const Core::Reply &reply) {
                 if (load != m_load)
                   return;
-                if (reply.ok())
-                  m_progress = reply.json().toObject();
-                *progressHere = true;
+                answers->progress = reply.ok() ? reply.json().toObject() : QJsonObject();
                 settle();
               });
 }
@@ -201,8 +226,7 @@ void Title::refreshProgress() {
               [this, load](const Core::Reply &reply) {
                 if (load != m_load || !reply.ok() || reply.json().toObject() == m_progress)
                   return;
-                m_progress = reply.json().toObject();
-                emit changed();
+                setProgress(reply.json().toObject());
                 emit moved();
               });
 }
