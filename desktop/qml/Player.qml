@@ -626,13 +626,13 @@ FocusScope {
             color: Qt.alpha(Tokens.floating, 0.92)
             border.color: Tokens.rim
             clip: true
-            // How far the part to skip has run.
+            // How far the part to skip has run, moved on each position
+            // mpv reports, about once a frame.
             Rectangle {
                 width: parent.width * (session.next?.fill ?? 0)
                 height: parent.height
                 radius: parent.radius
                 color: Tokens.tint
-                Behavior on width { NumberAnimation { duration: Theme.wash } }
             }
         }
     }

@@ -37,7 +37,8 @@ AbstractButton {
             stills: card.stills
             frame: card.frame
 
-            // Fills between the steps the position arrives in.
+            // Filled as it moves: with the position over the credits, about
+            // once a frame, and ten times a second on the held last frame.
             Item {
                 anchors.centerIn: parent
                 width: 56
@@ -49,7 +50,6 @@ AbstractButton {
                     fraction: card.fill
                     stroke: 3
                     color: "white"
-                    Behavior on fraction { NumberAnimation { duration: 250 } }
                 }
             }
 

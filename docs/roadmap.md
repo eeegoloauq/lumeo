@@ -12,13 +12,10 @@ glibc had freed and kept. Directions and how to measure are in
 [decisions/performance.md](decisions/performance.md). In order, each
 measured before and after:
 
-1. `Glyph` puts a layer and a `MultiEffect` on every icon; `reuseItems` on
-   the strip and the Library grid; unwatched stills blurred once at decode;
-   no `Behavior` on the skip fill.
-2. What stays made while hidden: the shell in the tray, the Library page,
+1. What stays made while hidden: the shell in the tray, the Library page,
    Home's `cacheBuffer: 3000`, a banner at screen width for each title page
    in the stack. Navigation state in C++ so the pages can go.
-3. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
+2. Units and app tests under AddressSanitizer, UndefinedBehaviorSanitizer and
    LeakSanitizer in CI, with a suppressions file for Qt's and Mesa's own
    allocations.
 
