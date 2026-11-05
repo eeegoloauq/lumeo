@@ -89,7 +89,7 @@ ShellPage {
         line: qsTrId("searchYearKind").arg(Format.years(modelData))
               .arg(modelData.kind === "series" ? qsTrId("commonSeries") : qsTrId("commonFilm"))
               .trim()
-        mark: Downloads.marks[modelData.id]
+        markKey: modelData.id
         onClicked: page.open(modelData)
         onMenu: at => TitleActions.ask({item: modelData, source: button, x: at.x, y: at.y})
         button.Keys.onLeftPressed: page.move(slot.index + 1, -1, 0)

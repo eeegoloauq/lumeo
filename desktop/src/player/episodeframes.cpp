@@ -18,7 +18,7 @@ EpisodeFrames::EpisodeFrames(Core *core, Downloads *downloads, const QString &di
   for (const QString &file : QDir(directory).entryList(QDir::Files))
     if (!file.startsWith('.'))
       add(file);
-  connect(downloads, &Downloads::changed, this, &EpisodeFrames::update);
+  connect(downloads, &Downloads::listChanged, this, &EpisodeFrames::update);
   update();
 }
 

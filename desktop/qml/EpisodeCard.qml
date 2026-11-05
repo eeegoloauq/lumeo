@@ -17,8 +17,9 @@ AbstractButton {
     // How far into it the viewer is; 0 for none. Seen to the end is the eye.
     property real bar
     property bool watched
-    // One of Downloads.marks, or undefined.
-    property var mark
+    // Its download mark's key (DownloadMark.key).
+    property string markKey
+    readonly property alias onDisk: status.onDisk
     // A frame from the file on disk, for an episode with no still.
     property string frame
     // Out, but nothing can fetch it and it is not on disk.
@@ -77,9 +78,10 @@ AbstractButton {
             frame: card.frame
 
             StatusMark {
+                id: status
                 anchors { top: parent.top; right: parent.right; margins: 8 }
                 watched: card.watched
-                mark: card.mark
+                markKey: card.markKey
             }
 
             // The mouse's way to start; the keyboard has Enter.

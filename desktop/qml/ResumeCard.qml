@@ -17,8 +17,8 @@ AbstractButton {
     // The share of it seen, and the seconds left: 0 when not started.
     property real watched
     property real remaining
-    // One of Downloads.marks, or undefined.
-    property var mark
+    // Its download mark's key (DownloadMark.key).
+    property string markKey
 
     readonly property bool lifted: hovered || visualFocus
 
@@ -72,7 +72,7 @@ AbstractButton {
             }
             StatusMark {
                 anchors { top: parent.top; right: parent.right; margins: 8 }
-                mark: card.mark
+                markKey: card.markKey
             }
             WatchBar { share: card.watched }
             // The keyboard's ring, in the accent, findable on any artwork.

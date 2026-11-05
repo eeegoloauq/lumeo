@@ -399,7 +399,7 @@ ShellPage {
                     // the line under Play says On disk.
                     DownloadButton {
                         objectName: "filmDownload"
-                        readonly property var mark: Downloads.marks[page.item.id]
+                        readonly property var mark: filmMark.mark
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !page.series && !mark?.done
                         fraction: copies.starting ? 0 : mark?.fraction ?? -1
@@ -407,6 +407,8 @@ ShellPage {
                         tip: running ? qsTrId("itemDownloadingPercent").arg(Math.floor(fraction * 100))
                                      : qsTrId("commonDownload")
                         onClicked: copies.download()
+
+                        DownloadMark { id: filmMark; key: page.item.id }
                     }
                     // What the viewer keeps and thinks of the title: quiet
                     // marks beside the one action, not second ones; ⋯ has
@@ -658,7 +660,6 @@ ShellPage {
                     required property int index
                     required property var modelData
                     readonly property var entry: page.entryOf(card.modelData)
-                    readonly property bool onDisk: Downloads.marks[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number]?.done ?? false
 
                     episode: card.modelData
                     selected: page.same(card.modelData, page.current)
@@ -668,7 +669,7 @@ ShellPage {
                     stills: Preferences.current.episodeArtwork ?? "show"
                     watched: card.entry?.watched ?? false
                     bar: card.entry?.position > 0 && card.entry.duration > 0 ? card.entry.position / card.entry.duration : 0
-                    mark: Downloads.marks[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number]
+                    markKey: page.item.id + "/" + card.modelData.season + "/" + card.modelData.number
                     frame: EpisodeFrames.known[page.item.id + "/" + card.modelData.season + "/" + card.modelData.number] ?? ""
                     // With no provider to ask, only what is on disk plays.
                     unreachable: copies.unreachable && !card.onDisk

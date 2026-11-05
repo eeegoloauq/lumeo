@@ -165,7 +165,7 @@ Next::Next(MpvItem *mpv, Core *core, Preferences *preferences, Downloads *downlo
     m_countdown.stop();
     recompute();
   });
-  connect(downloads, &Downloads::changed, this, &Next::changed);
+  connect(downloads, &Downloads::listChanged, this, &Next::changed);
   m_countdown.setInterval(100);
   connect(&m_countdown, &QTimer::timeout, this, [this] {
     recompute();

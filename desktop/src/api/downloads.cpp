@@ -15,11 +15,6 @@ Downloads *Downloads::create(QQmlEngine *qml, QJSEngine *) {
   return new Downloads(qml->singletonInstance<Core *>("Lumeo", "Core"));
 }
 
-int Downloads::running() const {
-  return std::count_if(m_downloads.begin(), m_downloads.end(),
-                       [](const QJsonValue &d) { return d["state"] == "active"; });
-}
-
 QVariantMap Downloads::of(const QString &itemId, int season, int episode) const {
   QJsonObject found;
   for (const QJsonValue &d : m_downloads) {
@@ -143,7 +138,7 @@ void Downloads::resolveTitles() {
                     return;
                   }
                   m_items.insert(itemId, reply.json().toObject());
-                  emit changed();
+                  emit titlesChanged();
                 });
   }
 }
@@ -171,16 +166,55 @@ void Downloads::update() {
       }
     }
   }
-  m_marks.clear();
+  QVariantMap fresh;
   for (auto mark = marks.cbegin(); mark != marks.cend(); ++mark) {
     if (mark->arriving) {
       const double fraction = mark->total > 0 ? double(mark->completed) / mark->total : 0.0;
-      m_marks.insert(mark.key(), QVariantMap{{"fraction", fraction}});
+      fresh.insert(mark.key(), QVariantMap{{"fraction", fraction}});
     }
     else if (mark->onDisk)
-      m_marks.insert(mark.key(), QVariantMap{{"done", true}});
+      fresh.insert(mark.key(), QVariantMap{{"done", true}});
   }
-  emit changed();
+  m_all = m_downloads.toVariantList();
+  m_running = int(std::count_if(m_downloads.begin(), m_downloads.end(),
+                                [](const QJsonValue &d) { return d["state"] == "active"; }));
+  emit listChanged();
+  if (fresh != m_marks) {
+    m_marks = fresh;
+    emit marksChanged();
+  }
 }
 
-void Downloads::schedule() { m_poll.start(running() > 0 ? activeInterval : idleInterval); }
+void Downloads::schedule() { m_poll.start(m_running > 0 ? activeInterval : idleInterval); }
+
+DownloadMark::DownloadMark(Downloads *downloads, QObject *parent) : QObject(parent) {
+  watch(downloads);
+}
+
+void DownloadMark::componentComplete() {
+  watch(qmlEngine(this)->singletonInstance<Downloads *>("Lumeo", "Downloads"));
+}
+
+void DownloadMark::watch(Downloads *downloads) {
+  m_downloads = downloads;
+  connect(downloads, &Downloads::marksChanged, this, &DownloadMark::read);
+  read();
+}
+
+void DownloadMark::setKey(const QString &key) {
+  if (key == m_key)
+    return;
+  m_key = key;
+  emit keyChanged();
+  read();
+}
+
+void DownloadMark::read() {
+  if (!m_downloads)
+    return;
+  const QVariant mark = m_downloads->marks().value(m_key);
+  if (mark == m_mark)
+    return;
+  m_mark = mark;
+  emit markChanged();
+}

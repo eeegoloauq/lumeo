@@ -154,6 +154,39 @@ private slots:
     QCOMPARE(store.marks()["tt1/1/1"], QVariantMap({{"done", true}}));
   }
 
+  // A poll every two seconds moves one title's ring; every poster on every
+  // page read the whole map again when it did.
+  void aPollThatMovesOneRingTellsThatPosterAlone() {
+    auto row = [](const QString &id, const QString &itemId, const QString &state, int got) {
+      return QJsonObject{{"id", id}, {"itemId", itemId}, {"season", 0}, {"episode", 0},
+                         {"state", state},
+                         {"progress", QJsonObject{{"completed", got}, {"total", 100}}}};
+    };
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{row("a", "tt1", "active", 10),
+                                                      row("b", "tt2", "done", 100)}}});
+    Downloads store(core.get());
+    DownloadMark arriving(&store), onDisk(&store), none(&store);
+    arriving.setKey("tt1");
+    onDisk.setKey("tt2");
+    none.setKey("tt3");
+    QTRY_COMPARE(arriving.mark(), QVariant(QVariantMap{{"fraction", 0.1}}));
+    QCOMPARE(onDisk.mark(), QVariant(QVariantMap{{"done", true}}));
+    QVERIFY(!none.mark().isValid());
+
+    QSignalSpy moved(&arriving, &DownloadMark::markChanged);
+    QSignalSpy still(&onDisk, &DownloadMark::markChanged);
+    QSignalSpy nothing(&none, &DownloadMark::markChanged);
+    fake->answer("GET", "/api/v1/downloads", 200,
+                 QJsonObject{{"downloads", QJsonArray{row("a", "tt1", "active", 20),
+                                                      row("b", "tt2", "done", 100)}}});
+    store.refresh();
+    QTRY_COMPARE(moved.size(), 1);
+    QCOMPARE(arriving.mark(), QVariant(QVariantMap{{"fraction", 0.2}}));
+    QCOMPARE(still.size(), 0);
+    QCOMPARE(nothing.size(), 0);
+  }
+
   // Each mark is one request, and changed() names the title once the core
   // has it, which is when a page reads it again.
   void marksReachTheCoreAndSayWhichTitleChanged() {

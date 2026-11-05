@@ -8,8 +8,9 @@ Rectangle {
     id: pill
 
     property bool watched
-    // One of Downloads.marks: {done} or {fraction}; undefined for none.
-    property var mark
+    // Which download mark it shows (DownloadMark.key); empty for none.
+    property alias markKey: download.key
+    readonly property var mark: download.mark
 
     readonly property bool arriving: mark?.fraction !== undefined
     readonly property bool onDisk: mark !== undefined && !arriving
@@ -23,6 +24,8 @@ Rectangle {
     Accessible.name: [watched ? qsTrId("libraryWatched") : "",
                       arriving ? qsTrId("downloadsDownloading") : onDisk ? qsTrId("downloadsOnDisk") : ""]
                      .filter(said => said !== "").join(", ")
+
+    DownloadMark { id: download }
 
     Row {
         id: icons

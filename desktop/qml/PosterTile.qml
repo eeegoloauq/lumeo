@@ -11,8 +11,8 @@ AbstractButton {
     id: tile
 
     required property var item
-    // One of Downloads.marks, or undefined.
-    property var mark
+    // Its download mark's key (DownloadMark.key); empty for none.
+    property string markKey
     // Seen to the end: every poster says so, whatever shelf it is on.
     property bool watched: Viewing.finished[item.id] ?? false
 
@@ -146,7 +146,7 @@ AbstractButton {
         StatusMark {
             anchors { top: parent.top; right: parent.right; margins: 8 }
             watched: tile.watched
-            mark: tile.mark
+            markKey: tile.markKey
         }
 
         // The keyboard's ring, in the accent, findable on any artwork.

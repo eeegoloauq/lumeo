@@ -13,7 +13,7 @@ FocusScope {
     // The viewer's own score after the line, as a star and a number; the
     // star is what says whose it is (decisions/library.md).
     property int score
-    property var mark
+    property string markKey
     property real posterHeight: Math.round(width * 1.5)
     readonly property alias button: tile
 
@@ -33,7 +33,7 @@ FocusScope {
         width: parent.width
         height: slot.posterHeight
         item: slot.item
-        mark: slot.mark
+        markKey: slot.markKey
         onClicked: slot.clicked()
         onMenu: at => slot.menu(at)
     }

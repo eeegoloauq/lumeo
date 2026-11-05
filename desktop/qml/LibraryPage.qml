@@ -298,7 +298,7 @@ ShellPage {
             item: listed.item
             line: Words.listedCaption(listed)
             score: listed.rating ?? 0
-            mark: Downloads.marks[listed.item.id]
+            markKey: listed.item.id
             onClicked: page.open(listed.item, null)
             onMenu: at => TitleActions.ask({item: listed.item, source: button, x: at.x, y: at.y})
             // Tab or the pointer can land on any title: the arrows go on
@@ -718,7 +718,7 @@ ShellPage {
                 width: shelf.cell
                 item: modelData.item
                 line: shelf.caption(modelData)
-                mark: Downloads.marks[modelData.item.id + (episode ? "/" + episode.season + "/" + episode.number : "")]
+                markKey: modelData.item.id + (episode ? "/" + episode.season + "/" + episode.number : "")
                 onClicked: shelf.chosen(modelData.item, episode ? { season: episode.season, episode: episode.number } : null)
                 onMenu: at => TitleActions.ask({item: modelData.item, episode: episode, source: button,
                                                 x: at.x, y: at.y})

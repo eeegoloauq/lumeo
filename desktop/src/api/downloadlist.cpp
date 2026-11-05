@@ -37,7 +37,8 @@ void DownloadList::componentComplete() {
   m_core = qml->singletonInstance<Core *>("Lumeo", "Core");
   m_downloads = qml->singletonInstance<Downloads *>("Lumeo", "Downloads");
   m_settings = qml->singletonInstance<LocalSettings *>("Lumeo", "LocalSettings");
-  connect(m_downloads, &Downloads::changed, this, &DownloadList::update);
+  connect(m_downloads, &Downloads::listChanged, this, &DownloadList::update);
+  connect(m_downloads, &Downloads::titlesChanged, this, &DownloadList::update);
   connect(m_settings, &LocalSettings::changed, this, &DownloadList::update);
   update();
 }

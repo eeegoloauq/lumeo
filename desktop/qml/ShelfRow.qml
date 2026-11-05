@@ -83,7 +83,7 @@ Column {
                 id: poster
                 required property int index
                 required item
-                mark: Downloads.marks[item.id]
+                markKey: item.id
                 onClicked: row.chosen(item)
                 onMenu: at => TitleActions.ask({item: item, source: poster, x: at.x, y: at.y})
                 onActiveFocusChanged: if (activeFocus) strip.focused = index
@@ -100,7 +100,7 @@ Column {
                 required episode
                 required watched
                 required remaining
-                mark: Downloads.marks[item.id + "/" + season + "/" + episode]
+                markKey: item.id + "/" + season + "/" + episode
                 onClicked: row.chosen(item)
                 onMenu: at => TitleActions.ask({
                     item: item, continuing: true, source: resume, x: at.x, y: at.y,

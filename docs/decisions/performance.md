@@ -49,7 +49,12 @@ times the device pixel ratio; the provider scales while decoding. The
   member and change it when its source changes.
 - One NOTIFY signal per property, emitted only when the value changed. A
   shared `changed` makes every binding on every property of the object run
-  again.
+  again. Properties worked out from one source, such as a title's link from
+  its item, share that source's signal.
+- A delegate's own entry in a shared map is read through a small object
+  that says only when that entry changed (`DownloadMark`), not as
+  `Store.map[key]`: the whole map is converted for each delegate, and every
+  delegate runs again whenever any entry moves.
 - A list QML shows is a model with inserts, removes and `dataChanged`. A JS
   array or a `QVariantList` as `model:` makes every delegate again whenever it
   is replaced.
