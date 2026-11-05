@@ -94,7 +94,7 @@ private slots:
              (QVariantList{group("Добавлено", {"Вторая вещь"}),
                            group("Исправлено", {"Второе исправление", "Первое исправление"})}));
     QCOMPARE(Releases::between(source, "0.1.8", "0.2.0-beta.1", "en"),
-             (QVariantList{group("", {"Before headings"}), group("Fixed", {"First fix"})}));
+             (QVariantList{group("Fixed", {"First fix"}), group("", {"Before headings"})}));
   }
 
   // A closed notice keeps that version quiet, and any other for a week.

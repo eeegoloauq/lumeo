@@ -130,7 +130,7 @@ with items: each heading a `<p>` with its `<p xml:lang="ru">` (Добавлен�
 heading says what happened to it ("Saving screenshots on NVIDIA" under Fixed), and causes,
 instructions, internal terms, CI and tests stay out. The app and the GitHub page show the groups,
 the RPM changelog the items alone; a release written before the headings shows its items under
-none.
+none, after the rest.
 
 ```xml
 <release version="0.1.80" date="2026-11-06">

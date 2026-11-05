@@ -99,8 +99,9 @@ QVariantList Releases::between(const QString &source, const QString &after, cons
     return {};
   const auto first = parsed(after);
   // Groups by their untranslated heading, in the order the notes are read
-  // in; a release written before the headings has its items under none.
-  QStringList order{QString(), "Added", "Improved", "Fixed", "Removed"};
+  // in; a release written before the headings has its items under none,
+  // after the rest.
+  QStringList order{"Added", "Improved", "Fixed", "Removed"};
   QHash<QString, QStringList> items;
   QHash<QString, QString> titles;
   // One release's items: the translated ones, else the untagged.
@@ -123,7 +124,7 @@ QVariantList Releases::between(const QString &source, const QString &after, cons
       const QString text = xml.readElementText(QXmlStreamReader::IncludeChildElements).simplified();
       if (isHeading && lang.isEmpty()) {
         heading = text;
-        if (!order.contains(heading))
+        if (!heading.isEmpty() && !order.contains(heading))
           order.append(heading);
       } else if (isHeading && lang == language) {
         titles.insert(heading, text);
@@ -139,6 +140,7 @@ QVariantList Releases::between(const QString &source, const QString &after, cons
     }
   }
   QVariantList groups;
+  order.append(QString());
   for (const QString &group : order) {
     if (!items.contains(group))
       continue;

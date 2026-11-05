@@ -21,7 +21,7 @@ PACKAGER = "Lumeo <67159275+eeegoloauq@users.noreply.github.com>"
 LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 
 
-ORDER = ["", "Added", "Improved", "Fixed", "Removed"]
+ORDER = ["Added", "Improved", "Fixed", "Removed"]
 
 
 def text(element):
@@ -31,7 +31,7 @@ def text(element):
 def groups(release):
     """The untranslated lines under their headings, the app showing the
     translated ones: a <p> before a <ul> heads it, and a release written
-    before the headings has its lines under none."""
+    before the headings has its lines under none, after the rest."""
     found = {}
     description = release.find("description")
     children = [] if description is None else [
@@ -53,7 +53,7 @@ def merged(releases):
     for release in releases:
         for heading, lines in groups(release).items():
             found.setdefault(heading, []).extend(lines)
-    order = ORDER + [h for h in found if h not in ORDER]
+    order = ORDER + [h for h in found if h not in ORDER and h] + [""]
     return [(h, found[h]) for h in order if found.get(h)]
 
 
