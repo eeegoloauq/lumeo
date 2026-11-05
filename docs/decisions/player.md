@@ -149,10 +149,12 @@ files of its high-end A, B and C presets, in `desktop/anime4k`. The doubled mode
 The preset is a choice, not the shaders: it is `user-data/lumeo/anime4k`, and
 one conditional profile per preset (written at start, since it names where
 this copy keeps the shaders, and `include`d before mpv starts) sets the
-`glsl-shaders` while that preset is chosen and the file is shorter than the
-screen, `user-data/lumeo/screen` in device pixels. On a file as tall as the
-screen or taller no upscale runs and the restore passes work every pixel to
-change little, so the profile takes them off (`profile-restore=copy-equal`)
+`glsl-shaders` while that preset is chosen and the file is no taller than
+the screen, `user-data/lumeo/screen` in device pixels. On a file as tall as
+the screen the upscale passes skip themselves (their `WHEN`) and the restore
+pass still runs, and it is what a 1080p release on a 1080p screen is played
+with A for. A taller file is scaled down, which throws away what the restore
+pass made, so the profile takes them off (`profile-restore=copy-equal`)
 and the Picture menu says the choice is not used at this resolution; the
 choice stays, read back from mpv, and is what the title keeps. Setting the
 shaders from the client and reading them back, as it was, would have kept

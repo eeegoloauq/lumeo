@@ -79,10 +79,10 @@ const QHash<QString, QStringList> anime4kPresets = {
 };
 
 // One conditional profile per preset: mpv runs its shaders while the viewer
-// has chosen it (user-data/lumeo/anime4k) and the file is shorter than the
+// has chosen it (user-data/lumeo/anime4k) and the file is no taller than the
 // screen (user-data/lumeo/screen), and puts back what was there otherwise.
-// A file as tall as the screen gains nothing from them: no upscale runs, and
-// the restore passes work every pixel to change little (decisions/player.md).
+// A taller file is scaled down, which throws away what they restore
+// (decisions/player.md).
 // Written once a run, since it names the shaders where this copy of the app
 // keeps them; empty when it cannot be written.
 QString anime4kProfiles() {
@@ -98,7 +98,7 @@ QString anime4kProfiles() {
       text += "[lumeo-anime4k-" + it.key().toUtf8() + "]\n"
               "profile-cond=get('user-data/lumeo/anime4k', '') == '" + it.key().toUtf8() +
               "' and (get('user-data/lumeo/screen', 0) == 0 or "
-              "get('height', 0) < get('user-data/lumeo/screen', 0))\n"
+              "get('height', 0) <= get('user-data/lumeo/screen', 0))\n"
               "profile-restore=copy-equal\n"
               "glsl-shaders=%" + QByteArray::number(list.size()) + "%" + list + "\n";
     }

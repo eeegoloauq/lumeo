@@ -325,20 +325,20 @@ Item {
             compare(kept, [1, "a", "no"])
         }
 
-        // Chosen, Anime4K runs on a file shorter than the screen and mpv's
-        // profile holds it back from one as tall: the choice stays, and the
-        // shaders come back with a taller screen.
-        function test_anime4kIsHeldBackFromAFileAsTallAsTheScreen() {
+        // Chosen, Anime4K runs on a file no taller than the screen and mpv's
+        // profile holds it back from a taller one: the choice stays, and the
+        // shaders come back on a screen as tall as the file.
+        function test_anime4kIsHeldBackFromAFileTallerThanTheScreen() {
             playing()
             const lines = Math.round(root.Screen.height * root.Screen.devicePixelRatio)
             verify(lines > 360, lines + " lines")
             player.mpv.setAnime4k("a")
             tryVerify(() => player.mpv.anime4k === "a" && !player.mpv.anime4kHeld, 10000, "running on the 360-line clip")
-            player.mpv.set("user-data/lumeo/screen", 360)
-            tryVerify(() => player.mpv.anime4kHeld, 10000, "held back on a 360-line screen")
+            player.mpv.set("user-data/lumeo/screen", 359)
+            tryVerify(() => player.mpv.anime4kHeld, 10000, "held back on a 359-line screen")
             compare(player.mpv.anime4k, "a")
-            player.mpv.set("user-data/lumeo/screen", lines)
-            tryVerify(() => !player.mpv.anime4kHeld, 10000, "back on this screen")
+            player.mpv.set("user-data/lumeo/screen", 360)
+            tryVerify(() => !player.mpv.anime4kHeld, 10000, "back on a 360-line screen")
             player.mpv.setAnime4k("")
             tryVerify(() => player.mpv.anime4k === "" && !player.mpv.anime4kHeld, 10000, "off")
         }
