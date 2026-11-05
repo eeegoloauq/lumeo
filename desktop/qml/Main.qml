@@ -277,7 +277,7 @@ ApplicationWindow {
         ReleaseCard {
             objectName: "updateCard"
             title: qsTrId("releaseAvailable").arg(Releases.update)
-            items: Releases.updateNotes
+            groups: Releases.updateNotes
             action: qsTrId("releaseDownload")
             onActed: {
                 Qt.openUrlExternally(Releases.updateUrl)
@@ -291,7 +291,7 @@ ApplicationWindow {
         ReleaseCard {
             objectName: "newsCard"
             title: qsTrId("releaseUpdatedTo").arg(Qt.application.version)
-            items: Releases.news
+            groups: Releases.news
             // Offered before it was installed, or told beta by beta: the
             // list was read then.
             collapsed: Releases.newsTold

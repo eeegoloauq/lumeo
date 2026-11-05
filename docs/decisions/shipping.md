@@ -164,10 +164,13 @@ touching only the core, docs or packaging builds nothing on that side.
 The rule is that a workflow file present in the tree is one that actually
 runs; the comment at the top of each says which half it is.
 
-- A release is a tag, and its notes are the annotated tag's message: the
-  workflow reads `git tag -l --format='%(contents)'` and publishes it with the
-  tarball and the RPM. A tag with no annotation publishes an empty page, so
-  there is nothing to write afterwards that is not written on the tag.
+- A release is a tag. Its page is the annotated tag's message, the headline,
+  then the release's items from the AppStream file under their headings
+  (`packaging/release-notes.py`), then GitHub's list of commits. The items
+  are written once, in the AppStream file, because the app reads them from
+  there in the viewer's language; a copy on the tag would drift from it.
+  A copy of the app from before the headings reads only the `<li>`, so it
+  shows the same items without them.
 - A tag pushed in the same push as its branch does not always start the
   workflow on the mirror, which is why `release.yml` also takes
   `workflow_dispatch`: the release can be run by hand against a tag that is

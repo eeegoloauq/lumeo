@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 class Core;
@@ -18,11 +19,11 @@ class Releases : public QObject {
   Q_OBJECT
   QML_ELEMENT
   QML_SINGLETON
-  // This version's notes, for About.
-  Q_PROPERTY(QStringList notes READ notes NOTIFY changed)
+  // This version's notes, for About, as groups of {title, items}.
+  Q_PROPERTY(QVariantList notes READ notes NOTIFY changed)
   // What the viewer has not been told since the version they last ran:
   // every release they skipped.
-  Q_PROPERTY(QStringList news READ news NOTIFY changed)
+  Q_PROPERTY(QVariantList news READ news NOTIFY changed)
   // The news was read before, told beta by beta or offered before it was
   // installed: its card shows only how many changes there are.
   Q_PROPERTY(bool newsTold READ newsTold NOTIFY changed)
@@ -30,19 +31,19 @@ class Releases : public QObject {
   // version is none.
   Q_PROPERTY(QString update READ update NOTIFY changed)
   Q_PROPERTY(QString updateUrl READ updateUrl NOTIFY changed)
-  Q_PROPERTY(QStringList updateNotes READ updateNotes NOTIFY changed)
+  Q_PROPERTY(QVariantList updateNotes READ updateNotes NOTIFY changed)
 
 public:
   Releases(Core *core, LocalSettings *settings, const QString &version, const QString &bundled,
            QObject *parent = nullptr);
   static Releases *create(QQmlEngine *qml, QJSEngine *);
 
-  QStringList notes() const { return between(m_bundled, {}, m_version, m_language); }
-  QStringList news() const;
+  QVariantList notes() const { return between(m_bundled, {}, m_version, m_language); }
+  QVariantList news() const;
   bool newsTold() const;
   QString update() const { return m_update; }
   QString updateUrl() const { return m_updateUrl; }
-  QStringList updateNotes() const { return between(m_updateSource, m_version, m_update, m_language); }
+  QVariantList updateNotes() const { return between(m_updateSource, m_version, m_update, m_language); }
 
   // Asks the core for a newer release, which it looks up at most once a
   // day. A failed look is no news: the core logs why.
@@ -55,12 +56,13 @@ public:
   // The interface's language code, which the notes are read in.
   void setLanguage(const QString &language);
 
-  // The items of every release after [after] up to [through], newest first.
-  // Betas count only on the way to a beta: a release's own entry already
-  // sums its betas up. An [after] that is not a version gives [through]
-  // alone.
-  static QStringList between(const QString &source, const QString &after, const QString &through,
-                             const QString &language);
+  // The items of every release after [after] up to [through], grouped under
+  // their headings (Added, Improved, Fixed, Removed, in that order), newest
+  // first within a group. Betas count only on the way to a beta: a release's
+  // own entry already sums its betas up. An [after] that is not a version
+  // gives [through] alone.
+  static QVariantList between(const QString &source, const QString &after, const QString &through,
+                               const QString &language);
   // Whether [seen] is a beta of [version], whose betas told what it sums up.
   static bool toldInBetas(const QString &seen, const QString &version);
 

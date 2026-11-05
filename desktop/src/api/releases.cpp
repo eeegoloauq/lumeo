@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QHash>
 #include <QQmlEngine>
 #include <QRegularExpression>
 #include <QXmlStreamReader>
@@ -46,9 +47,9 @@ Releases *Releases::create(QQmlEngine *qml, QJSEngine *) {
                       QCoreApplication::applicationVersion(), QString::fromUtf8(file.readAll()));
 }
 
-QStringList Releases::news() const {
+QVariantList Releases::news() const {
   const QString seen = m_settings->lastSeenVersion();
-  return seen == m_version ? QStringList() : between(m_bundled, seen, m_version, m_language);
+  return seen == m_version ? QVariantList() : between(m_bundled, seen, m_version, m_language);
 }
 
 bool Releases::newsTold() const {
@@ -91,15 +92,20 @@ void Releases::setLanguage(const QString &language) {
   emit changed();
 }
 
-QStringList Releases::between(const QString &source, const QString &after, const QString &through,
-                              const QString &language) {
+QVariantList Releases::between(const QString &source, const QString &after, const QString &through,
+                               const QString &language) {
   const auto last = parsed(through);
   if (!last)
     return {};
   const auto first = parsed(after);
-  QStringList items;
+  // Groups by their untranslated heading, in the order the notes are read
+  // in; a release written before the headings has its items under none.
+  QStringList order{QString(), "Added", "Improved", "Fixed", "Removed"};
+  QHash<QString, QStringList> items;
+  QHash<QString, QString> titles;
   // One release's items: the translated ones, else the untagged.
-  QStringList own, translated;
+  QList<std::pair<QString, QString>> own, translated;
+  QString heading;
   bool counted = false;
   QXmlStreamReader xml(source);
   while (!xml.atEnd()) {
@@ -110,19 +116,35 @@ QStringList Releases::between(const QString &source, const QString &after, const
                 (first ? *v > *first : *v == *last);
       own.clear();
       translated.clear();
-    } else if (counted && xml.isStartElement() && xml.name() == u"li") {
+      heading.clear();
+    } else if (counted && xml.isStartElement() && (xml.name() == u"li" || xml.name() == u"p")) {
       const QString lang = xml.attributes().value("xml:lang").toString();
+      const bool isHeading = xml.name() == u"p";
       const QString text = xml.readElementText(QXmlStreamReader::IncludeChildElements).simplified();
-      if (lang.isEmpty())
-        own.append(text);
-      else if (lang == language)
-        translated.append(text);
+      if (isHeading && lang.isEmpty()) {
+        heading = text;
+        if (!order.contains(heading))
+          order.append(heading);
+      } else if (isHeading && lang == language) {
+        titles.insert(heading, text);
+      } else if (lang.isEmpty()) {
+        own.append({heading, text});
+      } else if (lang == language) {
+        translated.append({heading, text});
+      }
     } else if (xml.isEndElement() && xml.name() == u"release" && counted) {
-      items += translated.isEmpty() ? own : translated;
+      for (const auto &[group, text] : translated.isEmpty() ? own : translated)
+        items[group].append(text);
       counted = false;
     }
   }
-  return items;
+  QVariantList groups;
+  for (const QString &group : order) {
+    if (!items.contains(group))
+      continue;
+    groups.append(QVariantMap{{"title", titles.value(group, group)}, {"items", items.value(group)}});
+  }
+  return groups;
 }
 
 bool Releases::toldInBetas(const QString &seen, const QString &version) {

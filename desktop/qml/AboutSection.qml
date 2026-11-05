@@ -67,7 +67,7 @@ SettingsBlock {
                 background: null
                 contentItem: ReleaseCard {
                     title: qsTrId("releaseUpdatedTo").arg(block.version)
-                    items: Releases.notes
+                    groups: Releases.notes
                     action: qsTrId("releaseGotIt")
                     onActed: whatsNew.close()
                     onClosed: whatsNew.close()

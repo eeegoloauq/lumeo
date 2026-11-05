@@ -121,9 +121,35 @@ The release notes are written once, as a `<release>` in
 core reads a newer release's notes from that path. The app shows them after an update (a `<li
 xml:lang="ru">` beside each English one translates it), `packaging/release-notes.py` makes the
 RPM `%changelog` and the GitHub release's items from them. Then push `main` and an annotated
-`vX.Y.Z` tag in one push; the tag message is one line, the release's headline. Each item is one
-short line on what changed for the user, new things first, then fixes, without causes or internal
-terms.
+`vX.Y.Z` tag in one push; the tag message is one line, the release's headline. A tag is a patch
+(`v0.3.0` → `v0.3.1`) unless the change is clearly large; a major one only when asked.
+
+The items go under the headings Added, Improved, Fixed and Removed, in that order and only those
+with items: each heading a `<p>` with its `<p xml:lang="ru">` (Добавлено, Улучшено, Исправлено,
+Удалено), then its `<ul>`. Each item is one change the user sees, in about 5 to 12 words; the
+heading says what happened to it ("Saving screenshots on NVIDIA" under Fixed), and causes,
+instructions, internal terms, CI and tests stay out. The app and the GitHub page show the groups,
+the RPM changelog the items alone; a release written before the headings shows its items under
+none.
+
+```xml
+<release version="0.1.80" date="2026-11-06">
+  <description>
+    <p>Added</p>
+    <p xml:lang="ru">Добавлено</p>
+    <ul>
+      <li>Gamepad controls.</li>
+      <li xml:lang="ru">Управление геймпадом.</li>
+    </ul>
+    <p>Fixed</p>
+    <p xml:lang="ru">Исправлено</p>
+    <ul>
+      <li>Saving screenshots on NVIDIA.</li>
+      <li xml:lang="ru">Сохранение скриншотов на NVIDIA.</li>
+    </ul>
+  </description>
+</release>
+```
 
 A beta is a `vX.Y.Z-beta.N` tag with its own `<release version="X.Y.Z~beta.N"
 type="development">` entry: what changed since the beta before, which the app shows to whoever
