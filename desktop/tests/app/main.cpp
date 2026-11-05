@@ -2,6 +2,7 @@
 #include "core.h"
 #include "fakecore.h"
 #include "fonts.h"
+#include "glyphs.h"
 #include "language.h"
 #include "mpvfacts.h"
 
@@ -60,6 +61,7 @@ public slots:
     qunsetenv("LUMEO_CORE");
     engine->rootContext()->setContextProperty("fakeCore", fake.get());
     Artwork::install(engine);
+    Glyphs::install(engine);
   }
 };
 

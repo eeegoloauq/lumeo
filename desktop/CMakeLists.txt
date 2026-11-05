@@ -228,6 +228,7 @@ qt_add_qml_module(lumeo
     src/platform/folders.h src/platform/folders.cpp
     src/platform/background.h src/platform/background.cpp
     src/platform/fonts.h src/platform/fonts.cpp
+    src/platform/glyphs.h src/platform/glyphs.cpp
     src/platform/gamepad.h src/platform/gamepad.cpp
     src/platform/instance.h src/platform/instance.cpp
     src/platform/language.h src/platform/language.cpp

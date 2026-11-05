@@ -1,5 +1,6 @@
 #include "fakecore.h"
 #include "fonts.h"
+#include "glyphs.h"
 #include "language.h"
 #include "mpvitem.h"
 #include "pins.h"
@@ -103,6 +104,7 @@ public slots:
     engine->rootContext()->setContextProperty("ownCore", own.get());
     engine->rootContext()->setContextProperty("screenshots", config.filePath("shots"));
     engine->rootContext()->setContextProperty("disk", &disk);
+    Glyphs::install(engine);
   }
 };
 

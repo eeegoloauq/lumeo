@@ -2,6 +2,7 @@
 #include "background.h"
 #include "fonts.h"
 #include "gamepad.h"
+#include "glyphs.h"
 #include "instance.h"
 #include "language.h"
 #include "mpvfacts.h"
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
   speak();
   QObject::connect(settings, &LocalSettings::languageChanged, &engine, speak);
   Artwork::install(&engine);
+  Glyphs::install(&engine);
   QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app,
                    [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
   engine.loadFromModule("Lumeo", "Main");

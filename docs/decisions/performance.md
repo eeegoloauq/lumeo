@@ -73,7 +73,7 @@ times the device pixel ratio; the provider scales while decoding. The
   part only in the row that shows it.
 - `layer.enabled` is an offscreen texture and a render pass for each item and
   breaks batching. It does not go on something repeated in a list, such as an
-  icon: tint the icon when it is loaded.
+  icon: an icon is tinted when it is loaded (`image://glyph`).
 - An effect on a still picture, such as the blur of an unwatched episode, is
   applied once when the picture is decoded.
 - Idle means no frames. With nothing playing and nothing moving,
