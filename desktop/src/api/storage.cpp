@@ -71,25 +71,25 @@ void Storage::act(const QString &what, const QList<std::pair<QString, QUrlQuery>
   m_freeing = what;
   m_error.clear();
   emit changed();
-  auto next = std::make_shared<std::function<void(qsizetype)>>();
-  *next = [this, deletes, next](qsizetype i) {
-    if (i == deletes.size()) {
-      m_freeing.clear();
-      m_downloads->refresh();
-      load();
-      return;
-    }
-    m_core->send("DELETE", deletes[i].first, deletes[i].second, QJsonValue::Undefined, this,
-                 [this, i, next](const Core::Reply &reply) {
-                   if (reply.ok()) {
-                     (*next)(i + 1);
-                     return;
-                   }
-                   m_freeing.clear();
-                   m_error = reply.message();
-                   emit changed();
-                   load();
-                 });
-  };
-  (*next)(0);
+  deleteFrom(deletes, 0);
+}
+
+void Storage::deleteFrom(const QList<std::pair<QString, QUrlQuery>> &deletes, qsizetype i) {
+  if (i == deletes.size()) {
+    m_freeing.clear();
+    m_downloads->refresh();
+    load();
+    return;
+  }
+  m_core->send("DELETE", deletes[i].first, deletes[i].second, QJsonValue::Undefined, this,
+               [this, deletes, i](const Core::Reply &reply) {
+                 if (reply.ok()) {
+                   deleteFrom(deletes, i + 1);
+                   return;
+                 }
+                 m_freeing.clear();
+                 m_error = reply.message();
+                 emit changed();
+                 load();
+               });
 }

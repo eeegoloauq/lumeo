@@ -59,6 +59,7 @@ signals:
 
 private:
   void act(const QString &what, const QList<std::pair<QString, QUrlQuery>> &deletes);
+  void deleteFrom(const QList<std::pair<QString, QUrlQuery>> &deletes, qsizetype i);
 
   Core *m_core = nullptr;
   Downloads *m_downloads = nullptr;
