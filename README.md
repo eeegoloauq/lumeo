@@ -2,24 +2,22 @@
 
 Films and series on Linux and Windows: pick a title, start watching while it downloads.
 
+[![Release](https://img.shields.io/github/v/release/eeegoloauq/lumeo)](https://github.com/eeegoloauq/lumeo/releases/latest)
+[![CI](https://github.com/eeegoloauq/lumeo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/eeegoloauq/lumeo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ![Home](docs/screenshots/home.webp)
 
-![A series](docs/screenshots/series.webp)
+- Plays while it downloads
+- Catalogue, sources and subtitles from Stremio addons
+- Skips openings and endings
+- Continue watching and next episode
+- Anime4K upscaling
+- Streams from your own server ([remote core](docs/remote-core.md))
 
-![A film](docs/screenshots/film.webp)
+## Download
 
-![The player](docs/screenshots/player.webp)
-
-## Install
-
-Take the file for your system from the latest release.
-
-    sudo dnf install ./lumeo-<version>-1.fc44.x86_64.rpm          # Fedora
-    sudo pacman -U ./lumeo-<version>-1-x86_64.pkg.tar.zst         # Arch
-
-Elsewhere on Linux, unpack the tarball, install your distribution's libmpv and run `lumeo.sh`.
-On Windows 10 and 11, run the setup `.exe`; it is not signed yet, so SmartScreen asks first
-("More info", then "Run anyway").
+Get the [latest release](https://github.com/eeegoloauq/lumeo/releases/latest).
 
 ## Sources
 
@@ -30,10 +28,7 @@ you watch with them is your responsibility.
 
 ## Development
 
-A Go core with SQLite and a Qt Quick client that plays through libmpv.
-[CONTRIBUTING.md](CONTRIBUTING.md) has the setup and the checks; see also
-[architecture](docs/architecture.md), [decisions](docs/decisions/README.md),
-[the core and its API](docs/core.md) and the [roadmap](docs/roadmap.md).
+[Contributing](CONTRIBUTING.md) · [Architecture](docs/architecture.md) · [Decisions](docs/decisions/README.md) · [Core and API](docs/core.md) · [Roadmap](docs/roadmap.md)
 
 ## License
 
