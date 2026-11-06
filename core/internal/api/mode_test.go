@@ -60,7 +60,7 @@ func TestAMediaServerRefusesPersonalDataFromDevices(t *testing.T) {
 		{"GET", "/api/v1/choices/x"}, {"PATCH", "/api/v1/choices/x"},
 		{"GET", "/api/v1/searches"}, {"POST", "/api/v1/searches"}, {"DELETE", "/api/v1/searches"},
 		{"GET", "/api/v1/preferences"}, {"PATCH", "/api/v1/preferences"}, {"DELETE", "/api/v1/preferences"},
-		{"POST", "/api/v1/items/x/folders"},
+		{"POST", "/api/v1/items/x/folders"}, {"POST", "/api/v1/local"},
 	}
 	media, device := modeServer(t, remote.ModeMedia)
 	full, fullDevice := modeServer(t, "full")

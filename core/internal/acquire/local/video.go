@@ -12,11 +12,10 @@ var ErrNotVideo = errors.New("local: not a video file")
 
 // OpenVideo opens path for reading if what it holds is a video, and is the
 // only way the core opens a file it was handed by path. The name proves
-// nothing: a symlink called film.mkv can point anywhere, and the API has no
-// authentication yet, so without this whoever reaches it could have the core
-// read them any file this user can. The container is checked on the open
-// file, the one that is then served, so swapping the path afterwards changes
-// nothing.
+// nothing: a symlink called film.mkv can point anywhere, and without this a
+// caller allowed to open media could have the core read them any file this
+// user can. The container is checked on the open file, the one that is then
+// served, so swapping the path afterwards changes nothing.
 func OpenVideo(path string) (*os.File, error) {
 	f, err := os.Open(path)
 	if err != nil {

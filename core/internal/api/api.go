@@ -259,7 +259,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /api/v1/addons/{id}", s.forwarded(s.handlePatchAddon, s.forward))
 	mux.HandleFunc("DELETE /api/v1/addons/{id}", s.forwarded(s.handleRemoveAddon, s.forward))
 	mux.HandleFunc("POST /api/v1/downloads", s.forwarded(s.handleStartDownload, s.remoteStartDownload))
-	mux.HandleFunc("POST /api/v1/local", s.handleLocal)
+	mux.HandleFunc("POST /api/v1/local", s.viewerData(s.handleLocal))
 	mux.HandleFunc("GET /api/v1/downloads", s.forwarded(s.handleDownloads, s.remoteDownloads))
 	mux.HandleFunc("GET /api/v1/downloads/{id}", s.eitherDownload(s.handleDownload, s.remoteDownload))
 	mux.HandleFunc("PATCH /api/v1/downloads/{id}", s.eitherDownload(s.handlePatchDownload, s.remoteDownload))

@@ -17,11 +17,17 @@ import (
 	acquirelocal "github.com/eeegoloauq/lumeo/core/internal/acquire/local"
 	"github.com/eeegoloauq/lumeo/core/internal/catalog"
 	"github.com/eeegoloauq/lumeo/core/internal/local"
+	"github.com/eeegoloauq/lumeo/core/internal/remote"
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 	"github.com/eeegoloauq/lumeo/core/internal/subtitles"
 )
 
 func localAPI(t *testing.T) (http.Handler, *acquire.Manager, string) {
+	t.Helper()
+	return localAPIWithDeps(t, Deps{})
+}
+
+func localAPIWithDeps(t *testing.T, deps Deps) (http.Handler, *acquire.Manager, string) {
 	t.Helper()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "Film.2020.mkv")
@@ -34,7 +40,10 @@ func localAPI(t *testing.T) (http.Handler, *acquire.Manager, string) {
 	t.Cleanup(func() { manager.Close() })
 	files := local.New(nil, manager, log)
 	t.Cleanup(files.Close) // before the manager's, as in the core
-	h := New(Deps{Downloads: manager, Local: files}, log).Handler()
+	deps.Downloads, deps.Local = manager, files
+	server := New(deps, log)
+	t.Cleanup(server.Close)
+	h := server.Handler()
 	return h, manager, path
 }
 func TestLocalEndpointAndStreamETag(t *testing.T) {
@@ -213,5 +222,42 @@ func TestLocalSourcesAndStorage(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("user file missing: %v", err)
+	}
+}
+
+// A media server's filesystem belongs to its owner. Pairing a device grants
+// access to published media, not permission to register files by server path.
+func TestLocalFilesRequireTheViewerOfThisCore(t *testing.T) {
+	for _, tc := range []struct {
+		mode         string
+		deviceStatus int
+	}{{remote.ModeMedia, http.StatusForbidden}, {"full", http.StatusCreated}} {
+		t.Run(tc.mode, func(t *testing.T) {
+			db, _ := openStore(t)
+			h, manager, path := localAPIWithDeps(t, Deps{Devices: db, Token: "owner", Mode: tc.mode})
+			paired := deviceRequest(h, "POST", "/api/v1/pair", "", `{"code":"`+pairingCode(t, h)+`","name":"Laptop"}`)
+			var credentials struct {
+				Token string `json:"token"`
+			}
+			if paired.Code != http.StatusCreated || json.Unmarshal(paired.Body.Bytes(), &credentials) != nil || credentials.Token == "" {
+				t.Fatalf("pair: %d %s", paired.Code, paired.Body)
+			}
+			body, _ := json.Marshal(map[string]string{"path": path})
+			for _, token := range []string{"", "wrong"} {
+				if w := deviceRequest(h, "POST", "/api/v1/local", token, string(body)); w.Code != http.StatusUnauthorized {
+					t.Fatalf("untrusted caller: %d %s", w.Code, w.Body)
+				}
+			}
+			w := deviceRequest(h, "POST", "/api/v1/local", credentials.Token, string(body))
+			if w.Code != tc.deviceStatus {
+				t.Fatalf("device opening a server path: %d %s; want %d", w.Code, w.Body, tc.deviceStatus)
+			}
+			if tc.mode == remote.ModeMedia && len(manager.List(context.Background())) != 0 {
+				t.Fatal("refused device registered a server file")
+			}
+			if w := deviceRequest(h, "POST", "/api/v1/local", "owner", string(body)); w.Code != http.StatusCreated {
+				t.Fatalf("owner opening a local video: %d %s", w.Code, w.Body)
+			}
+		})
 	}
 }

@@ -23,7 +23,10 @@ that was real (every one was reproduced before it was fixed):
   names for the core to fetch by itself (artwork, subtitle files, HTTP
   trackers) goes only to public addresses, checked on the address dialled
   (behind a proxy, which resolves names, only on an address in the URL); the
-  addon's own address is the user's choice and may be on their network.
+  addon's own address is the user's choice and may be on their network, but
+  a redirect to any other address is the addon's and is checked the same way.
+  Before this, an addon on the network could redirect the core to any other
+  service there (2026-11).
   Images that are not web addresses are dropped, and the stream's content
   type comes from a fixed list of video extensions, never from the system's
   mime database for a file name a torrent chose.
@@ -50,9 +53,11 @@ Remote deployment uses per-device keys issued through an owner-created,
 single-use pairing code over verified HTTPS ([setup](../remote-core.md)).
 The owner token stays on the server for console administration. Device keys
 are stored as hashes and can be revoked individually; enrollment management
-requires the owner token. Revocation blocks new requests, while an already
-authorized stream can finish. The external origin is configured explicitly,
-never inferred from untrusted proxy headers.
+requires the owner token. A device of a media server cannot open a file by
+its path on the server or link a server folder, only the owner can; a full
+core's devices open the viewer's files as the owner does. Revocation blocks
+new requests, while an already authorized stream can finish. The external
+origin is configured explicitly, never inferred from untrusted proxy headers.
 On a loopback listener the Host guard also permits that configured public
 hostname, so a local reverse proxy can preserve Host without disabling the guard.
 

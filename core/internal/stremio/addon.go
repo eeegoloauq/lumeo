@@ -23,9 +23,25 @@ import (
 	"github.com/eeegoloauq/lumeo/core/internal/sources"
 )
 
-// client is shared by every addon. Its limit is under the application's 20 s,
-// so a slow addon costs its own results and not the whole answer.
+// client is what every addon's client starts from. Its limit is under the
+// application's 20 s, so a slow addon costs its own results and not the whole
+// answer.
 var client = &http.Client{Timeout: 15 * time.Second, Transport: egress.Transport}
+
+// addonTransport sends a request to the address the user gave the addon, which
+// may be on their network, the way every addon request goes. A redirect
+// anywhere else is the addon's choice and goes only to public addresses.
+type addonTransport struct {
+	origin     *url.URL
+	configured http.RoundTripper
+}
+
+func (t addonTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.origin != nil && req.URL.Scheme == t.origin.Scheme && strings.EqualFold(req.URL.Host, t.origin.Host) {
+		return t.configured.RoundTrip(req)
+	}
+	return egress.Addressed.RoundTrip(req)
+}
 
 // maxResponse bounds what an addon's answer may take in memory. The longest
 // real ones are Cinemeta's meta of a series with a thousand episodes, around
@@ -42,6 +58,7 @@ type Addon struct {
 	id      string
 	name    string
 	baseURL string
+	client  *http.Client
 
 	mu       sync.Mutex
 	manifest *Manifest
@@ -69,12 +86,13 @@ const (
 // e.g. https://torrentio.strem.fun/sort=qualitysize (trailing manifest.json is
 // tolerated and stripped).
 func New(id, name, baseURL string) *Addon {
-	baseURL = strings.TrimSuffix(strings.TrimSpace(baseURL), "/manifest.json")
-	return &Addon{
-		id:      id,
-		name:    name,
-		baseURL: strings.TrimSuffix(baseURL, "/"),
-	}
+	baseURL = strings.TrimSuffix(strings.TrimSuffix(strings.TrimSpace(baseURL), "/manifest.json"), "/")
+	// An address that does not parse leaves origin nil: its requests fail
+	// before they are sent.
+	origin, _ := url.Parse(baseURL)
+	c := *client
+	c.Transport = addonTransport{origin: origin, configured: client.Transport}
+	return &Addon{id: id, name: name, baseURL: baseURL, client: &c}
 }
 
 func (a *Addon) ID() string        { return a.id }
@@ -563,7 +581,7 @@ func (a *Addon) getJSON(ctx context.Context, rawURL string, dest any) error {
 	req.Header.Set("User-Agent", egress.UserAgent)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
