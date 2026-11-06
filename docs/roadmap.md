@@ -1,7 +1,5 @@
 # Roadmap
 
-Plans, not promises. Open an issue to ask for something.
-
 ## Next
 
 - Trakt import and export
