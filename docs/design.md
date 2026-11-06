@@ -75,6 +75,28 @@ app. This revises "No browser playback" in decisions/foundations.md.
 - Typing in search from a gamepad, which drives every other page: the
   system's on-screen keyboard where there is one, or one of our own.
 
+## Desktop integration
+
+- A system media session while a film, episode or trailer is open: MPRIS on
+  Linux, as in Legato, and SMTC on Windows. It shows the title, series and
+  episode, artwork, state, duration and position, and offers play/pause,
+  seeking where the source allows it, and next/previous only where there is an
+  episode. Its commands are the player's own actions. It stays on pause and
+  when minimised, is cleared when the player closes or fails, and is updated,
+  not left stale, when the episode changes. Where the card appears and for how
+  long is the desktop's. No stream URLs or core credentials in it.
+- Media keys through that session, also when another app has focus; one press
+  acts once, so Qt and mpv must not handle it as well.
+- Suspend: save progress and pause; after resume, recover the stream without
+  starting playback. Sleep, the lid and critical battery stay the system's.
+- `[?]` Pause when headphones or a Bluetooth device disconnect, so dialogue
+  does not move to the speakers. Reconnecting does not resume a pause the
+  viewer chose.
+- `[?]` An in-player low-battery warning, only if the report under To check by
+  hand turns out to be ours: once on crossing a threshold while discharging,
+  or when playback starts below it, rearmed after charging. Never turn off
+  Focus Assist or change Windows notification or power settings.
+
 ## Metadata: TMDB
 
 `[?]` TMDB as an optional provider with the user's own key
@@ -148,7 +170,18 @@ completes season 0.
 ## To check by hand
 
 A film playing past the screen's blanking time keeps it on: Windows, GNOME
-and KDE.
+and KDE; pause, exit and a failed stream release it.
+
+Windows battery alerts during playback (reported 2026-11-05 on a stripped
+Windows 10, not reproduced): compare windowed and fullscreen, playing and
+paused, Focus Assist's fullscreen rule on and off, on stock Windows 10 and 11
+and outside Lumeo; note the build, power and alert settings, and whether the
+alert reaches Action Center without a banner. Lumeo goes fullscreen and holds
+the display awake but suppresses no notifications; Windows can hold them back
+for a fullscreen app on its own
+([Microsoft](https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/notifications-not-show-action-notification-center)).
+If only Lumeo loses the alert under the same settings, look at window stacking
+(always on top included) and Qt before Windows or a workaround.
 
 A filtered line without a VPN: blank posters fill in within about 30 s.
 
