@@ -27,7 +27,7 @@ jobs:
       # runner already holds it.
       image: node:24-bookworm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Docker publishes no checksums for the static builds, so the hash is
       # pinned here: a bump is a new version and a new hash, in one commit.
       - name: docker cli

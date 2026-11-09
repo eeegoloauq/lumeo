@@ -36,7 +36,7 @@ jobs:
       run:
         working-directory: core
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: go vet ./...
       # The Windows release is built on GitHub at tag time; this is where a
       # change that does not compile for it is caught before the merge.
