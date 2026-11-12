@@ -1,7 +1,7 @@
 # Contributing
 
-Lumeo is a Go core (`core/`, one binary and SQLite, listening on `127.0.0.1:7666`) and a Qt Quick
-client for Linux and Windows (`desktop/`) that plays through embedded libmpv. The client talks to
+Lumeo is a Go core ([`core/`](core), one binary and SQLite, listening on `127.0.0.1:7666`) and a Qt Quick
+client for Linux and Windows ([`desktop/`](desktop)) that plays through embedded libmpv. The client talks to
 the core over HTTP, even on one machine.
 
 Read [docs/architecture.md](docs/architecture.md) for how it fits together and
@@ -11,17 +11,17 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
 
 ## What you need
 
-- Go (the version in `core/go.mod`).
+- Go (the version in [`core/go.mod`](core/go.mod)).
 - Qt 6.12 with Image Formats (artwork arrives in WebP too), Shader Tools, HTTP Server and
-  WebSockets (the fake core in the tests). `packaging/install-qt.sh` installs that Qt into
+  WebSockets (the fake core in the tests). [`packaging/install-qt.sh`](packaging/install-qt.sh) installs that Qt into
   `~/.cache/lumeo/qt`, as CI does; a distribution's Qt 6.8 or later builds too, with its private
   headers (`qt6-qtbase-private-devel` on Fedora), which the gamepad's keys come in through.
 - libmpv with its headers, SDL3 3.2 or later, CMake, Ninja, ccache and mold. On Fedora:
   `sudo dnf install cmake ninja-build gcc-c++ ccache mold mpv-devel SDL3-devel`; on Debian and
   Ubuntu, as CI installs them: `cmake ninja-build pkg-config ccache mold libgl-dev libegl-dev
-  libxkbcommon-dev libmpv-dev libudev-dev`. Ubuntu 24.04 has no SDL3: `packaging/build-sdl.sh`
+  libxkbcommon-dev libmpv-dev libudev-dev`. Ubuntu 24.04 has no SDL3: [`packaging/build-sdl.sh`](packaging/build-sdl.sh)
   builds the release's into `~/.cache/lumeo` and prints where, for `SDL3_ROOT`.
-- For the player tests: `weston` and `ffmpeg`. `desktop/tool/build-mpv.sh` builds libmpv 0.41 into
+- For the player tests: `weston` and `ffmpeg`. [`desktop/tool/build-mpv.sh`](desktop/tool/build-mpv.sh) builds libmpv 0.41 into
   `~/.cache/lumeo` when your distribution's is older; the player tests use it when it is there.
 
 ## Running it
@@ -64,19 +64,19 @@ Client, from `desktop/`:
     ctest --test-dir build/sanitize --output-on-failure           # under ASan, UBSan and LSan
 
 Tests go in the lowest layer that can show the behaviour, once: units under QtTest in
-`desktop/tests/*_test.cpp`, the whole app over the fake core in `desktop/tests/app/`, and only what
-needs a real libmpv in `desktop/tests/player/`. [docs/decisions/testing.md](docs/decisions/testing.md)
+`desktop/tests/*_test.cpp`, the whole app over the fake core in [`desktop/tests/app/`](desktop/tests/app), and only what
+needs a real libmpv in [`desktop/tests/player/`](desktop/tests/player). [docs/decisions/testing.md](docs/decisions/testing.md)
 says what goes where and what a test does not check. qmllint fails on any warning
-(`desktop/qml/.qmllint.ini`); a line whose types it cannot see takes `// qmllint disable <category>` and a
+([`desktop/qml/.qmllint.ini`](desktop/qml/.qmllint.ini)); a line whose types it cannot see takes `// qmllint disable <category>` and a
 comment saying why. A fix for a visible defect comes with a test.
 The sanitize preset builds the same tests with AddressSanitizer and UndefinedBehaviorSanitizer, and a
 leak at exit fails a test; CI runs it as a job of its own. A report from Qt, Mesa or libmpv goes in
-`desktop/tests/sanitizers/lsan.supp`, matched as narrowly as its stack allows and with a comment
+[`desktop/tests/sanitizers/lsan.supp`](desktop/tests/sanitizers/lsan.supp), matched as narrowly as its stack allows and with a comment
 saying why it is not ours; one of ours is fixed.
 The run on one CPU is for a change to the app, QML or anything asynchronous: the CI runners,
 Windows most, are slower than a desktop, and a test that checks a moment rather than waiting for a
 state fails there first (a Linux system without `taskset` drops the prefix).
-`tool/player-test.sh` takes Qt Quick Test's options, `-input tests/player/tst_gear.qml` for one
+[`tool/player-test.sh`](desktop/tool/player-test.sh) takes Qt Quick Test's options, `-input tests/player/tst_gear.qml` for one
 file. GitHub CI runs all of it on every push to `main` that touches the client and on every tag,
 and the release is published only when it passes. On a headless Weston without a GPU,
 `tool/no-libva-wayland.c` is preloaded, as `player-test.sh` does.
@@ -96,7 +96,7 @@ there stalls the whole interface during every seek.
 
 ## Translations
 
-The interface's text lives in `desktop/i18n/`: `lumeo_en.ts` is the source, every other
+The interface's text lives in [`desktop/i18n/`](desktop/i18n): `lumeo_en.ts` is the source, every other
 `lumeo_<code>.ts` a translation of it. A string on screen is `qsTrId("someId")` (`qtTrId` in C++),
 never a literal; each message's comment says where it appears and names its placeholders, `%1`, `%2`
 in the English order. Counts are `%n` plurals, and a sentence is one message with placeholders,
@@ -104,7 +104,7 @@ never pieces joined in code, so a translation can reorder it.
 
 A new language is one file: copy `lumeo_en.ts` to `lumeo_<code>.ts`, set its `language`, translate
 the `<translation>`s (Qt Linguist opens it) and list it under `TS_FILES` in
-`desktop/CMakeLists.txt`. It appears under Settings → General by its `languageName`. A message left
+[`desktop/CMakeLists.txt`](desktop/CMakeLists.txt). It appears under Settings → General by its `languageName`. A message left
 out falls back to English. Titles, descriptions and genres come from the metadata provider and stay
 as it sends them.
 
@@ -117,9 +117,9 @@ in git.
 ## Releases
 
 The release notes are written once, as a `<release>` in
-`client/assets/dev.lumeo.lumeo.metainfo.xml`, the one file left under `client/`: every released
+[`client/assets/dev.lumeo.lumeo.metainfo.xml`](client/assets/dev.lumeo.lumeo.metainfo.xml), the one file left under `client/`: every released
 core reads a newer release's notes from that path. The app shows them after an update (a `<li
-xml:lang="ru">` beside each English one translates it), `packaging/release-notes.py` makes the
+xml:lang="ru">` beside each English one translates it), [`packaging/release-notes.py`](packaging/release-notes.py) makes the
 RPM `%changelog` and the GitHub release's items from them. Then push `main` and an annotated
 `vX.Y.Z` tag in one push; the tag message is one line, the release's headline. A tag is a patch
 (`v0.3.0` → `v0.3.1`) unless the change is clearly large; a major one only when asked.
@@ -160,18 +160,18 @@ download it, and the app offers it only to those who turned on "Offer betas" in 
 told when its release is out. Publishing a beta or a release removes the older betas from the
 releases page; their tags stay. Betas go out when there is something to try; the release follows
 once they are checked.
-`packaging/build-dist.sh` makes the bundle and tarball, with the Qt of `install-qt.sh` in it;
+[`packaging/build-dist.sh`](packaging/build-dist.sh) makes the bundle and tarball, with the Qt of `install-qt.sh` in it;
 `build-rpm.sh` and `build-arch.sh` package that tarball, `build-windows.sh` the Windows installer.
-`packaging/container/Containerfile` is the server image, built from `core/` (its first lines say
+[`packaging/container/Containerfile`](packaging/container/Containerfile) is the server image, built from `core/` (its first lines say
 how); the release pushes it to GHCR after publishing. The first push of the package leaves it
 private: make it public once in the package's settings on GitHub.
 The Windows libmpv is a pinned build mirrored into this repository's releases by
-`.github/workflows/libmpv.yml`; a bump is that workflow run once and the four lines in
+[`.github/workflows/libmpv.yml`](.github/workflows/libmpv.yml); a bump is that workflow run once and the four lines in
 `fetch-libmpv.sh`.
 
 ## Share site
 
-`site/` is the page a shared title link opens, served by GitHub Pages from the mirror:
-`.github/workflows/site.yml` deploys it on every push to `main` that touches it (the repository's
+[`site/`](site) is the page a shared title link opens, served by GitHub Pages from the mirror:
+[`.github/workflows/site.yml`](.github/workflows/site.yml) deploys it on every push to `main` that touches it (the repository's
 Pages source is GitHub Actions). `site/build.sh _site` assembles it locally; any static server on
 `_site` shows it.
