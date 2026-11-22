@@ -79,9 +79,13 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 - Suspend: save progress and pause; after resume, recover the stream without
   starting playback. Sleep, the lid and critical battery stay the system's.
-- `[?]` Pause when headphones or a Bluetooth device disconnect, so dialogue
-  does not move to the speakers. Reconnecting does not resume a pause the
-  viewer chose.
+- Pause by default when the headphones playing the video disconnect. Playback
+  stays paused until the viewer presses Play. Keep playing when an unrelated
+  device disconnects or the viewer switches output manually.
+- `[?]` Verify wired, USB and Bluetooth headphones on Windows and Linux before
+  choosing how to detect the active output and its disconnection. mpv's
+  `audio-device` property reports the configured output; `auto` leaves the
+  active device to the audio backend.
 - `[?]` An in-player low-battery warning, only if the report under To check by
   hand turns out to be ours: once on crossing a threshold while discharging,
   or when playback starts below it, rearmed after charging. Never turn off

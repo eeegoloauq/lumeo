@@ -3,8 +3,8 @@
 ## Next
 
 - Trakt import and export
-- Films you already have as a library
-- Fix a file matched to the wrong title
+- Browse a folder of films from the home screen
+- Choose the catalogue title for a local video
 - Anime specials sorted into their own tabs
 - SOCKS5 proxy for torrent traffic
 - Community translations
