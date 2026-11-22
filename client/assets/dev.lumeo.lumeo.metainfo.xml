@@ -40,6 +40,28 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.1.80~beta.1" date="2026-11-22" type="development">
+      <description>
+        <p>Added</p>
+        <p xml:lang="ru">Добавлено</p>
+        <ul>
+          <li>System media controls on Linux and Windows.</li>
+          <li xml:lang="ru">Системное управление воспроизведением в Linux и Windows.</li>
+        </ul>
+        <p>Improved</p>
+        <p xml:lang="ru">Улучшено</p>
+        <ul>
+          <li>Safer handling of addon redirects and local files.</li>
+          <li xml:lang="ru">Более безопасная обработка перенаправлений дополнений и локальных файлов.</li>
+        </ul>
+        <p>Fixed</p>
+        <p xml:lang="ru">Исправлено</p>
+        <ul>
+          <li>Keeping your online subtitle choice between episodes.</li>
+          <li xml:lang="ru">Сохранение выбора онлайн-субтитров при переходе к следующей серии.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.79" date="2026-11-05">
       <description>
         <p>Added</p>
