@@ -151,7 +151,7 @@ func exportRatings(ctx context.Context, tx *sql.Tx, byItem map[string]*personal.
 
 func exportTracks(ctx context.Context, tx *sql.Tx, byItem map[string]*personal.Title) error {
 	rows, err := tx.QueryContext(ctx, `
-		SELECT item_id, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_off, updated_at
+		SELECT item_id, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_provider, subtitle_off, updated_at
 		FROM choices`)
 	if err != nil {
 		return fmt.Errorf("export tracks: %w", err)
@@ -161,7 +161,8 @@ func exportTracks(ctx context.Context, tx *sql.Tx, byItem map[string]*personal.T
 		var id string
 		var c trackColumns
 		var updated int64
-		if err := rows.Scan(&id, &c.audioLanguage, &c.audioTitle, &c.subtitleLanguage, &c.subtitleTitle, &c.subtitleOff, &updated); err != nil {
+		if err := rows.Scan(&id, &c.audioLanguage, &c.audioTitle, &c.subtitleLanguage, &c.subtitleTitle,
+			&c.subtitleProvider, &c.subtitleOff, &updated); err != nil {
 			return fmt.Errorf("export tracks: %w", err)
 		}
 		t := byItem[id]
@@ -304,17 +305,18 @@ func importTitle(ctx context.Context, tx *sql.Tx, t personal.Title, counts *pers
 		c := columnsOf(tr.Audio, tr.Subtitle)
 		// The copy picked stays this core's: only the tracks move.
 		n, err := exec("tracks", `
-			INSERT INTO choices(item_id, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_off, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO choices(item_id, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_provider, subtitle_off, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(item_id) DO UPDATE SET
 				audio_language = excluded.audio_language,
 				audio_title = excluded.audio_title,
 				subtitle_language = excluded.subtitle_language,
 				subtitle_title = excluded.subtitle_title,
+				subtitle_provider = excluded.subtitle_provider,
 				subtitle_off = excluded.subtitle_off,
 				updated_at = excluded.updated_at
 			WHERE excluded.updated_at > choices.updated_at`,
-			id, c.audioLanguage, c.audioTitle, c.subtitleLanguage, c.subtitleTitle, c.subtitleOff, tr.UpdatedAt.Unix())
+			id, c.audioLanguage, c.audioTitle, c.subtitleLanguage, c.subtitleTitle, c.subtitleProvider, c.subtitleOff, tr.UpdatedAt.Unix())
 		if err != nil {
 			return err
 		}

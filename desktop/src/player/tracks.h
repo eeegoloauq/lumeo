@@ -170,6 +170,7 @@ private:
   // waits too, the next episode's loadfile included.
   QTemporaryDir m_dir;
   QHash<QString, QString> m_paths;
+  QHash<QString, QJsonObject> m_external;
   QHash<QString, QList<std::function<void(const QString &)>>> m_fetching;
 
   double m_scale = 1;

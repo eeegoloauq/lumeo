@@ -71,6 +71,20 @@ func TestFindPrefersTheReleaseBeingPlayed(t *testing.T) {
 	}
 }
 
+func TestFindPrefersTheEpisodeFilenameOverThePackLabel(t *testing.T) {
+	p := &stubProvider{id: "os", subs: []Subtitle{
+		{Language: "ru", Name: "Series.S01.1080p.BluRay-PACK", SourceURL: "https://x/pack.srt"},
+		{Language: "ru", Name: "Series.S01E07.1080p.WEBRip-GROUP.ru.srt", SourceURL: "https://x/episode.srt"},
+	}}
+	got := testService(p).Find(context.Background(), Query{
+		Filename:    "Series.S01E07.1080p.WEBRip-GROUP.mp4",
+		ReleaseName: "Series.S01.1080p.BluRay-PACK",
+	})
+	if len(got) != 2 || got[0].SourceURL != "https://x/episode.srt" {
+		t.Fatalf("got %v", namesOf(got))
+	}
+}
+
 // Inside a language a hash match is certainty and a name is a guess, so it
 // goes first — but it never jumps ahead of the language the viewer reads.
 func TestFindPutsHashMatchesFirstWithinALanguage(t *testing.T) {

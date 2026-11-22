@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -298,10 +299,16 @@ func releaseScore(name string, q Query) int {
 		return 0
 	}
 	lower := strings.ToLower(name)
-	if q.ReleaseName != "" && strings.Contains(lower, strings.ToLower(strings.TrimSuffix(q.ReleaseName, ".mkv"))) {
-		return 10
-	}
 	score := 0
+	// A season pack's label can describe a different encode from the episode
+	// file inside it. Use the actual file's name first when we have it.
+	stem := strings.TrimSuffix(q.Filename, filepath.Ext(q.Filename))
+	if stem != "" && strings.Contains(lower, strings.ToLower(stem)) {
+		score += 20
+	}
+	if q.ReleaseName != "" && strings.Contains(lower, strings.ToLower(strings.TrimSuffix(q.ReleaseName, ".mkv"))) {
+		score += 10
+	}
 	if g := q.Release.Group; g != "" && strings.Contains(lower, strings.ToLower(g)) {
 		score += 4
 	}

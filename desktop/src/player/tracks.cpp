@@ -256,8 +256,10 @@ void Tracks::onTrackChange(const QString &property, const QString &value) {
   rebuild();
   if (!byViewer(property, value))
     return;
-  if (property == "sid")
+  if (property == "sid") {
     ++m_picks;
+    m_ownFound.clear();
+  }
   m_unsaved[property] = value;
   saveTracks();
   if (property == "sid")
@@ -276,7 +278,8 @@ void Tracks::matchTitles() {
       continue;
     m_titlesMatched.insert(type);
     const QJsonObject picked = m_choice[type == "sub" ? "subtitle" : "audio"].toObject();
-    if (picked.isEmpty() || picked["off"].toBool() || picked["title"].toString().isEmpty())
+    if (picked.isEmpty() || picked["off"].toBool() || picked["title"].toString().isEmpty() ||
+        !picked["providerId"].toString().isEmpty())
       continue;
     for (const QVariant &t : tracks) {
       const QVariantMap track = t.toMap();
@@ -367,8 +370,14 @@ void Tracks::saveTracks() {
       const QVariantMap track = t.toMap();
       if (idOf(track) != id)
         continue;
-      patch[key] = QJsonObject{{"language", track.value("lang").toString()},
-                               {"title", track.value("title").toString()}};
+      QJsonObject choice{{"language", track.value("lang").toString()},
+                         {"title", track.value("title").toString()}};
+      const QJsonObject external = m_external.value(track.value("external-filename").toString());
+      if (!external["providerId"].toString().isEmpty()) {
+        choice["providerId"] = external["providerId"];
+        choice["title"] = external["name"].toString();
+      }
+      patch[key] = choice;
       m_unsaved.remove(property);
     }
   }
@@ -384,7 +393,7 @@ void Tracks::saveTracks() {
 // Once the picture is up and mpv has said which tracks the file has, and so
 // which subtitle it chose.
 void Tracks::subtitleOnceChosen() {
-  if (m_mpv && m_mpv->hasPicture() && !tracksOf("video").isEmpty())
+  if (m_opened && m_mpv && m_mpv->hasPicture() && !tracksOf("video").isEmpty())
     subtitleFromDatabase();
 }
 
@@ -422,6 +431,9 @@ void Tracks::subtitleFromDatabase() {
     return r < 0 ? int(wanted.size()) : r;
   };
   const int picks = m_picks;
+  const QString provider = picked["providerId"].toString();
+  const QString language = names.canonical(picked["language"].toString());
+  const QString title = picked["title"].toString();
   const QVariantMap chosen = selected("sub");
   const int beats = chosen.isEmpty() ? int(wanted.size()) : rank(chosen.value("lang").toString());
   QJsonObject best;
@@ -429,35 +441,68 @@ void Tracks::subtitleFromDatabase() {
     if (rank(kept["language"].toString()) <
         (best.isEmpty() ? beats : rank(best["language"].toString())))
       best = kept.toObject();
-  auto load = [this, picks, rank](const QJsonObject &best) {
-    fetch(best, [this, picks, rank, best](const QString &path) {
+  auto load = [this, picks, rank](const QJsonObject &best, bool remembered) {
+    if (m_picks != picks)
+      return;
+    fetch(best, [this, picks, rank, best, remembered](const QString &path) {
       if (m_picks != picks)
         return;
       if (path.isEmpty()) {
-        emit subtitleFailed();
+        if (!remembered)
+          emit subtitleFailed();
         return;
       }
       const QVariantMap now = selected("sub");
-      if (!now.isEmpty() && rank(now.value("lang").toString()) <= rank(best["language"].toString()))
+      if (!remembered && !now.isEmpty() &&
+          rank(now.value("lang").toString()) <= rank(best["language"].toString()))
         return;
       m_ownFound = path;
       addSubtitle(path, best, "auto");
     });
   };
-  if (!best.isEmpty()) {
-    load(best);
+  if (provider.isEmpty() && !best.isEmpty()) {
+    load(best, false);
     return;
   }
-  if (!chosen.isEmpty())
+  if (provider.isEmpty() && !chosen.isEmpty())
     return;
-  // Only now is the database asked: the lookup costs the swarm the last
-  // 64 KiB of the file, which a viewer whose file has the language never pays.
-  auto fromFound = [this, rank, wanted, load] {
+  auto preferred = [names, provider, language, title](const QJsonArray &candidates) {
+    QJsonObject best;
+    if (provider.isEmpty())
+      return best;
+    for (const QJsonValue &found : candidates) {
+      if (found["providerId"].toString() != provider ||
+          names.canonical(found["language"].toString()) != language)
+        continue;
+      if (!title.isEmpty() && found["name"].toString() == title)
+        return found.toObject();
+      if (best.isEmpty() || (!best["hashMatch"].toBool() && found["hashMatch"].toBool()))
+        best = found.toObject();
+    }
+    return best;
+  };
+  const QJsonObject kept = preferred(m_kept);
+  if (kept["hashMatch"].toBool() || (!title.isEmpty() && kept["name"].toString() == title)) {
+    load(kept, true);
+    return;
+  }
+  // A manual provider choice takes precedence over the embedded default.
+  // Otherwise the lookup is only needed when mpv found no suitable track.
+  auto fromFound = [this, preferred, kept, rank, wanted, best, load] {
+    const QJsonObject found = preferred(m_found);
+    if (!found.isEmpty() || !kept.isEmpty()) {
+      load(found.isEmpty() ? kept : found, true);
+      return;
+    }
+    if (!best.isEmpty()) {
+      load(best, false);
+      return;
+    }
     if (!selected("sub").isEmpty())
       return;
     for (const QJsonValue &found : m_found)
       if (rank(found["language"].toString()) < wanted.size()) {
-        load(found.toObject());
+        load(found.toObject(), false);
         return;
       }
   };
@@ -510,7 +555,17 @@ void Tracks::pickAudio(const QString &id) { m_mpv->set("aid", id); }
 
 void Tracks::pickSubtitle(const QString &id) {
   ++m_picks;
-  m_mpv->set("sid", id.isEmpty() ? "no" : id);
+  m_ownFound.clear();
+  const QString selection = id.isEmpty() ? "no" : id;
+  if (m_mpv->sid() != selection) {
+    m_mpv->set("sid", selection);
+    return;
+  }
+  // A manual pick can confirm the fallback already on screen. mpv will
+  // not report a track change in that case.
+  m_unsaved["sid"] = selection;
+  saveTracks();
+  rememberForAudio(selection != "no");
 }
 
 // A copy mpv already has is selected again: mpv keeps every external track
@@ -520,6 +575,7 @@ void Tracks::pickFound(int index) {
     return;
   const QJsonObject subtitle = m_found[index].toObject();
   const int pick = ++m_picks;
+  m_ownFound.clear();
   fetch(subtitle, [this, pick, subtitle](const QString &path) {
     if (pick != m_picks)
       return;
@@ -529,7 +585,7 @@ void Tracks::pickFound(int index) {
     }
     for (const QVariant &t : tracksOf("sub"))
       if (t.toMap().value("external").toBool() && t.toMap().value("external-filename") == path) {
-        m_mpv->set("sid", idOf(t.toMap()));
+        pickSubtitle(idOf(t.toMap()));
         return;
       }
     addSubtitle(path, subtitle, "select");
@@ -537,6 +593,7 @@ void Tracks::pickFound(int index) {
 }
 
 void Tracks::addSubtitle(const QString &path, const QJsonObject &subtitle, const QString &flag) {
+  m_external.insert(path, subtitle);
   const QString name = subtitle["name"].toString();
   m_mpv->command({"sub-add", path, flag, name.isEmpty() ? foundLabel(subtitle) : name,
                   subtitle["language"].toString()});

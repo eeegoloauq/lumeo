@@ -177,8 +177,46 @@ Item {
             const track = player.mpv.tracks.find(t => t.type === "sub" && t.external)
             verify(!track["external-filename"].startsWith("http"), track["external-filename"])
             compare(track.lang, "ru")
+            tryVerify(() => bodies("PATCH /api/v1/choices/" + item).length === 1)
+            const saved = bodies("PATCH /api/v1/choices/" + item)[0].subtitle
+            compare(saved.language, "ru")
+            compare(saved.title, "Seal.1957.ru")
+            compare(saved.providerId, "opensubtitles")
             openMenu()
             verify(row("found-0").current, "the copy on screen is lit")
+        }
+
+        // A new episode used to go back to mpv's embedded default even after
+        // the viewer picked a provider. Resolve the new episode's own track.
+        function test_theProviderChoiceCarriesToTheNextEpisode() {
+            const download = fakeCore.read("download.json")
+            Object.assign(download, { id: "dt", itemId: item, ready: true, season: 1, episode: 8 })
+            fakeCore.answer("GET", "/api/v1/downloads/dt", 200, download)
+            fakeCore.answer("GET", "/api/v1/choices/" + item, 200, {
+                subtitle: { language: "ru", title: "Series.S01E07.WEBRip", providerId: "opensubtitles" } })
+            fakeCore.answer("GET", "/api/v1/progress/" + item, 200, {
+                entries: [{ season: 1, episode: 7, position: 5, duration: 20, subtitleDelay: 1 }] })
+            fakeCore.answer("GET", "/api/v1/subtitles", 200, { subtitles: [
+                { language: "ru", name: "Other", url: "/api/v1/subtitles/ru", providerId: "other" },
+                { language: "ru", name: "Series.S01E08.WEBRip", url: "/api/v1/subtitles/ru", providerId: "opensubtitles" }] })
+            start()
+            tryVerify(() => player.mpv.tracks.some(t => t.selected && t.title === "Series.S01E08.WEBRip"))
+            compare(player.mpv.subDelay, 0)
+            openMenu()
+            compare(bodies("PATCH /api/v1/choices/" + item).length, 0)
+        }
+
+        function test_theEmbeddedFallbackCanReplaceTheProviderChoice() {
+            fakeCore.answer("GET", "/api/v1/choices/" + item, 200, {
+                subtitle: { language: "ru", title: "Series.S01E07.WEBRip", providerId: "opensubtitles" } })
+            fakeCore.answer("GET", "/api/v1/subtitles", 200, { subtitles: [] })
+            start()
+            openMenu()
+            verify(row("subtitle-1").current)
+            mouseClick(row("subtitle-1"))
+            tryVerify(() => bodies("PATCH /api/v1/choices/" + item).length === 1)
+            compare(JSON.stringify(bodies("PATCH /api/v1/choices/" + item)[0]),
+                    JSON.stringify({ subtitle: { language: "eng", title: "English Full" } }))
         }
 
         // The last pick wins: a file that arrives after Off stays off screen.

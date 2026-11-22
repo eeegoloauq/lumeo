@@ -212,6 +212,17 @@ func TestChoicePatchKeepsThePackAndTheOtherTrack(t *testing.T) {
 		t.Fatalf("choice = %+v audio=%+v subtitle=%+v", got, got.Audio, got.Subtitle)
 	}
 
+	body := `{"subtitle":{"language":"ru","title":"Series.S01E07.WEBRip","providerId":"opensubtitles"}}`
+	if rec := requestJSON(t, h, http.MethodPatch, "/api/v1/choices/abc123", body); rec.Code != http.StatusOK {
+		t.Fatalf("patch provider choice: status %d: %s", rec.Code, rec.Body)
+	}
+	got, _ = watch.Choice(context.Background(), "abc123")
+	if got.Subtitle == nil || *got.Subtitle != (progress.Track{
+		Language: "ru", Title: "Series.S01E07.WEBRip", ProviderID: "opensubtitles",
+	}) {
+		t.Fatalf("provider choice: %+v", got.Subtitle)
+	}
+
 	if rec := requestJSON(t, h, http.MethodPatch, "/api/v1/choices/abc123", `{"subtitle":{"off":true,"language":"eng"}}`); rec.Code != http.StatusOK {
 		t.Fatalf("turn off: status %d: %s", rec.Code, rec.Body)
 	}

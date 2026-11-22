@@ -2,21 +2,17 @@
 
 ## Subtitles are picked by the hash of the file, and arrive through the core
 
-The out-of-sync subtitle is the oldest complaint in this ecosystem, and it has
-one cause: a subtitle is timed to an encode, and clients ask for it by title.
-So the core identifies the copy instead — the OpenSubtitles hash of the file
-being played — and the provider answers with tracks made for it and says which
-those are. The picker marks them, and the frame rate the rest were timed at
-sits beside them, because 25 against 23.976 is the drift a viewer can predict
-before pressing play.
+A subtitle timed to a different encode can have a fixed offset or drift over
+the film. The core sends the OpenSubtitles hash of the file being played and
+the provider marks candidates it found by that hash. When the provider only
+matches by title, ranking puts candidates naming the actual video filename
+ahead of matches to the download's label, which may describe a season pack.
 
 Ranking puts language first and the hash match second. An exact English track
 is not a better answer than an approximate one in the language the room reads.
 
-The hash costs the last 64 KiB of a file that is arriving front to back, so it
-is computed when the picker is first opened rather than when playback starts,
-and the lookup goes ahead without it if the swarm is too slow. Watching without
-subtitles must not spend a byte on this.
+The hash costs the last 64 KiB of a file that is arriving front to back, so
+the lookup goes ahead using available metadata if the swarm is too slow.
 
 The file is fetched by the core and not by the player, for two reasons. Half of
 what these databases hold is single-byte text from before Unicode with nothing
@@ -94,9 +90,16 @@ and the mode wanted one — "always", or "foreign" over a soundtrack in none of
 the subtitle languages — the player looks the file up once the picture is on
 screen and loads the best copy in a preferred language; a file with no
 English track and an English copy in the database starts with subtitles, as
-the mode promises. That is the one lookup made without the menu being
-opened, and it is made only then: looking costs the swarm the last 64 KiB of
-the file, and a viewer whose file already carries the language never pays it.
+the mode promises. Looking up a file can cost the swarm its last 64 KiB.
+A lookup starts automatically if the current file needs a subtitle or the
+viewer previously chose one from a provider for this title.
+
+A provider choice remembers its language, provider and release name. The
+next episode looks for its own track from that provider in the same
+language, preferring the saved name if available and then a hash match.
+The automatic track stays selected while the lookup runs and when a
+preferred match cannot be loaded. A manual selection during the lookup
+takes precedence.
 
 The list itself is read from mpv's `track-list`, observed, and nothing else:
 a track mpv chose by itself is lit like one picked from the menu, and

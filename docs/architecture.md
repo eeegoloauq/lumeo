@@ -448,11 +448,10 @@ comes from the OpenSubtitles hash — the file size plus the first and last
 provider, which then answers with tracks matched against that exact copy and
 marks them as such.
 
-On a download still arriving, the tail is 64 KiB the swarm has not been asked
-for yet, so the hash is computed when the picker is first opened rather than
-when playback starts, bounded by a deadline, cached per download, and skipped
-entirely if it does not arrive in time — an approximate list now beats an
-exact one after the scene has passed.
+For a download still arriving, reading the last 64 KiB can wait on the swarm.
+The core computes the hash on a subtitle lookup, which the picker or automatic
+track selection can start. The hash is cached per download, and the lookup
+falls back to the title and available file metadata if the hash deadline passes.
 
 The file itself is fetched through the core, never by the player:
 `/api/v1/subtitles` hands out ids of ours and `/api/v1/subtitles/{id}` fetches

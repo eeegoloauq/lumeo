@@ -91,6 +91,8 @@ type Pack struct {
 type Track struct {
 	Language string `json:"language"`
 	Title    string `json:"title"`
+	// ProviderID is set for a subtitle found outside the video.
+	ProviderID string `json:"providerId,omitempty"`
 	// Off is a subtitle turned off by hand.
 	Off bool `json:"off,omitempty"`
 }

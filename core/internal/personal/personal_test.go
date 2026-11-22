@@ -99,7 +99,7 @@ func seed(t *testing.T, c core) (series, film string) {
 	must(t, c.db.SaveChoice(ctx, series, progress.Choice{
 		Pack:     progress.Pack{BingeGroup: "pack-of-this-core", InfoHash: "abc"},
 		Audio:    &progress.Track{Language: "ru", Title: "LostFilm"},
-		Subtitle: &progress.Track{Off: true},
+		Subtitle: &progress.Track{Language: "ru", Title: "Breaking.Bad.S01E02.WEBRip", ProviderID: "opensubtitles"},
 	}, at))
 	must(t, c.db.RecordSearch(ctx, "breaking", at, 10))
 	must(t, c.db.RecordSearch(ctx, "Night", at.Add(time.Minute), 10))
@@ -159,7 +159,7 @@ func TestCarriesTheViewersDataToAnotherCore(t *testing.T) {
 	must(t, err)
 	wantChoice := progress.Choice{
 		Audio:    &progress.Track{Language: "ru", Title: "LostFilm"},
-		Subtitle: &progress.Track{Off: true},
+		Subtitle: &progress.Track{Language: "ru", Title: "Breaking.Bad.S01E02.WEBRip", ProviderID: "opensubtitles"},
 	}
 	if !reflect.DeepEqual(choice, wantChoice) {
 		t.Fatalf("choice %+v, want the tracks without the other core's copy", choice)

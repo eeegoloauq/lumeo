@@ -14,9 +14,11 @@ func (d *DB) Choice(ctx context.Context, itemID string) (progress.Choice, error)
 	var choice progress.Choice
 	var t trackColumns
 	err := d.db.QueryRowContext(ctx, `
-		SELECT binge_group, info_hash, folder, dir, picked, audio_language, audio_title, subtitle_language, subtitle_title, subtitle_off
+		SELECT binge_group, info_hash, folder, dir, picked, audio_language, audio_title,
+			subtitle_language, subtitle_title, subtitle_provider, subtitle_off
 		FROM choices WHERE item_id = ?`, itemID).
-		Scan(&choice.BingeGroup, &choice.InfoHash, &choice.Folder, &choice.Dir, &choice.Picked, &t.audioLanguage, &t.audioTitle, &t.subtitleLanguage, &t.subtitleTitle, &t.subtitleOff)
+		Scan(&choice.BingeGroup, &choice.InfoHash, &choice.Folder, &choice.Dir, &choice.Picked, &t.audioLanguage, &t.audioTitle,
+			&t.subtitleLanguage, &t.subtitleTitle, &t.subtitleProvider, &t.subtitleOff)
 	if errors.Is(err, sql.ErrNoRows) {
 		return progress.Choice{}, nil
 	}
@@ -31,8 +33,8 @@ func (d *DB) SaveChoice(ctx context.Context, itemID string, choice progress.Choi
 	t := columnsOf(choice.Audio, choice.Subtitle)
 	_, err := d.db.ExecContext(ctx, `
 		INSERT INTO choices(item_id, binge_group, info_hash, folder, dir, picked, audio_language, audio_title,
-			subtitle_language, subtitle_title, subtitle_off, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			subtitle_language, subtitle_title, subtitle_provider, subtitle_off, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(item_id) DO UPDATE SET
 			binge_group = excluded.binge_group,
 			info_hash = excluded.info_hash,
@@ -43,10 +45,11 @@ func (d *DB) SaveChoice(ctx context.Context, itemID string, choice progress.Choi
 			audio_title = excluded.audio_title,
 			subtitle_language = excluded.subtitle_language,
 			subtitle_title = excluded.subtitle_title,
+			subtitle_provider = excluded.subtitle_provider,
 			subtitle_off = excluded.subtitle_off,
 			updated_at = excluded.updated_at`,
 		itemID, choice.BingeGroup, choice.InfoHash, choice.Folder, choice.Dir, choice.Picked, t.audioLanguage, t.audioTitle,
-		t.subtitleLanguage, t.subtitleTitle, t.subtitleOff, at.Unix())
+		t.subtitleLanguage, t.subtitleTitle, t.subtitleProvider, t.subtitleOff, at.Unix())
 	if err != nil {
 		return fmt.Errorf("save choice for %q: %w", itemID, err)
 	}
@@ -58,6 +61,7 @@ func (d *DB) SaveChoice(ctx context.Context, itemID string, choice progress.Choi
 // language.
 type trackColumns struct {
 	audioLanguage, audioTitle, subtitleLanguage, subtitleTitle sql.NullString
+	subtitleProvider                                           sql.NullString
 	subtitleOff                                                bool
 }
 
@@ -72,6 +76,7 @@ func columnsOf(audio, subtitle *progress.Track) trackColumns {
 		if !subtitle.Off {
 			t.subtitleLanguage = sql.NullString{String: subtitle.Language, Valid: true}
 			t.subtitleTitle = sql.NullString{String: subtitle.Title, Valid: true}
+			t.subtitleProvider = sql.NullString{String: subtitle.ProviderID, Valid: subtitle.ProviderID != ""}
 		}
 	}
 	return t
@@ -83,7 +88,8 @@ func (t trackColumns) tracks() (audio, subtitle *progress.Track) {
 		audio = &progress.Track{Language: t.audioLanguage.String, Title: t.audioTitle.String}
 	}
 	if t.subtitleLanguage.Valid || t.subtitleOff {
-		subtitle = &progress.Track{Language: t.subtitleLanguage.String, Title: t.subtitleTitle.String, Off: t.subtitleOff}
+		subtitle = &progress.Track{Language: t.subtitleLanguage.String, Title: t.subtitleTitle.String,
+			ProviderID: t.subtitleProvider.String, Off: t.subtitleOff}
 	}
 	return audio, subtitle
 }
