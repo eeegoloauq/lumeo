@@ -58,7 +58,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build pkg-config ccache mold \
             libgl-dev libegl-dev libxkbcommon-dev libxkbcommon-x11-0 libxcb-cursor0 \
-            libmpv-dev libudev-dev weston ffmpeg
+            libmpv-dev libudev-dev weston ffmpeg dbus-daemon
       # Not when release.yml calls this (it restores no cache, and says
       # why): a called workflow carries the caller's name.
       - uses: actions/cache@v6
@@ -173,6 +173,7 @@ jobs:
         run: |
           packaging/fetch-sdl.sh dist/sdl
           cygpath -w "$PWD/dist/sdl/bin" >> "$GITHUB_PATH"
+      - run: packaging/fetch-winrt.sh
       - run: cmake -S desktop -B desktop/build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release -DMPV_DIR="$PWD/dist/mpv" -DSDL3_DIR="$PWD/dist/sdl/lib/cmake/SDL3"
       - run: cmake --build desktop/build/ci
       - run: |

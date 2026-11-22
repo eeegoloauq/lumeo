@@ -62,6 +62,7 @@ public:
   double fill() const { return m_fill; }
   int secondsLeft() const { return m_secondsLeft; }
   bool advancing() const { return m_advancing; }
+  bool canAdvance() const;
   SourceChoice *choice() const { return m_choice; }
   QVariantMap starting() const { return m_starting; }
 

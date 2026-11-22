@@ -49,6 +49,8 @@ class Playback : public QObject, public QQmlParserStatus {
   Q_PROPERTY(QString title READ title NOTIFY changed)
   // The episode's own title, empty for a film or until the catalogue says.
   Q_PROPERTY(QString episodeTitle READ episodeTitle NOTIFY changed)
+  Q_PROPERTY(QString trailerPoster MEMBER m_trailerPoster)
+  Q_PROPERTY(bool systemMediaKeys READ systemMediaKeys NOTIFY systemMediaKeysChanged)
   // The download as the core last described it; empty until it answers.
   Q_PROPERTY(QVariantMap download READ download NOTIFY changed)
   // What an active download is doing: "findingPeers", "fetchingMetadata"
@@ -98,6 +100,18 @@ public:
   void setMpv(MpvItem *mpv);
   QString title() const;
   QString episodeTitle() const { return m_episodeTitle; }
+  bool systemMediaKeys() const { return m_systemMediaKeys; }
+  void setSystemMediaKeys(bool enabled);
+  bool mediaActive() const;
+  bool mediaCanSeek() const;
+  bool mediaHasNext() const;
+  bool mediaHasPrevious() const;
+  QString mediaArtwork() const;
+  void mediaSetPaused(bool paused);
+  void mediaTogglePause();
+  void mediaSeek(double seconds);
+  void mediaNext();
+  void mediaPrevious();
   QVariantMap download() const { return m_download; }
   QString stage() const;
   bool opened() const { return m_opened; }
@@ -154,6 +168,8 @@ public:
   static bool refusal(const QString &line);
 
 signals:
+  void systemMediaKeysChanged();
+  void mediaPauseRequested();
   void mpvChanged();
   void tracksChanged();
   void changed();
@@ -176,6 +192,7 @@ private:
   void refresh();
   void open();
   void loadItem();
+  void findPreviousEpisode();
   void resume();
   void defineBindings();
   void applyScreenshots();
@@ -214,6 +231,10 @@ private:
   QString m_name;
   QString m_named;
   QString m_episodeTitle;
+  QString m_poster;
+  QString m_trailerPoster;
+  QVariantMap m_previousEpisode;
+  bool m_systemMediaKeys = false;
   QVariantList m_episodes;
   // findingNoPeers as the last poll said it.
   bool m_findingNoPeers = false;

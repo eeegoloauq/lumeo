@@ -357,8 +357,12 @@ void Next::skip() {
     m_mpv->command({"seek", QString::number(m_target, 'f', 3), "absolute+exact"});
 }
 
+bool Next::canAdvance() const {
+  return !m_advancing && !m_episode.isEmpty() && !upcoming(m_episode);
+}
+
 void Next::advance() {
-  if (m_advancing || m_episode.isEmpty())
+  if (!canAdvance())
     return;
   m_countdown.stop();
   // Credits skipped count as watched before the core's 90%.

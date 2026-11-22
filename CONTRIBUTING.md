@@ -21,7 +21,7 @@ settings and HTTP API, [docs/roadmap.md](docs/roadmap.md) what comes next.
   Ubuntu, as CI installs them: `cmake ninja-build pkg-config ccache mold libgl-dev libegl-dev
   libxkbcommon-dev libmpv-dev libudev-dev`. Ubuntu 24.04 has no SDL3: [`packaging/build-sdl.sh`](packaging/build-sdl.sh)
   builds the release's into `~/.cache/lumeo` and prints where, for `SDL3_ROOT`.
-- For the player tests: `weston` and `ffmpeg`. [`desktop/tool/build-mpv.sh`](desktop/tool/build-mpv.sh) builds libmpv 0.41 into
+- For the player tests: `weston`, `ffmpeg` and `dbus-run-session`. [`desktop/tool/build-mpv.sh`](desktop/tool/build-mpv.sh) builds libmpv 0.41 into
   `~/.cache/lumeo` when your distribution's is older; the player tests use it when it is there.
 
 ## Running it
@@ -168,6 +168,9 @@ private: make it public once in the package's settings on GitHub.
 The Windows libmpv is a pinned build mirrored into this repository's releases by
 [`.github/workflows/libmpv.yml`](.github/workflows/libmpv.yml); a bump is that workflow run once and the four lines in
 `fetch-libmpv.sh`.
+For a direct Windows build with Qt's MinGW, [`packaging/fetch-winrt.sh`](packaging/fetch-winrt.sh)
+supplies the generated WinRT headers in `dist/winrt`. The Windows CI and installer build
+run it automatically.
 
 ## Share site
 

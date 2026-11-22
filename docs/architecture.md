@@ -562,3 +562,13 @@ request logic in QML, no layout in C++.
                   (Theme.qml over the Tokens.qml design/tokens.json makes)
     tests/        units, app tests and player tests (decisions/testing.md)
 
+The active player publishes a system media session through MPRIS on Linux and
+System Media Transport Controls on Windows. The desktop reads the title, artwork
+and timeline from it. Media keys use the player's playback and episode actions,
+including while the window is minimised. Closing the player withdraws the
+session. The artwork address uses the core's tokenless artwork route.
+
+The Windows adapter attaches to the top-level window through WinRT. Its source
+file uses a pinned set of generated MinGW-w64 WinRT headers because the SDK
+shipped with Qt's MinGW lacks the media interfaces. The rest of the client
+builds against Qt's SDK.

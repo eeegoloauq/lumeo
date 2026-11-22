@@ -6,6 +6,13 @@
 #include "mpvitem.h"
 #include "pins.h"
 
+#ifdef Q_OS_LINUX
+#include <QDBusArgument>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusVariant>
+#endif
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -30,6 +37,58 @@ class Disk : public QObject {
 public:
   Q_INVOKABLE QStringList list(const QString &dir) const { return QDir(dir).entryList(QDir::Files); }
 };
+
+#ifdef Q_OS_LINUX
+class MediaControls : public QObject {
+  Q_OBJECT
+
+public:
+  explicit MediaControls(QQmlEngine *engine)
+      : QObject(engine), m_engine(engine),
+        m_bus(QDBusConnection::connectToBus(QDBusConnection::SessionBus, "player-test-client")) {}
+
+  Q_INVOKABLE void get(const QString &property, const QJSValue &callback) {
+    auto message = request("org.freedesktop.DBus.Properties", "Get");
+    message << QString(playerInterface) << property;
+    send(message, callback);
+  }
+
+  Q_INVOKABLE void command(const QString &method, const QJSValue &callback) {
+    send(request(playerInterface, method), callback);
+  }
+
+  Q_INVOKABLE void seek(qlonglong offset, const QJSValue &callback) {
+    auto message = request(playerInterface, "Seek");
+    message << offset;
+    send(message, callback);
+  }
+
+private:
+  static constexpr auto playerInterface = "org.mpris.MediaPlayer2.Player";
+
+  static QDBusMessage request(const QString &interface, const QString &method) {
+    return QDBusMessage::createMethodCall("org.mpris.MediaPlayer2.lumeo", "/org/mpris/MediaPlayer2",
+                                          interface, method);
+  }
+
+  void send(const QDBusMessage &message, const QJSValue &callback) {
+    auto *watcher = new QDBusPendingCallWatcher(m_bus.asyncCall(message), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, callback](QDBusPendingCallWatcher *finished) {
+      const auto reply = finished->reply();
+      finished->deleteLater();
+      QVariant value = reply.arguments().value(0).value<QDBusVariant>().variant();
+      if (value.metaType() == QMetaType::fromType<QDBusArgument>())
+        value = qdbus_cast<QVariantMap>(value.value<QDBusArgument>());
+      callback.call({QJSValue(reply.type() == QDBusMessage::ReplyMessage),
+                     m_engine->toScriptValue(value)});
+    });
+  }
+
+  QQmlEngine *m_engine;
+  QDBusConnection m_bus;
+};
+#endif
 
 // What only a real libmpv can show, on headless Weston: tool/player-test.sh
 // runs it with the clips it makes, which the fake core streams as downloads:
@@ -105,6 +164,9 @@ public slots:
     engine->rootContext()->setContextProperty("ownCore", own.get());
     engine->rootContext()->setContextProperty("screenshots", config.filePath("shots"));
     engine->rootContext()->setContextProperty("disk", &disk);
+#ifdef Q_OS_LINUX
+    engine->rootContext()->setContextProperty("mediaControls", new MediaControls(engine));
+#endif
     Artwork::install(engine);
     Glyphs::install(engine);
   }

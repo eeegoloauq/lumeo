@@ -125,6 +125,35 @@ Item {
             verify(body.position > 0 && body.duration > 19, JSON.stringify(body))
         }
 
+        function mediaReply(method, argument) {
+            let result
+            mediaControls[method](argument, (ok, value) => { result = {ok, value} })
+            tryVerify(() => result !== undefined, 5000, String(argument))
+            return result
+        }
+
+        function test_systemMediaSessionControlsTheFilmAndGoesOnClose() {
+            if (Qt.platform.os !== "linux")
+                skip("MPRIS is a Linux desktop protocol")
+            verify(!mediaReply("get", "PlaybackStatus").ok)
+            playing()
+            tryCompare(player.playback, "systemMediaKeys", true)
+            const metadata = mediaReply("get", "Metadata")
+            verify(metadata.ok)
+            compare(metadata.value["xesam:title"], "Nosferatu")
+            verify(metadata.value["mpris:length"] > 0)
+
+            verify(mediaReply("command", "PlayPause").ok)
+            tryCompare(player.mpv, "paused", true)
+            compare(mediaReply("get", "PlaybackStatus").value, "Paused")
+            const beforeSeek = player.mpv.position
+            verify(mediaReply("seek", 4000000).ok)
+            tryVerify(() => player.mpv.position >= beforeSeek + 3.9)
+            verify(mediaReply("command", "Stop").ok)
+            tryCompare(closed, "count", 1)
+            verify(!mediaReply("get", "PlaybackStatus").ok)
+        }
+
         // The keys are mpv's: what they do is read back from mpv.
         function test_theKeysAreMpvs() {
             playing()

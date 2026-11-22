@@ -266,6 +266,20 @@ target_link_libraries(lumeo PUBLIC
 )
 if(LINUX)
   target_link_libraries(lumeo PUBLIC Qt6::DBus)
+  target_sources(lumeo PRIVATE src/platform/mpris.h src/platform/mpris.cpp)
+elseif(WIN32)
+  target_sources(lumeo PRIVATE src/platform/smtc.h src/platform/smtc.cpp
+    src/platform/smtcnative.h src/platform/smtcnative.cpp)
+  target_link_libraries(lumeo PRIVATE runtimeobject)
+  if(MINGW)
+    set(WINRT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dist/winrt" CACHE PATH
+      "Generated WinRT headers from packaging/fetch-winrt.sh")
+    if(NOT EXISTS "${WINRT_DIR}/windows.media.h")
+      message(FATAL_ERROR "Run packaging/fetch-winrt.sh before building with Qt's MinGW")
+    endif()
+    set_source_files_properties(src/platform/smtcnative.cpp PROPERTIES
+      COMPILE_OPTIONS "-isystem;${WINRT_DIR}")
+  endif()
 endif()
 # A static SDL3 stays inside the binary. A distribution's libmpv may link
 # SDL2, whose functions have the same names: exported to satisfy it, ours

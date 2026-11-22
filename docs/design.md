@@ -77,16 +77,6 @@ app. This revises "No browser playback" in decisions/foundations.md.
 
 ## Desktop integration
 
-- A system media session while a film, episode or trailer is open: MPRIS on
-  Linux, as in Legato, and SMTC on Windows. It shows the title, series and
-  episode, artwork, state, duration and position, and offers play/pause,
-  seeking where the source allows it, and next/previous only where there is an
-  episode. Its commands are the player's own actions. It stays on pause and
-  when minimised, is cleared when the player closes or fails, and is updated,
-  not left stale, when the episode changes. Where the card appears and for how
-  long is the desktop's. No stream URLs or core credentials in it.
-- Media keys through that session, also when another app has focus; one press
-  acts once, so Qt and mpv must not handle it as well.
 - Suspend: save progress and pause; after resume, recover the stream without
   starting playback. Sleep, the lid and critical battery stay the system's.
 - `[?]` Pause when headphones or a Bluetooth device disconnect, so dialogue

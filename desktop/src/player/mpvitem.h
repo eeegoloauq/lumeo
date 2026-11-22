@@ -86,6 +86,7 @@ public:
   void componentComplete() override;
 
   bool paused() const { return m_paused; }
+  bool seekable() const { return m_seekable; }
   double position() const { return m_position; }
   double duration() const { return m_duration; }
   double volume() const { return m_volume; }
@@ -158,6 +159,8 @@ public:
 
 signals:
   void pausedChanged();
+  void seekableChanged();
+  void seekFinished(double position);
   void positionChanged();
   void durationChanged();
   void volumeChanged();
@@ -201,6 +204,9 @@ private:
 
   std::shared_ptr<MpvShared> m_shared;
   bool m_paused = false;
+  bool m_seekable = false;
+  bool m_seeking = false;
+  quint64 m_seekRevision = 0;
   double m_position = 0;
   double m_duration = 0;
   double m_volume = 100;

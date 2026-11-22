@@ -13,7 +13,6 @@
 - Typing in search with a gamepad
 - Faster first open of a title
 - Vertical episode list for series
-- System media controls and media keys while playing
 - Pause when headphones disconnect
 
 ## Later

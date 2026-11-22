@@ -23,6 +23,7 @@
 #include <mpv/render_gl.h>
 
 #include <list>
+#include <utility>
 #include <vector>
 
 // Not on the thread that let it go, the GUI's or the render thread: mpv
@@ -43,6 +44,7 @@ namespace {
 
 enum Observed : uint64_t {
   Paused = 1,
+  Seekable,
   Position,
   Duration,
   Volume,
@@ -428,6 +430,7 @@ MpvItem::MpvItem(QQuickItem *parent)
 
   const std::pair<Observed, std::pair<const char *, mpv_format>> observed[] = {
       {Paused, {"pause", MPV_FORMAT_FLAG}},
+      {Seekable, {"seekable", MPV_FORMAT_FLAG}},
       {Position, {"time-pos", MPV_FORMAT_DOUBLE}},
       {Duration, {"duration", MPV_FORMAT_DOUBLE}},
       {Volume, {"volume", MPV_FORMAT_DOUBLE}},
@@ -489,6 +492,8 @@ void MpvItem::componentComplete() {
 }
 
 void MpvItem::open(const QString &url, const QStringList &headers) {
+  m_seeking = false;
+  ++m_seekRevision;
   set("http-header-fields", headers);
   command({"loadfile", url});
 }
@@ -678,6 +683,19 @@ void MpvItem::drainEvents() {
       emit logged(QString::fromUtf8(message->text).trimmed());
       break;
     }
+    case MPV_EVENT_SEEK:
+      m_seeking = true;
+      ++m_seekRevision;
+      break;
+    case MPV_EVENT_PLAYBACK_RESTART:
+      if (std::exchange(m_seeking, false)) {
+        // The restart can arrive before the observed position catches up.
+        get("time-pos", this, [this, revision = m_seekRevision](const QVariant &value) {
+          if (value.isValid() && revision == m_seekRevision)
+            emit seekFinished(value.toDouble());
+        });
+      }
+      break;
     case MPV_EVENT_END_FILE: {
       auto *end = static_cast<mpv_event_end_file *>(event->data);
       if (end->reason == MPV_END_FILE_REASON_ERROR)
@@ -715,6 +733,9 @@ void MpvItem::onProperty(uint64_t id, const mpv_event_property *property) {
   switch (id) {
   case Paused:
     update(m_paused, flag, &MpvItem::pausedChanged);
+    break;
+  case Seekable:
+    update(m_seekable, flag, &MpvItem::seekableChanged);
     break;
   case Position:
     update(m_position, number, &MpvItem::positionChanged);

@@ -124,6 +124,7 @@ ShellPage {
     function playTrailers(start) {
         page.trailer({
             urls: page.trailerUrls,
+            poster: page.shown.poster,
             start: start,
             play: copies.playable ? page.playText : "",
             played: () => page.playEpisode(page.current),

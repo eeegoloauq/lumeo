@@ -199,6 +199,7 @@ Menu {
             const item = titleMenu.item
             titleMenu.trailer({
                 urls: titleMenu.trailers,
+                poster: item.poster,
                 start: 0,
                 play: qsTrId("commonPlay"),
                 played: () => titleMenu.play(item, null),

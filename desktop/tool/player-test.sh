@@ -11,7 +11,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 test=build/dev/tests/player_test
-for tool in weston cc ffmpeg; do
+for tool in weston cc ffmpeg dbus-run-session; do
   command -v "$tool" >/dev/null || { echo "missing: $tool" >&2; exit 1; }
 done
 [[ -x $test ]] || { echo "missing: $test (cmake --build --preset dev)" >&2; exit 1; }
@@ -95,4 +95,4 @@ ffmpeg -loglevel error -f lavfi -i testsrc2=size=320x180:rate=24:duration=20 \
   "$LUMEO_TEST_TRACKS"
 
 # Not exec, or the trap above never runs and Weston stays behind.
-"$test" "$@"
+dbus-run-session -- "$test" "$@"

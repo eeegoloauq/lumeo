@@ -27,6 +27,9 @@ packaging/fetch-libmpv.sh dist/mpv
 echo "==> sdl"
 packaging/fetch-sdl.sh dist/sdl
 
+echo "==> winrt headers"
+packaging/fetch-winrt.sh
+
 echo "==> client"
 cmake -S desktop -B desktop/build/windows -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
   -DLUMEO_VERSION="$version" -DMPV_DIR="$PWD/dist/mpv" -DSDL3_DIR="$PWD/dist/sdl/lib/cmake/SDL3"

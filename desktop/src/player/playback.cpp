@@ -7,12 +7,18 @@
 #include "preferences.h"
 #include "settings.h"
 #include "tracks.h"
+#ifdef Q_OS_LINUX
+#include "mpris.h"
+#elif defined(Q_OS_WIN)
+#include "smtc.h"
+#endif
 
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQmlEngine>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QUrl>
 
 Playback::Playback(QObject *parent) : QObject(parent) {
   m_poll.setSingleShot(true);
@@ -42,6 +48,11 @@ void Playback::componentComplete() {
     m_next = new Next(m_mpv, m_core, m_preferences,
                       engine->singletonInstance<Downloads *>("Lumeo", "Downloads"), this);
     connect(m_next, &Next::watched, this, [this] { report(true); });
+#ifdef Q_OS_LINUX
+    new Mpris(this);
+#elif defined(Q_OS_WIN)
+    new Smtc(this);
+#endif
     emit tracksChanged();
     applyScreenshots();
     applyAudio();
@@ -93,6 +104,84 @@ void Playback::setMpv(MpvItem *mpv) {
 QString Playback::title() const {
   static const QRegularExpression episode(" · S\\d+E\\d+$");
   return QString(m_named.isEmpty() ? m_name : m_named).remove(episode);
+}
+
+void Playback::setSystemMediaKeys(bool enabled) {
+  if (m_systemMediaKeys == enabled)
+    return;
+  m_systemMediaKeys = enabled;
+  emit systemMediaKeysChanged();
+}
+
+bool Playback::mediaActive() const {
+  return m_mpv && m_mpv->hasPicture() && !m_closing && m_failure != WouldNotStart;
+}
+
+bool Playback::mediaCanSeek() const {
+  return mediaActive() && m_mpv->seekable() && m_mpv->duration() > 0;
+}
+
+bool Playback::mediaHasNext() const {
+  return mediaActive() && m_next->canAdvance();
+}
+
+bool Playback::mediaHasPrevious() const {
+  return mediaActive() && !m_next->advancing() && !m_previousEpisode.isEmpty();
+}
+
+QString Playback::mediaArtwork() const {
+  const QUrl address(m_trailer >= 0 ? m_trailerPoster : m_poster);
+  if ((address.scheme() == "http" || address.scheme() == "https") && address.isValid() &&
+      address.path().startsWith("/api/v1/artwork/") && address.userInfo().isEmpty())
+    return address.toString(QUrl::FullyEncoded);
+  return {};
+}
+
+void Playback::mediaSetPaused(bool paused) {
+  if (mediaActive()) {
+    emit mediaPauseRequested();
+    m_mpv->set("pause", paused);
+  }
+}
+
+void Playback::mediaTogglePause() {
+  if (mediaActive()) {
+    emit mediaPauseRequested();
+    m_mpv->command({"cycle", "pause"});
+  }
+}
+
+void Playback::mediaSeek(double seconds) {
+  if (mediaCanSeek() && seconds >= 0 && seconds <= m_mpv->duration())
+    m_mpv->command({"seek", QString::number(seconds, 'f', 6), "absolute+exact"});
+}
+
+void Playback::mediaNext() {
+  if (mediaHasNext())
+    m_next->advance();
+}
+
+void Playback::mediaPrevious() {
+  if (mediaHasPrevious())
+    m_next->play(m_previousEpisode);
+}
+
+void Playback::findPreviousEpisode() {
+  m_previousEpisode.clear();
+  const auto current = std::pair{m_download.value("season").toInt(),
+                                 m_download.value("episode").toInt()};
+  if (current.second <= 0)
+    return;
+  std::pair<int, int> previousNumber{};
+  for (const QVariant &value : m_episodes) {
+    const QVariantMap episode = value.toMap();
+    const auto number = std::pair{episode.value("season").toInt(), episode.value("number").toInt()};
+    if (number.second > 0 && number < current &&
+        (m_previousEpisode.isEmpty() || number > previousNumber)) {
+      m_previousEpisode = episode;
+      previousNumber = number;
+    }
+  }
 }
 
 QString Playback::stage() const {
@@ -188,8 +277,7 @@ void Playback::refresh() {
     const QString itemId = m_download.value("itemId").toString();
     if (m_openedUnnamed < 0)
       m_openedUnnamed = itemId.isEmpty();
-    if (!m_itemAsked && !itemId.isEmpty() &&
-        (m_download.value("episode").toInt() > 0 || m_openedUnnamed == 1)) {
+    if (!m_itemAsked && !itemId.isEmpty()) {
       m_itemAsked = true;
       loadItem();
     }
@@ -245,7 +333,9 @@ void Playback::loadItem() {
                 if (!reply.ok())
                   return;
                 const QJsonObject item = reply.json().toObject();
+                m_poster = item["poster"].toString();
                 m_episodes = item["episodes"].toArray().toVariantList();
+                findPreviousEpisode();
                 m_runtime = item["runtime"].toString();
                 for (const QJsonValue &e : item["episodes"].toArray())
                   if (e["season"].toInt() == season && e["number"].toInt() == episode)

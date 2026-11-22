@@ -154,19 +154,27 @@ FocusScope {
         mpv: video
         downloadId: player.downloadId
         urls: player.trailer?.urls ?? []
+        trailerPoster: player.trailer?.poster ?? ""
         start: player.trailer?.start ?? 0
         name: player.name
         onClosed: player.closed()
         onFinished: player.finished()
+        onMediaPauseRequested: player.pausedByMinimising = false
         onNotice: (kind, codec) => note.say(player.trouble(kind, codec))
         onTrailerFailed: url => player.trailer.failed?.(url)
     }
 
-    // Keys mpv has no name for, such as a modifier alone, go on to the window.
-    Keys.onPressed: event => event.accepted = video.press(event.key, event.text, event.modifiers,
-                                                        event.nativeScanCode, event.isAutoRepeat)
-    Keys.onReleased: event => event.accepted = video.release(event.key, event.nativeScanCode,
-                                                           event.isAutoRepeat)
+    function systemMediaKey(key: int): bool {
+        return session.systemMediaKeys && (key === Qt.Key_MediaPlay || key === Qt.Key_MediaPause
+            || key === Qt.Key_MediaTogglePlayPause || key === Qt.Key_MediaStop
+            || key === Qt.Key_MediaNext || key === Qt.Key_MediaPrevious)
+    }
+
+    // The desktop delivers transport keys through its media session while it is registered.
+    Keys.onPressed: event => event.accepted = player.systemMediaKey(event.key)
+        || video.press(event.key, event.text, event.modifiers, event.nativeScanCode, event.isAutoRepeat)
+    Keys.onReleased: event => event.accepted = player.systemMediaKey(event.key)
+        || video.release(event.key, event.nativeScanCode, event.isAutoRepeat)
     onActiveFocusChanged: if (!activeFocus) video.releaseKeys()
     // A gamepad follows the keyboard: mpv's while the keys are.
     Binding {
